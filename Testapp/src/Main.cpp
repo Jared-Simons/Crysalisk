@@ -2,11 +2,11 @@
 
 int main()
 {
-	Engine->EngineInitialize();
+	Engine->Engine_Initialize();
 
 	while (true)
 	{
-		Engine->EngineRun();
+		Engine->Engine_Run();
 	}
 
 	return 0;

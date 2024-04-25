@@ -20,14 +20,14 @@ const char* logLevelStrings[6] =
 	"[FATAL]\t "
 };
 
-bool LoggingInitialize()
+bool Logging_Initialize()
 {
 	g_Logger->InitLoggingSystems();
 
 	return true;
 }
 
-void LoggingShutdown()
+void Logging_Shutdown()
 {
 	delete g_Logger;
 	g_Logger = nullptr;

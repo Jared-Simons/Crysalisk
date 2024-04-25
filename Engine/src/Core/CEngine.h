@@ -11,9 +11,9 @@
 class CEngine : public IEngine
 {
 public:
-	bool	EngineInitialize() override;
+	bool	Engine_Initialize() override;
 
-	bool	EngineRun() override;
+	bool	Engine_Run() override;
 
-	void	EngineShutdown() override;
+	void	Engine_Shutdown() override;
 };

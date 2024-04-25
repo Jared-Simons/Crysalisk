@@ -8,26 +8,32 @@
 #include "CEngine.h"
 
 #include "Core/Logging.h"
+#include "Platform/Platform.h"
 
-bool CEngine::EngineInitialize()
+bool CEngine::Engine_Initialize()
 {
-	LoggingInitialize();
-	
-	LOG_INFO("EngineInitialize() called!\n");
+	Logging_Initialize();
+	LOG_INFO("EngineInitialize() called!");
+
+	Platform_Initialize();
 
 	return true;
 }
 
-bool CEngine::EngineRun()
+bool CEngine::Engine_Run()
 {
-	//LOG_INFO("EngineRun() called!\n");
+	//LOG_INFO("EngineRun() called!");
+
+	Platform_Update();
 
 	return true;
 }
 
-void CEngine::EngineShutdown()
+void CEngine::Engine_Shutdown()
 {
-	LOG_INFO("EngineShutdown() called!\n");
+	LOG_INFO("EngineShutdown() called!");
+
+	Logging_Shutdown();
 }
 
 static CEngine g_Engine;

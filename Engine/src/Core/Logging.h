@@ -10,8 +10,8 @@
 
 const int MAX_LOGGERS = 32;
 
-bool LoggingInitialize();
-void LoggingShutdown();
+bool Logging_Initialize();
+void Logging_Shutdown();
 
 enum class eLogLevel
 {

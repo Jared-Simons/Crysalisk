@@ -11,9 +11,9 @@
 class ENGINE_API IEngine
 {
 public:
-	virtual bool	EngineInitialize() = 0;
-	virtual bool	EngineRun() = 0;
-	virtual void	EngineShutdown() = 0;
+	virtual bool	Engine_Initialize() = 0;
+	virtual bool	Engine_Run() = 0;
+	virtual void	Engine_Shutdown() = 0;
 };
 
 ENGINE_API extern IEngine* Engine;
