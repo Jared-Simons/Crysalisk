@@ -6,26 +6,14 @@
 //=============================================================================
 #pragma once
 
-#include <stdio.h>
 #include "Systems/IEngine.h"
 
 class CEngine : public IEngine
 {
 public:
-	bool	EngineInitialize() override
-	{
-		printf("EngineInitialize() called!\n");
-		return true;
-	}
+	bool	EngineInitialize() override;
 
-	bool	EngineRun() override
-	{
-		//printf("EngineRun() called!\n");
-		return true;
-	}
+	bool	EngineRun() override;
 
-	void	EngineShutdown() override
-	{
-		printf("EngineShutdown() called\n");
-	}
+	void	EngineShutdown() override;
 };

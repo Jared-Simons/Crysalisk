@@ -22,7 +22,15 @@ const char* logLevelStrings[6] =
 
 bool LoggingInitialize()
 {
+	g_Logger->InitLoggingSystems();
+
 	return true;
+}
+
+void LoggingShutdown()
+{
+	delete g_Logger;
+	g_Logger = nullptr;
 }
 
 Logger::Logger(const char* name)
@@ -56,7 +64,7 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	printf("%s", outMessage2);
 }
 
-LogSystem::LogSystem()
+bool LogSystem::InitLoggingSystems()
 {
 	for (int i = 0; i < MAX_LOGGERS; i++)
 	{
@@ -64,7 +72,10 @@ LogSystem::LogSystem()
 	}
 
 	// Create a general use logger.
+	// Index 0 will always be a general purpose logger.
 	m_RegiseredLoggers[0] = new Logger("General");
+
+	return true;
 }
 
 int LogSystem::RegisterLogger(Logger& logger)
@@ -82,6 +93,19 @@ int LogSystem::RegisterLogger(Logger& logger)
 	}
 
 	return loggerIndex;
+}
+
+Logger* LogSystem::GetLoggerByIndex(int index) const
+{
+	// TODO: If this returns nullptr, still print the message, but also error.
+
+	if (m_RegiseredLoggers[index] != nullptr)
+		return m_RegiseredLoggers[index];
+	else
+	{
+		LOG_ERROR("LOGGING ERROR: Invalid Logger Index at %d\n", index);
+		return nullptr;
+	}
 }
 
 // Global logging interface

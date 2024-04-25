@@ -26,10 +26,6 @@ enum class eLogLevel
 class ENGINE_API Logger
 {
 public:
-	Logger()
-		: m_loggerName{ "Unknown" }
-	{}
-
 	Logger(const char* name);
 
 	void LogMessage(eLogLevel level, const char* message, ...);
@@ -44,12 +40,12 @@ private:
 class LogSystem
 {
 public:
-	LogSystem();
+	bool	InitLoggingSystems();
 
 	int		RegisterLogger(Logger& logger);
 
 	// TODO: Check for nullptrs
-	Logger* GetLoggerByIndex(int index) const { return m_RegiseredLoggers[index]; }
+	Logger* GetLoggerByIndex(int index) const;
 
 private:
 	Logger* m_RegiseredLoggers[MAX_LOGGERS];
