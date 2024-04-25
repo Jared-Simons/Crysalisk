@@ -14,3 +14,5 @@
 /Testapp/Testapp.vcxproj.filters
 /Testapp/Testapp.vcxproj.user
 *.sln
+/bin/Distribution-windows-x86_64
+/bin-int/Distribution-windows-x86_64
