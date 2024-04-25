@@ -41,16 +41,16 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	char messageBuffer[4092];
 	char outMessage[4092];
 
-	sprintf(messageBuffer, "%s\0", message);
+	sprintf_s(messageBuffer, "%s\0", message);
 
 	va_list va_args;
 	va_start(va_args, message);
-	vsprintf(outMessage, messageBuffer, va_args);
+	vsprintf_s(outMessage, messageBuffer, va_args);
 	va_end(va_args);
 
 	// Append channel string to the message
 	char outMessage2[4092];
-	sprintf(outMessage2, "[%s]\t%s\n", m_loggerName, outMessage);
+	sprintf_s(outMessage2, "[%s]\t%s\n", m_loggerName, outMessage);
 
 	// TODO: Platform-specific logging
 	printf("%s", outMessage2);

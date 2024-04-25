@@ -37,8 +37,8 @@ public:
 	void SetDebugName(const char* name) { m_loggerName = name; }
 
 private:
-	const char* m_loggerName;
-	int m_loggerIndex;
+	const char* m_loggerName{ nullptr };
+	int m_loggerIndex{ -1 };
 };
 
 class LogSystem
@@ -49,7 +49,7 @@ public:
 	int		RegisterLogger(Logger& logger);
 
 	// TODO: Check for nullptrs
-	Logger* GetLoggerByIndex(int index) { return m_RegiseredLoggers[index]; }
+	Logger* GetLoggerByIndex(int index) const { return m_RegiseredLoggers[index]; }
 
 private:
 	Logger* m_RegiseredLoggers[MAX_LOGGERS];

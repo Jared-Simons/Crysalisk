@@ -7,10 +7,10 @@
 #define ENGINE_API  __declspec(dllimport)
 #endif
 
-#if defined GAME_API
-#define GAME_API __declspec(dllexport)
+#if defined GAME_DLL
+#define GAME_DLL __declspec(dllexport)
 #else
-#define GAME_API  __declspec(dllimport)
+#define GAME_DLL  __declspec(dllimport)
 #endif
 
 #if defined VULKAN_DLL
