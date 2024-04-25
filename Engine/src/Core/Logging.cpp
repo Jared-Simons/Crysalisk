@@ -25,6 +25,17 @@ bool LoggingInitialize()
 	return true;
 }
 
+Logger::Logger(const char* name)
+	: m_loggerName(name)
+{
+	m_loggerIndex = g_Logger->RegisterLogger(*this);
+
+	if (m_loggerIndex != -1)
+		printf("Logger '%s' initialized!\n", m_loggerName);
+	else
+		printf("Logger '%s' could not be registered!\n", m_loggerName);
+}
+
 void Logger::LogMessage(eLogLevel level, const char* message, ...)
 {
 	char messageBuffer[4092];
@@ -37,10 +48,42 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	vsprintf(outMessage, messageBuffer, va_args);
 	va_end(va_args);
 
-	// Append log level string to the message
+	// Append channel string to the message
 	char outMessage2[4092];
-	sprintf(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
+	sprintf(outMessage2, "[%s]\t%s\n", m_loggerName, outMessage);
 
 	// TODO: Platform-specific logging
 	printf("%s", outMessage2);
 }
+
+LogSystem::LogSystem()
+{
+	for (int i = 0; i < MAX_LOGGERS; i++)
+	{
+		m_RegiseredLoggers[i] = nullptr;
+	}
+
+	// Create a general use logger.
+	m_RegiseredLoggers[0] = new Logger("General");
+}
+
+int LogSystem::RegisterLogger(Logger& logger)
+{
+	int loggerIndex = -1;
+
+	for (int i = 0; i < MAX_LOGGERS; i++)
+	{
+		if (m_RegiseredLoggers[i] == nullptr)
+		{
+			loggerIndex = i;
+			m_RegiseredLoggers[i] = &logger;
+			break;
+		}
+	}
+
+	return loggerIndex;
+}
+
+// Global logging interface
+static LogSystem s_Logger;
+LogSystem* g_Logger = &s_Logger;
