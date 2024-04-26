@@ -38,9 +38,7 @@ Logger::Logger(const char* name)
 {
 	m_loggerIndex = g_Logger->RegisterLogger(*this);
 
-	if (m_loggerIndex != -1)
-		printf("Logger '%s' initialized!\n", m_loggerName);
-	else
+	if (m_loggerIndex == -1)
 		printf("Logger '%s' could not be registered!\n", m_loggerName);
 }
 
@@ -58,7 +56,7 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 
 	// Append channel string to the message
 	char outMessage2[4092];
-	sprintf_s(outMessage2, "[%s]\t%s\n", m_loggerName, outMessage);
+	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
 
 	// TODO: Platform-specific logging
 	printf("%s", outMessage2);

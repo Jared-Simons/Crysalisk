@@ -8,7 +8,7 @@
 
 #include "EngineGlobals.h"
 
-const int MAX_LOGGERS = 32;
+const int MAX_LOGGERS = 1;
 
 bool Logging_Initialize();
 void Logging_Shutdown();
