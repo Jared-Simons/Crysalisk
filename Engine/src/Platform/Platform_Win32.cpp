@@ -43,7 +43,7 @@ bool Platform_Initialize()
 		return false;
 	}
 
-	LOG_DEBUG("Platform Layer Initialized!");
+	LOG_INFO("Platform Layer Initialized!");
 
 	return true;
 }
@@ -120,6 +120,16 @@ bool Platform_ProcessMessages()
 	return true;
 }
 
+void Platform_LogMessage(int level, const char* message)
+{
+	HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
+	static char levelColor[6] = { 2, 3, 1, 6, 4, 64 };	// Borrowed from Kohi
+	SetConsoleTextAttribute(outputHandle, levelColor[level]);
+	unsigned int length = strlen(message);
+	WriteConsoleA(outputHandle, message, length, 0, 0);
+}
+
 LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -132,6 +142,49 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 		break;
 	}
+}
+
+//-----------------------------------------------------------------------------
+// Platform memory functions
+// 
+// Do NOT call these directly, instead call through the memory manager
+//-----------------------------------------------------------------------------
+void* Platform_MemoryAllocate(size_t size)
+{
+	return malloc(size);
+}
+
+void Platform_MemoryFree(void* memory)
+{
+	if(memory)
+		free(memory);
+}
+
+void* Platform_MemoryReallocate(void* memory, size_t newSize)
+{
+	if (memory && newSize)
+		return realloc(memory, newSize);
+
+	LOG_ERROR("Platform_MemoryRealloc() - Invalid memory pointer passed, returning nullptr.");
+	return nullptr;
+}
+
+void* Platform_MemoryCopy(void* dest, const void* source, size_t size)
+{
+	if (dest && source && size)
+		return memcpy(dest, source, size);
+
+	LOG_ERROR("Platform_MemoryCopy() - Invalid memory pointer(s) passed, returning nullptr.");
+	return nullptr;
+}
+
+void* Platform_MemorySet(void* memory, int value, size_t size)
+{
+	if (memory && value && size)
+		return memset(memory, value, size);
+
+	LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");
+	return nullptr;
 }
 
 #endif // PLAT_WINDOWS

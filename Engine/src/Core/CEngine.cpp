@@ -8,12 +8,15 @@
 #include "CEngine.h"
 
 #include "Core/Logging.h"
+#include "Core/Memory.h"
 #include "Platform/Platform.h"
 
 bool CEngine::Engine_Initialize()
 {
 	Logging_Initialize();
 	LOG_INFO("EngineInitialize() called!");
+
+	g_pMemorySystem->MemorySystem_Initialize();
 
 	Platform_Initialize();
 

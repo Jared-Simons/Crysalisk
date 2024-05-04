@@ -6,6 +6,8 @@
 //=============================================================================
 #include "Logging.h"
 
+#include "Platform/Platform.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -58,8 +60,7 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	char outMessage2[4092];
 	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
 
-	// TODO: Platform-specific logging
-	printf("%s", outMessage2);
+	Platform_LogMessage((int)level, outMessage2);
 }
 
 bool LogSystem::InitLoggingSystems()
