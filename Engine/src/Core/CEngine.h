@@ -16,4 +16,6 @@ public:
 	bool	Engine_Run() override;
 
 	void	Engine_Shutdown() override;
+
+private:
 };

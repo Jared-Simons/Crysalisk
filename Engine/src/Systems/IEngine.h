@@ -16,4 +16,6 @@ public:
 	virtual void	Engine_Shutdown() = 0;
 };
 
+// Global Engine Layer Interface
 ENGINE_API extern IEngine* Engine;
+

@@ -37,7 +37,7 @@ private:
 	int m_loggerIndex{ -1 };
 };
 
-class LogSystem
+class ENGINE_API LogSystem
 {
 public:
 	bool	InitLoggingSystems();
@@ -60,4 +60,5 @@ private:
 #define LOG_ERROR(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_ERROR, message, __VA_ARGS__))
 #define LOG_FATAL(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_FATAL, message, __VA_ARGS__))
 
-extern LogSystem* g_Logger;
+ENGINE_API extern LogSystem* g_Logger;
+

@@ -41,3 +41,4 @@ void CEngine::Engine_Shutdown()
 
 static CEngine g_Engine;
 IEngine* Engine = &g_Engine;
+
