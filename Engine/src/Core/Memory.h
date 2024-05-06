@@ -16,4 +16,5 @@ private:
 	unsigned int	m_numAllocations = 0;
 };
 
-extern CMemorySystem* g_pMemorySystem;
+extern CMemorySystem* gpMemorySystem;
+

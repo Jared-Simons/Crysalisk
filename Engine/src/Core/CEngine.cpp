@@ -9,6 +9,7 @@
 
 #include "Core/Logging.h"
 #include "Core/Memory.h"
+#include "Core/CEvent.h"
 #include "Platform/Platform.h"
 
 bool CEngine::Engine_Initialize()
@@ -16,7 +17,11 @@ bool CEngine::Engine_Initialize()
 	Logging_Initialize();
 	LOG_INFO("EngineInitialize() called!");
 
-	g_pMemorySystem->MemorySystem_Initialize();
+	// Memory System
+	gpMemorySystem->MemorySystem_Initialize();
+
+	// Event System
+	gpEngineEvents->EventSystem_Initialize();
 
 	Platform_Initialize();
 
@@ -35,6 +40,10 @@ bool CEngine::Engine_Run()
 void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	gpEngineEvents->EventSystem_Shutdown();
+
+	gpMemorySystem->MemorySystem_Shutdown();
 
 	Logging_Shutdown();
 }
