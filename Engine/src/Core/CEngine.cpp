@@ -9,7 +9,7 @@
 
 #include "Core/Logging.h"
 #include "Core/Memory.h"
-#include "Core/CEvent.h"
+#include "Systems/IEvent.h"
 #include "Platform/Platform.h"
 
 static bool Event_ApplicationQuit(void* data);
