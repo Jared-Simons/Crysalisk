@@ -49,8 +49,16 @@ bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PF
 	Event* newEvent = &m_RegisteredEvents[intEventCategory][0];
 
 	// Iterate through the registered events (of the same category) until a free slot is found
-	for (m_numRegisteredEvents[intEventCategory]; m_numRegisteredEvents[intEventCategory] < MAX_EVENTS_PER_CATEGORY; m_numRegisteredEvents[intEventCategory]++)
+	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY;i++)
 	{
+		// If the event has the same type and callback as another registered event, boot out and log a message
+		// We do not want multiple copies of the same event
+		if (newEvent[i].m_PFNEventCallback == PFN_Callback)
+		{
+			LOG_ERROR("CEventSystem::EventRegister() - Attempting to register a duplicate event. No action was taken.");
+			return false;
+		}
+
 		if (newEvent[m_numRegisteredEvents[intEventCategory]].m_EventID == -1)
 		{
 			// Found a free slot, populate
@@ -90,14 +98,15 @@ bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback 
 			eventToBeFreed[i].m_PFNEventCallback = nullptr;
 			eventToBeFreed[i].m_EventID = -1;
 
+			m_numRegisteredEvents[intEventCategory]--;
 			return true;
 		}
 		else
 			continue;
-
-		LOG_ERROR("EventSystem::EventUnregister() - requested event but can't be found. No action taken.");
-		return false;
 	}
+
+	LOG_ERROR("CEventSystem::EventUnregister() - requested event but can't be found. No action taken.");
+	return false;
 }
 
 bool CEventSystem::EventFire(eEventCategory eventCategory, void* data)
@@ -107,8 +116,13 @@ bool CEventSystem::EventFire(eEventCategory eventCategory, void* data)
 
 	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
 	{
-		curEvent[i].m_PFNEventCallback(data);
-		break;
+		// TODO: Implement some kind of sorting system, so that we don't have to loop through the ENTIRE array to fire messages.
+		// Perhaps we should periodically move events back as far as possible in the array so that all valid events are contiguous,
+		// therefore, once an invalid eventid is encountered (-1), we can break out of the loop.
+		if (curEvent[i].m_EventID != -1)
+		{
+			curEvent[i].m_PFNEventCallback(data);
+		}
 	}
 
 	return true;
