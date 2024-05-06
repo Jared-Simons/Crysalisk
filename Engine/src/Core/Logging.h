@@ -41,6 +41,7 @@ class ENGINE_API LogSystem
 {
 public:
 	bool	InitLoggingSystems();
+	void	ShutdownLoggingSystems();
 
 	int		RegisterLogger(Logger& logger);
 

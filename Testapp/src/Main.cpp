@@ -4,9 +4,9 @@ int main()
 {
 	Engine->Engine_Initialize();
 
-	while (true)
+	while (Engine->Engine_Run())
 	{
-		Engine->Engine_Run();
+
 	}
 
 	return 0;

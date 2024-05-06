@@ -31,7 +31,7 @@ bool Logging_Initialize()
 
 void Logging_Shutdown()
 {
-	delete g_Logger;
+	g_Logger->ShutdownLoggingSystems();
 	g_Logger = nullptr;
 }
 
@@ -75,6 +75,11 @@ bool LogSystem::InitLoggingSystems()
 	m_RegiseredLoggers[0] = new Logger("General");
 
 	return true;
+}
+
+void LogSystem::ShutdownLoggingSystems()
+{
+	delete m_RegiseredLoggers[0];
 }
 
 int LogSystem::RegisterLogger(Logger& logger)

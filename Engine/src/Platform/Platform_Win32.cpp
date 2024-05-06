@@ -11,6 +11,7 @@
 #include "Platform.h"
 
 #include "Core/Logging.h"
+#include "Systems/IEvent.h"
 
 #include <Windows.h>
 #define WIN32_LEAN_AND_MEAN
@@ -109,17 +110,6 @@ void Platform_Shutdown()
 {
 }
 
-bool Platform_ProcessMessages()
-{
-	MSG msg = {};
-	while (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
-	{
-		TranslateMessage(&msg);
-		DispatchMessageA(&msg);
-	}
-	return true;
-}
-
 void Platform_LogMessage(int level, const char* message)
 {
 	HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -130,6 +120,20 @@ void Platform_LogMessage(int level, const char* message)
 	WriteConsoleA(outputHandle, message, length, 0, 0);
 }
 
+// ============================================================================
+//  WIN32 Event Callbacks
+// ============================================================================
+
+bool Platform_ProcessMessages()
+{
+	MSG msg = {};
+	while (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&msg);
+		DispatchMessageA(&msg);
+	}
+	return true;
+}
 LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -137,6 +141,15 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+		if (GetKeyState(VK_ESCAPE) & 0x8000)
+		{
+			// Escape pressed... exit application TODO!!! MOVE ELSEWHERE
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, 0);
+			break;
+		}
 
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);

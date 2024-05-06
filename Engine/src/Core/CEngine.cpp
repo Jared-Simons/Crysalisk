@@ -12,6 +12,9 @@
 #include "Core/CEvent.h"
 #include "Platform/Platform.h"
 
+static bool Event_ApplicationQuit(void* data);
+static bool s_bApplicationQuitCalled = false;
+
 bool CEngine::Engine_Initialize()
 {
 	Logging_Initialize();
@@ -23,6 +26,9 @@ bool CEngine::Engine_Initialize()
 	// Event System
 	gpEngineEvents->EventSystem_Initialize();
 
+	// Register for engine-level events
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
+
 	Platform_Initialize();
 
 	return true;
@@ -30,16 +36,27 @@ bool CEngine::Engine_Initialize()
 
 bool CEngine::Engine_Run()
 {
-	//LOG_INFO("EngineRun() called!");
+	while (!s_bApplicationQuitCalled)
+	{
+		//LOG_INFO("EngineRun() called!");
 
-	Platform_Update();
+		Platform_Update();
 
-	return true;
+		return true;
+	}
+
+	Engine_Shutdown();
+
+	// Returning false signifies that the engine is done running and ready for shutdown
+	return false;
 }
 
 void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	// Unregister from engine-level events
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
 
 	gpEngineEvents->EventSystem_Shutdown();
 
@@ -51,3 +68,10 @@ void CEngine::Engine_Shutdown()
 static CEngine g_Engine;
 IEngine* Engine = &g_Engine;
 
+
+bool Event_ApplicationQuit(void* user)
+{
+	LOG_VERBOSE("Application_Quit() called");
+	s_bApplicationQuitCalled = true;
+	return true;
+}

@@ -27,7 +27,7 @@ void CEventSystem::EventSystem_Shutdown()
 
 	for (int i = 0; i < NUM_EVENT_CATEGORIES; i++)
 	{
-		for (int j = 0; i < MAX_EVENTS_PER_CATEGORY; j++)
+		for (int j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
 		{
 			if (m_RegisteredEvents[i][j].m_EventID != -1)
 			{
@@ -61,7 +61,6 @@ bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PF
 			newEvent->m_PFNEventCallback = PFN_Callback;
 
 			m_numRegisteredEvents[intEventCategory]++;
-
 			return true;
 		}
 	}
@@ -109,7 +108,7 @@ bool CEventSystem::EventFire(eEventCategory eventCategory, void* data)
 	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
 	{
 		curEvent[i].m_PFNEventCallback(data);
-		continue;
+		break;
 	}
 
 	return true;
