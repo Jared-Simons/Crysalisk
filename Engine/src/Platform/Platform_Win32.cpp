@@ -116,7 +116,7 @@ void Platform_LogMessage(int level, const char* message)
 	// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
 	static char levelColor[6] = { 2, 3, 1, 6, 4, 64 };	// Borrowed from Kohi
 	SetConsoleTextAttribute(outputHandle, levelColor[level]);
-	unsigned int length = strlen(message);
+	size_t length = strlen(message);
 	WriteConsoleA(outputHandle, message, length, 0, 0);
 }
 
@@ -141,6 +141,7 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+		break;
 
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
@@ -150,6 +151,7 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, 0);
 			break;
 		}
+		break;
 
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
