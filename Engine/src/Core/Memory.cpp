@@ -1,5 +1,4 @@
-#include "Memory.h"
-
+#include "Systems/IMemory.h"
 #include "Core/Logging.h"
 
 #include "Platform/Platform.h"

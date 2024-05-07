@@ -5,10 +5,10 @@
 // Purpose: Implements the core engine loop.
 //=============================================================================
 
-#include "CEngine.h"
+#include "Systems/IEngine.h"
 
 #include "Core/Logging.h"
-#include "Core/Memory.h"
+#include "Systems/IMemory.h"
 #include "Systems/IEvent.h"
 #include "Systems/IInput.h"
 #include "Platform/Platform.h"
@@ -19,6 +19,18 @@ static bool Event_KeyPressed(void* data);
 static bool Event_KeyReleased(void* data);
 static bool Event_MouseButtonPressed(void* data);
 static bool Event_MouseButtonReleased(void* data);
+
+class CEngine : public IEngine
+{
+public:
+	bool	Engine_Initialize() override;
+
+	bool	Engine_Run() override;
+
+	void	Engine_Shutdown() override;
+
+private:
+};
 
 bool CEngine::Engine_Initialize()
 {
