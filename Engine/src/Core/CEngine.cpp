@@ -35,7 +35,6 @@ private:
 bool CEngine::Engine_Initialize()
 {
 	Logging_Initialize();
-	LOG_INFO("EngineInitialize() called!");
 
 	// Memory System
 	gpMemorySystem->MemorySystem_Initialize();
@@ -55,6 +54,7 @@ bool CEngine::Engine_Initialize()
 
 	Platform_Initialize();
 
+	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
 
