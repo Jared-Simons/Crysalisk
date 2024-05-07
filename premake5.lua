@@ -30,6 +30,7 @@ project "Engine"
 	{	
 		"%{prj.name}/src",
 		"D:/coding/Vulkan/Include",
+		"UtilityLib/src/"
 	}
 
 	links
@@ -119,3 +120,113 @@ project "Testapp"
 	filter "configurations:Distribution"
 		defines "GAME_API;GAME_DIST;"
 		optimize "on"
+
+
+project "Engine"
+	location "engine"
+	kind "SharedLib"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+
+	characterset("MBCS")
+	
+	includedirs
+	{	
+		"%{prj.name}/src",
+		"D:/coding/Vulkan/Include",
+	}
+
+	links
+	{
+		"D:/coding/Vulkan/Lib/Vulkan-1"
+	}
+
+	libdirs
+	{
+		"bin/Debug-windows-x86_64/VulkanRenderer",
+		"D:/coding/Vulkan/Lib"
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+	
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
+	filter "configurations:Debug"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DEBUG;ENGINE_DLL"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DIST;ENGINE_RELEASE;ENGINE_DLL"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DIST;ENGINE_DLL"
+		optimize "on"
+
+project "UtilityLib"
+	location "UtilityLib"
+	kind "StaticLib"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	characterset("MBCS")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+	
+	includedirs
+	{	
+	}
+	
+	links
+	{
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+	
+	filter "configurations:Debug"
+		defines "UTILITY_API;UTILITY_DEBUG;"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "UTILITY_API;UTILITY_RELEASE;"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "UTILITY_API;UTILITY_DIST;"
+		optimize "on"
+
