@@ -12,6 +12,7 @@
 
 #include "Core/Logging.h"
 #include "Systems/IEvent.h"
+#include "Systems/IInput.h"
 
 #include <Windows.h>
 #define WIN32_LEAN_AND_MEAN
@@ -29,6 +30,9 @@ static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 const char* engineWindowClass{ "Engine_Window_Class" };
 
 static bool	CreateWin32Window();
+static int ProcessWin32Input_Key(WPARAM wParam);
+static int ProcessWin32Input_MouseButton(UINT uMsg);
+static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
 bool Platform_Initialize()
 {
@@ -123,7 +127,6 @@ void Platform_LogMessage(int level, const char* message)
 // ============================================================================
 //  WIN32 Event Callbacks
 // ============================================================================
-
 bool Platform_ProcessMessages()
 {
 	MSG msg = {};
@@ -151,6 +154,47 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, 0);
 			break;
 		}
+		else
+		{
+			// Prepare message data for input processing
+			int processedKeyCode = ProcessWin32Input_Key(wParam);
+
+			// Send to the input system.
+			gpInputSystem->ProcessKeyInput(processedKeyCode, true);
+		}
+		break;
+
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		{
+			// Prepare message data for input processing
+			int processedKeyCode = ProcessWin32Input_Key(wParam);
+
+			// Send to the input system.
+			gpInputSystem->ProcessKeyInput(processedKeyCode, false);
+		}
+		break;
+
+	case WM_LBUTTONUP:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONUP:
+	{
+		int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+		gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, false);
+		break;
+	}
+
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	{
+		int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+		gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, true);
+		break;
+	}
+
+	case WM_MOUSEMOVE:
+		ProcessWin32Input_MouseMove(lParam);
 		break;
 
 	default:
@@ -158,6 +202,141 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 }
+
+// ============================================================================
+//  WIN32 Input Processing
+// ============================================================================
+int ProcessWin32Input_Key(WPARAM wParam)
+{
+	switch (wParam)
+	{
+	case 0x41:
+		return KEY_A;
+		break;
+	case 0x42:
+		return KEY_B;
+		break;
+	case 0x43:
+		return KEY_C;
+		break;
+	case 0x44:
+		return KEY_D;
+		break;
+	case 0x45:
+		return KEY_E;
+		break;
+	case 0x46:
+		return KEY_F;
+		break;
+	case 0x47:
+		return KEY_G;
+		break;
+	case 0x48:
+		return KEY_H;
+		break;
+	case 0x49:
+		return KEY_I;
+		break;
+	case 0x4A:
+		return KEY_J;
+		break;
+	case 0x4B:
+		return KEY_K;
+		break;
+	case 0x4C:
+		return KEY_L;
+		break;
+	case 0x4D:
+		return KEY_M;
+		break;
+	case 0x4E:
+		return KEY_N;
+		break;
+	case 0x4F:
+		return KEY_O;
+		break;
+	case 0x50:
+		return KEY_P;
+		break;
+	case 0x51:
+		return KEY_Q;
+		break;
+	case 0x52:
+		return KEY_R;
+		break;
+	case 0x53:
+		return KEY_S;
+		break;
+	case 0x54:
+		return KEY_T;
+		break;
+	case 0x55:
+		return KEY_U;
+		break;
+	case 0x56:
+		return KEY_V;
+		break;
+	case 0x57:
+		return KEY_W;
+		break;
+	case 0x58:
+		return KEY_X;
+		break;
+	case 0x59:
+		return KEY_Y;
+		break;
+	case 0x5A:
+		return KEY_Z;
+		break;
+	default:
+		return KEY_UNDEFINED;
+		break;
+	}
+}
+
+int ProcessWin32Input_MouseButton(UINT uMsg)
+{
+	switch (uMsg)
+	{
+	case 513:
+		return MOUSE_BUTTON_LEFTDOWN;
+		break;
+	case 514:
+		return MOUSE_BUTTON_LEFTUP;
+		break;
+	case 516:
+		return MOUSE_BUTTON_RIGHTDOWN;
+		break;
+	case 517:
+		return MOUSE_BUTTON_RIGHTUP;
+		break;
+	case 519:
+		return MOUSE_BUTTON_MIDDLEDOWN;
+		break;
+	case 520:
+		return MOUSE_BUTTON_MIDDLEUP;
+		break;
+	default:
+		return MOUSE_BUTTON_UNDEFINED;
+		break;
+	}
+}
+
+int ProcessWin32Input_MouseMove(LPARAM lParam)
+{
+	float mouseXPos = 0;
+	float mouseYPos = 0;
+
+	if (lParam)
+	{
+		mouseXPos = LOWORD(lParam);
+		mouseYPos = HIWORD(lParam);
+	}
+
+	gpInputSystem->ProcessMouseInput(mouseXPos, mouseYPos, NULL, NULL);
+	return true;
+}
+
 
 //-----------------------------------------------------------------------------
 // Platform memory functions
