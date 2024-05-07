@@ -12,6 +12,7 @@
 #include "Systems/IEvent.h"
 #include "Systems/IInput.h"
 #include "Platform/Platform.h"
+#include "Systems/IRenderer.h"
 
 static bool s_bApplicationQuitCalled = false;
 static bool Event_ApplicationQuit(void* data);
@@ -52,7 +53,11 @@ bool CEngine::Engine_Initialize()
 	// Input System
 	gpInputSystem->InputSystem_Initialize();
 
+	// Platform Layer
 	Platform_Initialize();
+
+	// Renderer
+	gpRenderer->Renderer_Initialize();
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
@@ -66,6 +71,8 @@ bool CEngine::Engine_Run()
 
 		Platform_Update();
 
+		gpRenderer->Renderer_Update();
+
 		return true;
 	}
 
@@ -78,6 +85,8 @@ bool CEngine::Engine_Run()
 void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	gpRenderer->Renderer_Shutdown();
 
 	gpInputSystem->InputSystem_Shutdown();
 
