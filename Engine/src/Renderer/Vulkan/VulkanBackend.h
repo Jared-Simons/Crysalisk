@@ -14,9 +14,9 @@
 #include <vulkan/vulkan.h>
 
 // Forward declarations
-class CVulkanBackend;
+class CVulkanRenderer;
 
-class CVulkanBackend : public IRendererBackend
+class CVulkanRenderer : public IRendererBackend
 {
 public:
 	bool	RendererBackend_Initialize() override;
@@ -25,10 +25,16 @@ public:
 
 private:
 	bool	CreateVulkanInstance();
+	bool	CreateDebugMessenger();
+
+	void	DestroyDebugMessenger();
 
 private:
 	// Instance
 	VkInstance		m_Instance;
+
+	// Debug Messenger
+	VkDebugUtilsMessengerEXT	m_DebugMessenger;
 
 private:
 	VkInstance& GetVulkanInstance() { return m_Instance; }
@@ -49,7 +55,7 @@ private:
 	};
 };
 
-static CVulkanBackend VulkanRenderingContext;
+static CVulkanRenderer VulkanRenderingContext;
 
 IRendererBackend* GetVulkanBackend();
 

@@ -12,35 +12,46 @@
 #include <String_Utils.h>
 #include <stdint.h>
 
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
+	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData);
+
+
 IRendererBackend* GetVulkanBackend()
 {
 	return &VulkanRenderingContext;
 }
 
-bool CVulkanBackend::RendererBackend_Initialize()
+bool CVulkanRenderer::RendererBackend_Initialize()
 {
 	CreateVulkanInstance();
+	CreateDebugMessenger();
 
 	LOG_DEBUG("Vulkan Rendering Backend Initialized");
 	return true;
 }
 
-void CVulkanBackend::RendererBackend_Shutdown()
+void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	LOG_DEBUG("Vulkan Rendering Backend Shutting Down");
 
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	DestroyDebugMessenger();
+
 	vkDestroyInstance(m_Instance, nullptr);
 }
 
-bool CVulkanBackend::RendererBackend_Update()
+bool CVulkanRenderer::RendererBackend_Update()
 {
 	return true;
 }
 
-bool CVulkanBackend::CreateVulkanInstance()
+bool CVulkanRenderer::CreateVulkanInstance()
 {
 	VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	// TODO: Pass these in from the frontend
@@ -106,7 +117,88 @@ bool CVulkanBackend::CreateVulkanInstance()
 	return true;
 }
 
-bool CVulkanBackend::RequestValidationLayerSupport()
+bool CVulkanRenderer::CreateDebugMessenger()
+{
+#ifndef _DEBUG
+	// No Vulkan Debug Callbacks in release builds!
+	return true;
+#endif
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.pfnUserCallback = DebugCallbackFunc;
+
+	PFN_vkCreateDebugUtilsMessengerEXT createDebuggerFunc = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT");
+	if (createDebuggerFunc != nullptr)
+	{
+		// TODO: Custom Allocator
+		VkResult result = createDebuggerFunc(m_Instance, &createInfo, nullptr, &m_DebugMessenger);
+		
+		if (result != VK_SUCCESS)
+		{
+			AssertMsg("Failed to create Vulkan Debug Messenger!");
+			return false;
+		}
+		else
+		{
+			LOG_DEBUG("Vulkan Debugger Created");
+			return true;
+		}
+	}
+	else
+	{
+		LOG_FATAL("Failed to Craete Debug Messenger (VK_ERROR_EXTENSION_NOT_PRESENT)");
+		return false;
+	}
+
+}
+
+void CVulkanRenderer::DestroyDebugMessenger()
+{
+#ifndef _DEBUG
+	// No Vulkan Debug Callbacks in release builds!
+	return;
+#endif
+
+	PFN_vkDestroyDebugUtilsMessengerEXT destroyDebuggerFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT");
+
+	if (destroyDebuggerFunc != nullptr)
+	{
+		// TODO: Custom Allocator
+		destroyDebuggerFunc(m_Instance, m_DebugMessenger, nullptr);
+		return;
+	}
+
+	LOG_ERROR("Failed to destory Vulkan Debug Messenger");
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
+	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
+{
+	switch (messageSeverity)
+	{
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+		LOG_VERBOSE(pCallbackData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+		LOG_INFO(pCallbackData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+		LOG_WARN(pCallbackData->pMessage);
+		break;
+	case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+		LOG_ERROR(pCallbackData->pMessage);
+		break;
+	}
+
+	return VK_FALSE;
+}
+
+bool CVulkanRenderer::RequestValidationLayerSupport()
 {
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
