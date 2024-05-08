@@ -17,7 +17,7 @@ class CVector
 public:
 	CVector()
 	{
-		m_curNumOfElements = 0;
+		m_Size = 0;
 		m_Capacity = 0;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
 		m_Data = nullptr;
@@ -25,7 +25,7 @@ public:
 
 	CVector(int capacity)
 	{
-		m_curNumOfElements = capacity;
+		m_Size = capacity;
 		m_Capacity = capacity;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
@@ -33,7 +33,7 @@ public:
 
 	CVector(T firstIndex)
 	{
-		m_curNumOfElements = 1;
+		m_Size = 1;
 		m_Capacity = 1;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
 		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
@@ -45,7 +45,7 @@ public:
 
 	CVector(int capacity, T initialValue)
 	{
-		m_curNumOfElements = capacity;
+		m_Size = capacity;
 		m_Capacity = capacity;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
@@ -60,7 +60,7 @@ public:
 
 	CVector(CVector& otherVector)
 	{
-		m_curNumOfElements = otherVector.m_curNumOfElements;
+		m_Size = otherVector.m_Size;
 		m_Capacity = otherVector.m_Capacity;
 		m_Stride = otherVector.m_Stride;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
@@ -97,10 +97,10 @@ public:
 		}
 
 		if (newCapacity < (int)m_Capacity)
-			m_curNumOfElements = newCapacity;
+			m_Size = newCapacity;
 
 		m_Capacity = newCapacity;
-		int newIndex = newCapacity - m_curNumOfElements;
+		int newIndex = newCapacity - m_Size;
 
 		for (int i = m_Capacity - newIndex; i < newCapacity; i++)
 		{
@@ -123,13 +123,13 @@ public:
 
 	void PushBack(T val)
 	{
-		if (m_curNumOfElements + 1 > m_Capacity)
+		if (m_Size + 1 > m_Capacity)
 		{
 			// Need to resize the vector to make space!
 
 			T* oldData = m_Data;
 			m_Capacity++;
-			m_curNumOfElements++;
+			m_Size++;
 
 			if (m_Data != nullptr)
 			{
@@ -143,25 +143,25 @@ public:
 
 		if (m_Data != nullptr)
 		{
-			m_Data[m_curNumOfElements - 1] = val;
+			m_Data[m_Size - 1] = val;
 		}
 	}
 
 	T PopBack()
 	{
-		T value = m_Data[m_curNumOfElements - 1];
-		m_Data[m_curNumOfElements - 1] = -1;
+		T value = m_Data[m_Size - 1];
+		m_Data[m_Size - 1] = -1;
 		return value;
 	}
 	
-	unsigned int GetNumElements() const { return m_curNumOfElements; }
+	unsigned int GetSize() const { return m_Size; }
 	unsigned int GetCapacity() const { return m_Capacity; }
 	unsigned int GetStride() const { return m_Stride; }
 	T* Data() { return m_Data; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
-	unsigned int m_curNumOfElements;
+	unsigned int m_Size;
 
 	/* The maximum number of elements that can be held in the array. (Can be resized, of course) */
 	unsigned int m_Capacity;

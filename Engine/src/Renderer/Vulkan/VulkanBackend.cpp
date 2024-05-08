@@ -61,11 +61,11 @@ bool CVulkanBackend::CreateVulkanInstance()
 			AssertMsg("Validation layers requested, but not available!");
 		}
 
-		createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.GetNumElements());
+		createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.GetSize());
 		createInfo.ppEnabledLayerNames = m_ValidationLayers.Data();
 
 		LOG_INFO("Enabled Vulkan Validation Layers: ");
-		for (int i = 0; i < m_ValidationLayers.GetNumElements(); i++)
+		for (int i = 0; i < m_ValidationLayers.GetSize(); i++)
 		{
 			LOG_DEBUG(m_ValidationLayers[i]);
 		}
@@ -84,12 +84,12 @@ bool CVulkanBackend::CreateVulkanInstance()
 	extensionNames.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-	createInfo.enabledExtensionCount = extensionNames.GetNumElements();
+	createInfo.enabledExtensionCount = extensionNames.GetSize();
 	createInfo.ppEnabledExtensionNames = extensionNames.Data();
 
 #if _DEBUG
 	LOG_INFO("Enabled Vulkan Extensions: ");
-	for (int i = 0; i < extensionNames.GetNumElements(); i++)
+	for (int i = 0; i < extensionNames.GetSize(); i++)
 	{
 		LOG_DEBUG(extensionNames[i]);
 	}
@@ -113,10 +113,10 @@ bool CVulkanBackend::RequestValidationLayerSupport()
 	CVector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.Data());
 
-	for (int i = 0; i < m_ValidationLayers.GetNumElements(); i++)
+	for (int i = 0; i < m_ValidationLayers.GetSize(); i++)
 	{
 		bool layerFound = false;
-		for (int j = 0; i < availableLayers.GetNumElements(); j++)
+		for (int j = 0; i < availableLayers.GetSize(); j++)
 		{
 			if (StringCompare(m_ValidationLayers[i], availableLayers[j].layerName) == true)
 			{
