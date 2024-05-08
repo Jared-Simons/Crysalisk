@@ -35,7 +35,8 @@ project "Engine"
 
 	links
 	{
-		"D:/coding/Vulkan/Lib/Vulkan-1"
+		"D:/coding/Vulkan/Lib/Vulkan-1",
+		"UtilityLib"
 	}
 
 	libdirs
@@ -107,6 +108,11 @@ project "Testapp"
 		{
 			PLAT_WINDOWS
 		}
+
+		links
+		{
+			"UtilityLib"
+		}
 	
 	filter "configurations:Debug"
 		defines "GAME_API;GAME_DEBUG;"
@@ -155,16 +161,21 @@ project "UtilityLib"
 			PLAT_WINDOWS
 		}
 	
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
 	filter "configurations:Debug"
-		defines "UTILITY_API;UTILITY_DEBUG;"
+		defines "UTILITY_DLL;UTILITY_API;UTILITY_DEBUG;"
 		symbols "on"
 		
 	filter "configurations:Release"
-		defines "UTILITY_API;UTILITY_RELEASE;"
+		defines "UTILITY_DLL;UTILITY_API;UTILITY_RELEASE;"
 		symbols "on"
 		optimize "on"
 	
 	filter "configurations:Distribution"
-		defines "UTILITY_API;UTILITY_DIST;"
+		defines "UTILITY_DLL;UTILITY_API;UTILITY_DIST;"
 		optimize "on"
 

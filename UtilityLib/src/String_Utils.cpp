@@ -1,3 +1,9 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/7/2024
+// 
+// Purpose: Some utility string functions
+//=============================================================================
 #include "String_Utils.h"
 
 #include <stdio.h>
