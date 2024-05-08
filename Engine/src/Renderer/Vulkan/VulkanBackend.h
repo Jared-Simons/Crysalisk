@@ -9,6 +9,9 @@
 #include "Renderer/IRendererBackend.h"
 
 #include "Core/Logging.h"
+#include <CVector.h>
+
+#include <vulkan/vulkan.h>
 
 // Forward declarations
 class CVulkanBackend;
@@ -19,29 +22,34 @@ public:
 	bool	RendererBackend_Initialize() override;
 	void	RendererBackend_Shutdown() override;
 	bool	RendererBackend_Update() override;
+
+private:
+	bool	CreateVulkanInstance();
+
+private:
+	// Instance
+	VkInstance		m_Instance;
+
+private:
+	VkInstance& GetVulkanInstance() { return m_Instance; }
+	const CVector<const char*>& GetValidationLayers() { return m_ValidationLayers; }
+
+	// Only enabling Valdiation Layers on debug builds for now
+#if _DEBUG
+	bool	EnableValidationLayers() const { return true; }
+#else
+	bool	EnableValidationLayers() const { return false; }
+#endif
+
+	bool	RequestValidationLayerSupport();
+
+	CVector<const char*> m_ValidationLayers =
+	{
+		"VK_LAYER_KHRONOS_validation"
+	};
 };
-
-
-bool CVulkanBackend::RendererBackend_Initialize()
-{
-	LOG_DEBUG("Vulkan Rendering Backend Initialized");
-	return true;
-}
-
-void CVulkanBackend::RendererBackend_Shutdown()
-{
-	LOG_DEBUG("Vulkan Rendering Backend Shutting Down");
-}
-
-bool CVulkanBackend::RendererBackend_Update()
-{
-	return true;
-}
 
 static CVulkanBackend VulkanRenderingContext;
 
-IRendererBackend* GetVulkanBackend()
-{
-	return &VulkanRenderingContext;
-}
+IRendererBackend* GetVulkanBackend();
 

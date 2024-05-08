@@ -31,6 +31,18 @@ public:
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
 	}
 
+	CVector(T firstIndex)
+	{
+		m_curNumOfElements = 1;
+		m_Capacity = 1;
+		m_Stride = static_cast<unsigned int>(sizeof(T));
+		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
+		if (m_Data != nullptr)
+		{
+			m_Data[0] = firstIndex;
+		}
+	}
+
 	CVector(int capacity, T initialValue)
 	{
 		m_curNumOfElements = capacity;
@@ -145,6 +157,7 @@ public:
 	unsigned int GetNumElements() const { return m_curNumOfElements; }
 	unsigned int GetCapacity() const { return m_Capacity; }
 	unsigned int GetStride() const { return m_Stride; }
+	T* Data() { return m_Data; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
