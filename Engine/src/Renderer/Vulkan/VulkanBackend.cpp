@@ -7,6 +7,8 @@
 #include "VulkanBackend.h"
 #include "Platform/VulkanPlatform.h"
 
+#include "Core/Assertions.h"
+
 #include <String_Utils.h>
 #include <stdint.h>
 
@@ -56,8 +58,7 @@ bool CVulkanBackend::CreateVulkanInstance()
 	{
 		if (!RequestValidationLayerSupport())
 		{
-			// TODO: Make this an assert
-			LOG_ERROR("Validation layers requested, but not available!");
+			AssertMsg("Validation layers requested, but not available!");
 		}
 
 		createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.GetNumElements());
@@ -97,8 +98,7 @@ bool CVulkanBackend::CreateVulkanInstance()
 	// TODO: Custom allocator
 	if (vkCreateInstance(&createInfo, nullptr, &m_Instance) != VK_SUCCESS)
 	{
-		// TODO: Make this an assert
-		LOG_ERROR("Failed to create Vulkan Instance!");
+		AssertMsg("Failed to create Vulkan Instance!");
 		return false;
 	}
 
