@@ -6,6 +6,7 @@
 //=============================================================================
 #include "VulkanBackend.h"
 #include "Platform/VulkanPlatform.h"
+#include "Systems/IMemory.h"
 
 #include "Core/Assertions.h"
 
@@ -30,6 +31,8 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	CreateVulkanInstance();
 	CreateDebugMessenger();
 
+	m_Device.CreateVulkanDevice(this);
+
 	LOG_DEBUG("Vulkan Rendering Backend Initialized");
 	return true;
 }
@@ -37,12 +40,13 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	LOG_DEBUG("Vulkan Rendering Backend Shutting Down");
+	vkDeviceWaitIdle(m_Device.GetLogicalDevice());
 
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	m_Device.DestroyLogicalDevice(this);
 	DestroyDebugMessenger();
-
 	vkDestroyInstance(m_Instance, nullptr);
 }
 

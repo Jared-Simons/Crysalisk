@@ -15,7 +15,56 @@
 
 // Forward declarations
 class CVulkanRenderer;
+struct DeviceQueueFamilyProperties_t;
+class VulkanDevice_t;
 
+
+//=================================
+// 
+// Vulkan Device
+// 
+//=================================
+struct DeviceQueueFamilyProperties_t
+{
+	int		graphicsIndex = -1;
+	int		computeIndex = -1;
+	int		transferIndex = -1;
+	int		presentIndex = -1;
+};
+
+
+class VulkanDevice_t
+{
+public:
+	VulkanDevice_t() : m_PhysicalDeviceHandle{ VK_NULL_HANDLE } {}
+
+	bool	CreateVulkanDevice(CVulkanRenderer* renderingContext);
+	void	DestroyLogicalDevice(CVulkanRenderer* renderingContext);
+
+	VkDevice& GetLogicalDevice() { return m_LogicalDeviceHandle; }
+
+private:
+	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
+	bool	PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice);
+	void	GetQueueFamilyData();
+
+	bool	CreateLogicalDevice(CVulkanRenderer* renderingContext);
+
+private:
+	VkPhysicalDevice m_PhysicalDeviceHandle;
+	VkPhysicalDeviceProperties m_PhysicalDeviceProperties;
+	DeviceQueueFamilyProperties_t m_PhysicalDeviceQueueFamilyProperties;
+
+	VkDevice m_LogicalDeviceHandle;
+	VkQueue m_GraphicsQueue;
+};
+
+
+//=================================
+// 
+// Vulkan Rendering Context
+// 
+//=================================
 class CVulkanRenderer : public IRendererBackend
 {
 public:
@@ -36,16 +85,20 @@ private:
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger;
 
-private:
-	VkInstance& GetVulkanInstance() { return m_Instance; }
-	const CVector<const char*>& GetValidationLayers() { return m_ValidationLayers; }
+	// Vulkan Device
+	VulkanDevice_t	m_Device;
 
+public:
+	VkInstance& GetVulkanInstance() { return m_Instance; }
+	CVector<const char*>& GetValidationLayers() { return m_ValidationLayers; }
 	// Only enabling Valdiation Layers on debug builds for now
 #if _DEBUG
 	bool	EnableValidationLayers() const { return true; }
 #else
 	bool	EnableValidationLayers() const { return false; }
 #endif
+
+private:
 
 	bool	RequestValidationLayerSupport();
 

@@ -36,7 +36,7 @@ bool CRenderer::Renderer_Initialize()
 		return false;
 	}
 
-	LOG_INFO("Initializing Renderer");
+	LOG_INFO("Renderer Initialized!");
 	return true;
 }
 
