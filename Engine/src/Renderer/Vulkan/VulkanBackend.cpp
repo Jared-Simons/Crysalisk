@@ -30,7 +30,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 {
 	CreateVulkanInstance();
 	CreateDebugMessenger();
-
+	Platform_CreateVulkanSurface(this);
 	m_Device.CreateVulkanDevice(this);
 
 	LOG_DEBUG("Vulkan Rendering Backend Initialized");
@@ -46,6 +46,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// TODO: Custom allocator.
 
 	m_Device.DestroyLogicalDevice(this);
+	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	DestroyDebugMessenger();
 	vkDestroyInstance(m_Instance, nullptr);
 }

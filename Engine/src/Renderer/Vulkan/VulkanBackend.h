@@ -85,6 +85,9 @@ private:
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger;
 
+	// Surface
+	VkSurfaceKHR	m_Surface;
+
 	// Vulkan Device
 	VulkanDevice_t	m_Device;
 
@@ -97,6 +100,8 @@ public:
 #else
 	bool	EnableValidationLayers() const { return false; }
 #endif
+
+	VkSurfaceKHR&	GetVulkanSurface() { return m_Surface; }
 
 private:
 

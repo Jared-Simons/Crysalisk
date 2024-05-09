@@ -17,6 +17,9 @@
 #include <Windows.h>
 #define WIN32_LEAN_AND_MEAN
 
+// For Vulkan Surface Creation
+#include "Renderer/Vulkan/Platform/VulkanPlatform.h"
+
 struct Platform_Win32_InternalData
 {
 	HWND hWnd = 0;
@@ -122,6 +125,14 @@ void Platform_LogMessage(int level, const char* message)
 	SetConsoleTextAttribute(outputHandle, levelColor[level]);
 	size_t length = strlen(message);
 	WriteConsoleA(outputHandle, message, length, 0, 0);
+}
+
+VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface()
+{
+	VkWin32SurfaceCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+	createInfo.hwnd = win32PlatformData.hWnd;
+	createInfo.hinstance = win32PlatformData.hInstance;
+	return createInfo;
 }
 
 // ============================================================================
