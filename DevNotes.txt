@@ -1,0 +1,3 @@
+Issues:
+
+CVector won't call the default constructor when trying to make a vector of integers (CVector<int> myIntVector;) - this is invalid...
