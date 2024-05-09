@@ -28,10 +28,17 @@ IRendererBackend* GetVulkanBackend()
 
 bool CVulkanRenderer::RendererBackend_Initialize()
 {
-	CreateVulkanInstance();
-	CreateDebugMessenger();
-	Platform_CreateVulkanSurface(this);
-	m_Device.CreateVulkanDevice(this);
+	if (!CreateVulkanInstance())
+		return false;
+
+	if (!CreateDebugMessenger())
+		return false;
+
+	if (!Platform_CreateVulkanSurface(this))
+		return false;
+
+	if (!m_Device.CreateVulkanDevice(this))
+		return false;
 
 	LOG_DEBUG("Vulkan Rendering Backend Initialized");
 	return true;

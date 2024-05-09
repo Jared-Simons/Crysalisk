@@ -28,11 +28,15 @@ bool CRenderer::Renderer_Initialize()
 
 	if (m_RendererBackend != nullptr)
 	{
-		m_RendererBackend->RendererBackend_Initialize();
+		if (!m_RendererBackend->RendererBackend_Initialize())
+		{
+			LOG_FATAL("Failed to initialize rendering backend! Application cannot continue.");
+			return false;
+		}
 	}
 	else
 	{
-		LOG_FATAL("Failed to initialize rendering backend! Application cannot continue");
+		LOG_FATAL("No rendering backend was provided, application cannot continue.");
 		return false;
 	}
 

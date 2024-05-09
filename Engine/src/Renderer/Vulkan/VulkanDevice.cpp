@@ -9,6 +9,7 @@
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
 #include <CVector.h>
+#include <String_Utils.h>
 #include <stdint.h>
 
 bool VulkanDevice_t::CreateVulkanDevice(CVulkanRenderer* renderingContext)
@@ -63,10 +64,12 @@ bool VulkanDevice_t::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalD
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
 
+	bool deviceHasRequiredExtensions = QueryDeviceExtensionSupport(physicalDevice);
+
 
 	// Select the first physical device that meets the requirements set here.
-	// Currently the only requirement is a discrete GPU.
-	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+	// Currently the only requirements are a discrete GPU and that it has access to the swapchain extension.
+	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceHasRequiredExtensions)
 	{
 		// Save off attributes about the device.
 		m_PhysicalDeviceProperties = deviceProperties;
@@ -106,6 +109,32 @@ void VulkanDevice_t::GetQueueFamilyData()
 			continue;
 		}
 	}
+}
+
+bool VulkanDevice_t::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
+{
+	uint32_t deviceExtensionCount = 0;
+	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, nullptr);
+	CVector<VkExtensionProperties> availableDeviceExtensions(deviceExtensionCount);
+	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, availableDeviceExtensions.Data());
+
+	int extensionsToQuery = m_DeviceExtensions.GetSize();
+	
+	for (int i = 0; i < m_DeviceExtensions.GetSize(); i++)
+	{
+		for (int j = 0; j < deviceExtensionCount; j++)
+		{
+			if (StringCompare(availableDeviceExtensions[j].extensionName, m_DeviceExtensions[i]) == true)
+			{
+				// Found the current extension
+				extensionsToQuery--;
+				break;
+			}
+		}
+	}
+	
+	return extensionsToQuery == 0;
+
 }
 
 bool VulkanDevice_t::CreateLogicalDevice(CVulkanRenderer* renderingContext)

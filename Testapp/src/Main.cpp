@@ -2,7 +2,8 @@
 
 int main()
 {
-	Engine->Engine_Initialize();
+	if (!Engine->Engine_Initialize())
+		return -1;
 
 	while (Engine->Engine_Run())
 	{

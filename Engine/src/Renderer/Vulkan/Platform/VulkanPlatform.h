@@ -13,7 +13,7 @@ class CVulkanRenderer;
 
 const char* Platform_GetVulkanExtensions();
 
-void Platform_CreateVulkanSurface(CVulkanRenderer* renderingContext);
+bool Platform_CreateVulkanSurface(CVulkanRenderer* renderingContext);
 
 #ifdef PLAT_WINDOWS
 VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface();

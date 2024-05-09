@@ -17,6 +17,7 @@
 class CVulkanRenderer;
 struct DeviceQueueFamilyProperties_t;
 class VulkanDevice_t;
+class VulkanSwapchain_t;
 
 
 //=================================
@@ -47,6 +48,7 @@ private:
 	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
 	bool	PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice);
 	void	GetQueueFamilyData();
+	bool	QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice);
 
 	bool	CreateLogicalDevice(CVulkanRenderer* renderingContext);
 
@@ -57,6 +59,23 @@ private:
 
 	VkDevice m_LogicalDeviceHandle;
 	VkQueue m_GraphicsQueue;
+
+	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+};
+
+
+//=================================
+// 
+// Swapchain
+// 
+//=================================
+class VulkanSwapchain_t
+{
+public:
+	bool		CreateSwapchain(CVulkanRenderer* renderingContext) { return true; }
+
+private:
+	VkSwapchainKHR	m_SwapchainHandle;
 };
 
 

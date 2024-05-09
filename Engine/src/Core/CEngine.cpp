@@ -57,7 +57,11 @@ bool CEngine::Engine_Initialize()
 	Platform_Initialize();
 
 	// Renderer
-	gpRenderer->Renderer_Initialize();
+	if (!gpRenderer->Renderer_Initialize())
+	{
+		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
+		return false;
+	}
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
