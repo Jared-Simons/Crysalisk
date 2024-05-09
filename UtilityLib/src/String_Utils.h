@@ -10,9 +10,9 @@
 #include <stdarg.h>
 
 
-char* StringFormat(const char* format, const char* str1, const char* str2);
+void StringFormat(const char* format, const char* str1, const char* str2, char* outString);
 
-char* StringFormat_V(const char* format, const char* str, va_list& var_args);
+void StringFormat_V(const char* format, const char* str, va_list& var_args, char* outString);
 
 bool StringCompare(const char* str1, const char* str2);
 

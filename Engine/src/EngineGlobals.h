@@ -19,6 +19,10 @@
 #define VULKAN_API  __declspec(dllimport)
 #endif
 
+// Silence Certain Warnings
+// (ONLY DO THIS IF THERE IS A REASON FOR IT!)
+
+
 // Platform detection
 
 // Windows

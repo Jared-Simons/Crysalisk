@@ -38,7 +38,9 @@ struct DeviceQueueFamilyProperties_t
 class VulkanDevice
 {
 public:
-	VulkanDevice() : m_PhysicalDeviceHandle{ VK_NULL_HANDLE } {}
+	VulkanDevice() 
+		: m_PhysicalDeviceHandle{ VK_NULL_HANDLE }
+		, m_LogicalDeviceHandle{ VK_NULL_HANDLE } {}
 
 	bool	CreateVulkanDevice(CVulkanRenderer* renderingContext);
 	void	DestroyLogicalDevice(CVulkanRenderer* renderingContext);

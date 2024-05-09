@@ -9,18 +9,18 @@
 #include <stdio.h>
 #include <string>
 
-char* StringFormat(const char* format, const char* str1, const char* str2)
+void StringFormat(const char* format, const char* str1, const char* str2, char* outString)
 {
-	char out_string[10000];
-	sprintf(out_string, format, str1, str2);
-	return out_string;
+	char stringBuffer[10000];
+	sprintf(stringBuffer, format, str1, str2);
+	strcpy(outString, stringBuffer);
 }
 
-char* StringFormat_V(const char* format, const char* str1, va_list& var_args)
+void StringFormat_V(const char* format, const char* str1, va_list& var_args, char* outString)
 {
-	char out_string[10000];
-	vsprintf(out_string, format, var_args);
-	return out_string;
+	char stringBuffer[10000];
+	vsprintf(stringBuffer, format, var_args);
+	strcpy(outString, stringBuffer);
 }
 
 bool StringCompare(const char* str1, const char* str2)
