@@ -35,13 +35,22 @@ private:
 
 bool CEngine::Engine_Initialize()
 {
+	// Logging Utilities
 	Logging_Initialize();
 
 	// Memory System
-	gpMemorySystem->MemorySystem_Initialize();
+	if (!gpMemorySystem->MemorySystem_Initialize())
+	{
+		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
+		return false;
+	}
 
 	// Event System
-	gpEngineEvents->EventSystem_Initialize();
+	if (!gpEngineEvents->EventSystem_Initialize())
+	{
+		LOG_FATAL("Event System failed to initialize! Application cannot continue.");
+		return false;
+	}
 
 	// Register for engine-level events
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
@@ -50,11 +59,20 @@ bool CEngine::Engine_Initialize()
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
 
+
 	// Input System
-	gpInputSystem->InputSystem_Initialize();
+	if (!gpInputSystem->InputSystem_Initialize())
+	{
+		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
+		return false;
+	}
 
 	// Platform Layer
-	Platform_Initialize();
+	if (!Platform_Initialize())
+	{
+		LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
+		return false;
+	}
 
 	// Renderer
 	if (!gpRenderer->Renderer_Initialize())
