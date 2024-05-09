@@ -19,7 +19,10 @@ bool VulkanDevice::CreateVulkanDevice(CVulkanRenderer* renderingContext)
 	if (!SelectPhysicalDevice(renderingContext))
 		return false;
 
-	GetQueueFamilyData();
+	GetQueueFamilyData(renderingContext);
+
+	// Query the device's swapchain support and pass that information to the swapchain itself.
+	QueryDeviceSwapchainSupport(renderingContext, m_PhysicalDeviceHandle, renderingContext->GetSwapchain());
 
 	CreateLogicalDevice(renderingContext);
 
@@ -32,9 +35,10 @@ void VulkanDevice::DestroyLogicalDevice(CVulkanRenderer* renderingContext)
 	vkDestroyDevice(GetLogicalDevice(), nullptr);
 }
 
-SwapchainSupportDetails_t VulkanDevice::QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device)
+void VulkanDevice::QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device, VulkanSwapchain& swapchain)
 {
-	SwapchainSupportDetails_t swapchainSupportDetails;
+	// Get a handle to the (yet-to-be-created) swapchain to hand it the data directly.
+	SwapchainSupportDetails_t& swapchainSupportDetails = swapchain.GetSwapchainSupportDetails();
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderingContext->GetVulkanSurface(), &swapchainSupportDetails.capabilities);
 
@@ -56,7 +60,8 @@ SwapchainSupportDetails_t VulkanDevice::QueryDeviceSwapchainSupport(CVulkanRende
 		vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderingContext->GetVulkanSurface(), &presentModeCount, swapchainSupportDetails.presentModes.Data());
 	}
 
-	return swapchainSupportDetails;
+	// Flip the 'supports swapchain' flag to true if this is the case
+	m_bDeviceSupportsSwapchain = (!(swapchainSupportDetails.formats.Empty() && swapchainSupportDetails.presentModes.Empty()));
 }
 
 bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
@@ -68,7 +73,7 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
 
 	for (int i = 0; i < physicalDevices.GetSize(); i++)
 	{
-		if (PhysicalDeviceMeetsRequirements(physicalDevices[i]))
+		if (PhysicalDeviceMeetsRequirements(renderingContext, physicalDevices[i]))
 		{
 			break;
 		}
@@ -86,7 +91,7 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
 	}
 }
 
-bool VulkanDevice::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice)
+bool VulkanDevice::PhysicalDeviceMeetsRequirements(CVulkanRenderer* renderingContext, VkPhysicalDevice& physicalDevice)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -109,7 +114,7 @@ bool VulkanDevice::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDev
 	return false;
 }
 
-void VulkanDevice::GetQueueFamilyData()
+void VulkanDevice::GetQueueFamilyData(CVulkanRenderer* renderingContext)
 {
 	uint32_t numOfDeviceQueueFamiliesAvailable = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, nullptr);
@@ -118,22 +123,32 @@ void VulkanDevice::GetQueueFamilyData()
 
 	for (int i = 0; i < deviceQueueFamilyProperties.GetSize(); i++)
 	{
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && m_PhysicalDeviceQueueFamilyProperties.graphicsIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && m_PhysicalDeviceQueueIndices.graphicsIndex == -1)
 		{
-			m_PhysicalDeviceQueueFamilyProperties.graphicsIndex = i;
-			continue;
+			m_PhysicalDeviceQueueIndices.graphicsIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT && m_PhysicalDeviceQueueFamilyProperties.computeIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT && m_PhysicalDeviceQueueIndices.computeIndex == -1)
 		{
-			m_PhysicalDeviceQueueFamilyProperties.computeIndex = i;
-			continue;
+			m_PhysicalDeviceQueueIndices.computeIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT && m_PhysicalDeviceQueueFamilyProperties.transferIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT && m_PhysicalDeviceQueueIndices.transferIndex == -1)
 		{
-			m_PhysicalDeviceQueueFamilyProperties.transferIndex = i;
-			continue;
+			m_PhysicalDeviceQueueIndices.transferIndex = i;
+		}
+
+		VkBool32 presentSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDeviceHandle, i, renderingContext->GetVulkanSurface(), &presentSupport);
+
+		if (presentSupport)
+		{
+			m_PhysicalDeviceQueueIndices.presentIndex = i;
+		}
+
+		if (m_PhysicalDeviceQueueIndices.IsComplete())
+		{
+			break;
 		}
 	}
 }
@@ -158,6 +173,9 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 				break;
 			}
 		}
+
+		if (extensionsToQuery == 0)
+			break;
 	}
 	
 	return extensionsToQuery == 0;
@@ -166,7 +184,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 {
-	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueFamilyProperties;
+	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueIndices;
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	uint32_t uniqueQueueFamilies[1] = { queueIndices.graphicsIndex };
@@ -205,11 +223,13 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 		AssertMsg("Failed to create logical device!");
 	}
 
-	LOG_INFO("Vulkan Logical Device created.");
+	LOG_DEBUG("Vulkan Logical Device created.");
 
 	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.graphicsIndex, 0, &m_GraphicsQueue);
+	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.presentIndex, 0, &m_PresentIndex);
 
-	LOG_DEBUG("Graphics Queue Index: %d", m_PhysicalDeviceQueueFamilyProperties.graphicsIndex);
+	LOG_DEBUG("Graphics Queue Index: %d", m_PhysicalDeviceQueueIndices.graphicsIndex);
+	LOG_DEBUG("Present Queue Index: %d", m_PhysicalDeviceQueueIndices.presentIndex);
 
 	return true;
 }

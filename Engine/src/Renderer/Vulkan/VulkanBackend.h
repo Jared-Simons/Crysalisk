@@ -32,6 +32,11 @@ struct DeviceQueueFamilyProperties_t
 	int		computeIndex = -1;
 	int		transferIndex = -1;
 	int		presentIndex = -1;
+
+	bool IsComplete()
+	{
+		return (graphicsIndex != -1) && (presentIndex != -1);
+	}
 };
 
 
@@ -47,13 +52,14 @@ public:
 
 	VkDevice& GetLogicalDevice() { return m_LogicalDeviceHandle; }
 	VkPhysicalDevice& GetPhysicalDevice() { return m_PhysicalDeviceHandle; }
+	DeviceQueueFamilyProperties_t& GetPhysicalDeviceQueueIndices() { return m_PhysicalDeviceQueueIndices; }
 
-	SwapchainSupportDetails_t QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device);
+	void QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device, VulkanSwapchain& swapchain);
 
 private:
 	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
-	bool	PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice);
-	void	GetQueueFamilyData();
+	bool	PhysicalDeviceMeetsRequirements(CVulkanRenderer* renderingContext, VkPhysicalDevice& physicalDevice);
+	void	GetQueueFamilyData(CVulkanRenderer* renderingContext);
 	bool	QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice);
 
 	bool	CreateLogicalDevice(CVulkanRenderer* renderingContext);
@@ -61,10 +67,11 @@ private:
 private:
 	VkPhysicalDevice m_PhysicalDeviceHandle;
 	VkPhysicalDeviceProperties m_PhysicalDeviceProperties;
-	DeviceQueueFamilyProperties_t m_PhysicalDeviceQueueFamilyProperties;
+	DeviceQueueFamilyProperties_t m_PhysicalDeviceQueueIndices;
 
 	VkDevice m_LogicalDeviceHandle;
 	VkQueue m_GraphicsQueue;
+	VkQueue m_PresentIndex;
 
 	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	bool m_bDeviceSupportsSwapchain = false;
@@ -86,10 +93,22 @@ struct SwapchainSupportDetails_t
 class VulkanSwapchain
 {
 public:
-	bool		CreateSwapchain(CVulkanRenderer* renderingContext) { return true; }
+	bool		CreateSwapchain(CVulkanRenderer* renderingContext);
+	void		CleanupSwapchain(CVulkanRenderer* renderingContext);
+
+	//void		SetSwapchainSupportDetails(SwapchainSupportDetails_t* details) { m_SwapchainSupportDetails = details; }
+	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
+
+private:
+	// Utility functions for choosing formats on swapchain creation.
+	VkSurfaceFormatKHR	ChooseSwapchainSurfaceFormat(CVector<VkSurfaceFormatKHR>& availableFormats);
+	VkPresentModeKHR	ChooseSwapchainPresentMode(CVector<VkPresentModeKHR>& availablePresentModes);
+	VkExtent2D			ChooseSwapchainExtent(CVulkanRenderer* renderingContext, const VkSurfaceCapabilitiesKHR& capabilities);
+
 
 private:
 	VkSwapchainKHR	m_SwapchainHandle;
+	SwapchainSupportDetails_t m_SwapchainSupportDetails;
 };
 
 
@@ -124,6 +143,9 @@ private:
 	// Vulkan Device
 	VulkanDevice	m_Device;
 
+	// Swapchain
+	VulkanSwapchain	m_Swapchain;
+
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }
 	CVector<const char*>& GetValidationLayers() { return m_ValidationLayers; }
@@ -135,6 +157,8 @@ public:
 #endif
 
 	VkSurfaceKHR&	GetVulkanSurface() { return m_Surface; }
+	VulkanDevice&	GetDevice() { return m_Device; }
+	VulkanSwapchain& GetSwapchain() { return m_Swapchain; }
 
 private:
 

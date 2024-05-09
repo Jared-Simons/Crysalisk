@@ -97,9 +97,8 @@ public:
 			m_Data = (T*)malloc(m_Stride * newCapacity);
 		}
 
-		if (newCapacity < (int)m_Capacity)
-			m_Size = newCapacity;
 
+		m_Size = newCapacity;
 		m_Capacity = newCapacity;
 	}
 

@@ -1,3 +1,19 @@
 Issues:
 
+CVector:
+
 CVector won't call the default constructor when trying to make a vector of integers (CVector<int> myIntVector;) - this is invalid...
+
+Trying to pass a CVector by value to create a copy will result in heap-corruption, as the copy was not allocated (but taken by reference) - thus trying to free a non-existent allocation will wreak havoc.
+	Need to nail down pass-by-value vs pass-by-reference with CVector.
+	
+Passing CVector to a function with 'const' does not work yet - this should be prioritized going forward.
+
+
+Vulkan Renderer:
+
+Device creation slows the application down quite a lot, way more than it should.
+I suspect this has to do with checking for device extensions (string comparisions in a loop of well over 100 iterations).
+This is NOT fatal or to be prioritized, but should be fixed when possible.
+
+The Extent 2D that gets created as part of the swapchain is not accurate and needs to be properly implemented.
