@@ -16,8 +16,9 @@
 // Forward declarations
 class CVulkanRenderer;
 struct DeviceQueueFamilyProperties_t;
-class VulkanDevice_t;
-class VulkanSwapchain_t;
+class VulkanDevice;
+class VulkanSwapchain;
+struct SwapchainSupportDetails_t;
 
 
 //=================================
@@ -34,15 +35,18 @@ struct DeviceQueueFamilyProperties_t
 };
 
 
-class VulkanDevice_t
+class VulkanDevice
 {
 public:
-	VulkanDevice_t() : m_PhysicalDeviceHandle{ VK_NULL_HANDLE } {}
+	VulkanDevice() : m_PhysicalDeviceHandle{ VK_NULL_HANDLE } {}
 
 	bool	CreateVulkanDevice(CVulkanRenderer* renderingContext);
 	void	DestroyLogicalDevice(CVulkanRenderer* renderingContext);
 
 	VkDevice& GetLogicalDevice() { return m_LogicalDeviceHandle; }
+	VkPhysicalDevice& GetPhysicalDevice() { return m_PhysicalDeviceHandle; }
+
+	SwapchainSupportDetails_t QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device);
 
 private:
 	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
@@ -61,6 +65,7 @@ private:
 	VkQueue m_GraphicsQueue;
 
 	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+	bool m_bDeviceSupportsSwapchain = false;
 };
 
 
@@ -69,7 +74,14 @@ private:
 // Swapchain
 // 
 //=================================
-class VulkanSwapchain_t
+struct SwapchainSupportDetails_t
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	CVector<VkSurfaceFormatKHR> formats;
+	CVector<VkPresentModeKHR> presentModes;
+};
+
+class VulkanSwapchain
 {
 public:
 	bool		CreateSwapchain(CVulkanRenderer* renderingContext) { return true; }
@@ -108,7 +120,7 @@ private:
 	VkSurfaceKHR	m_Surface;
 
 	// Vulkan Device
-	VulkanDevice_t	m_Device;
+	VulkanDevice	m_Device;
 
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }

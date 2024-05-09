@@ -77,7 +77,32 @@ public:
 		return m_Data[index];
 	}
 
-	void Resize(int newCapacity, T newValue = 0)
+	void Resize(int newCapacity)
+	{
+		if (m_Data != nullptr)
+		{
+			T* oldData = m_Data;
+			m_Data = (T*)malloc(m_Stride * newCapacity);
+
+			if (m_Data != nullptr)
+			{
+				memcpy(m_Data, oldData, m_Stride * newCapacity);
+			}
+
+			free(oldData);
+		}
+		else
+		{
+			m_Data = (T*)malloc(m_Stride * newCapacity);
+		}
+
+		if (newCapacity < (int)m_Capacity)
+			m_Size = newCapacity;
+
+		m_Capacity = newCapacity;
+	}
+
+	void Resize(int newCapacity, T newValue)
 	{
 		if (m_Data != nullptr)
 		{

@@ -12,7 +12,7 @@
 #include <String_Utils.h>
 #include <stdint.h>
 
-bool VulkanDevice_t::CreateVulkanDevice(CVulkanRenderer* renderingContext)
+bool VulkanDevice::CreateVulkanDevice(CVulkanRenderer* renderingContext)
 {
 	LOG_DEBUG("Creating Vulkan Device");
 
@@ -26,13 +26,40 @@ bool VulkanDevice_t::CreateVulkanDevice(CVulkanRenderer* renderingContext)
 	return true;
 }
 
-void VulkanDevice_t::DestroyLogicalDevice(CVulkanRenderer* renderingContext)
+void VulkanDevice::DestroyLogicalDevice(CVulkanRenderer* renderingContext)
 {
 	// TODO: Custom Allocator
 	vkDestroyDevice(GetLogicalDevice(), nullptr);
 }
 
-bool VulkanDevice_t::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
+SwapchainSupportDetails_t VulkanDevice::QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device)
+{
+	SwapchainSupportDetails_t swapchainSupportDetails;
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderingContext->GetVulkanSurface(), &swapchainSupportDetails.capabilities);
+
+	uint32_t formatCount = 0;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderingContext->GetVulkanSurface(), &formatCount, nullptr);
+
+	if (formatCount != 0)
+	{
+		swapchainSupportDetails.formats.Resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderingContext->GetVulkanSurface(), &formatCount, swapchainSupportDetails.formats.Data());
+	}
+
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderingContext->GetVulkanSurface(), &presentModeCount, nullptr);
+
+	if (presentModeCount != 0)
+	{
+		swapchainSupportDetails.presentModes.Resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderingContext->GetVulkanSurface(), &presentModeCount, swapchainSupportDetails.presentModes.Data());
+	}
+
+	return swapchainSupportDetails;
+}
+
+bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
 {
 	uint32_t physicalDeviceCount = 0;
 	vkEnumeratePhysicalDevices(renderingContext->GetVulkanInstance(), &physicalDeviceCount, nullptr);
@@ -59,7 +86,7 @@ bool VulkanDevice_t::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
 	}
 }
 
-bool VulkanDevice_t::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice)
+bool VulkanDevice::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalDevice)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -82,7 +109,7 @@ bool VulkanDevice_t::PhysicalDeviceMeetsRequirements(VkPhysicalDevice& physicalD
 	return false;
 }
 
-void VulkanDevice_t::GetQueueFamilyData()
+void VulkanDevice::GetQueueFamilyData()
 {
 	uint32_t numOfDeviceQueueFamiliesAvailable = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, nullptr);
@@ -111,7 +138,7 @@ void VulkanDevice_t::GetQueueFamilyData()
 	}
 }
 
-bool VulkanDevice_t::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
+bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 {
 	uint32_t deviceExtensionCount = 0;
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, nullptr);
@@ -137,7 +164,7 @@ bool VulkanDevice_t::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevic
 
 }
 
-bool VulkanDevice_t::CreateLogicalDevice(CVulkanRenderer* renderingContext)
+bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 {
 	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueFamilyProperties;
 
