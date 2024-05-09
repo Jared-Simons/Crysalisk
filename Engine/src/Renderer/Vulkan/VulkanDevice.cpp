@@ -144,12 +144,6 @@ bool VulkanDevice_t::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	uint32_t uniqueQueueFamilies[1] = { queueIndices.graphicsIndex };
 
-	// Required Device Extensions
-	CVector<const char*> requiredDeviceExtensions =
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
-
 	// Set up the device queues
 	float queuePriority = 1.0f;
 	for (uint32_t queueFamily : uniqueQueueFamilies)
@@ -165,8 +159,8 @@ bool VulkanDevice_t::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.GetSize());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.Data();
 
-	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.GetSize());
-	deviceCreateInfo.ppEnabledExtensionNames = requiredDeviceExtensions.Data();
+	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.GetSize());
+	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions.Data();
 
 	if (renderingContext->EnableValidationLayers())
 	{
