@@ -43,13 +43,13 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!m_Swapchain.CreateSwapchain(this))
 		return false;
 
-	LOG_DEBUG("Vulkan Rendering Backend Initialized");
+	LOG_INFO("Vulkan Rendering Backend Initialized");
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
-	LOG_DEBUG("Vulkan Rendering Backend Shutting Down");
+	LOG_INFO("Vulkan Rendering Backend Shutting Down");
 	vkDeviceWaitIdle(m_Device.GetLogicalDevice());
 
 	// Shutdown renderer components in reverse order.
@@ -129,7 +129,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		return false;
 	}
 
-	LOG_DEBUG("Vulkan Instance Created");
+	LOG_INFO("Vulkan Instance Created");
 	return true;
 }
 
@@ -158,7 +158,7 @@ bool CVulkanRenderer::CreateDebugMessenger()
 		}
 		else
 		{
-			LOG_DEBUG("Vulkan Debugger Created");
+			LOG_INFO("Vulkan Debugger Created");
 			return true;
 		}
 	}

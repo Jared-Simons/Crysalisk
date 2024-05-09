@@ -230,7 +230,7 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 		AssertMsg("Failed to create logical device!");
 	}
 
-	LOG_DEBUG("Vulkan Logical Device created.");
+	LOG_INFO("Vulkan Logical Device created.");
 
 	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.graphicsIndex, 0, &m_GraphicsQueue);
 	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.presentIndex, 0, &m_PresentIndex);

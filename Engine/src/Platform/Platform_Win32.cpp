@@ -117,14 +117,36 @@ void Platform_Shutdown()
 {
 }
 
+// These are just here for reference until we have customizable logging channels (they will probably then be moved elsewhere)
+/*
+#define BLACK			0
+#define BLUE			1
+#define GREEN			2
+#define CYAN			3
+#define RED				4
+#define MAGENTA			5
+#define BROWN			6
+#define LIGHTGRAY		7
+#define DARKGRAY		8
+#define LIGHTBLUE		9
+#define LIGHTGREEN		10
+#define LIGHTCYAN		11
+#define LIGHTRED		12
+#define LIGHTMAGENTA	13
+#define YELLOW			14
+#define WHITE			15
+*/
+
 void Platform_LogMessage(int level, const char* message)
 {
 	HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 	// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
-	static char levelColor[6] = { 2, 3, 1, 6, 4, 64 };	// Borrowed from Kohi
+	static char levelColor[6] = { 8, 3, 5, 6, 4, 64 };	// Borrowed from Kohi
 	SetConsoleTextAttribute(outputHandle, levelColor[level]);
 	size_t length = strlen(message);
 	WriteConsoleA(outputHandle, message, length, 0, 0);
+	// Clear the console back to light gray after printing the message
+	SetConsoleTextAttribute(outputHandle, 7);
 }
 
 VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface()

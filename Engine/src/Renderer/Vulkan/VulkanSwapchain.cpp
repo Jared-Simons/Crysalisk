@@ -59,7 +59,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* renderingContext)
 		AssertMsg("Failed to create swapchain!");
 	}
 
-	LOG_DEBUG("Vulkan Swapchain Created");
+	LOG_INFO("Vulkan Swapchain Created");
 	return true;
 }
 
