@@ -35,7 +35,7 @@ struct DeviceQueueFamilyProperties_t
 
 	bool IsComplete()
 	{
-		return (graphicsIndex != -1) && (presentIndex != -1);
+		return (graphicsIndex != -1) && (presentIndex != -1) && (computeIndex != -1) && (transferIndex != -1);
 	}
 };
 
@@ -71,7 +71,9 @@ private:
 
 	VkDevice m_LogicalDeviceHandle;
 	VkQueue m_GraphicsQueue;
-	VkQueue m_PresentIndex;
+	VkQueue m_PresentQueue;
+	VkQueue m_TransferQueue;
+	VkQueue m_ComputeQueue;
 
 	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	bool m_bDeviceSupportsSwapchain = false;

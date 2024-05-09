@@ -12,10 +12,12 @@
 #include <String_Utils.h>
 #include <stdint.h>
 
+// This is temporary until a custom set structure can be implemented
+#include <set>
+
+
 bool VulkanDevice::CreateVulkanDevice(CVulkanRenderer* renderingContext)
 {
-	LOG_DEBUG("Creating Vulkan Device");
-
 	if (!SelectPhysicalDevice(renderingContext))
 		return false;
 
@@ -121,29 +123,35 @@ void VulkanDevice::GetQueueFamilyData(CVulkanRenderer* renderingContext)
 	CVector<VkQueueFamilyProperties> deviceQueueFamilyProperties(numOfDeviceQueueFamiliesAvailable);
 	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, deviceQueueFamilyProperties.Data());
 
+	VkBool32 presentSupport = false;
 	for (int i = 0; i < deviceQueueFamilyProperties.GetSize(); i++)
 	{
+		// We query support for the present queue index first as it is very possible that this queue is shared with another task
+		// Putting this above the rest of the loop allows it to be run only once, as well as allows the other 'if' checks to continue
+		// after finding an index without worrying about the present queue.
+		vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDeviceHandle, i, renderingContext->GetVulkanSurface(), &presentSupport);
+
+		if (presentSupport && m_PhysicalDeviceQueueIndices.presentIndex == -1)
+		{
+			m_PhysicalDeviceQueueIndices.presentIndex = i;
+		}
+
 		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && m_PhysicalDeviceQueueIndices.graphicsIndex == -1)
 		{
 			m_PhysicalDeviceQueueIndices.graphicsIndex = i;
+			continue;
 		}
 
 		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT && m_PhysicalDeviceQueueIndices.computeIndex == -1)
 		{
 			m_PhysicalDeviceQueueIndices.computeIndex = i;
+			continue;
 		}
 
 		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT && m_PhysicalDeviceQueueIndices.transferIndex == -1)
 		{
 			m_PhysicalDeviceQueueIndices.transferIndex = i;
-		}
-
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDeviceHandle, i, renderingContext->GetVulkanSurface(), &presentSupport);
-
-		if (presentSupport)
-		{
-			m_PhysicalDeviceQueueIndices.presentIndex = i;
+			continue;
 		}
 
 		if (m_PhysicalDeviceQueueIndices.IsComplete())
@@ -194,7 +202,7 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueIndices;
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	uint32_t uniqueQueueFamilies[1] = { queueIndices.graphicsIndex };
+	std::set<int> uniqueQueueFamilies = { queueIndices.graphicsIndex, queueIndices.presentIndex, queueIndices.transferIndex, queueIndices.computeIndex };
 
 	// Set up the device queues
 	float queuePriority = 1.0f;
@@ -233,10 +241,14 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	LOG_INFO("Vulkan Logical Device created.");
 
 	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.graphicsIndex, 0, &m_GraphicsQueue);
-	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.presentIndex, 0, &m_PresentIndex);
+	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.presentIndex, 0, &m_PresentQueue);
+	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.transferIndex, 0, &m_TransferQueue);
+	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.computeIndex, 0, &m_PresentQueue);
 
 	LOG_DEBUG("Graphics Queue Index: %d", m_PhysicalDeviceQueueIndices.graphicsIndex);
 	LOG_DEBUG("Present Queue Index: %d", m_PhysicalDeviceQueueIndices.presentIndex);
+	LOG_DEBUG("Transfer Queue Index: %d", m_PhysicalDeviceQueueIndices.transferIndex);
+	LOG_DEBUG("Compute Queue Index: %d", m_PhysicalDeviceQueueIndices.computeIndex);
 
 	return true;
 }

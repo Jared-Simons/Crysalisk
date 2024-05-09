@@ -1,5 +1,9 @@
 Issues:
 
+General:
+
+A 'Set' data structure will be important soon, as to not rely on the STL.
+
 CVector:
 
 CVector won't call the default constructor when trying to make a vector of integers (CVector<int> myIntVector;) - this is invalid...
