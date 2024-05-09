@@ -64,7 +64,8 @@ public:
 		m_Capacity = otherVector.m_Capacity;
 		m_Stride = otherVector.m_Stride;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
-		memcpy(m_Data, otherVector.m_Data, m_Capacity * m_Stride);
+		if (m_Data != nullptr)
+			memcpy(m_Data, otherVector.m_Data, m_Capacity * m_Stride);
 	}
 
 	virtual ~CVector()
@@ -144,6 +145,11 @@ public:
 	T& End()
 	{
 		return m_Data[m_Capacity - 1];
+	}
+
+	bool Empty()
+	{
+		return (m_Size == 0) && (m_Capacity == 0) && (m_Data == nullptr);
 	}
 
 	void PushBack(T val)
