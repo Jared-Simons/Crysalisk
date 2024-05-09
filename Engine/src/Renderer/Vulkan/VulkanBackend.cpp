@@ -94,7 +94,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		LOG_INFO("Enabled Vulkan Validation Layers: ");
 		for (int i = 0; i < m_ValidationLayers.GetSize(); i++)
 		{
-			LOG_DEBUG(m_ValidationLayers[i]);
+			LOG_VERBOSE(m_ValidationLayers[i]);
 		}
 	}
 	else
@@ -118,7 +118,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 	LOG_INFO("Enabled Vulkan Extensions: ");
 	for (int i = 0; i < extensionNames.GetSize(); i++)
 	{
-		LOG_DEBUG(extensionNames[i]);
+		LOG_VERBOSE(extensionNames[i]);
 	}
 #endif
 

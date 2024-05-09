@@ -177,9 +177,16 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 		if (extensionsToQuery == 0)
 			break;
 	}
-	
-	return extensionsToQuery == 0;
 
+#if _DEBUG
+	LOG_VERBOSE("Enabled Vulkan Device Extensions:");
+	for (int i = 0; i < m_DeviceExtensions.GetSize(); i++)
+	{
+		LOG_VERBOSE("%s", m_DeviceExtensions[i]);
+	}
+#endif
+
+	return extensionsToQuery == 0;
 }
 
 bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)

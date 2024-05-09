@@ -20,7 +20,7 @@ bool Platform_CreateVulkanSurface(CVulkanRenderer* renderingContext)
 		return false;
 	}
 
-	LOG_DEBUG("Vulka Surface Created.");
+	LOG_DEBUG("Vulkan Surface Created.");
 	return true;
 }
 
