@@ -1,12 +1,12 @@
-#include "Clock.h"
-
-#include <Core/Logging.h>
 //=============================================================================
 // Author: Jared Simons
 // Date Created: 5/10/2024
 // 
 // Purpose: A simple clock utility.
 //=============================================================================
+#include "Clock.h"
+
+#include <Core/Logging.h>
 #include <Platform/Platform.h>
 
 void Clock::Start()
@@ -17,6 +17,7 @@ void Clock::Start()
 
 void Clock::Stop()
 {
+	Update();
 	m_IsActive = false;
 }
 
@@ -33,8 +34,7 @@ double Clock::GetElapsedTime()
 {
 	if (!m_IsActive)
 	{
-		LOG_ERROR("Clock - GetElaspedTime() - Clock not initialized!");
-		return -1;
+		return m_ElapsedTime;
 	}
 	else
 	{

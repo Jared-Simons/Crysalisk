@@ -8,9 +8,12 @@
 #include <Core/Logging.h>
 #include <Clock.h>
 
+#include "Test.h"
+
 bool PerformUnitTests()
 {
-	LOG_DEBUG("Hello UnitTest!");
+	MyTests->PerformTests();
+	MyTests->PrintTestResults();
 	
 	return true;
 }

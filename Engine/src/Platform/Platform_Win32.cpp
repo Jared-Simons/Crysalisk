@@ -141,7 +141,7 @@ double Platform_GetAbsoluteTime()
 	if (win32PlatformData.m_ClockFreq == -1)
 	{
 		// 2 = Debug level message
-		Platform_LogMessage(2, "Platform Clock not yet initialized - Initializing now\n");
+		Platform_LogMessage(1, "Platform Clock not yet initialized - Initializing now\n");
 		CreateWin32Clock();
 	}
 
