@@ -21,3 +21,5 @@
 /bin-int
 /bin
 *.user
+UnitTest/UnitTest.vcxproj
+UnitTest/UnitTest.vcxproj.filters

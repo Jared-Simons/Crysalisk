@@ -126,6 +126,61 @@ project "Testapp"
 	filter "configurations:Distribution"
 		defines "GAME_API;GAME_DIST;"
 		optimize "on"
+		
+project "UnitTest"
+	location "UnitTest"
+	kind "ConsoleApp"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	characterset("MBCS")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+	
+	includedirs
+	{	
+		"Engine/src/",
+		"UtilityLib/src/"
+	}
+	
+	links
+	{
+		"Engine"
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+
+		links
+		{
+			"Engine",
+			"UtilityLib"
+		}
+	
+	filter "configurations:Debug"
+		defines "GAME_API;GAME_DEBUG;"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "GAME_API;GAME_RELEASE;"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "GAME_API;GAME_DIST;"
+		optimize "on"
 
 
 project "UtilityLib"
