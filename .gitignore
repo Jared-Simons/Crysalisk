@@ -2,24 +2,10 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/.vs/Engine
-/bin/Debug-windows-x86_64
-/bin-int/Debug-windows-x86_64
-/Engine/x64/Debug
-/Engine/Engine.vcxproj
-/Engine/Engine.vcxproj.filters
-/Engine/Engine.vcxproj.user
-/Testapp
-/Testapp/Testapp.vcxproj
-/Testapp/Testapp.vcxproj.filters
-/Testapp/Testapp.vcxproj.user
-*.sln
-/bin/Distribution-windows-x86_64
-/bin-int/Distribution-windows-x86_64
-/UtilityLib/UtilityLib.vcxproj
-/UtilityLib/UtilityLib.vcxproj.filters
+/.vs
 /bin-int
 /bin
+*.sln
 *.user
-UnitTest/UnitTest.vcxproj
-UnitTest/UnitTest.vcxproj.filters
+*.vcxproj
+*.vcxproj.filters
