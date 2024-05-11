@@ -18,7 +18,7 @@ public:
 	{
 		for (int i = 0; i < m_RegisteredTests.GetSize(); i++)
 		{
-			if (m_RegisteredTests[i]())
+			if (m_RegisteredTests[i]() == 1)
 				m_TestsPassed++;
 			else
 				m_TestsFailed++;
