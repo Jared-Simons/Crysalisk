@@ -206,6 +206,7 @@ project "UtilityLib"
 	
 	includedirs
 	{	
+		"Engine/src/"
 	}
 	
 	links

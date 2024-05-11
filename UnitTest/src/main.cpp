@@ -1,5 +1,6 @@
 #include <Systems/IEngine.h>
 #include <Core/Logging.h>
+#include <Clock.h>
 
 bool PerformUnitTests()
 {

@@ -3,6 +3,7 @@ Issues:
 General:
 
 A 'Set' data structure will be important soon, as to not rely on the STL.
+The Logging system is not very flexible yet - it relies on ALWAYS having at least one logger active at index 0 of its registry... there should be a fall-through case of calling the platform layer otherwise.
 
 CVector:
 

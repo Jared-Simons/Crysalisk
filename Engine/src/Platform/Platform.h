@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include "EngineGlobals.h"
+
 bool	Platform_Initialize();
 bool	Platform_Update();
 void	Platform_Shutdown();
@@ -13,6 +15,8 @@ void	Platform_Shutdown();
 bool	Platform_ProcessMessages();
 
 void	Platform_LogMessage(int level, const char* message);
+
+ENGINE_API double	Platform_GetAbsoluteTime();
 
 //-----------------------------------------------------------------------------
 // Platform memory functions

@@ -24,6 +24,9 @@ struct Platform_Win32_InternalData
 {
 	HWND hWnd = 0;
 	HINSTANCE hInstance = 0;
+
+	inline static double m_ClockFreq = -1;
+	inline static LARGE_INTEGER m_ClockStartTime;
 };
 
 static Platform_Win32_InternalData win32PlatformData;
@@ -33,6 +36,7 @@ static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 const char* engineWindowClass{ "Engine_Window_Class" };
 
 static bool	CreateWin32Window();
+static bool CreateWin32Clock();
 static int ProcessWin32Input_Key(WPARAM wParam);
 static int ProcessWin32Input_MouseButton(UINT uMsg);
 static int ProcessWin32Input_MouseMove(LPARAM lParam);
@@ -48,6 +52,13 @@ bool Platform_Initialize()
 	if (!CreateWin32Window())
 	{
 		LOG_FATAL("CreateWin32Window failed! - Aborting application!");
+		return false;
+	}
+
+	// Initialize clock frequency
+	if (!CreateWin32Clock())
+	{
+		LOG_FATAL("CreateWin32Clock failed! - Aborting application!");
 		return false;
 	}
 
@@ -106,11 +117,39 @@ bool CreateWin32Window()
 	return true;
 }
 
+bool CreateWin32Clock()
+{
+	LARGE_INTEGER frequency;
+	QueryPerformanceFrequency(&frequency);
+	win32PlatformData.m_ClockFreq = 1.0 / frequency.QuadPart;
+	QueryPerformanceCounter(&win32PlatformData.m_ClockStartTime);
+
+	return true;
+}
+
 bool Platform_Update()
 {
 	Platform_ProcessMessages();
 
 	return true;
+}
+
+double Platform_GetAbsoluteTime()
+{
+	// If the clock has not yet been initialized (possibly due to headless mode)
+	// initialize it here
+	if (win32PlatformData.m_ClockFreq == -1)
+	{
+		// 2 = Debug level message
+		Platform_LogMessage(2, "Platform Clock not yet initialized - Initializing now\n");
+		CreateWin32Clock();
+	}
+
+	LARGE_INTEGER currentTime;
+	QueryPerformanceCounter(&currentTime);
+
+	double elapsedTime = (double)currentTime.QuadPart * win32PlatformData.m_ClockFreq;
+	return elapsedTime;
 }
 
 void Platform_Shutdown()
