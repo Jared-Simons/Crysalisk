@@ -125,6 +125,11 @@ void CEngine::Engine_Shutdown()
 		gpRenderer->Renderer_Shutdown();
 	}
 
+	if (!m_engineConfig.isHeadless)
+	{
+		Platform_Shutdown();
+	}
+
 	gpInputSystem->InputSystem_Shutdown();
 
 	// Unregister from engine-level events

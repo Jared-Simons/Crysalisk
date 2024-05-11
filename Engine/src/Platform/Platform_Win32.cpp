@@ -127,6 +127,19 @@ bool CreateWin32Clock()
 	return true;
 }
 
+void Platform_Shutdown()
+{
+	LOG_INFO("Platform_Shutdown called");
+
+	if (win32PlatformData.hWnd)
+	{
+		DestroyWindow(win32PlatformData.hWnd);
+
+		win32PlatformData.hWnd = 0;
+		win32PlatformData.hInstance = 0;
+	}
+}
+
 bool Platform_Update()
 {
 	Platform_ProcessMessages();
@@ -150,10 +163,6 @@ double Platform_GetAbsoluteTime()
 
 	double elapsedTime = (double)currentTime.QuadPart * win32PlatformData.m_ClockFreq;
 	return elapsedTime;
-}
-
-void Platform_Shutdown()
-{
 }
 
 // These are just here for reference until we have customizable logging channels (they will probably then be moved elsewhere)
