@@ -2,7 +2,10 @@
 
 int main()
 {
-	if (!Engine->Engine_Initialize())
+	EngineConfig_t engineConfig{};
+	engineConfig.isHeadless = false;
+
+	if (!Engine->Engine_Initialize(engineConfig))
 		return -1;
 
 	while (Engine->Engine_Run())

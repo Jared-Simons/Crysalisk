@@ -24,17 +24,20 @@ static bool Event_MouseButtonReleased(void* data);
 class CEngine : public IEngine
 {
 public:
-	bool	Engine_Initialize() override;
+	bool	Engine_Initialize(EngineConfig_t engineConfig) override;
 
 	bool	Engine_Run() override;
 
 	void	Engine_Shutdown() override;
 
 private:
+	EngineConfig_t	m_engineConfig;
 };
 
-bool CEngine::Engine_Initialize()
+bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
+	m_engineConfig = engineConfig;
+
 	// Logging Utilities
 	Logging_Initialize();
 
@@ -68,17 +71,23 @@ bool CEngine::Engine_Initialize()
 	}
 
 	// Platform Layer
-	if (!Platform_Initialize())
+	if (!m_engineConfig.isHeadless)
 	{
-		LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
-		return false;
+		if (!Platform_Initialize())
+		{
+			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
+			return false;
+		}
 	}
 
 	// Renderer
-	if (!gpRenderer->Renderer_Initialize())
+	if (!m_engineConfig.isHeadless)
 	{
-		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
-		return false;
+		if (!gpRenderer->Renderer_Initialize())
+		{
+			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
+			return false;
+		}
 	}
 
 	LOG_INFO("Engine Finished Initialization");
@@ -89,11 +98,14 @@ bool CEngine::Engine_Run()
 {
 	while (!s_bApplicationQuitCalled)
 	{
-		gpInputSystem->InputSystem_Update();
+		if (!m_engineConfig.isHeadless)
+		{
+			gpInputSystem->InputSystem_Update();
 
-		Platform_Update();
+			Platform_Update();
 
-		gpRenderer->Renderer_Update();
+			gpRenderer->Renderer_Update();
+		}
 
 		return true;
 	}
@@ -108,7 +120,10 @@ void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	gpRenderer->Renderer_Shutdown();
+	if (!m_engineConfig.isHeadless)
+	{
+		gpRenderer->Renderer_Shutdown();
+	}
 
 	gpInputSystem->InputSystem_Shutdown();
 

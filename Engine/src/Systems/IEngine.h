@@ -8,10 +8,17 @@
 
 #include "EngineGlobals.h"
 
+struct EngineConfig_t
+{
+	// Set this to true to run the engine without rendering or platform faculties.
+	// This is useful for unit tests and dedicated servers that do not require input.
+	bool isHeadless = false;
+};
+
 class ENGINE_API IEngine
 {
 public:
-	virtual bool	Engine_Initialize() = 0;
+	virtual bool	Engine_Initialize(EngineConfig_t engineConfig) = 0;
 	virtual bool	Engine_Run() = 0;
 	virtual void	Engine_Shutdown() = 0;
 };

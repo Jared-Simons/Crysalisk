@@ -168,10 +168,16 @@ project "UnitTest"
 			"Engine",
 			"UtilityLib"
 		}
+		
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
 	
 	filter "configurations:Debug"
 		defines "GAME_API;GAME_DEBUG;"
 		symbols "on"
+		debugdir = "bin/Debug-windows-x86_64/Testapp"
 		
 	filter "configurations:Release"
 		defines "GAME_API;GAME_RELEASE;"

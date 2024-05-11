@@ -21,3 +21,8 @@ I suspect this has to do with checking for device extensions (string comparision
 This is NOT fatal or to be prioritized, but should be fixed when possible.
 
 The Extent 2D that gets created as part of the swapchain is not accurate and needs to be properly implemented.
+
+
+UnitTests:
+
+The Premake Script is not properly setting the working directory for the UnitTests module, which will cause the debugger to fail when running.
