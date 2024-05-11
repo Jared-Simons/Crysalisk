@@ -1,6 +1,12 @@
 #include "Clock.h"
 
 #include <Core/Logging.h>
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/10/2024
+// 
+// Purpose: A simple clock utility.
+//=============================================================================
 #include <Platform/Platform.h>
 
 void Clock::Start()

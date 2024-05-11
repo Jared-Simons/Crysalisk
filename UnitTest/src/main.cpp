@@ -1,3 +1,9 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/10/2024
+// 
+// Purpose: Entry Point for the unit testing module
+//=============================================================================
 #include <Systems/IEngine.h>
 #include <Core/Logging.h>
 #include <Clock.h>
