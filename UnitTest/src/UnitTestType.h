@@ -37,6 +37,7 @@ public:
 		}
 
 		m_TestClock.Stop();
+		PrintTestResults();
 	}
 
 	void PrintTestResults()

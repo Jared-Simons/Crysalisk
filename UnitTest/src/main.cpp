@@ -13,7 +13,6 @@
 bool PerformUnitTests()
 {
 	MyTests->PerformTests();
-	MyTests->PrintTestResults();
 	
 	return true;
 }
