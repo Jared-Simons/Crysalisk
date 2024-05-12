@@ -23,7 +23,7 @@ public:
 		m_Data = nullptr;
 	}
 
-	CVector(int capacity)
+	CVector(size_t capacity)
 	{
 		m_Size = capacity;
 		m_Capacity = capacity;
@@ -43,7 +43,7 @@ public:
 		}
 	}
 
-	CVector(int capacity, T initialValue)
+	CVector(size_t capacity, T initialValue)
 	{
 		m_Size = capacity;
 		m_Capacity = capacity;
@@ -78,7 +78,7 @@ public:
 		return m_Data[index];
 	}
 
-	void Resize(int newCapacity)
+	void Resize(size_t newCapacity)
 	{
 		if (m_Data != nullptr)
 		{
@@ -102,7 +102,7 @@ public:
 		m_Capacity = newCapacity;
 	}
 
-	void Resize(int newCapacity, T newValue)
+	void Resize(size_t newCapacity, T newValue)
 	{
 		if (m_Data != nullptr)
 		{
