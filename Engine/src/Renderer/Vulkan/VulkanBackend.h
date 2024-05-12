@@ -19,6 +19,7 @@ struct DeviceQueueFamilyProperties_t;
 class VulkanDevice;
 class VulkanSwapchain;
 struct SwapchainSupportDetails_t;
+class VulkanRenderpass;
 
 
 //=================================
@@ -131,6 +132,9 @@ public:
 
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
 
+	const VkFormat&	GetImageFormat() const { return m_SwapchainImageFormat; }
+	const VkExtent2D& GetExtent() const { return m_SwapchainExtent; }
+
 private:
 	// Utility functions for choosing formats on swapchain creation.
 	VkSurfaceFormatKHR	ChooseSwapchainSurfaceFormat(CVector<VkSurfaceFormatKHR>& availableFormats);
@@ -151,6 +155,25 @@ private:
 
 //=================================
 // 
+// Renderpass
+// 
+//=================================
+class VulkanRenderpass
+{
+public:
+	VulkanRenderpass()
+		: m_RenderpassHandle{ VK_NULL_HANDLE } {}
+
+	bool	CreateRenderpass(CVulkanRenderer* renderingContext);
+	void	DestroyRenderpass(CVulkanRenderer* renderingContext);
+
+private:
+	VkRenderPass	m_RenderpassHandle;
+};
+
+
+//=================================
+// 
 // Vulkan Rendering Context
 // 
 //=================================
@@ -162,7 +185,8 @@ public:
 		, m_DebugMessenger{ VK_NULL_HANDLE }
 		, m_Surface{ VK_NULL_HANDLE }
 		, m_Device{}
-		, m_Swapchain{} {}
+		, m_Swapchain{}
+		, m_MainRenderpass{} {}
 
 
 	bool	RendererBackend_Initialize() override;
@@ -190,6 +214,9 @@ private:
 
 	// Swapchain
 	VulkanSwapchain	m_Swapchain;
+
+	// Renderpass
+	VulkanRenderpass m_MainRenderpass;
 
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }
