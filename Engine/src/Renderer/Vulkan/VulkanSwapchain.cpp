@@ -59,6 +59,11 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* renderingContext)
 		AssertMsg("Failed to create swapchain!");
 	}
 
+	GetSwapchainImages(renderingContext);
+
+	m_SwapchainImageFormat = surfaceFormat.format;
+	m_SwapchainExtent = extent;
+
 	LOG_INFO("Vulkan Swapchain Created");
 	return true;
 }
@@ -100,4 +105,56 @@ VkExtent2D VulkanSwapchain::ChooseSwapchainExtent(CVulkanRenderer* renderingCont
 	// TODO: need to actually implement this with some utilities (clamp() and limits())
 	return capabilities.currentExtent;
 }
+
+void VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* renderingContext)
+{
+	uint32_t imageCount{ 0 };
+	vkGetSwapchainImagesKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, &imageCount, nullptr);
+	m_SwapchainImages.Resize(imageCount);
+	vkGetSwapchainImagesKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, &imageCount, m_SwapchainImages.Data());
+
+	LOG_INFO("Vulkan Swapchain Images Found");
+}
+
+bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
+{
+	m_SwapchainImageViews.Resize(m_SwapchainImages.GetSize());
+
+	for (int i = 0; i < m_SwapchainImages.GetSize(); i++)
+	{
+		VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		createInfo.image = m_SwapchainImages[i];
+		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		createInfo.format = m_SwapchainImageFormat;
+		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+		createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		createInfo.subresourceRange.baseMipLevel = 0;
+		createInfo.subresourceRange.levelCount = 1;
+		createInfo.subresourceRange.baseArrayLayer = 0;
+		createInfo.subresourceRange.layerCount = 1;
+
+		// TODO: Custom Allocator
+		if (vkCreateImageView(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &m_SwapchainImageViews[i]) != VK_SUCCESS)
+		{
+			AssertMsg("VulkanRenderer - Failed to create image views!");
+			return false;
+		}
+	}
+
+	LOG_INFO("Vulkan Swapchain Image Views Created");
+	return true;
+}
+
+void VulkanSwapchain::DestroyImageViews(CVulkanRenderer* renderingContext)
+{
+	for (int i = 0; i < m_SwapchainImageViews.GetSize(); i++)
+	{
+		vkDestroyImageView(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainImageViews[i], nullptr);
+	}
+}
+
 

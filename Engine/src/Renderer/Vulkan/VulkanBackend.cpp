@@ -43,6 +43,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!m_Swapchain.CreateSwapchain(this))
 		return false;
 
+	if (!m_Swapchain.CreateImageViews(this))
+		return false;
+
 	LOG_INFO("Vulkan Rendering Backend Initialized");
 	return true;
 }
@@ -55,6 +58,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	m_Swapchain.DestroyImageViews(this);
 	m_Swapchain.CleanupSwapchain(this);
 	m_Device.DestroyLogicalDevice(this);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);

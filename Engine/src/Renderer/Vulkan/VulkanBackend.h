@@ -115,11 +115,19 @@ class VulkanSwapchain
 public:
 	VulkanSwapchain()
 		: m_SwapchainHandle{ VK_NULL_HANDLE }
-		, m_SwapchainSupportDetails{} {}
+		, m_SwapchainSupportDetails{}
+		, m_SwapchainImages{}
+		, m_SwapchainImageViews{}
+		, m_SwapchainImageFormat{}
+		, m_SwapchainExtent{} {}
 
 
 	bool		CreateSwapchain(CVulkanRenderer* renderingContext);
 	void		CleanupSwapchain(CVulkanRenderer* renderingContext);
+
+	void		GetSwapchainImages(CVulkanRenderer* renderingContext);
+	bool		CreateImageViews(CVulkanRenderer* renderingContext);
+	void		DestroyImageViews(CVulkanRenderer* renderingContext);
 
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
 
@@ -133,6 +141,11 @@ private:
 private:
 	VkSwapchainKHR	m_SwapchainHandle;
 	SwapchainSupportDetails_t m_SwapchainSupportDetails;
+	CVector<VkImage> m_SwapchainImages;
+	CVector<VkImageView> m_SwapchainImageViews;
+
+	VkFormat	m_SwapchainImageFormat;
+	VkExtent2D	m_SwapchainExtent;
 };
 
 
