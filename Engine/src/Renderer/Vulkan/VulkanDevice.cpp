@@ -131,24 +131,24 @@ void VulkanDevice::GetQueueFamilyData(CVulkanRenderer* renderingContext)
 		// after finding an index without worrying about the present queue.
 		vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDeviceHandle, i, renderingContext->GetVulkanSurface(), &presentSupport);
 
-		if (presentSupport && m_PhysicalDeviceQueueIndices.presentIndex == -1)
+		if (presentSupport)
 		{
 			m_PhysicalDeviceQueueIndices.presentIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT && m_PhysicalDeviceQueueIndices.graphicsIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
 			m_PhysicalDeviceQueueIndices.graphicsIndex = i;
 			continue;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT && m_PhysicalDeviceQueueIndices.computeIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
 		{
 			m_PhysicalDeviceQueueIndices.computeIndex = i;
 			continue;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT && m_PhysicalDeviceQueueIndices.transferIndex == -1)
+		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
 		{
 			m_PhysicalDeviceQueueIndices.transferIndex = i;
 			continue;

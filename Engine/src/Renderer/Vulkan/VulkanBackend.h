@@ -29,10 +29,10 @@ struct SwapchainSupportDetails_t;
 struct DeviceQueueFamilyProperties_t
 {
 	DeviceQueueFamilyProperties_t()
-		: graphicsIndex{ 65535 }
-		, computeIndex{ 65535 }
-		, transferIndex{ 65535 }
-		, presentIndex{ 65535  } {}
+		: graphicsIndex{ 0 }
+		, computeIndex{ 0 }
+		, transferIndex{ 0 }
+		, presentIndex{ 0 } {}
 
 	uint32_t		graphicsIndex;
 	uint32_t		computeIndex;

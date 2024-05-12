@@ -21,6 +21,8 @@ Device creation slows the application down quite a lot, way more than it should.
 I suspect this has to do with checking for device extensions (string comparisions in a loop of well over 100 iterations).
 This is NOT fatal or to be prioritized, but should be fixed when possible.
 
+Device Creation - Selecting Queue Family Indices is possibly flawed (selecting the last one possible), need to revisit this in the future.
+
 The Extent 2D that gets created as part of the swapchain is not accurate and needs to be properly implemented.
 
 
