@@ -15,6 +15,11 @@ template<typename T>
 class CVector
 {
 public:
+	class iterator
+	{
+
+	};
+
 	CVector()
 	{
 		m_Size = 0;
@@ -184,20 +189,20 @@ public:
 		return value;
 	}
 	
-	unsigned int GetSize() const { return m_Size; }
-	unsigned int GetCapacity() const { return m_Capacity; }
-	unsigned int GetStride() const { return m_Stride; }
+	size_t GetSize() const { return m_Size; }
+	size_t GetCapacity() const { return m_Capacity; }
+	size_t GetStride() const { return m_Stride; }
 	T* Data() { return m_Data; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
-	unsigned int m_Size;
+	size_t m_Size;
 
 	/* The maximum number of elements that can be held in the array. (Can be resized, of course) */
-	unsigned int m_Capacity;
+	size_t m_Capacity;
 
 	/* The stride of the elements (the length in bytes between each element) */
-	unsigned int m_Stride;
+	size_t m_Stride;
 
 	/* The data included in the array, can be accessed with the [] operators */
 	T* m_Data;
