@@ -19,7 +19,7 @@ void StringFormat(const char* format, const char* str1, const char* str2, char* 
 void StringFormat_V(const char* format, const char* str1, va_list& var_args, char* outString)
 {
 	char stringBuffer[10000];
-	vsprintf(stringBuffer, format, var_args);
+	vsprintf_s(stringBuffer, format, var_args);
 	strcpy(outString, stringBuffer);
 }
 

@@ -28,10 +28,16 @@ struct SwapchainSupportDetails_t;
 //=================================
 struct DeviceQueueFamilyProperties_t
 {
-	int		graphicsIndex = -1;
-	int		computeIndex = -1;
-	int		transferIndex = -1;
-	int		presentIndex = -1;
+	DeviceQueueFamilyProperties_t()
+		: graphicsIndex{ 65535 }
+		, computeIndex{ 65535 }
+		, transferIndex{ 65535 }
+		, presentIndex{ 65535  } {}
+
+	uint32_t		graphicsIndex;
+	uint32_t		computeIndex;
+	uint32_t		transferIndex;
+	uint32_t		presentIndex;
 
 	bool IsComplete()
 	{
@@ -45,7 +51,14 @@ class VulkanDevice
 public:
 	VulkanDevice() 
 		: m_PhysicalDeviceHandle{ VK_NULL_HANDLE }
-		, m_LogicalDeviceHandle{ VK_NULL_HANDLE } {}
+		, m_PhysicalDeviceProperties{}
+		, m_PhysicalDeviceQueueIndices{}
+		, m_LogicalDeviceHandle{ VK_NULL_HANDLE }
+		, m_GraphicsQueue{ VK_NULL_HANDLE }
+		, m_PresentQueue{ VK_NULL_HANDLE }
+		, m_TransferQueue{ VK_NULL_HANDLE }
+		, m_ComputeQueue{ VK_NULL_HANDLE }
+		, m_bDeviceSupportsSwapchain{ false } {}
 
 	bool	CreateVulkanDevice(CVulkanRenderer* renderingContext);
 	void	DestroyLogicalDevice(CVulkanRenderer* renderingContext);
@@ -76,7 +89,7 @@ private:
 	VkQueue m_ComputeQueue;
 
 	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	bool m_bDeviceSupportsSwapchain = false;
+	bool m_bDeviceSupportsSwapchain;
 };
 
 
@@ -87,6 +100,11 @@ private:
 //=================================
 struct SwapchainSupportDetails_t
 {
+	SwapchainSupportDetails_t()
+		: capabilities{}
+		, formats{}
+		, presentModes{} {}
+
 	VkSurfaceCapabilitiesKHR capabilities;
 	CVector<VkSurfaceFormatKHR> formats;
 	CVector<VkPresentModeKHR> presentModes;
@@ -95,10 +113,14 @@ struct SwapchainSupportDetails_t
 class VulkanSwapchain
 {
 public:
+	VulkanSwapchain()
+		: m_SwapchainHandle{ VK_NULL_HANDLE }
+		, m_SwapchainSupportDetails{} {}
+
+
 	bool		CreateSwapchain(CVulkanRenderer* renderingContext);
 	void		CleanupSwapchain(CVulkanRenderer* renderingContext);
 
-	//void		SetSwapchainSupportDetails(SwapchainSupportDetails_t* details) { m_SwapchainSupportDetails = details; }
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
 
 private:
@@ -122,6 +144,14 @@ private:
 class CVulkanRenderer : public IRendererBackend
 {
 public:
+	CVulkanRenderer()
+		: m_Instance{ VK_NULL_HANDLE }
+		, m_DebugMessenger{ VK_NULL_HANDLE }
+		, m_Surface{ VK_NULL_HANDLE }
+		, m_Device{}
+		, m_Swapchain{} {}
+
+
 	bool	RendererBackend_Initialize() override;
 	void	RendererBackend_Shutdown() override;
 	bool	RendererBackend_Update() override;

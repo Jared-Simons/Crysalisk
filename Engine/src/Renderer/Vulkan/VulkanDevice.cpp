@@ -202,7 +202,7 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueIndices;
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<int> uniqueQueueFamilies = { queueIndices.graphicsIndex, queueIndices.presentIndex, queueIndices.transferIndex, queueIndices.computeIndex };
+	std::set<uint32_t> uniqueQueueFamilies = { queueIndices.graphicsIndex, queueIndices.presentIndex, queueIndices.transferIndex, queueIndices.computeIndex };
 
 	// Set up the device queues
 	float queuePriority = 1.0f;
