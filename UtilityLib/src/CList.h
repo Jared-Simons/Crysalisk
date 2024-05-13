@@ -26,6 +26,10 @@ public:
 		: m_pNext{ nullptr }
 		, m_Data{ val } {}
 
+	CListNode(CListNode& otherNode)
+		: m_pNext{ otherNode.m_pNext }
+		, m_Data{ otherNode.m_Data } {}
+
 	CListNode* m_pNext;
 	T m_Data;
 };
@@ -195,6 +199,59 @@ public:
 
 		m_Size--;
 		return poppedValue;
+	}
+
+	T PopBack()
+	{
+		CListNode<T>* newLastNode = m_pHead;
+
+		// Get the second to last node in the last.
+		while (newLastNode->m_pNext->m_pNext != nullptr)
+			newLastNode = newLastNode->m_pNext;
+
+		T poppedValue = newLastNode->m_pNext->m_Data;
+
+		delete newLastNode->m_pNext;
+		newLastNode->m_pNext = nullptr;
+		m_Size--;
+
+		return poppedValue;
+	}
+
+	T& Insert(size_t newPos, T element, size_t numElements = 1)
+	{
+		// Get a pointer to the node at the one prior the given index
+		CListNode<T>* newPosIndexSub1 = m_pHead;
+
+		// Lists are one-indexed it appears
+		size_t index = 1;
+		while (index != (--newPos))
+			newPosIndexSub1 = newPosIndexSub1->m_pNext;
+
+		// Save off a copy to the next element for later
+		CListNode<T>* linkToBeAdjusted = new CListNode<T>(*newPosIndexSub1->m_pNext);
+
+		// Insert a new node at the element's position
+		newPosIndexSub1->m_pNext = new CListNode<T>(element);
+
+		// Insert more elements if provided
+		size_t elementsAdded = 1;
+		CListNode<T>* newElement = newPosIndexSub1->m_pNext;
+		while (elementsAdded != numElements)
+		{
+			CListNode<T>* newNode = new CListNode<T>;
+			newElement->m_pNext = newNode;
+			newNode->m_Data = element;
+			newElement = newNode;
+			m_Size++;
+			elementsAdded++;
+		}
+		
+		// Link up the adjusted nodes here
+		newElement->m_pNext = linkToBeAdjusted;
+
+		m_Size++;
+		return newPosIndexSub1->m_pNext->m_Data;
 	}
 
 	size_t GetSize() const { return m_Size; }
