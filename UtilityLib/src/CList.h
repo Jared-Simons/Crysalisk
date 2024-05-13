@@ -6,7 +6,7 @@
 //=============================================================================
 #pragma once
 
-#include <stdarg.h>
+#include <Core/Logging.h>
 
 // Forward Declarations
 template<typename T>
@@ -41,7 +41,7 @@ public:
 
 	CList()
 		: m_Size{ 0 }
-		, m_pHead{ new CListNode<T>() } {}
+		, m_pHead{ nullptr } {}
 
 	CList(T element)
 	{
@@ -133,12 +133,47 @@ private:
 
 public:
 
+	T& operator[](int index)
+	{
+		CListNode<T>* currentNode = m_pHead;
+		for (int i = 0; i < index; i++)
+			currentNode = currentNode->m_pNext;
+
+		return currentNode->m_Data;
+	}
+
+	T Front()
+	{
+		if (m_pHead)
+			return m_pHead->m_Data;
+
+		LOG_ERROR("CList->Front() - Attempting to access data that does not exist, returning -1");
+		return -1;
+	}
+
+	T Back()
+	{
+		CListNode<T>* currentNode = m_pHead;
+		while (currentNode->m_pNext != nullptr)
+			currentNode = currentNode->m_pNext;
+
+		return currentNode->m_Data;
+	}
+
+	void PushFront(T val)
+	{
+		CListNode<T>* newValue = new CListNode(val);
+		newValue->m_pNext = m_pHead;
+		m_pHead = newValue;
+		m_Size++;
+	}
+	
 	void PushBack(T val)
 	{
 		CListNode<T>* currentPtr = m_pHead;
 		if (m_Size == 0)
 		{
-			m_pHead->m_Data = val;
+			m_pHead = new CListNode(val);
 			m_Size++;
 			return;
 		}
@@ -150,13 +185,16 @@ public:
 		m_Size++;
 	}
 
-	T& operator[](int index)
+	T PopFront()
 	{
-		CListNode<T>* currentNode = m_pHead;
-		for (int i = 0; i < index; i++)
-			currentNode = currentNode->m_pNext;
+		CListNode<T>* poppedNode = m_pHead;
 
-		return currentNode->m_Data;
+		m_pHead = poppedNode->m_pNext;
+		T poppedValue = poppedNode->m_Data;
+		delete(poppedNode);
+
+		m_Size--;
+		return poppedValue;
 	}
 
 	size_t GetSize() const { return m_Size; }
