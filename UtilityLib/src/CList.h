@@ -39,6 +39,22 @@ class CList
 {
 public:
 
+	virtual ~CList()
+	{
+		while (m_Size > 1)
+		{
+			PopBack();
+		}
+
+		if (m_Size == 1)
+		{
+			delete m_pHead;
+			m_Size--;
+		}
+
+		LOG_DEBUG("CList Destroyed - Size: %d", m_Size);
+	}
+
 	//==============================================
 	// BIG WALL OF CONSTRUCTORS
 	//==============================================
@@ -205,8 +221,8 @@ public:
 	{
 		CListNode<T>* newLastNode = m_pHead;
 
-		// Get the second to last node in the last.
-		while (newLastNode->m_pNext->m_pNext != nullptr)
+		// Get the second to last node in the last. (more than one element must exist to chain these pointers)
+		while (m_Size != 1 && newLastNode->m_pNext->m_pNext != nullptr)
 			newLastNode = newLastNode->m_pNext;
 
 		T poppedValue = newLastNode->m_pNext->m_Data;

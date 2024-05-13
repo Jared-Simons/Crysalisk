@@ -8,11 +8,11 @@
 #include <Core/Logging.h>
 #include <Clock.h>
 
-#include "Test.h"
+#include "Containers/LinkedListTests.h"
 
 bool PerformUnitTests()
 {
-	MyTests->PerformTests();
+	g_LinkedListTests->PerformTests();
 	
 	return true;
 }

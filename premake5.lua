@@ -145,6 +145,7 @@ project "UnitTest"
 	includedirs
 	{	
 		"Engine/src/",
+		"UnitTest/src/",
 		"UtilityLib/src/"
 	}
 	
