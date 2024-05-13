@@ -10,8 +10,6 @@
 
 #include "Test.h"
 
-#include <CList.h>
-
 bool PerformUnitTests()
 {
 	MyTests->PerformTests();
@@ -29,10 +27,6 @@ int main()
 		return -1;
 
 	PerformUnitTests();
-
-	CList<int> myIntList = { 12, 45, 8, 6 };
-	for (int i = 0; i < myIntList.GetSize(); i++)
-		LOG_WARN("%d", myIntList[i]);
 
 	Engine->Engine_Shutdown();
 
