@@ -194,7 +194,7 @@ void Platform_LogMessage(int level, const char* message)
 	size_t length = strlen(message);
 	WriteConsoleA(outputHandle, message, length, 0, 0);
 	// Clear the console back to light gray after printing the message
-	SetConsoleTextAttribute(outputHandle, 7);
+	SetConsoleTextAttribute(outputHandle, 15);
 }
 
 VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface()
