@@ -23,22 +23,34 @@ public:
 	UnitTestGroup(const char* debugTestName)
 		: m_debugTestName{ debugTestName } {}
 
-	bool RegisterTestFunc(PFN_UnitTestFunc newTestFunc) { m_RegisteredTests.PushBack(newTestFunc); return true; }
+	bool RegisterTestFunc(PFN_UnitTestFunc newTestFunc, const char* testDesc) { m_RegisteredTests.PushBack(newTestFunc); m_RegisteredTestNames.PushBack(testDesc); return true; }
 	void PerformTests()
 	{
 		m_TestClock.Start();
 
 		for (int i = 0; i < m_RegisteredTests.GetSize(); i++)
 		{
+			Clock singleClock;
+			singleClock.Start();
+			bool passed = false;
 			if (m_RegisteredTests[i]() == 1)
+			{
 				m_TestsPassed++;
+				passed = true;
+			}
 			else
 				m_TestsFailed++;
+
+			singleClock.Stop();
+
+			LOG_VERBOSE("%s\t [%s]", m_RegisteredTestNames[i], passed ? "PASS" : "FAIL");
 		}
 
 		m_TestClock.Stop();
 		PrintTestResults();
 	}
+
+	
 
 	void PrintTestResults()
 	{
@@ -47,6 +59,7 @@ public:
 
 private:
 	CVector<PFN_UnitTestFunc> m_RegisteredTests;
+	CVector<const char*> m_RegisteredTestNames;
 	Clock m_TestClock;
 
 	const char*	 m_debugTestName = nullptr;

@@ -16,8 +16,8 @@ public:
 	CListUnitTests(const char* debugTestName)
 		: UnitTestGroup(debugTestName)
 	{
-		RegisterTestFunc(CreateAndDestroyLinkedList);
-		RegisterTestFunc(InitializeLinkedList);
+		RegisterTestFunc(CreateAndDestroyLinkedList, "Create and Destroy A Linked List");
+		RegisterTestFunc(InitializeLinkedList, "Initialize Linked List");
 	}
 
 private:

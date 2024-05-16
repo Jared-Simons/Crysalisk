@@ -52,7 +52,7 @@ public:
 			m_Size--;
 		}
 
-		LOG_DEBUG("CList Destroyed - Size: %d", m_Size);
+		//LOG_DEBUG("CList Destroyed - Size: %d", m_Size);
 	}
 
 	//==============================================
