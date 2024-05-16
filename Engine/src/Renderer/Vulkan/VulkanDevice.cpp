@@ -12,8 +12,7 @@
 #include <String_Utils.h>
 #include <stdint.h>
 
-// This is temporary until a custom set structure can be implemented
-#include <set>
+#include <Containers/CSet.h>
 
 
 bool VulkanDevice::CreateVulkanDevice(CVulkanRenderer* renderingContext)
@@ -202,14 +201,14 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueIndices;
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = { queueIndices.graphicsIndex, queueIndices.presentIndex, queueIndices.transferIndex, queueIndices.computeIndex };
+	CSet<int> uniqueQueueFamilies{ (int)queueIndices.graphicsIndex, (int)queueIndices.presentIndex, (int)queueIndices.transferIndex, (int)queueIndices.computeIndex };
 
 	// Set up the device queues
 	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies)
+	for (int i = 0; i < uniqueQueueFamilies.GetSize(); i++)
 	{
 		VkDeviceQueueCreateInfo queueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-		queueCreateInfo.queueFamilyIndex = queueFamily;
+		queueCreateInfo.queueFamilyIndex = uniqueQueueFamilies[i];
 		queueCreateInfo.queueCount = 1;
 		queueCreateInfo.pQueuePriorities = &queuePriority;
 		queueCreateInfos.PushBack(queueCreateInfo);

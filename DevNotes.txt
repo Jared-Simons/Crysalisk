@@ -2,7 +2,6 @@ Issues:
 
 General:
 
-A 'Set' data structure will be important soon, as to not rely on the STL.
 The Logging system is not very flexible yet - it relies on ALWAYS having at least one logger active at index 0 of its registry... there should be a fall-through case of calling the platform layer otherwise.
 
 CVector:
@@ -13,6 +12,11 @@ Trying to pass a CVector by value to create a copy will result in heap-corruptio
 	Need to nail down pass-by-value vs pass-by-reference with CVector.
 	
 Passing CVector to a function with 'const' does not work yet - this should be prioritized going forward.
+
+
+CSet:
+
+Creating a CSet<uint32_t> does not work -- need to rework this data structure as we move forward.
 
 
 Vulkan Renderer:
