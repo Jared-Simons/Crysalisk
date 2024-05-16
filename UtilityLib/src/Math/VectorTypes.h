@@ -1,0 +1,264 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/15/2024
+// 
+// Purpose: Adds Mathematical Vector Utilities.
+//=============================================================================
+#pragma once
+
+// TODO: Replace this with our own header at some point
+#include <cmath>
+
+class Vector2D
+{
+public:
+	float x;
+	float y;
+
+public:
+	Vector2D()
+		: x{ 0 }
+		, y{ 0 } {}
+
+	Vector2D(float x_, float y_)
+		: x{ x_ }
+		, y{ y_ } {}
+
+	void operator+(const float scalar)
+	{
+		x = x + scalar;
+		y = y + scalar;
+	}
+
+	void operator-(const float scalar)
+	{
+		x = x - scalar;
+		y = y - scalar;
+	}
+
+	void operator*(const float scalar)
+	{
+		x = x * scalar;
+		y = y * scalar;
+	}
+
+	void operator/(const float scalar)
+	{
+		x = x / scalar;
+		y = y / scalar;
+	}
+
+	Vector2D operator+(const Vector2D& const otherVector)
+	{
+		Vector2D outVector{};
+		outVector.x = x + otherVector.x;
+		outVector.y = y + otherVector.y;
+		return outVector;
+	}
+
+	Vector2D operator-(const Vector2D& const otherVector)
+	{
+		Vector2D outVector{};
+		outVector.x = x - otherVector.x;
+		outVector.y = y - otherVector.y;
+		return outVector;
+	}
+
+	Vector2D operator*(const Vector2D& const otherVector)
+	{
+		Vector2D outVector{};
+		outVector.x = x * otherVector.x;
+		outVector.y = y * otherVector.y;
+		return outVector;
+	}
+
+	Vector2D operator/(const Vector2D& const otherVector)
+	{
+		Vector2D outVector{};
+		outVector.x = x / otherVector.x;
+		outVector.y = y / otherVector.y;
+		return outVector;
+	}
+
+	Vector2D Negate()
+	{
+		Vector2D outVector{};
+		outVector.x = -x;
+		outVector.y = -y;
+		return outVector;
+	}
+
+	void NegateInPlace()
+	{
+		x = -x;
+		y = -y;
+	}
+
+	float Length()
+	{
+		return sqrt((x * x) + (y * y));
+	}
+
+	Vector2D Normalize()
+	{
+		Vector2D outVector{};
+		float length = Length();
+
+		outVector.x = x / length;
+		outVector.y = y / length;
+
+		return outVector;
+	}
+
+	void NormalizeInPlace()
+	{
+		float length = Length();
+
+		x = x / length;
+		y = y / length;
+	}
+
+	static float DotProduct(const Vector2D& vecA, const Vector2D& vecB)
+	{
+		return (vecA.x * vecB.x) + (vecA.y * vecB.y);
+	}
+};
+
+
+class Vector3D
+{
+public:
+	float x;
+	float y;
+	float z;
+
+	Vector3D()
+		: x{ 0 }
+		, y{ 0 }
+		, z{ 0 } {}
+
+	Vector3D(float x_, float y_, float z_)
+		: x{ x_ }
+		, y{ y_ }
+		, z{ z_ } {}
+
+	void operator+(const float scalar)
+	{
+		x = x + scalar;
+		y = y + scalar;
+		z = z + scalar;
+	}
+
+	void operator-(const float scalar)
+	{
+		x = x - scalar;
+		y = y - scalar;
+		z = z - scalar;
+	}
+
+	void operator*(const float scalar)
+	{
+		x = x * scalar;
+		y = y * scalar;
+		z = z * scalar;
+	}
+
+	void operator/(const float scalar)
+	{
+		x = x / scalar;
+		y = y / scalar;
+		z = z / scalar;
+	}
+
+	Vector3D operator+(const Vector3D& const otherVector)
+	{
+		Vector3D outVector{};
+		outVector.x = x + otherVector.x;
+		outVector.y = y + otherVector.y;
+		outVector.z = z + otherVector.z;
+		return outVector;
+	}
+
+	Vector3D operator-(const Vector3D& const otherVector)
+	{
+		Vector3D outVector{};
+		outVector.x = x - otherVector.x;
+		outVector.y = y - otherVector.y;
+		outVector.z = z - otherVector.z;
+		return outVector;
+	}
+
+	Vector3D operator*(const Vector3D& const otherVector)
+	{
+		Vector3D outVector{};
+		outVector.x = x * otherVector.x;
+		outVector.y = y * otherVector.y;
+		outVector.z = z * otherVector.z;
+		return outVector;
+	}
+
+	Vector3D operator/(const Vector3D& const otherVector)
+	{
+		Vector3D outVector{};
+		outVector.x = x / otherVector.x;
+		outVector.y = y / otherVector.y;
+		outVector.z = z / otherVector.z;
+		return outVector;
+	}
+
+	Vector3D Negate()
+	{
+		Vector3D outVector{};
+		outVector.x = -x;
+		outVector.y = -y;
+		outVector.z = -z;
+		return outVector;
+	}
+
+	void NegateInPlace()
+	{
+		x = -x;
+		y = -y;
+		z = -z;
+	}
+
+	float Length()
+	{
+		return sqrt((x * x) + (y * y) + (z * z));
+	}
+
+	Vector3D Normalize()
+	{
+		Vector3D outVector{};
+		float length = Length();
+
+		outVector.x = x / length;
+		outVector.y = y / length;
+		outVector.z = z / length;
+
+		return outVector;
+	}
+
+	void NormalizeInPlace()
+	{
+		float length = Length();
+
+		x = x / length;
+		y = y / length;
+		z = z / length;
+	}
+
+	static float DotProduct(const Vector3D& vecA, const Vector3D& vecB)
+	{
+		return (vecA.x * vecB.x) + (vecA.y * vecB.y) + (vecA.z * vecB.z);
+	}
+
+	static Vector3D CrossProduct(const Vector3D& vecA, const Vector3D& vecB)
+	{
+		Vector3D outVector{};
+		outVector.x = vecA.y * vecB.z - vecA.z * vecB.y;
+		outVector.y = vecA.z * vecB.x - vecA.x * vecB.z;
+		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
+		return outVector;
+	}
+};
