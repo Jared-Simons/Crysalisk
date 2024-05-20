@@ -14,6 +14,9 @@ public:
 
 private:
 	unsigned int	m_numAllocations = 0;
+
+	size_t			m_numBytesAllocated;
+	void*			m_pBaseMemoryBlock;
 };
 
 extern CMemorySystem* gpMemorySystem;
