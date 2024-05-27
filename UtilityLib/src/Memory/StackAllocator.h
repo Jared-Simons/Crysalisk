@@ -6,8 +6,8 @@
 //=============================================================================
 #pragma once
 
-#include <Platform/Platform.h>
 #include <Core/Logging.h>
+#include <Systems/IMemory.h>
 
 template<typename T>
 class StackAllocator
@@ -25,7 +25,7 @@ public:
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr }
 	{
-		m_pData = (T*)Platform_MemoryAllocate(m_AllocatorSize);
+		m_pData = (T*)gpMemorySystem->MemAllocate(m_AllocatorSize);
 		m_pCurrentAlloc = m_pData;
 	}
 
@@ -37,7 +37,7 @@ public:
 			free();
 
 		if (m_pData)
-			Platform_MemoryFree(m_pData);
+			gpMemorySystem->MemFree(m_pData);
 
 		//LOG_DEBUG("Stack allocator destroyed");
 	}
@@ -59,12 +59,12 @@ public:
 
 	void free(bool allocateNewMemory = true)
 	{
-		Platform_MemoryFree(m_pData);
+		gpMemorySystem->MemFree(m_pData);
 		m_BytesAllocated = 0;
 
 		if (allocateNewMemory)
 		{
-			m_pData = (T*)Platform_MemoryAllocate(m_AllocatorSize);
+			m_pData = (T*)gpMemorySystem->MemAllocate(m_AllocatorSize);
 			m_pCurrentAlloc = m_pData;
 		}
 		else

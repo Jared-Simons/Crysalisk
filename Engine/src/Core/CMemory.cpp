@@ -4,28 +4,121 @@
 #include "Platform/Platform.h"
 #include "EngineGlobals.h"
 
-static CMemorySystem s_MemorySystem;
+class CMemorySystem : public IMemorySystem
+{
+public:
+	CMemorySystem()
+		: m_numAllocations{ 0 }
+		, m_numBytesAllocated{ 0 }
+		, m_pBaseMemoryBlock{ nullptr } {}
+
+	bool MemorySystem_Initialize() override;
+	void MemorySystem_Shutdown() override;
+
+	void*	MemAllocate(size_t numBytes) override;
+	void	MemFree(void* block) override;
+	void*	MemReallocate(void* memory, size_t newSize) override;
+	void*	MemCopy(void* dest, const void* source, size_t size) override;
+	void*	MemSet(void* memory, int value, size_t size) override;
+
+private:
+	unsigned int	m_numAllocations = 0;
+
+	size_t			m_numBytesAllocated;
+	void*			m_pBaseMemoryBlock;
+};
 
 bool CMemorySystem::MemorySystem_Initialize()
 {
+	// TODO: Allocate from a custom allocator (this will require some form of heap allocator class)
+	/*
 	m_numAllocations = 0;
 
 	m_numBytesAllocated = MEBIBYTES(512);
 
 	m_pBaseMemoryBlock = Platform_MemoryAllocate(MEBIBYTES(512));
-
+	*/
 	LOG_INFO("Memory System initialized with %d bytes of system memory", m_numBytesAllocated);
 	return true;
 }
 
+
 void CMemorySystem::MemorySystem_Shutdown()
 {
 	// Free engine memory on shutdown
+	/*
 	Platform_MemoryFree(m_pBaseMemoryBlock);
 	m_numBytesAllocated = 0;
-
+	*/
 	LOG_INFO("Memory System Shutdown");
 }
 
-CMemorySystem* gpMemorySystem = &s_MemorySystem;
+
+void* CMemorySystem::MemAllocate(size_t numBytes)
+{
+	// TODO: Memory alignment
+	void* block = nullptr;
+
+	block = Platform_MemoryAllocate(numBytes);
+
+	if (block != nullptr)
+		return block;
+
+	// TODO: Handle these failures properly.
+	LOG_ERROR("MemorySystem->MemAllocate could not allocate memory, returning nullptr.");
+	return nullptr;
+}
+
+
+void CMemorySystem::MemFree(void* block)
+{
+	// TODO: Memory alignment
+	
+	// There is nothing wrong with calling free() on a nullptr,
+	// so no need to check.
+	Platform_MemoryFree(block);
+}
+
+
+void* CMemorySystem::MemReallocate(void* memory, size_t newSize)
+{
+	// TODO: Memory alignment
+	void* block = nullptr;
+
+	block = Platform_MemoryReallocate(memory, newSize);
+
+	// Free the original block
+	Platform_MemoryFree(memory);
+
+	if (block != nullptr)
+		return block;
+
+	// TODO: Handle these failures properly.
+	LOG_ERROR("MemorySystem->MemReallocate could not allocate memory, returning nullptr.");
+	return nullptr;
+}
+
+
+void* CMemorySystem::MemCopy(void* dest, const void* source, size_t size)
+{
+	if (dest && source && size)
+		return Platform_MemoryCopy(dest, source, size);
+
+	LOG_ERROR("MemorySystem->MemCopy requires all parameters to be valid to operate. Returning nullptr.");
+	return nullptr;
+}
+
+
+void* CMemorySystem::MemSet(void* memory, int value, size_t size)
+{
+	if (memory)
+		return Platform_MemorySet(memory, value, size);
+
+	LOG_ERROR("MemorySystem->MemSet requires a valid pointer to a memory block. Returning nullptr.");
+	return nullptr;
+}
+
+
+static CMemorySystem s_MemorySystem;
+IMemorySystem* gpMemorySystem = &s_MemorySystem;
 

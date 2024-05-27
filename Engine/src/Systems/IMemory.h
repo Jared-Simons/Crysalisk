@@ -6,18 +6,20 @@
 //=============================================================================
 #pragma once
 
-class CMemorySystem
+#include "EngineGlobals.h"
+
+class IMemorySystem
 {
 public:
-	bool MemorySystem_Initialize();
-	void MemorySystem_Shutdown();
+	virtual bool MemorySystem_Initialize() = 0;
+	virtual void MemorySystem_Shutdown() = 0;
 
-private:
-	unsigned int	m_numAllocations = 0;
-
-	size_t			m_numBytesAllocated;
-	void*			m_pBaseMemoryBlock;
+	virtual void*	MemAllocate(size_t numBytes) = 0;
+	virtual void	MemFree(void* block) = 0;
+	virtual void*	MemReallocate(void* memory, size_t newSize) = 0;
+	virtual void*	MemCopy(void* dest, const void* source, size_t size) = 0;
+	virtual void*	MemSet(void* memory, int value, size_t size) = 0;
 };
 
-extern CMemorySystem* gpMemorySystem;
+ENGINE_API extern IMemorySystem* gpMemorySystem;
 

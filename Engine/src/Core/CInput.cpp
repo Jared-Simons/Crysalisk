@@ -7,8 +7,8 @@
 #include "Systems/IInput.h"
 
 #include "Core/Logging.h"
+#include "Systems/IMemory.h"
 #include "Systems/IEvent.h"
-#include "Platform/Platform.h"
 
 
 class CInputSystem : public IInputSystem
@@ -66,7 +66,7 @@ void CInputSystem::InputSystem_Update()
 {
 	if (m_KeyStateDirty)
 	{
-		Platform_MemoryCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		gpMemorySystem->MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
 		m_KeyStateDirty = false;
 	}
 }

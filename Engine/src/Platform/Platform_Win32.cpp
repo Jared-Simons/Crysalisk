@@ -433,7 +433,6 @@ void* Platform_MemoryAllocate(size_t size)
 
 void Platform_MemoryFree(void* memory)
 {
-	if(memory)
 		free(memory);
 }
 
