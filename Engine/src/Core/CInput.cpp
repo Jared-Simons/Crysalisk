@@ -8,12 +8,13 @@
 
 #include "Core/Logging.h"
 #include "Systems/IEvent.h"
+#include "Platform/Platform.h"
 
 
 class CInputSystem : public IInputSystem
 {
 public:
-	CInputSystem() : m_KeysState{ 0 }, m_PrevKeysState{ 0 } {}
+	CInputSystem() : m_KeysState{ 0 }, m_PrevKeysState{ 0 }, m_KeyStateDirty{ true } {}
 
 	bool		InputSystem_Initialize() override;
 	void		InputSystem_Shutdown() override;
@@ -27,6 +28,8 @@ private:
 	KeyState_T	m_PrevKeysState[256];
 
 	MouseState_t m_MouseState;
+
+	bool		m_KeyStateDirty;
 };
 
 bool CInputSystem::InputSystem_Initialize()
@@ -61,10 +64,10 @@ void CInputSystem::InputSystem_Shutdown()
 
 void CInputSystem::InputSystem_Update()
 {
-	// TODO: Is this the cleanest/fastest way to handle this?
-	for (char i = 0; i < MAX_INPUT_KEYS; i++)
+	if (m_KeyStateDirty)
 	{
-		m_PrevKeysState[i].m_Pressed = m_KeysState[i].m_Pressed;
+		Platform_MemoryCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		m_KeyStateDirty = false;
 	}
 }
 
@@ -87,6 +90,8 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 	{
 		LOG_ERROR("Input System: Tried to process undefined keycode!");
 	}
+
+	m_KeyStateDirty = true;
 }
 
 void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed)

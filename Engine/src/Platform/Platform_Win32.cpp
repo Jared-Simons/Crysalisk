@@ -457,7 +457,7 @@ void* Platform_MemoryCopy(void* dest, const void* source, size_t size)
 
 void* Platform_MemorySet(void* memory, int value, size_t size)
 {
-	if (memory && value && size)
+	if (memory && size)
 		return memset(memory, value, size);
 
 	LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");
