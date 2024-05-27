@@ -23,8 +23,8 @@ ENGINE_API double	Platform_GetAbsoluteTime();
 // 
 // Do NOT call these directly, instead call through the memory manager
 //-----------------------------------------------------------------------------
-void*	Platform_MemoryAllocate(size_t size);
-void	Platform_MemoryFree(void* memory);
-void*	Platform_MemoryReallocate(void* memory, size_t newSize);
-void*	Platform_MemoryCopy(void* dest, const void* source, size_t size);
-void*	Platform_MemorySet(void* memory, int value, size_t size);
+ENGINE_API void*	Platform_MemoryAllocate(size_t size);
+ENGINE_API void	Platform_MemoryFree(void* memory);
+ENGINE_API void*	Platform_MemoryReallocate(void* memory, size_t newSize);
+ENGINE_API void*	Platform_MemoryCopy(void* dest, const void* source, size_t size);
+ENGINE_API void*	Platform_MemorySet(void* memory, int value, size_t size);

@@ -15,11 +15,13 @@ class StackAllocator
 public:
 	StackAllocator()
 		: m_AllocatorSize{ 0 }
+		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr } {}
 
 	StackAllocator(size_t elementsToAllocate)
 		: m_AllocatorSize{ elementsToAllocate * sizeof(T) }
+		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr }
 	{
@@ -31,15 +33,25 @@ public:
 	{
 		m_AllocatorSize = 0;
 
+		if (m_BytesAllocated != 0)
+			free();
+
 		if (m_pData)
 			Platform_MemoryFree(m_pData);
 
-		LOG_DEBUG("Stack allocator destroyed");
+		//LOG_DEBUG("Stack allocator destroyed");
 	}
 
 	T* allocate()
 	{
+		if (m_BytesAllocated == m_AllocatorSize)
+		{
+			LOG_ERROR("StackAllocator->Allocate() - Cannot allocate anymore memory, returning nullptr.");
+			return nullptr;
+		}
+
 		T* newBlock = m_pCurrentAlloc;
+		m_BytesAllocated += sizeof(T);
 		m_pCurrentAlloc += sizeof(T);
 
 		return newBlock;
@@ -48,6 +60,7 @@ public:
 	void free(bool allocateNewMemory = true)
 	{
 		Platform_MemoryFree(m_pData);
+		m_BytesAllocated = 0;
 
 		if (allocateNewMemory)
 		{
@@ -62,9 +75,13 @@ public:
 	}
 
 	size_t GetAllocatorSize() const { return m_AllocatorSize; }
+	size_t GetBytesAllocated() const { return m_BytesAllocated; }
+
+	T* GetMemory() const { return m_pData; }
 
 private:
 	size_t m_AllocatorSize;
+	size_t m_BytesAllocated;
 	T* m_pData;
 
 	T* m_pCurrentAlloc;

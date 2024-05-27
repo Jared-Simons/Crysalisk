@@ -43,7 +43,7 @@ public:
 
 			singleClock.Stop();
 
-			LOG_VERBOSE("%s\t [%s]", m_RegisteredTestNames[i], passed ? "PASS" : "FAIL");
+			LOG_VERBOSE("%s\t\t\t\t [%s]", m_RegisteredTestNames[i], passed ? "PASS" : "FAIL");
 		}
 
 		m_TestClock.Stop();
@@ -54,7 +54,7 @@ public:
 
 	void PrintTestResults()
 	{
-		LOG_DEBUG("%s Results: %d/%d Passed | %d/%d Failed | %d/%d Skipped (Time Elapsed: %f)", m_debugTestName, m_TestsPassed, m_NumTests, m_TestsFailed, m_NumTests, m_TestsSkipped, m_NumTests, m_TestClock.GetElapsedTime());
+		LOG_INFO("%s Results: %d/%d Passed | %d/%d Failed | %d/%d Skipped (Time Elapsed: %f)", m_debugTestName, m_TestsPassed, m_NumTests, m_TestsFailed, m_NumTests, m_TestsSkipped, m_NumTests, m_TestClock.GetElapsedTime());
 	}
 
 private:
