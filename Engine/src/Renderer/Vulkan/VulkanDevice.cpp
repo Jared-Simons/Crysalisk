@@ -72,7 +72,7 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
 	CVector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(renderingContext->GetVulkanInstance(), &physicalDeviceCount, physicalDevices.Data());
 
-	for (int i = 0; i < physicalDevices.GetSize(); i++)
+	for (int i = 0; i < physicalDevices.GetCount(); i++)
 	{
 		if (PhysicalDeviceMeetsRequirements(renderingContext, physicalDevices[i]))
 		{
@@ -123,7 +123,7 @@ void VulkanDevice::GetQueueFamilyData(CVulkanRenderer* renderingContext)
 	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, deviceQueueFamilyProperties.Data());
 
 	VkBool32 presentSupport = false;
-	for (int i = 0; i < deviceQueueFamilyProperties.GetSize(); i++)
+	for (int i = 0; i < deviceQueueFamilyProperties.GetCount(); i++)
 	{
 		// We query support for the present queue index first as it is very possible that this queue is shared with another task
 		// Putting this above the rest of the loop allows it to be run only once, as well as allows the other 'if' checks to continue
@@ -167,9 +167,9 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 	CVector<VkExtensionProperties> availableDeviceExtensions(deviceExtensionCount);
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, availableDeviceExtensions.Data());
 
-	int extensionsToQuery = m_DeviceExtensions.GetSize();
+	int extensionsToQuery = m_DeviceExtensions.GetCount();
 	
-	for (int i = 0; i < m_DeviceExtensions.GetSize(); i++)
+	for (int i = 0; i < m_DeviceExtensions.GetCount(); i++)
 	{
 		for (int j = 0; j < deviceExtensionCount; j++)
 		{
@@ -187,7 +187,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 #if _DEBUG
 	LOG_VERBOSE("Enabled Vulkan Device Extensions:");
-	for (int i = 0; i < m_DeviceExtensions.GetSize(); i++)
+	for (int i = 0; i < m_DeviceExtensions.GetCount(); i++)
 	{
 		LOG_VERBOSE("%s", m_DeviceExtensions[i]);
 	}
@@ -215,15 +215,15 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	}
 
 	VkDeviceCreateInfo deviceCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.GetSize());
+	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.GetCount());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.Data();
 
-	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.GetSize());
+	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.GetCount());
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions.Data();
 
 	if (renderingContext->EnableValidationLayers())
 	{
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(renderingContext->GetValidationLayers().GetSize());
+		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(renderingContext->GetValidationLayers().GetCount());
 		deviceCreateInfo.ppEnabledLayerNames = renderingContext->GetValidationLayers().Data();
 	}
 	else

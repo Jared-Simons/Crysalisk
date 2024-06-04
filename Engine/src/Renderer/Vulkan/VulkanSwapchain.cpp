@@ -76,7 +76,7 @@ void VulkanSwapchain::CleanupSwapchain(CVulkanRenderer* renderingContext)
 
 VkSurfaceFormatKHR VulkanSwapchain::ChooseSwapchainSurfaceFormat(CVector<VkSurfaceFormatKHR>& availableFormats)
 {
-	for (int i = 0; i < availableFormats.GetSize(); i++)
+	for (int i = 0; i < availableFormats.GetCount(); i++)
 	{
 		if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 		{
@@ -89,7 +89,7 @@ VkSurfaceFormatKHR VulkanSwapchain::ChooseSwapchainSurfaceFormat(CVector<VkSurfa
 
 VkPresentModeKHR VulkanSwapchain::ChooseSwapchainPresentMode(CVector<VkPresentModeKHR>& availablePresentModes)
 {
-	for (int i = 0; i < availablePresentModes.GetSize(); i++)
+	for (int i = 0; i < availablePresentModes.GetCount(); i++)
 	{
 		if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
@@ -118,9 +118,9 @@ void VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* renderingContext)
 
 bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
 {
-	m_SwapchainImageViews.Resize(m_SwapchainImages.GetSize());
+	m_SwapchainImageViews.Resize(m_SwapchainImages.GetCount());
 
-	for (int i = 0; i < m_SwapchainImages.GetSize(); i++)
+	for (int i = 0; i < m_SwapchainImages.GetCount(); i++)
 	{
 		VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		createInfo.image = m_SwapchainImages[i];
@@ -151,7 +151,7 @@ bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
 
 void VulkanSwapchain::DestroyImageViews(CVulkanRenderer* renderingContext)
 {
-	for (int i = 0; i < m_SwapchainImageViews.GetSize(); i++)
+	for (int i = 0; i < m_SwapchainImageViews.GetCount(); i++)
 	{
 		vkDestroyImageView(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainImageViews[i], nullptr);
 	}

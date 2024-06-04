@@ -22,25 +22,28 @@ public:
 
 	CVector()
 	{
-		m_Size = 0;
+		m_Count = 0;
 		m_Capacity = 0;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
+		m_ResizeFactor = 2;
 		m_Data = nullptr;
 	}
 
 	CVector(size_t capacity)
 	{
-		m_Size = capacity;
+		m_Count = capacity;
 		m_Capacity = capacity;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
+		m_ResizeFactor = 2;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
 	}
 
 	CVector(T firstIndex)
 	{
-		m_Size = 1;
+		m_Count = 1;
 		m_Capacity = 1;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
+		m_ResizeFactor = 2;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
 		if (m_Data != nullptr)
 		{
@@ -50,9 +53,10 @@ public:
 
 	CVector(size_t capacity, T initialValue)
 	{
-		m_Size = capacity;
+		m_Count = capacity;
 		m_Capacity = capacity;
 		m_Stride = static_cast<unsigned int>(sizeof(T));
+		m_ResizeFactor = 2;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
 		if (m_Data != nullptr)
 		{
@@ -65,9 +69,10 @@ public:
 
 	CVector(CVector& otherVector)
 	{
-		m_Size = otherVector.m_Size;
+		m_Count = otherVector.m_Count;
 		m_Capacity = otherVector.m_Capacity;
 		m_Stride = otherVector.m_Stride;
+		m_ResizeFactor = 2;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
 		if (m_Data != nullptr)
 			memcpy(m_Data, otherVector.m_Data, m_Capacity * m_Stride);
@@ -103,7 +108,7 @@ public:
 		}
 
 
-		m_Size = newCapacity;
+		m_Count = newCapacity;
 		m_Capacity = newCapacity;
 	}
 
@@ -112,6 +117,7 @@ public:
 		if (m_Data != nullptr)
 		{
 			T* oldData = m_Data;
+
 			m_Data = (T*)malloc(m_Stride * newCapacity);
 			
 			if (m_Data != nullptr)
@@ -127,10 +133,10 @@ public:
 		}
 
 		if (newCapacity < (int)m_Capacity)
-			m_Size = newCapacity;
+			m_Count = newCapacity;
 
 		m_Capacity = newCapacity;
-		int newIndex = newCapacity - m_Size;
+		int newIndex = newCapacity - m_Count;
 
 		for (int i = m_Capacity - newIndex; i < newCapacity; i++)
 		{
@@ -153,18 +159,18 @@ public:
 
 	bool Empty()
 	{
-		return (m_Size == 0) && (m_Capacity == 0) && (m_Data == nullptr);
+		return (m_Count == 0) && (m_Capacity == 0) && (m_Data == nullptr);
 	}
 
 	void PushBack(T val)
 	{
-		if (m_Size + 1 > m_Capacity)
+		if (m_Count + 1 > m_Capacity)
 		{
 			// Need to resize the vector to make space!
 
 			T* oldData = m_Data;
 			m_Capacity++;
-			m_Size++;
+			m_Count++;
 
 			if (m_Data != nullptr)
 			{
@@ -178,31 +184,37 @@ public:
 
 		if (m_Data != nullptr)
 		{
-			m_Data[m_Size - 1] = val;
+			m_Data[m_Count - 1] = val;
 		}
 	}
 
 	T PopBack()
 	{
-		T value = m_Data[m_Size - 1];
-		m_Data[m_Size - 1] = -1;
+		T value = m_Data[m_Count - 1];
+		m_Data[m_Count - 1] = -1;
 		return value;
 	}
+
+	void SetResizeFactor(unsigned int resizeFactor) { m_ResizeFactor = resizeFactor; }
 	
-	size_t GetSize() const { return m_Size; }
-	size_t GetCapacity() const { return m_Capacity; }
-	size_t GetStride() const { return m_Stride; }
-	T* Data() { return m_Data; }
+	size_t			GetCount() const { return m_Count; }
+	size_t			GetCapacity() const { return m_Capacity; }
+	size_t			GetStride() const { return m_Stride; }
+	unsigned int	GetResizeFactor() const { retur m_ResizeFactor; }
+	T*				Data() { return m_Data; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
-	size_t m_Size;
+	size_t m_Count;
 
 	/* The maximum number of elements that can be held in the array. (Can be resized, of course) */
 	size_t m_Capacity;
 
 	/* The stride of the elements (the length in bytes between each element) */
 	size_t m_Stride;
+
+	/* The multiplier to be used when the vector resizes to make more room. */
+	unsigned int m_ResizeFactor;
 
 	/* The data included in the array, can be accessed with the [] operators */
 	T* m_Data;

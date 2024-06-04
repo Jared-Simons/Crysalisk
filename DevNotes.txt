@@ -4,9 +4,9 @@ General:
 
 The Logging system is not very flexible yet - it relies on ALWAYS having at least one logger active at index 0 of its registry... there should be a fall-through case of calling the platform layer otherwise.
 
-CVector:
+The custom containers are dynamicially allocating from malloc, this should be switched to our own memory system.
 
-CVector won't call the default constructor when trying to make a vector of integers (CVector<int> myIntVector;) - this is invalid...
+CVector:
 
 Trying to pass a CVector by value to create a copy will result in heap-corruption, as the copy was not allocated (but taken by reference) - thus trying to free a non-existent allocation will wreak havoc.
 	Need to nail down pass-by-value vs pass-by-reference with CVector.
