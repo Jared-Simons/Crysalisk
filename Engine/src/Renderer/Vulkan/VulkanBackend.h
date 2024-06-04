@@ -40,7 +40,7 @@ struct DeviceQueueFamilyProperties_t
 	uint32_t		transferIndex;
 	uint32_t		presentIndex;
 
-	bool IsComplete()
+	bool IsComplete() const
 	{
 		return (graphicsIndex != -1) && (presentIndex != -1) && (computeIndex != -1) && (transferIndex != -1);
 	}
@@ -197,7 +197,7 @@ private:
 	bool	CreateVulkanInstance();
 	bool	CreateDebugMessenger();
 
-	void	DestroyDebugMessenger();
+	void	DestroyDebugMessenger() const;
 
 private:
 	// Instance

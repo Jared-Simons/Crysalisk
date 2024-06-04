@@ -52,7 +52,7 @@ public:
 
 		T* newBlock = m_pCurrentAlloc;
 		m_BytesAllocated += sizeof(T);
-		m_pCurrentAlloc += sizeof(T);
+		m_pCurrentAlloc += 1;
 
 		return newBlock;
 	}

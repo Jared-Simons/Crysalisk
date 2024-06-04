@@ -25,6 +25,11 @@ project "Engine"
 	}
 
 	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302	---'type-cast' truncation (primary for void* casts).
+	}
 	
 	includedirs
 	{	
@@ -82,6 +87,11 @@ project "Testapp"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302	---'type-cast' truncation (primary for void* casts).
+	}
 	
 	files
 	{
@@ -135,6 +145,11 @@ project "UnitTest"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302	---'type-cast' truncation (primary for void* casts).
+	}
 	
 	files
 	{
@@ -198,6 +213,11 @@ project "UtilityLib"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302	---'type-cast' truncation (primary for void* casts).
+	}
 	
 	files
 	{

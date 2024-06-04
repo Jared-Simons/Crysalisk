@@ -178,7 +178,7 @@ bool CVulkanRenderer::CreateDebugMessenger()
 
 }
 
-void CVulkanRenderer::DestroyDebugMessenger()
+void CVulkanRenderer::DestroyDebugMessenger() const
 {
 #ifndef _DEBUG
 	// No Vulkan Debug Callbacks in release builds!

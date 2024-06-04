@@ -53,7 +53,10 @@ int StackAllocatorMultiAllocationAllSpace()
 		if (block == nullptr)
 			return FAIL;
 
-		if (stackAlloc.GetBytesAllocated() != sizeof(unsigned long long) * (i + 1))
+		// This extra type casting is being done purely to avoid compiler warnings/messages.
+		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
+		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
 	}
 
@@ -76,7 +79,9 @@ int StackAllocatorMultiAllocationOverAllocate()
 		if (block == nullptr)
 			return FAIL;
 
-		if (stackAlloc.GetBytesAllocated() != sizeof(unsigned long long) * (i + 1))
+		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
+		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
 	}
 
@@ -89,7 +94,8 @@ int StackAllocatorMultiAllocationOverAllocate()
 	if (block != nullptr)
 		return FAIL;
 
-	if (stackAlloc.GetBytesAllocated() != sizeof(unsigned long long) * maxAllocs)
+	size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+	if (numBytesAllocated != sizeof(unsigned long long) * maxAllocs)
 		return FAIL;
 
 	return PASS;
@@ -111,7 +117,9 @@ int StackAllocatorMultiAllocationAllSpaceThenFree()
 		if (block == nullptr)
 			return FAIL;
 
-		if (stackAlloc.GetBytesAllocated() != sizeof(unsigned long long) * (i + 1))
+		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
+		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
 	}
 
