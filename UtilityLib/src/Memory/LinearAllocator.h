@@ -2,7 +2,8 @@
 // Author: Jared Simons
 // Date Created: 5/19/2024
 // 
-// Purpose: A Stack-Based Memory Allocator.
+// Purpose: A Linear Memory Allocator.
+// Can allocate in chunks, but freed all at once.
 //=============================================================================
 #pragma once
 
@@ -10,16 +11,16 @@
 #include <Systems/IMemory.h>
 
 template<typename T>
-class StackAllocator
+class LinearAllocator
 {
 public:
-	StackAllocator()
+	LinearAllocator()
 		: m_AllocatorSize{ 0 }
 		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr } {}
 
-	StackAllocator(size_t elementsToAllocate)
+	LinearAllocator(size_t elementsToAllocate)
 		: m_AllocatorSize{ elementsToAllocate * sizeof(T) }
 		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
@@ -29,7 +30,7 @@ public:
 		m_pCurrentAlloc = m_pData;
 	}
 
-	~StackAllocator()
+	~LinearAllocator()
 	{
 		m_AllocatorSize = 0;
 

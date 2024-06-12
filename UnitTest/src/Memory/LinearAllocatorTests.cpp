@@ -1,60 +1,60 @@
-#include "StackAllocatorTests.h"
+#include "LinearAllocatorTests.h"
 
-#include <Memory/StackAllocator.h>
+#include <Memory/LinearAllocator.h>
 
 
-int CreateAndDestroyStackAllocator()
+int CreateAndDestroyLinearAllocator()
 {
-	StackAllocator<unsigned long long> stackAlloc(1);
+	LinearAllocator<unsigned long long> linearAlloc(1);
 
-	if (stackAlloc.GetMemory() == nullptr)
+	if (linearAlloc.GetMemory() == nullptr)
 		return FAIL;
 
-	if (stackAlloc.GetAllocatorSize() != sizeof(unsigned long long))
+	if (linearAlloc.GetAllocatorSize() != sizeof(unsigned long long))
 		return FAIL;
 
-	if (stackAlloc.GetBytesAllocated() != 0)
+	if (linearAlloc.GetBytesAllocated() != 0)
 		return FAIL;
 
 	return PASS;
 }
 
 
-int StackAllocatorSingleAllocationAllSpace()
+int LinearAllocatorSingleAllocationAllSpace()
 {
-	StackAllocator<unsigned long long> stackAlloc(1);
+	LinearAllocator<unsigned long long> linearAlloc(1);
 
 	// Single allocation.
-	void* block = stackAlloc.allocate();
+	void* block = linearAlloc.allocate();
 
 	// Validate it
-	if (stackAlloc.GetMemory() == nullptr)
+	if (linearAlloc.GetMemory() == nullptr)
 		return FAIL;
 
-	if (stackAlloc.GetBytesAllocated() != sizeof(unsigned long long))
+	if (linearAlloc.GetBytesAllocated() != sizeof(unsigned long long))
 		return FAIL;
 
 	return PASS;
 }
 
 
-int StackAllocatorMultiAllocationAllSpace()
+int LinearAllocatorMultiAllocationAllSpace()
 {
 	unsigned long long maxAllocs = 1024;
-	StackAllocator<unsigned long long> stackAlloc(maxAllocs);
+	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = stackAlloc.allocate();
+		block = LinearAlloc.allocate();
 
 		// Validate it
 		if (block == nullptr)
 			return FAIL;
 
 		// This extra type casting is being done purely to avoid compiler warnings/messages.
-		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t numBytesAllocated = LinearAlloc.GetBytesAllocated();
 		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
 		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
@@ -64,22 +64,22 @@ int StackAllocatorMultiAllocationAllSpace()
 }
 
 
-int StackAllocatorMultiAllocationOverAllocate()
+int LinearAllocatorMultiAllocationOverAllocate()
 {
 	unsigned long long maxAllocs = 1024;
-	StackAllocator<unsigned long long> stackAlloc(maxAllocs);
+	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = stackAlloc.allocate();
+		block = LinearAlloc.allocate();
 
 		// Validate it
 		if (block == nullptr)
 			return FAIL;
 
-		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t numBytesAllocated = LinearAlloc.GetBytesAllocated();
 		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
 		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
@@ -88,13 +88,13 @@ int StackAllocatorMultiAllocationOverAllocate()
 	LOG_DEBUG("Note: The following error is intentionally caused by this test.");
 
 	// Ask for one more allocation. Should error and return 0.
-	block = stackAlloc.allocate();
+	block = LinearAlloc.allocate();
 
 	// Validate the nullptr.
 	if (block != nullptr)
 		return FAIL;
 
-	size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+	size_t numBytesAllocated = LinearAlloc.GetBytesAllocated();
 	if (numBytesAllocated != sizeof(unsigned long long) * maxAllocs)
 		return FAIL;
 
@@ -102,37 +102,37 @@ int StackAllocatorMultiAllocationOverAllocate()
 }
 
 
-int StackAllocatorMultiAllocationAllSpaceThenFree()
+int LinearAllocatorMultiAllocationAllSpaceThenFree()
 {
 	unsigned long long maxAllocs = 1024;
-	StackAllocator<unsigned long long> stackAlloc(maxAllocs);
+	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = stackAlloc.allocate();
+		block = LinearAlloc.allocate();
 
 		// Validate it
 		if (block == nullptr)
 			return FAIL;
 
-		size_t numBytesAllocated = stackAlloc.GetBytesAllocated();
+		size_t numBytesAllocated = LinearAlloc.GetBytesAllocated();
 		size_t currentBytesExpected = static_cast<size_t>((i + 1)) * sizeof(unsigned long long);
 		if (numBytesAllocated != currentBytesExpected)
 			return FAIL;
 	}
 
 	// Validate that the pointer is reset.
-	stackAlloc.free();
+	LinearAlloc.free();
 
-	if (stackAlloc.GetBytesAllocated() != 0)
+	if (LinearAlloc.GetBytesAllocated() != 0)
 		return FAIL;
 
 	return PASS;
 }
 
 
-static CStackAllocatorTests s_StackedAllocatorUnitTests("Stack Allocator Tests");
-UnitTestGroup* g_StackAllocatorTests = &s_StackedAllocatorUnitTests;
+static CLinearAllocatorTests s_LinearedAllocatorUnitTests("Linear Allocator Tests");
+UnitTestGroup* g_LinearAllocatorTests = &s_LinearedAllocatorUnitTests;
 

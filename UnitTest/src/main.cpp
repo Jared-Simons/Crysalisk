@@ -9,12 +9,12 @@
 #include <Clock.h>
 
 #include <Containers/LinkedListTests.h>
-#include <Memory/StackAllocatorTests.h>
+#include <Memory/LinearAllocatorTests.h>
 
 bool PerformUnitTests()
 {
 	g_LinkedListTests->PerformTests();
-	g_StackAllocatorTests->PerformTests();
+	g_LinearAllocatorTests->PerformTests();
 	
 	return true;
 }
