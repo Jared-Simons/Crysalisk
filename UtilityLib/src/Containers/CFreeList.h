@@ -227,6 +227,7 @@ public:
 	}
 
 	size_t GetNumMaxEntries() const { return m_MaxEntries; }
+	size_t GetTotalSize() const { return m_TotalSize; }
 
 private:
 	size_t			m_TotalSize;

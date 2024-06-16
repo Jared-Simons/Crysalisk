@@ -10,11 +10,13 @@
 
 #include <Containers/LinkedListTests.h>
 #include <Memory/LinearAllocatorTests.h>
+#include <Containers/FreeListTests.h>
 
 bool PerformUnitTests()
 {
-	g_LinkedListTests->PerformTests();
 	g_LinearAllocatorTests->PerformTests();
+	g_LinkedListTests->PerformTests();
+	g_FreeListTests->PerformTests();
 	
 	return true;
 }

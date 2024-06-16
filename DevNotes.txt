@@ -33,3 +33,5 @@ The Extent 2D that gets created as part of the swapchain is not accurate and nee
 UnitTests:
 
 The Premake Script is not properly setting the working directory for the UnitTests module, which will cause the debugger to fail when running.
+
+The UnitTests project CANNOT be ran in Release mode currently, it crashes on the call to Engine->Shutdown().
