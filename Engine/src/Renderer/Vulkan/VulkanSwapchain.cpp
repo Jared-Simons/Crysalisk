@@ -157,4 +157,41 @@ void VulkanSwapchain::DestroyImageViews(CVulkanRenderer* renderingContext)
 	}
 }
 
+bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer* renderingContext)
+{
+	// TODO: This will link to our single renderpass for output
+	// This will need to be more configurable asap.
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+		createInfo.flags = 0;
+		createInfo.layers = 1;
+		createInfo.renderPass = renderingContext->GetRenderpass().GetHandle();
+		createInfo.attachmentCount = 1;
+		createInfo.pAttachments = &m_SwapchainImageViews[i];
+		createInfo.width = m_SwapchainExtent.width;
+		createInfo.height = m_SwapchainExtent.height;
+
+		// TODO: Custom allocator
+		VkResult result = vkCreateFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &m_Framebuffers[i]);
+		if (result != VK_SUCCESS)
+		{
+			LOG_ERROR("Failed to create swapchain framebuffers!");
+			return false;
+		}
+	}
+
+	LOG_INFO("Swapchain framebuffers created");
+	return true;
+}
+
+void VulkanSwapchain::DestroyFramebuffers(CVulkanRenderer* renderingContext)
+{
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		// TODO: Custom allocator
+		vkDestroyFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), m_Framebuffers[i], nullptr);
+	}
+}
+
 

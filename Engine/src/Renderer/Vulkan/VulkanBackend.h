@@ -140,7 +140,8 @@ public:
 		, m_SwapchainImages{}
 		, m_SwapchainImageViews{}
 		, m_SwapchainImageFormat{}
-		, m_SwapchainExtent{} {}
+		, m_SwapchainExtent{}
+		, m_Framebuffers{ VK_NULL_HANDLE } {}
 
 
 	bool		CreateSwapchain(CVulkanRenderer* renderingContext);
@@ -149,6 +150,9 @@ public:
 	void		GetSwapchainImages(CVulkanRenderer* renderingContext);
 	bool		CreateImageViews(CVulkanRenderer* renderingContext);
 	void		DestroyImageViews(CVulkanRenderer* renderingContext);
+
+	bool		CreateFramebuffers(CVulkanRenderer* renderingContext);
+	void		DestroyFramebuffers(CVulkanRenderer* renderingContext);
 
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
 
@@ -170,6 +174,11 @@ private:
 
 	VkFormat	m_SwapchainImageFormat;
 	VkExtent2D	m_SwapchainExtent;
+
+	// Framebuffers for outputting to the screen
+	// NOTE: This will need to switch to a dynamic array if we
+	// want to support switching between double and triple buffering at runtime
+	VkFramebuffer m_Framebuffers[MAX_FRAMES_IN_FLIGHT];
 };
 
 
@@ -184,8 +193,10 @@ public:
 	VulkanRenderpass()
 		: m_RenderpassHandle{ VK_NULL_HANDLE } {}
 
-	bool	CreateRenderpass(CVulkanRenderer* renderingContext);
-	void	DestroyRenderpass(CVulkanRenderer* renderingContext);
+	static bool	CreateRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass);
+	static void	DestroyRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass);
+
+	VkRenderPass& GetHandle() { return m_RenderpassHandle; }
 
 private:
 	VkRenderPass	m_RenderpassHandle;
@@ -206,7 +217,10 @@ public:
 		, m_Surface{ VK_NULL_HANDLE }
 		, m_Device{}
 		, m_Swapchain{}
-		, m_MainRenderpass{} {}
+		, m_MainRenderpass{}
+		, m_ImageAvailableSemaphores((size_t)MAX_FRAMES_IN_FLIGHT)
+		, m_RenderFinishedSemaphores((size_t)MAX_FRAMES_IN_FLIGHT)
+		, m_InFlightFrameFences((size_t)MAX_FRAMES_IN_FLIGHT) {}
 
 
 	bool	RendererBackend_Initialize() override;
@@ -217,6 +231,9 @@ private:
 	bool	CreateVulkanInstance();
 	bool	CreateDebugMessenger();
 	void	DestroyDebugMessenger() const;
+
+	bool	CreateSyncObjects();
+	void	DestroySyncObjects();
 
 private:
 	// Instance
@@ -237,6 +254,11 @@ private:
 	// Renderpass
 	VulkanRenderpass m_MainRenderpass;
 
+	// Sync Objects
+	CVector<VkSemaphore>	m_ImageAvailableSemaphores;
+	CVector<VkSemaphore>	m_RenderFinishedSemaphores;
+	CVector<VkFence>		m_InFlightFrameFences;
+
 	unsigned short m_CurrentImageIndex{ 0 };
 	unsigned short m_CurrentFrame{ 0 };
 
@@ -250,9 +272,10 @@ public:
 	bool	EnableValidationLayers() const { return false; }
 #endif
 
-	VkSurfaceKHR&	GetVulkanSurface() { return m_Surface; }
-	VulkanDevice&	GetDevice() { return m_Device; }
-	VulkanSwapchain& GetSwapchain() { return m_Swapchain; }
+	VkSurfaceKHR&		GetVulkanSurface() { return m_Surface; }
+	VulkanDevice&		GetDevice() { return m_Device; }
+	VulkanSwapchain&	GetSwapchain() { return m_Swapchain; }
+	VulkanRenderpass&	GetRenderpass() { return m_MainRenderpass; }
 
 private:
 

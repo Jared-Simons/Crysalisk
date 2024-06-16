@@ -10,7 +10,7 @@
 #include "Core/Assertions.h"
 
 
-bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext)
+bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass)
 {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = renderingContext->GetSwapchain().GetImageFormat();
@@ -38,7 +38,7 @@ bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext)
 	createInfo.pSubpasses = &subpass;
 
 	// TODO: Custom Allocator
-	if (vkCreateRenderPass(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &m_RenderpassHandle) != VK_SUCCESS)
+	if (vkCreateRenderPass(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &pOutRenderpass->GetHandle()) != VK_SUCCESS)
 	{
 		AssertMsg("Vulkan Renderer - Failed to create renderpass!");
 		return false;
@@ -48,10 +48,8 @@ bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext)
 	return true;
 }
 
-void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* renderingContext)
+void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass)
 {
 	// TODO: Custom Allocator
-	vkDestroyRenderPass(renderingContext->GetDevice().GetLogicalDevice(), m_RenderpassHandle, nullptr);
+	vkDestroyRenderPass(renderingContext->GetDevice().GetLogicalDevice(), pOutRenderpass->GetHandle(), nullptr);
 }
-
-

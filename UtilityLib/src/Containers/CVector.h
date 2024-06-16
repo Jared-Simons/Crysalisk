@@ -36,7 +36,6 @@ public:
 		m_Stride = static_cast<unsigned int>(sizeof(T));
 		m_ResizeFactor = 2;
 		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
-		memset(m_Data, 0, sizeof(T) * capacity);
 	}
 
 	CVector(T firstIndex)

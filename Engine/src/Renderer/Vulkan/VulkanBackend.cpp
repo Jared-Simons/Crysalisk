@@ -46,10 +46,16 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!m_Swapchain.CreateImageViews(this))
 		return false;
 
-	if (!m_MainRenderpass.CreateRenderpass(this))
+	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
 	if (!m_Device.CreateCommandBuffers(this))
+		return false;
+
+	if (!m_Swapchain.CreateFramebuffers(this))
+		return false;
+
+	if (!CreateSyncObjects())
 		return false;
 
 	LOG_INFO("Vulkan Rendering Backend Initialized");
@@ -64,8 +70,10 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	DestroySyncObjects();
+	m_Swapchain.DestroyFramebuffers(this);
 	m_Device.DestroyCommandBuffers(this);
-	m_MainRenderpass.DestroyRenderpass(this);
+	m_MainRenderpass.DestroyRenderpass(this, &m_MainRenderpass);
 	m_Swapchain.DestroyImageViews(this);
 	m_Swapchain.CleanupSwapchain(this);
 	m_Device.DestroyLogicalDevice(this);
@@ -273,5 +281,41 @@ bool CVulkanRenderer::RequestValidationLayerSupport()
 	}
 
 	return true;
+}
+
+bool CVulkanRenderer::CreateSyncObjects()
+{
+	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+	VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+
+	// Create our fence in the 'signaled' state so the first frame doesn't have to wait on it.
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		// TODO: Custom allocator
+		if (vkCreateSemaphore(m_Device.GetLogicalDevice(), &semaphoreInfo, nullptr, &m_ImageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(m_Device.GetLogicalDevice(), &semaphoreInfo, nullptr, &m_RenderFinishedSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(m_Device.GetLogicalDevice(), &fenceInfo, nullptr, &m_InFlightFrameFences[i]) != VK_SUCCESS)
+		{
+			LOG_ERROR("Failed to create syncronization primitives for Vulkan!");
+			return false;
+		}
+	}
+
+	LOG_INFO("Vulkan Sync Primitives Created");
+	return true;
+}
+
+void CVulkanRenderer::DestroySyncObjects()
+{
+	// TODO: Custom allocator
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vkDestroySemaphore(m_Device.GetLogicalDevice(), m_ImageAvailableSemaphores[i], nullptr);
+		vkDestroySemaphore(m_Device.GetLogicalDevice(), m_RenderFinishedSemaphores[i], nullptr);
+		vkDestroyFence(m_Device.GetLogicalDevice(), m_InFlightFrameFences[i], nullptr);
+	}
 }
 
