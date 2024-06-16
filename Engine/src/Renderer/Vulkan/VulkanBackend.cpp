@@ -116,15 +116,11 @@ bool CVulkanRenderer::RendererBackend_Update()
 	if (!m_Device.SubmitCommandBuffer(this, commandBuffer, m_CurrentImageIndex))
 		return false;
 
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentImageIndex];
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &m_Swapchain.GetHandle();
-	presentInfo.pImageIndices = &currImageIndex;
-
-	vkQueuePresentKHR(m_Device.GetPresentQueue(), &presentInfo);
+	if (!m_Swapchain.FramebufferPresent(this, currImageIndex))
+	{
+		LOG_ERROR("Failed to present swapchain image!");
+		return false;
+	}
 
 	m_CurrentFrame++;
 	m_CurrentImageIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;

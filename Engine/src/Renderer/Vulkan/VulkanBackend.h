@@ -156,6 +156,8 @@ public:
 	bool		CreateFramebuffers(CVulkanRenderer* renderingContext);
 	void		DestroyFramebuffers(CVulkanRenderer* renderingContext);
 
+	bool		FramebufferPresent(CVulkanRenderer* renderingContext, unsigned int currImageIndex);
+
 	VkSwapchainKHR& GetHandle() { return m_SwapchainHandle; }
 
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }

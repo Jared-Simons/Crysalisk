@@ -194,4 +194,21 @@ void VulkanSwapchain::DestroyFramebuffers(CVulkanRenderer* renderingContext)
 	}
 }
 
+bool VulkanSwapchain::FramebufferPresent(CVulkanRenderer* renderingContext, unsigned int currImageIndex)
+{
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &renderingContext->GetRenderFinishedSemaphore(currImageIndex);
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &m_SwapchainHandle;
+	presentInfo.pImageIndices = &currImageIndex;
+
+	if (vkQueuePresentKHR(renderingContext->GetDevice().GetPresentQueue(), &presentInfo) != VK_SUCCESS)
+	{
+		return false;
+	}
+
+	return true;
+}
 
