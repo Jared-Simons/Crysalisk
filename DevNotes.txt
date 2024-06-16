@@ -27,7 +27,8 @@ This is NOT fatal or to be prioritized, but should be fixed when possible.
 
 Device Creation - Selecting Queue Family Indices is possibly flawed (selecting the last one possible), need to revisit this in the future.
 
-The Extent 2D that gets created as part of the swapchain is not accurate and needs to be properly implemented.
+There are some Validation Errors when the framebuffer gets resized in regards to the semaphore objects. Very inconsistent and not sure how exactly to fix at this time. Maybe just disable the rendering loop while dragging the window?
+Also - Minimizing the window causes an endless stream of validation errors
 
 
 UnitTests:

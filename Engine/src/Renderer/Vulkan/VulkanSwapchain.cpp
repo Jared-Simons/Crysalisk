@@ -8,10 +8,13 @@
 
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
+#include "Platform/Platform.h"
+#include "EngineGlobals.h"
 
 bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* renderingContext)
 {
-	// Grab the swapchain support details passed in on device creation.
+	// We requery the device's swapchain support details here - just in case the framebuffer was recreated - or any other details changed.
+	renderingContext->GetDevice().QueryDeviceSwapchainSupport(renderingContext, renderingContext->GetDevice().GetPhysicalDevice(), renderingContext->GetSwapchain());
 	SwapchainSupportDetails_t& swapchainSupport = m_SwapchainSupportDetails;
 
 	VkSurfaceFormatKHR surfaceFormat = ChooseSwapchainSurfaceFormat(swapchainSupport.formats);
@@ -71,7 +74,34 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* renderingContext)
 void VulkanSwapchain::CleanupSwapchain(CVulkanRenderer* renderingContext)
 {
 	// TODO: Custom Allocator
+
+	// NOTE: The 3 here is for triple-buffering - this will need to be swapped out for runtime swapping of double and triple buffering.
+	for (int i = 0; i < 3; i++)
+	{
+		vkDestroyFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), m_Framebuffers[i], nullptr);
+	}
+
+	for (int i = 0; i < m_SwapchainImageViews.GetCount(); i++)
+	{
+		vkDestroyImageView(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainImageViews[i], nullptr);
+	}
+
 	vkDestroySwapchainKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, nullptr);
+}
+
+bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* renderingContext)
+{
+	vkDeviceWaitIdle(renderingContext->GetDevice().GetLogicalDevice());
+
+	CleanupSwapchain(renderingContext);
+
+	CreateSwapchain(renderingContext);
+	CreateImageViews(renderingContext);
+	CreateFramebuffers(renderingContext);
+
+	renderingContext->SetFramebufferResized(false);
+
+	return true;
 }
 
 VkSurfaceFormatKHR VulkanSwapchain::ChooseSwapchainSurfaceFormat(CVector<VkSurfaceFormatKHR>& availableFormats)
@@ -102,8 +132,15 @@ VkPresentModeKHR VulkanSwapchain::ChooseSwapchainPresentMode(CVector<VkPresentMo
 
 VkExtent2D VulkanSwapchain::ChooseSwapchainExtent(CVulkanRenderer* renderingContext, const VkSurfaceCapabilitiesKHR& capabilities)
 {
-	// TODO: need to actually implement this with some utilities (clamp() and limits())
-	return capabilities.currentExtent;
+	unsigned int width, height;
+	Platform_GetWindowSize(&width, &height);
+
+	VkExtent2D min = capabilities.minImageExtent;
+	VkExtent2D max = capabilities.maxImageExtent;
+	VkExtent2D actualExtent = capabilities.currentExtent;
+	IntClamp((int*)actualExtent.width, (int*)min.width, (int*)max.width);
+	IntClamp((int*)actualExtent.height, (int*)min.height, (int*)max.height);
+	return actualExtent;
 }
 
 void VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* renderingContext)
@@ -204,9 +241,18 @@ bool VulkanSwapchain::FramebufferPresent(CVulkanRenderer* renderingContext, unsi
 	presentInfo.pSwapchains = &m_SwapchainHandle;
 	presentInfo.pImageIndices = &currImageIndex;
 
-	if (vkQueuePresentKHR(renderingContext->GetDevice().GetPresentQueue(), &presentInfo) != VK_SUCCESS)
+	VkResult presentResult = vkQueuePresentKHR(renderingContext->GetDevice().GetPresentQueue(), &presentInfo);
+	if (presentResult != VK_SUCCESS)
 	{
-		return false;
+		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+		{
+			renderingContext->SetFramebufferResized(true);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	return true;

@@ -37,3 +37,17 @@
 #define KIBIBYTES(x) (x * 1024)
 #define MEBIBYTES(x) (x * (1024 * 1024))
 #define GIBIBYTES(x) (x * (1024 * 1024 * 1024))
+
+// Utility Functions
+
+static void IntClamp(int* val, int* min, int* max)
+{
+	if (val < min)
+	{
+		val = min;
+	}
+	else if (val > max)
+	{
+		val = max;
+	}
+}

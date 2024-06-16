@@ -143,11 +143,13 @@ public:
 		, m_SwapchainImageViews{}
 		, m_SwapchainImageFormat{}
 		, m_SwapchainExtent{}
-		, m_Framebuffers{ VK_NULL_HANDLE } {}
+		, m_Framebuffers{ VK_NULL_HANDLE }
+		, m_FramebufferResized{ false } {}
 
 
 	bool		CreateSwapchain(CVulkanRenderer* renderingContext);
 	void		CleanupSwapchain(CVulkanRenderer* renderingContext);
+	bool		RecreateSwapchain(CVulkanRenderer* renderingContext);
 
 	void		GetSwapchainImages(CVulkanRenderer* renderingContext);
 	bool		CreateImageViews(CVulkanRenderer* renderingContext);
@@ -187,6 +189,7 @@ private:
 	// NOTE: This will need to switch to a dynamic array if we
 	// want to support switching between double and triple buffering at runtime
 	VkFramebuffer m_Framebuffers[MAX_FRAMES_IN_FLIGHT];
+	bool m_FramebufferResized;
 };
 
 
@@ -238,6 +241,8 @@ public:
 	void	RendererBackend_Shutdown() override;
 	bool	RendererBackend_Update() override;
 
+	void	SetFramebufferResized(bool bTrue) { m_FramebufferResized = bTrue; }
+
 private:
 	bool	CreateVulkanInstance();
 	bool	CreateDebugMessenger();
@@ -272,6 +277,7 @@ private:
 
 	unsigned short m_CurrentImageIndex{ 0 };
 	unsigned short m_CurrentFrame{ 0 };
+	bool	m_FramebufferResized{ false };
 
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }

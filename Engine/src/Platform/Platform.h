@@ -16,6 +16,8 @@ bool	Platform_ProcessMessages();
 
 void	Platform_LogMessage(int level, const char* message);
 
+ENGINE_API void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight);
+
 ENGINE_API double	Platform_GetAbsoluteTime();
 
 //-----------------------------------------------------------------------------

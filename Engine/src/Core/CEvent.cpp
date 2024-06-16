@@ -60,7 +60,7 @@ void CEventSystem::EventSystem_Shutdown()
 		{
 			if (m_RegisteredEvents[i][j].m_EventID != -1)
 			{
-				LOG_ERROR("Event System shutting down with events still registered, clean this up...");
+				LOG_WARN("Event System shutting down with events still registered, clean this up...");
 			}
 		}
 	}

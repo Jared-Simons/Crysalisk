@@ -147,6 +147,19 @@ bool Platform_Update()
 	return true;
 }
 
+void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
+{
+	RECT rect;
+	if (GetWindowRect(win32PlatformData.hWnd, &rect))
+	{
+		int width = rect.right - rect.left;
+		int height = rect.bottom - rect.top;
+
+		*pOutWidth = width;
+		*pOutHeight = height;
+	}
+}
+
 double Platform_GetAbsoluteTime()
 {
 	// If the clock has not yet been initialized (possibly due to headless mode)
@@ -277,6 +290,17 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		ProcessWin32Input_MouseMove(lParam);
 		break;
+
+	case WM_SIZE:
+	{
+		int width = LOWORD(lParam);
+		int height = HIWORD(lParam);
+
+		void* eventData[] = { (void*)width, (void*)height };
+
+		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, eventData);
+		break;
+	}
 
 	default:
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);

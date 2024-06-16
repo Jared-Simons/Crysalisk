@@ -7,6 +7,7 @@
 #include "VulkanBackend.h"
 #include "Platform/VulkanPlatform.h"
 #include "Systems/IMemory.h"
+#include "Systems/IEvent.h"
 
 #include "Core/Assertions.h"
 
@@ -19,6 +20,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData);
+
+static bool WindowResizedCallback(void* eventData);
 
 
 IRendererBackend* GetVulkanBackend()
@@ -58,6 +61,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!CreateSyncObjects())
 		return false;
 
+	// Register for window-resize event callback.
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, WindowResizedCallback);
+
 	LOG_INFO("Vulkan Rendering Backend Initialized");
 	return true;
 }
@@ -71,10 +77,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// TODO: Custom allocator.
 
 	DestroySyncObjects();
-	m_Swapchain.DestroyFramebuffers(this);
 	m_Device.DestroyCommandBuffers(this);
 	m_MainRenderpass.DestroyRenderpass(this, &m_MainRenderpass);
-	m_Swapchain.DestroyImageViews(this);
 	m_Swapchain.CleanupSwapchain(this);
 	m_Device.DestroyLogicalDevice(this);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
@@ -84,17 +88,36 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 bool CVulkanRenderer::RendererBackend_Update()
 {
+	if (m_FramebufferResized)
+	{
+		LOG_DEBUG("Framebuffer resized - Recreating Swapchain");
+		m_Swapchain.RecreateSwapchain(this);
+		return true;
+	}
+
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex], VK_TRUE, UINT64_MAX);
-	vkResetFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex]);
 
 	// Acquire the next image from the swapchain
 	unsigned int currImageIndex = 0;
-	if (vkAcquireNextImageKHR(m_Device.GetLogicalDevice(), m_Swapchain.GetHandle(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentImageIndex], 0, &currImageIndex))
+	VkResult nextImageResult = vkAcquireNextImageKHR(m_Device.GetLogicalDevice(), m_Swapchain.GetHandle(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentImageIndex], 0, &currImageIndex);
+	if (nextImageResult != VK_SUCCESS)
 	{
-		LOG_ERROR("Failed to get next swapchain image");
-		return false;
+		if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR)
+		{
+			//LOG_DEBUG("Swapchain out of date - Recreating.");
+			//m_Swapchain.RecreateSwapchain(this);
+			m_FramebufferResized = true;
+			return true;
+		}
+		else if (nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR)
+		{
+			LOG_ERROR("Failed to get next swapchain image");
+			return false;
+		}
 	}
+
+	vkResetFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex]);
 
 	// Handle command buffer recording
 	// TODO: Is this really the most efficient way to handle this?
@@ -336,5 +359,12 @@ void CVulkanRenderer::DestroySyncObjects()
 		vkDestroySemaphore(m_Device.GetLogicalDevice(), m_RenderFinishedSemaphores[i], nullptr);
 		vkDestroyFence(m_Device.GetLogicalDevice(), m_InFlightFrameFences[i], nullptr);
 	}
+}
+
+bool WindowResizedCallback(void* eventData)
+{
+	// Tell the swapchain framebuffer to resize.
+	VulkanRenderingContext.SetFramebufferResized(true);
+	return true;
 }
 
