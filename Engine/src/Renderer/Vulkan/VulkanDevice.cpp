@@ -252,3 +252,94 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	return true;
 }
 
+bool VulkanDevice::CreateCommandBuffers(CVulkanRenderer* renderingContext)
+{
+	// Create the graphics command buffer pool.
+	VkCommandPoolCreateInfo graphicsCommandPoolCreateInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+	// Allow us to reset our allocated command buffers.
+	graphicsCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	graphicsCommandPoolCreateInfo.queueFamilyIndex = m_PhysicalDeviceQueueIndices.graphicsIndex;
+
+	// TODO: Custom allocator
+	VkResult result = vkCreateCommandPool(m_LogicalDeviceHandle, &graphicsCommandPoolCreateInfo, nullptr, &m_GraphicsCommandPool);
+
+	if (result != VK_SUCCESS)
+	{
+		LOG_ERROR("Failed to create graphics command pool!");
+		return false;
+	}
+
+	// Allocate our command buffers (one per concurrent frame)
+	VkCommandBufferAllocateInfo commandBufferAllocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+	commandBufferAllocInfo.commandPool = m_GraphicsCommandPool;
+	commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; // TODO: This should probably be configurable.
+	commandBufferAllocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+
+	result = vkAllocateCommandBuffers(m_LogicalDeviceHandle, &commandBufferAllocInfo, m_GraphicsCommandBuffers);
+
+	if (result != VK_SUCCESS)
+	{
+		LOG_ERROR("Failed to allocate graphics command buffers!");
+		return false;
+	}
+
+	LOG_INFO("Command Buffers Allocated");
+	return true;
+}
+
+void VulkanDevice::DestroyCommandBuffers(CVulkanRenderer* renderingContext)
+{
+	// TODO: Custom allocator
+	vkFreeCommandBuffers(m_LogicalDeviceHandle, m_GraphicsCommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsCommandBuffers);
+	vkDestroyCommandPool(m_LogicalDeviceHandle, m_GraphicsCommandPool, nullptr);
+}
+
+bool VulkanDevice::BeginCommandBuffer(VkCommandBuffer& commandBuffer)
+{
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+
+	VkResult beginResult = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+	if (beginResult != VK_SUCCESS)
+	{
+		LOG_ERROR("BeginCommandBuffer()->Failed to start recording");
+		return false;
+	}
+
+	return true;
+}
+
+bool VulkanDevice::EndCommandBuffer(VkCommandBuffer& commandBuffer)
+{
+	VkResult endResult = vkEndCommandBuffer(commandBuffer);
+
+	if (endResult != VK_SUCCESS)
+	{
+		LOG_ERROR("BeginCommandBuffer()->Failed to start recording");
+		return false;
+	}
+
+	return true;
+}
+
+bool VulkanDevice::SubmitCommandBuffer(VkCommandBuffer& commandBuffer)
+{
+	// TODO: These will need to hook up with our semaphores/fences soon.
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.waitSemaphoreCount = 0;
+	submitInfo.pWaitSemaphores = nullptr;
+	submitInfo.pWaitDstStageMask = 0;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+	submitInfo.signalSemaphoreCount = 0;
+	submitInfo.pSignalSemaphores = nullptr;
+
+	if (!vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, nullptr))
+	{
+		LOG_ERROR("Command Buffer failed to submit!");
+		return false;
+	}
+
+	return true;
+}
+

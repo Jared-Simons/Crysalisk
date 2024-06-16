@@ -22,6 +22,10 @@ struct SwapchainSupportDetails_t;
 class VulkanRenderpass;
 
 
+// 3 for triple-buffering.
+const unsigned short MAX_FRAMES_IN_FLIGHT = 3;
+
+
 //=================================
 // 
 // Vulkan Device
@@ -59,16 +63,28 @@ public:
 		, m_PresentQueue{ VK_NULL_HANDLE }
 		, m_TransferQueue{ VK_NULL_HANDLE }
 		, m_ComputeQueue{ VK_NULL_HANDLE }
-		, m_bDeviceSupportsSwapchain{ false } {}
+		, m_bDeviceSupportsSwapchain{ false }
+		, m_GraphicsCommandPool{ VK_NULL_HANDLE }
+		, m_GraphicsCommandBuffers{ VK_NULL_HANDLE } {}
 
 	bool	CreateVulkanDevice(CVulkanRenderer* renderingContext);
 	void	DestroyLogicalDevice(CVulkanRenderer* renderingContext);
+
+	bool	CreateCommandBuffers(CVulkanRenderer* renderingContext);
+	void	DestroyCommandBuffers(CVulkanRenderer* renderingContext);
+
+	bool	BeginCommandBuffer(VkCommandBuffer& commandBuffer);
+	bool	EndCommandBuffer(VkCommandBuffer& commandBuffer);
+	bool	SubmitCommandBuffer(VkCommandBuffer& commandBuffer);
 
 	VkDevice& GetLogicalDevice() { return m_LogicalDeviceHandle; }
 	VkPhysicalDevice& GetPhysicalDevice() { return m_PhysicalDeviceHandle; }
 	DeviceQueueFamilyProperties_t& GetPhysicalDeviceQueueIndices() { return m_PhysicalDeviceQueueIndices; }
 
 	void QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device, VulkanSwapchain& swapchain);
+
+	VkCommandPool& GetGraphicsCommandPool() { return m_GraphicsCommandPool; }
+	VkCommandBuffer& GetGraphicsCommandBuffer(int index) { return m_GraphicsCommandBuffers[index]; }
 
 private:
 	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
@@ -91,6 +107,10 @@ private:
 
 	CVector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	bool m_bDeviceSupportsSwapchain;
+
+	// Command Pool/Buffers
+	VkCommandPool m_GraphicsCommandPool;
+	VkCommandBuffer m_GraphicsCommandBuffers[MAX_FRAMES_IN_FLIGHT];
 };
 
 
@@ -196,7 +216,6 @@ public:
 private:
 	bool	CreateVulkanInstance();
 	bool	CreateDebugMessenger();
-
 	void	DestroyDebugMessenger() const;
 
 private:
@@ -217,6 +236,9 @@ private:
 
 	// Renderpass
 	VulkanRenderpass m_MainRenderpass;
+
+	unsigned short m_CurrentImageIndex{ 0 };
+	unsigned short m_CurrentFrame{ 0 };
 
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }

@@ -49,6 +49,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!m_MainRenderpass.CreateRenderpass(this))
 		return false;
 
+	if (!m_Device.CreateCommandBuffers(this))
+		return false;
+
 	LOG_INFO("Vulkan Rendering Backend Initialized");
 	return true;
 }
@@ -61,6 +64,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	m_Device.DestroyCommandBuffers(this);
 	m_MainRenderpass.DestroyRenderpass(this);
 	m_Swapchain.DestroyImageViews(this);
 	m_Swapchain.CleanupSwapchain(this);
@@ -72,6 +76,27 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 bool CVulkanRenderer::RendererBackend_Update()
 {
+	// Handle command buffer recording
+	// TODO: Is this really the most efficient way to handle this?
+	// Maybe caching off a reference to the command buffers (or just moving them to the main backend)
+	// would be faster than doing this getter every single update.
+	VkCommandBuffer& commandBuffer = m_Device.GetGraphicsCommandBuffer(m_CurrentImageIndex);
+	
+	if (!m_Device.BeginCommandBuffer(commandBuffer))
+		return false;
+
+	if (!m_Device.EndCommandBuffer(commandBuffer))
+		return false;
+
+	// We can't submit command buffers until we have sync objects in place to keep everything orderly.
+	/*
+	// Submit the command buffer for execution.
+	if (!m_Device.SubmitCommandBuffer(commandBuffer))
+		return false;*/
+
+
+	m_CurrentFrame++;
+	m_CurrentImageIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;
 	return true;
 }
 
