@@ -75,7 +75,7 @@ public:
 
 	bool	BeginCommandBuffer(VkCommandBuffer& commandBuffer);
 	bool	EndCommandBuffer(VkCommandBuffer& commandBuffer);
-	bool	SubmitCommandBuffer(VkCommandBuffer& commandBuffer);
+	bool	SubmitCommandBuffer(CVulkanRenderer* renderingContext, VkCommandBuffer& commandBuffer, int currentImageIndex);
 
 	VkDevice& GetLogicalDevice() { return m_LogicalDeviceHandle; }
 	VkPhysicalDevice& GetPhysicalDevice() { return m_PhysicalDeviceHandle; }
@@ -85,6 +85,8 @@ public:
 
 	VkCommandPool& GetGraphicsCommandPool() { return m_GraphicsCommandPool; }
 	VkCommandBuffer& GetGraphicsCommandBuffer(int index) { return m_GraphicsCommandBuffers[index]; }
+
+	VkQueue GetPresentQueue() { return m_PresentQueue; }
 
 private:
 	bool	SelectPhysicalDevice(CVulkanRenderer* renderingContext);
@@ -154,10 +156,14 @@ public:
 	bool		CreateFramebuffers(CVulkanRenderer* renderingContext);
 	void		DestroyFramebuffers(CVulkanRenderer* renderingContext);
 
+	VkSwapchainKHR& GetHandle() { return m_SwapchainHandle; }
+
 	SwapchainSupportDetails_t& GetSwapchainSupportDetails() { return m_SwapchainSupportDetails; }
 
 	const VkFormat&	GetImageFormat() const { return m_SwapchainImageFormat; }
 	const VkExtent2D& GetExtent() const { return m_SwapchainExtent; }
+
+	VkFramebuffer GetFramebuffer(int index) { return m_Framebuffers[index]; }
 
 private:
 	// Utility functions for choosing formats on swapchain creation.
@@ -195,6 +201,9 @@ public:
 
 	static bool	CreateRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass);
 	static void	DestroyRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass);
+
+	bool		BeginRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer);
+	void		EndRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer);
 
 	VkRenderPass& GetHandle() { return m_RenderpassHandle; }
 
@@ -276,6 +285,12 @@ public:
 	VulkanDevice&		GetDevice() { return m_Device; }
 	VulkanSwapchain&	GetSwapchain() { return m_Swapchain; }
 	VulkanRenderpass&	GetRenderpass() { return m_MainRenderpass; }
+
+	VkSemaphore&		GetImageAvailableSemaphore(int index) { return m_ImageAvailableSemaphores[index]; }
+	VkSemaphore&		GetRenderFinishedSemaphore(int index) { return m_RenderFinishedSemaphores[index]; }
+	VkFence&			GetInFlightFrameFence(int index)	{ return m_InFlightFrameFences[index]; }
+
+	unsigned short		GetCurrentFrameIndex() { return m_CurrentImageIndex; }
 
 private:
 

@@ -53,3 +53,25 @@ void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* renderingContext, Vulk
 	// TODO: Custom Allocator
 	vkDestroyRenderPass(renderingContext->GetDevice().GetLogicalDevice(), pOutRenderpass->GetHandle(), nullptr);
 }
+
+bool VulkanRenderpass::BeginRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer)
+{
+	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderpassInfo.renderPass = m_RenderpassHandle;
+	renderpassInfo.framebuffer = renderingContext->GetSwapchain().GetFramebuffer(renderingContext->GetCurrentFrameIndex());
+	renderpassInfo.renderArea.offset = { 0, 0 };
+	renderpassInfo.renderArea.extent = renderingContext->GetSwapchain().GetExtent();
+
+	VkClearValue clearColor = { 0.0f, 0.2f, 0.2f };
+	renderpassInfo.clearValueCount = 1;
+	renderpassInfo.pClearValues = &clearColor;
+
+	vkCmdBeginRenderPass(*pCommandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	return true;
+}
+
+void VulkanRenderpass::EndRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer)
+{
+	vkCmdEndRenderPass(*pCommandBuffer);
+}

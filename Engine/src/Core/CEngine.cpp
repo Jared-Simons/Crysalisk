@@ -104,7 +104,11 @@ bool CEngine::Engine_Run()
 
 			Platform_Update();
 
-			gpRenderer->Renderer_Update();
+			if (!gpRenderer->Renderer_Update())
+			{
+				LOG_FATAL("Renderer update failed!");
+				return false;
+			}
 		}
 
 		return true;

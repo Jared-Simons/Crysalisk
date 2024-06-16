@@ -84,24 +84,47 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 bool CVulkanRenderer::RendererBackend_Update()
 {
+	// Wait for the previous frame to finish it's work
+	vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex], VK_TRUE, UINT64_MAX);
+	vkResetFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex]);
+
+	// Acquire the next image from the swapchain
+	unsigned int currImageIndex = 0;
+	if (vkAcquireNextImageKHR(m_Device.GetLogicalDevice(), m_Swapchain.GetHandle(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentImageIndex], 0, &currImageIndex))
+	{
+		LOG_ERROR("Failed to get next swapchain image");
+		return false;
+	}
+
 	// Handle command buffer recording
 	// TODO: Is this really the most efficient way to handle this?
 	// Maybe caching off a reference to the command buffers (or just moving them to the main backend)
 	// would be faster than doing this getter every single update.
 	VkCommandBuffer& commandBuffer = m_Device.GetGraphicsCommandBuffer(m_CurrentImageIndex);
-	
+	vkResetCommandBuffer(commandBuffer, 0);
 	if (!m_Device.BeginCommandBuffer(commandBuffer))
 		return false;
 
+	m_MainRenderpass.BeginRenderpass(this, &commandBuffer);
+
+	m_MainRenderpass.EndRenderpass(this, &commandBuffer);
+
 	if (!m_Device.EndCommandBuffer(commandBuffer))
 		return false;
-
-	// We can't submit command buffers until we have sync objects in place to keep everything orderly.
-	/*
+	
 	// Submit the command buffer for execution.
-	if (!m_Device.SubmitCommandBuffer(commandBuffer))
-		return false;*/
+	if (!m_Device.SubmitCommandBuffer(this, commandBuffer, m_CurrentImageIndex))
+		return false;
 
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentImageIndex];
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &m_Swapchain.GetHandle();
+	presentInfo.pImageIndices = &currImageIndex;
+
+	vkQueuePresentKHR(m_Device.GetPresentQueue(), &presentInfo);
 
 	m_CurrentFrame++;
 	m_CurrentImageIndex = m_CurrentFrame % MAX_FRAMES_IN_FLIGHT;

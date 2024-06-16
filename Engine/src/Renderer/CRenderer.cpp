@@ -53,7 +53,10 @@ void CRenderer::Renderer_Shutdown()
 
 bool CRenderer::Renderer_Update()
 {
-	m_RendererBackend->RendererBackend_Update();
+	if (!m_RendererBackend->RendererBackend_Update())
+	{
+		return false;
+	}
 
 	return true;
 }

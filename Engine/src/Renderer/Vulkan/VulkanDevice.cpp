@@ -322,19 +322,20 @@ bool VulkanDevice::EndCommandBuffer(VkCommandBuffer& commandBuffer)
 	return true;
 }
 
-bool VulkanDevice::SubmitCommandBuffer(VkCommandBuffer& commandBuffer)
+bool VulkanDevice::SubmitCommandBuffer(CVulkanRenderer* renderingContext, VkCommandBuffer& commandBuffer, int currentImageIndex)
 {
-	// TODO: These will need to hook up with our semaphores/fences soon.
+	// TODO: These should be more configurable
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.waitSemaphoreCount = 0;
-	submitInfo.pWaitSemaphores = nullptr;
-	submitInfo.pWaitDstStageMask = 0;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &renderingContext->GetImageAvailableSemaphore(currentImageIndex);
+	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
-	submitInfo.signalSemaphoreCount = 0;
-	submitInfo.pSignalSemaphores = nullptr;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &renderingContext->GetRenderFinishedSemaphore(currentImageIndex);
 
-	if (!vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, nullptr))
+	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, renderingContext->GetInFlightFrameFence(currentImageIndex)))
 	{
 		LOG_ERROR("Command Buffer failed to submit!");
 		return false;
