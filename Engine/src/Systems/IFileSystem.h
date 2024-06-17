@@ -38,8 +38,14 @@ struct FileHandle_t
 class IFileSystem
 {
 public:
-	virtual FileHandle_t* OpenFile(const char* filePath, eFileMode fileMode) = 0;
-	virtual void CloseFile(FileHandle_t* fileHandle) = 0;
+	virtual FileHandle_t*	OpenFile(const char* filePath, eFileMode fileMode) = 0;
+	virtual void			CloseFile(FileHandle_t* fileHandle) = 0;
+	virtual size_t			FileSize(FileHandle_t* fileHandle) = 0;
+
+	virtual bool 			ReadLine(char* buffer, size_t bufferSize, FileHandle_t* file) = 0;
+	virtual size_t			ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file) = 0;
+
+	virtual bool			WriteLine(FileHandle_t* fileHandle, char* text) = 0;
 };
 
 extern IFileSystem* gpFileSystem;

@@ -29,6 +29,11 @@ bool StringCompare(const char* str1, const char* str2)
 	return result == 0;
 }
 
+void StringConcat(char* str1, const char* str2)
+{
+	strcat(str1, str2);
+}
+
 int String_ATOI(const char c)
 {
 	int x;

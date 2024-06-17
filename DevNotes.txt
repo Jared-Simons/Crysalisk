@@ -6,6 +6,10 @@ The Logging system is not very flexible yet - it relies on ALWAYS having at leas
 
 The custom containers are dynamicially allocating from malloc, this should be switched to our own memory system.
 
+FileSystem:
+
+Filesystem currently only opens files in either read OR write mode... can't do both.
+
 CVector:
 
 Trying to pass a CVector by value to create a copy will result in heap-corruption, as the copy was not allocated (but taken by reference) - thus trying to free a non-existent allocation will wreak havoc.

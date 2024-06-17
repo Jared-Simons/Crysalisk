@@ -8,14 +8,23 @@
 
 #include "Core/Logging.h"
 
+#include "String_Utils.h"
+
 #include <stdio.h>	// Needed for FILE type
 
 
 class CFileSystem : public IFileSystem
 {
 public:
-	FileHandle_t* OpenFile(const char* filePath, eFileMode fileMode) override;
-	void CloseFile(FileHandle_t* fileHandle) override;
+	FileHandle_t*	OpenFile(const char* filePath, eFileMode fileMode) override;
+	void			CloseFile(FileHandle_t* fileHandle) override;
+	size_t			FileSize(FileHandle_t* fileHandle) override;
+
+
+	bool 			ReadLine(char* buffer, size_t bufferSize, FileHandle_t* file) override;
+	size_t			ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file) override;
+
+	bool			WriteLine(FileHandle_t* fileHandle, char* text) override;
 };
 
 
@@ -27,9 +36,10 @@ FileHandle_t* CFileSystem::OpenFile(const char* filePath, eFileMode fileMode)
 		return nullptr;
 	}
 
-	FILE* fileHandle = fopen(filePath, fileModeStrings[fileMode]);
+	FILE* fileHandle = new FILE;
 
-	if (fileHandle == nullptr)
+	// any code that is not 0 indicates a failure to open the file.
+	if (fopen_s(&fileHandle, filePath, fileModeStrings[fileMode]) != 0)
 	{
 		LOG_ERROR("FileSystem - OpenFile() failed to open file: '%s'", filePath);
 		return nullptr;
@@ -66,8 +76,73 @@ void CFileSystem::CloseFile(FileHandle_t* fileHandle)
 		return;
 	}
 
+	delete fileData;
+
 	fileHandle->path = nullptr;
 	delete fileHandle;
+}
+
+size_t CFileSystem::FileSize(FileHandle_t* fileHandle)
+{
+	if (!fileHandle->isValid)
+	{
+		LOG_ERROR("FileSystem->FileSize() - Requires a pointer to a valid file handle.");
+		return 0;
+	}
+
+	size_t fileSize{ 0 };
+
+	fseek((FILE*)fileHandle->internalData, 0, SEEK_END);
+	fileSize = ftell((FILE*)fileHandle->internalData);
+
+	return fileSize;
+}
+
+bool CFileSystem::ReadLine(char* buffer, size_t bufferSize, FileHandle_t* file)
+{
+	if (!file)
+	{
+		LOG_ERROR("FileSystem->Read() requires a valid pointer to a file handle!");
+		return size_t(0);
+	}
+
+	//size_t numBytesRead = fread_s(buffer, bufferSize, 1, bufferSize, (FILE*)file->internalData);
+	char* retString = fgets(buffer, 8192, (FILE*)file->internalData);
+	
+	// NOTE: fgets() handles null-termination for us!
+
+	// If fgets returns NULL - this is a possible indicator for EOF Condition
+	// Return false to indicate this to the caller.
+	return retString != NULL;
+}
+
+size_t CFileSystem::ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file)
+{
+	if (!file)
+	{
+		LOG_ERROR("FileSystem->ReadWholeLine() requires a valid pointer to a file handle!");
+		return size_t(0);
+	}
+
+	size_t numBytesRead = fread_s(buffer, bufferSize, 1, bufferSize, (FILE*)file->internalData);
+
+	// Append a null terminator at the end of the buffer.
+	buffer[numBytesRead] = '\0';
+
+	return numBytesRead;
+}
+
+bool CFileSystem::WriteLine(FileHandle_t* fileHandle, char* text)
+{
+	if ((fileHandle->fileAccessMode != FILEMODE_WRITE) && (fileHandle->fileAccessMode != FILEMODE_WRITEBINARY))
+	{
+		LOG_ERROR("FileSystem->WriteLine() - Cannot write to a file that is read-only.");
+		return false;
+	}
+
+	fputs(text, (FILE*)fileHandle->internalData);
+
+	return true;
 }
 
 
