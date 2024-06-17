@@ -75,15 +75,17 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 {
 	if (processedKeyInput != 0)
 	{
+		EventData_t eventData;
+		eventData.c[0] = processedKeyInput;
 		if (pressed)
 		{
-			m_KeysState[processedKeyInput - 65].m_Pressed = true;
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, (void*)processedKeyInput);
+			eventData.c[0] = processedKeyInput;
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput - 65].m_Pressed = false;
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, (void*)processedKeyInput);
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, eventData);
 		}
 	}
 	else
@@ -125,7 +127,10 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 			break;
 		}
 
-		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, (void*)mouseButtonFlags);
+		EventData_t eventData;
+		eventData.u16[0] = mouseButtonFlags;
+
+		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && !pressed)
@@ -149,7 +154,10 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 			break;
 		}
 
-		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, (void*)mouseButtonFlags);
+		EventData_t eventData;
+		eventData.u16[0] = mouseButtonFlags;
+
+		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, eventData);
 	}
 }
 

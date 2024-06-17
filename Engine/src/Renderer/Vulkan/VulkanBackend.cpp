@@ -21,7 +21,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData);
 
-static bool WindowResizedCallback(void* eventData);
+static bool WindowResizedCallback(EventData_t eventData);
 
 
 IRendererBackend* GetVulkanBackend()
@@ -72,6 +72,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	LOG_INFO("Vulkan Rendering Backend Shutting Down");
 	vkDeviceWaitIdle(m_Device.GetLogicalDevice());
+
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, WindowResizedCallback);
 
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
@@ -361,7 +363,7 @@ void CVulkanRenderer::DestroySyncObjects()
 	}
 }
 
-bool WindowResizedCallback(void* eventData)
+bool WindowResizedCallback(EventData_t eventData)
 {
 	// Tell the swapchain framebuffer to resize.
 	VulkanRenderingContext.SetFramebufferResized(true);

@@ -245,7 +245,8 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (GetKeyState(VK_ESCAPE) & 0x8000)
 		{
 			// Escape pressed... exit application TODO!!! MOVE ELSEWHERE
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, 0);
+			EventData_t data{};
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, data);
 			break;
 		}
 		else
@@ -296,9 +297,11 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		int width = LOWORD(lParam);
 		int height = HIWORD(lParam);
 
-		void* eventData[] = { (void*)width, (void*)height };
+		EventData_t data;
+		data.u16[0] = width;
+		data.u16[1] = height;
 
-		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, eventData);
+		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, data);
 		break;
 	}
 

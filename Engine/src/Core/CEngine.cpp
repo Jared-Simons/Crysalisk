@@ -15,11 +15,12 @@
 #include "Systems/IRenderer.h"
 
 static bool s_bApplicationQuitCalled = false;
-static bool Event_ApplicationQuit(void* data);
-static bool Event_KeyPressed(void* data);
-static bool Event_KeyReleased(void* data);
-static bool Event_MouseButtonPressed(void* data);
-static bool Event_MouseButtonReleased(void* data);
+static bool Event_ApplicationQuit(EventData_t data);
+static bool Event_KeyPressed(EventData_t data);
+static bool Event_KeyReleased(EventData_t data);
+static bool Event_MouseButtonPressed(EventData_t data);
+static bool Event_MouseButtonReleased(EventData_t data);
+static bool Event_WindowResized(EventData_t data);
 
 class CEngine : public IEngine
 {
@@ -61,6 +62,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, Event_KeyReleased);
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
 
 
 	// Input System
@@ -137,6 +139,7 @@ void CEngine::Engine_Shutdown()
 	gpInputSystem->InputSystem_Shutdown();
 
 	// Unregister from engine-level events
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, Event_KeyReleased);
@@ -154,38 +157,49 @@ static CEngine g_Engine;
 IEngine* Engine = &g_Engine;
 
 
-bool Event_ApplicationQuit(void* data)
+bool Event_ApplicationQuit(EventData_t data)
 {
 	LOG_VERBOSE("Application_Quit() called");
 	s_bApplicationQuitCalled = true;
 	return true;
 }
 
-bool Event_KeyPressed(void* data)
+bool Event_KeyPressed(EventData_t data)
 {
-	char keycode = (char)data;
+	char keycode = *data.c;
 	LOG_DEBUG("%c Key Pressed", keycode);
 	return true;
 }
 
-bool Event_KeyReleased(void* data)
+bool Event_KeyReleased(EventData_t data)
 {
-	char keycode = (char)data;
+	char keycode = *data.c;
 	LOG_DEBUG("%c Key Released", keycode);
 	return true;
 }
 
-bool Event_MouseButtonPressed(void* data)
+bool Event_MouseButtonPressed(EventData_t data)
 {
-	unsigned int mouseButtonFlags = (unsigned int)data;
+	unsigned int mouseButtonFlags = *data.u16;
 	LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 
-bool Event_MouseButtonReleased(void* data)
+bool Event_MouseButtonReleased(EventData_t data)
 {
-	unsigned int mouseButtonFlags = (unsigned int)data;
+	unsigned int mouseButtonFlags = *data.u16;
 	LOG_DEBUG("%s Mouse Button Released", e_MouseButtonTable_Strings[mouseButtonFlags]);
+	return true;
+}
+
+
+static bool Event_WindowResized(EventData_t data)
+{
+	unsigned int width, height;
+	width = data.u16[0];
+	height = data.u16[1];
+
+	LOG_DEBUG("Window Resized: %d / %d", width, height);
 	return true;
 }
 

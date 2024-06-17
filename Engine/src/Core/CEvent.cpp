@@ -24,7 +24,7 @@ public:
 
 	bool	EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
 	bool	EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
-	bool	EventFire(eEventCategory eventCategory, void* eventData) override;
+	bool	EventFire(eEventCategory eventCategory, EventData_t data) override;
 
 private:
 	Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
@@ -138,7 +138,7 @@ bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback 
 	return false;
 }
 
-bool CEventSystem::EventFire(eEventCategory eventCategory, void* data)
+bool CEventSystem::EventFire(eEventCategory eventCategory, EventData_t data)
 {
 	int intEventCategory = static_cast<int>(eventCategory);
 	Event* curEvent = m_RegisteredEvents[intEventCategory];
