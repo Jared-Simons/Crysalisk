@@ -10,42 +10,37 @@
 enum eFileMode
 {
 	FILEMODE_UNKNOWN = 0,
-	FILEMODE_READONLY,
+	FILEMODE_READ,
 	FILEMODE_WRITE,
-	FILEMODE_READBINARY,
-	FILEMODE_WRITEBINARY,
 
 	FILEMODE_MAXMODES
 };
 
-static const char* fileModeStrings[FILEMODE_MAXMODES] =
-{
-	"0",
-	"r",
-	"w",
-	"rb",
-	"wb"
-};
-
 struct FileHandle_t
 {
-	const char* path;
-	bool isValid;
-	eFileMode fileAccessMode;
-	void* internalData;
+	const char* path{};
+	bool isValid{ false };
+	eFileMode fileAccessMode{ FILEMODE_UNKNOWN };
+	void* internalData{ nullptr };
 };
 
 class IFileSystem
 {
 public:
-	virtual FileHandle_t*	OpenFile(const char* filePath, eFileMode fileMode) = 0;
-	virtual void			CloseFile(FileHandle_t* fileHandle) = 0;
+	virtual bool			OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle) = 0;
+	virtual bool			CloseFile(FileHandle_t* fileHandle) = 0;
 	virtual size_t			FileSize(FileHandle_t* fileHandle) = 0;
 
-	virtual bool 			ReadLine(char* buffer, size_t bufferSize, FileHandle_t* file) = 0;
+	virtual bool 			ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
+	virtual bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
+	virtual bool			ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
+	/*
+	virtual size_t			FileSize(const char* filePath) = 0;
+
 	virtual size_t			ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file) = 0;
 
 	virtual bool			WriteLine(FileHandle_t* fileHandle, char* text) = 0;
+	*/
 };
 
 extern IFileSystem* gpFileSystem;
