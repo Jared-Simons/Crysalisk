@@ -201,3 +201,10 @@ void VulkanShader::DestroyVulkanShader(CVulkanRenderer* pRenderingContext)
 	vkDestroyPipelineLayout(pRenderingContext->GetDevice().GetLogicalDevice(), m_PipelineLayout, nullptr);
 }
 
+bool VulkanShader::BindShader(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer)
+{
+	vkCmdBindPipeline(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
+
+	return true;
+}
+

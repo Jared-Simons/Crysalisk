@@ -137,6 +137,11 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 	m_MainRenderpass.BeginRenderpass(this, &commandBuffer);
 
+		// Handle all draw/rendering calls here
+		m_StandardShader.BindShader(this, &commandBuffer);
+
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
 	m_MainRenderpass.EndRenderpass(this, &commandBuffer);
 
 	if (!m_Device.EndCommandBuffer(commandBuffer))

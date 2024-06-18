@@ -235,6 +235,8 @@ public:
 	
 	void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext);
 
+	bool		BindShader(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer);
+
 private:
 	VkShaderModule	m_VertModule;
 	VkShaderModule	m_FragModule;
