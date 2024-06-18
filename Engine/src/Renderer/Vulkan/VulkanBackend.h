@@ -219,6 +219,33 @@ private:
 
 //=================================
 // 
+// Vulkan Shader
+// 
+//=================================
+class VulkanShader
+{
+public:
+	VulkanShader()
+		: m_VertModule{ VK_NULL_HANDLE }
+		, m_FragModule{ VK_NULL_HANDLE } 
+		, m_Pipeline{ VK_NULL_HANDLE }
+		, m_PipelineLayout{ VK_NULL_HANDLE } {}
+
+	static bool CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+	
+	void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext);
+
+private:
+	VkShaderModule	m_VertModule;
+	VkShaderModule	m_FragModule;
+
+	VkPipeline		m_Pipeline;
+	VkPipelineLayout m_PipelineLayout;
+};
+
+
+//=================================
+// 
 // Vulkan Rendering Context
 // 
 //=================================
@@ -274,6 +301,9 @@ private:
 	CVector<VkSemaphore>	m_ImageAvailableSemaphores;
 	CVector<VkSemaphore>	m_RenderFinishedSemaphores;
 	CVector<VkFence>		m_InFlightFrameFences;
+
+	// Shader
+	VulkanShader			m_StandardShader;
 
 	unsigned short m_CurrentImageIndex{ 0 };
 	unsigned short m_CurrentFrame{ 0 };

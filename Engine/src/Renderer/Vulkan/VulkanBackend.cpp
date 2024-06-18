@@ -8,6 +8,7 @@
 #include "Platform/VulkanPlatform.h"
 #include "Systems/IMemory.h"
 #include "Systems/IEvent.h"
+#include "Systems/IFileSystem.h"
 
 #include "Core/Assertions.h"
 
@@ -52,6 +53,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
+	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
+		return false;
+
 	if (!m_Device.CreateCommandBuffers(this))
 		return false;
 
@@ -80,6 +84,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	DestroySyncObjects();
 	m_Device.DestroyCommandBuffers(this);
+	m_StandardShader.DestroyVulkanShader(this);
 	m_MainRenderpass.DestroyRenderpass(this, &m_MainRenderpass);
 	m_Swapchain.CleanupSwapchain(this);
 	m_Device.DestroyLogicalDevice(this);
