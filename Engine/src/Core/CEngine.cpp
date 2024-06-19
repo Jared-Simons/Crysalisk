@@ -175,6 +175,11 @@ bool Event_KeyReleased(EventData_t data)
 {
 	char keycode = *data.c;
 	LOG_DEBUG("%c Key Released", keycode);
+
+	if (keycode == 'M')
+	{
+		gpMemorySystem->PrintMemoryStats();
+	}
 	return true;
 }
 

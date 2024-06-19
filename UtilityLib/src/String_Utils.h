@@ -12,7 +12,7 @@
 
 void StringFormat(const char* format, const char* str1, const char* str2, char* outString);
 
-void StringFormat_V(const char* format, const char* str, va_list& var_args, char* outString);
+void StringFormat_V(const char* format, const char* str1, char* outString, ...);
 
 bool StringCompare(const char* str1, const char* str2);
 

@@ -3,6 +3,20 @@
 
 #include "Platform/Platform.h"
 #include "EngineGlobals.h"
+#include "String_Utils.h"
+
+const size_t MAX_MEM_CATEGORIES = (size_t)eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES;
+static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
+{
+	"UNKNOWN		",
+	"ARRAY			",
+	"CVECTOR		",
+	"STRING			",
+	"ENGINE			",
+	"GAME			",
+	"RENDERER		",
+	"LINEAR ALLOC		"
+};
 
 class CMemorySystem : public IMemorySystem
 {
@@ -10,21 +24,24 @@ public:
 	CMemorySystem()
 		: m_numAllocations{ 0 }
 		, m_numBytesAllocated{ 0 }
+		, m_taggedAllocations{ 0 }
 		, m_pBaseMemoryBlock{ nullptr } {}
 
-	bool MemorySystem_Initialize() override;
-	void MemorySystem_Shutdown() override;
+	bool	MemorySystem_Initialize() override;
+	void	MemorySystem_Shutdown() override;
 
-	void*	MemAllocate(size_t numBytes) override;
-	void	MemFree(void* block) override;
+	void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory) override;
+	void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) override;
 	void*	MemReallocate(void* memory, size_t newSize) override;
 	void*	MemCopy(void* dest, const void* source, size_t size) override;
 	void*	MemSet(void* memory, int value, size_t size) override;
 
-private:
-	unsigned int	m_numAllocations = 0;
+	void	PrintMemoryStats() override;
 
+private:
+	unsigned int	m_numAllocations;
 	size_t			m_numBytesAllocated;
+	size_t			m_taggedAllocations[MAX_MEM_CATEGORIES];
 	void*			m_pBaseMemoryBlock;
 };
 
@@ -54,15 +71,26 @@ void CMemorySystem::MemorySystem_Shutdown()
 }
 
 
-void* CMemorySystem::MemAllocate(size_t numBytes)
+void* CMemorySystem::MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory)
 {
+	if (eAllocCategory == eMemAllocCategories::MEM_CATEGORY_UNKNOWN)
+	{
+		LOG_WARN("MemorySystem->Alloc() - Category is 'UNKNOWN', re-class this allocation");
+	}
+
 	// TODO: Memory alignment
 	void* block = nullptr;
 
 	block = Platform_MemoryAllocate(numBytes);
 
 	if (block != nullptr)
+	{
+		m_numAllocations++;
+		m_numBytesAllocated += numBytes;
+		m_taggedAllocations[(size_t)eAllocCategory] += numBytes;
+
 		return block;
+	}
 
 	// TODO: Handle these failures properly.
 	LOG_ERROR("MemorySystem->MemAllocate could not allocate memory, returning nullptr.");
@@ -70,9 +98,13 @@ void* CMemorySystem::MemAllocate(size_t numBytes)
 }
 
 
-void CMemorySystem::MemFree(void* block)
+void CMemorySystem::MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory)
 {
 	// TODO: Memory alignment
+
+	m_numAllocations--;
+	m_numBytesAllocated -= size;
+	m_taggedAllocations[(size_t)eAllocCategory] -= size;
 	
 	// There is nothing wrong with calling free() on a nullptr,
 	// so no need to check.
@@ -116,6 +148,25 @@ void* CMemorySystem::MemSet(void* memory, int value, size_t size)
 
 	LOG_ERROR("MemorySystem->MemSet requires a valid pointer to a memory block. Returning nullptr.");
 	return nullptr;
+}
+
+
+void CMemorySystem::PrintMemoryStats()
+{
+	char memStatsString[5000] = "Memory Stats:\n";
+
+	for (size_t i = 0; i < MAX_MEM_CATEGORIES; i++)
+	{
+		char categoryString[256]{ 0 };
+		StringFormat_V(" %s\t: %d B\n", nullptr, categoryString, s_MemCategoryStrings[i], m_taggedAllocations[i]);
+		StringConcat(memStatsString, categoryString);
+	}
+
+	char totalAllocationString[256]{ 0 };
+	StringFormat_V(" Total Memory Allocations: %d", nullptr, totalAllocationString, m_numAllocations);
+	StringConcat(memStatsString, totalAllocationString);
+
+	LOG_INFO(memStatsString);
 }
 
 

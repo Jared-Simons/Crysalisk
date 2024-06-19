@@ -16,10 +16,13 @@ void StringFormat(const char* format, const char* str1, const char* str2, char* 
 	strcpy(outString, stringBuffer);
 }
 
-void StringFormat_V(const char* format, const char* str1, va_list& var_args, char* outString)
+void StringFormat_V(const char* format, const char* str1, char* outString, ...)
 {
 	char stringBuffer[10000];
-	vsprintf_s(stringBuffer, format, var_args);
+	va_list varArgs;
+	va_start(varArgs, outString);
+	vsprintf_s(stringBuffer, format, varArgs);
+	va_end(varArgs);
 	strcpy(outString, stringBuffer);
 }
 

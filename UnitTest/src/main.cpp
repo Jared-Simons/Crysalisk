@@ -5,6 +5,7 @@
 // Purpose: Entry Point for the unit testing module
 //=============================================================================
 #include <Systems/IEngine.h>
+#include <Systems/IMemory.h>
 #include <Core/Logging.h>
 #include <Clock.h>
 
@@ -31,6 +32,8 @@ int main()
 		return -1;
 
 	PerformUnitTests();
+
+	gpMemorySystem->PrintMemoryStats();
 
 	Engine->Engine_Shutdown();
 
