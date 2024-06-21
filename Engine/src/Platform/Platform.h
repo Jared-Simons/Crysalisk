@@ -8,7 +8,10 @@
 
 #include "EngineGlobals.h"
 
-bool	Platform_Initialize();
+// Forward Declarations
+class LinearAllocator;
+
+bool	Platform_Initialize(LinearAllocator* pAllocator);
 bool	Platform_Update();
 void	Platform_Shutdown();
 

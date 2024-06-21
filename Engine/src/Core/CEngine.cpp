@@ -82,7 +82,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// Platform Layer
 	if (!m_engineConfig.isHeadless)
 	{
-		if (!Platform_Initialize())
+		if (!Platform_Initialize(m_SystemsAllocator))
 		{
 			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
 			return false;

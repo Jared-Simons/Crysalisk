@@ -14,6 +14,8 @@
 #include "Systems/IEvent.h"
 #include "Systems/IInput.h"
 
+#include <Memory/LinearAllocator.h>
+
 #include <Windows.h>
 #define WIN32_LEAN_AND_MEAN
 
@@ -22,6 +24,12 @@
 
 struct Platform_Win32_InternalData
 {
+	void* operator new (size_t size, LinearAllocator* pAllocator)
+	{
+		void* block = pAllocator->allocate(size);
+		return block;
+	}
+
 	HWND hWnd = 0;
 	HINSTANCE hInstance = 0;
 
@@ -29,27 +37,27 @@ struct Platform_Win32_InternalData
 	inline static LARGE_INTEGER m_ClockStartTime;
 };
 
-static Platform_Win32_InternalData win32PlatformData;
+static Platform_Win32_InternalData* win32PlatformData{ nullptr };
 
 // Windows Procedure
 static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 const char* engineWindowClass{ "Engine_Window_Class" };
 
-static bool	CreateWin32Window();
+static bool	CreateWin32Window(LinearAllocator* pAllocator);
 static bool CreateWin32Clock();
 static int ProcessWin32Input_Key(WPARAM wParam);
 static int ProcessWin32Input_MouseButton(UINT uMsg);
 static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
-bool Platform_Initialize()
+bool Platform_Initialize(LinearAllocator* pAllocator)
 {
-	if (win32PlatformData.hInstance != 0 && win32PlatformData.hWnd != 0)
+	if (win32PlatformData != nullptr)
 	{
 		LOG_ERROR("PlatformInitialize() - Platform State Already Exists!\n");
 		return true;
 	}
 
-	if (!CreateWin32Window())
+	if (!CreateWin32Window(pAllocator))
 	{
 		LOG_FATAL("CreateWin32Window failed! - Aborting application!");
 		return false;
@@ -67,19 +75,21 @@ bool Platform_Initialize()
 	return true;
 }
 
-bool CreateWin32Window()
+bool CreateWin32Window(LinearAllocator* pAllocator)
 {
 	// Create the window class.
 	LPCSTR windowClassName = engineWindowClass;
 
-	win32PlatformData.hInstance = GetModuleHandle(NULL);
+	win32PlatformData = new (pAllocator) Platform_Win32_InternalData;
+
+	win32PlatformData->hInstance = GetModuleHandle(NULL);
 
 	WNDCLASSA wc{};
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WinProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
-	wc.hInstance = win32PlatformData.hInstance;
+	wc.hInstance = win32PlatformData->hInstance;
 	wc.hIcon = LoadIconA(NULL, IDI_APPLICATION);
 	wc.hCursor = LoadCursorA(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
@@ -101,7 +111,7 @@ bool CreateWin32Window()
 		720,
 		NULL,
 		NULL,
-		win32PlatformData.hInstance,
+		win32PlatformData->hInstance,
 		NULL);
 
 	if (!hWndInit)
@@ -109,10 +119,10 @@ bool CreateWin32Window()
 		return false;
 	}
 
-	win32PlatformData.hWnd = hWndInit;
+	win32PlatformData->hWnd = hWndInit;
 
 	// Show the window
-	ShowWindow(win32PlatformData.hWnd, 1);
+	ShowWindow(win32PlatformData->hWnd, 1);
 
 	return true;
 }
@@ -121,8 +131,8 @@ bool CreateWin32Clock()
 {
 	LARGE_INTEGER frequency;
 	QueryPerformanceFrequency(&frequency);
-	win32PlatformData.m_ClockFreq = 1.0 / frequency.QuadPart;
-	QueryPerformanceCounter(&win32PlatformData.m_ClockStartTime);
+	win32PlatformData->m_ClockFreq = 1.0 / frequency.QuadPart;
+	QueryPerformanceCounter(&win32PlatformData->m_ClockStartTime);
 
 	return true;
 }
@@ -131,12 +141,12 @@ void Platform_Shutdown()
 {
 	LOG_INFO("Platform_Shutdown called");
 
-	if (win32PlatformData.hWnd)
+	if (win32PlatformData->hWnd)
 	{
-		DestroyWindow(win32PlatformData.hWnd);
+		DestroyWindow(win32PlatformData->hWnd);
 
-		win32PlatformData.hWnd = 0;
-		win32PlatformData.hInstance = 0;
+		win32PlatformData->hWnd = 0;
+		win32PlatformData->hInstance = 0;
 	}
 }
 
@@ -150,7 +160,7 @@ bool Platform_Update()
 void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
 {
 	RECT rect;
-	if (GetWindowRect(win32PlatformData.hWnd, &rect))
+	if (GetWindowRect(win32PlatformData->hWnd, &rect))
 	{
 		int width = rect.right - rect.left;
 		int height = rect.bottom - rect.top;
@@ -164,7 +174,7 @@ double Platform_GetAbsoluteTime()
 {
 	// If the clock has not yet been initialized (possibly due to headless mode)
 	// initialize it here
-	if (win32PlatformData.m_ClockFreq == -1)
+	if (win32PlatformData->m_ClockFreq == -1)
 	{
 		// 2 = Debug level message
 		Platform_LogMessage(1, "Platform Clock not yet initialized - Initializing now\n");
@@ -174,7 +184,7 @@ double Platform_GetAbsoluteTime()
 	LARGE_INTEGER currentTime;
 	QueryPerformanceCounter(&currentTime);
 
-	double elapsedTime = (double)currentTime.QuadPart * win32PlatformData.m_ClockFreq;
+	double elapsedTime = (double)currentTime.QuadPart * win32PlatformData->m_ClockFreq;
 	return elapsedTime;
 }
 
@@ -213,8 +223,8 @@ void Platform_LogMessage(int level, const char* message)
 VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface()
 {
 	VkWin32SurfaceCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
-	createInfo.hwnd = win32PlatformData.hWnd;
-	createInfo.hinstance = win32PlatformData.hInstance;
+	createInfo.hwnd = win32PlatformData->hWnd;
+	createInfo.hinstance = win32PlatformData->hInstance;
 	return createInfo;
 }
 
