@@ -326,6 +326,7 @@ public:
 	VulkanDevice&		GetDevice() { return m_Device; }
 	VulkanSwapchain&	GetSwapchain() { return m_Swapchain; }
 	VulkanRenderpass&	GetRenderpass() { return m_MainRenderpass; }
+	VulkanShader&		GetShader() { return m_StandardShader; }
 
 	VkSemaphore&		GetImageAvailableSemaphore(int index) { return m_ImageAvailableSemaphores[index]; }
 	VkSemaphore&		GetRenderFinishedSemaphore(int index) { return m_RenderFinishedSemaphores[index]; }

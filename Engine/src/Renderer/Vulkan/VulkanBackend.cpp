@@ -85,11 +85,11 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Shutdown renderer components in reverse order.
 	// TODO: Custom allocator.
 
+	m_Swapchain.CleanupSwapchain(this);
 	DestroySyncObjects();
 	m_Device.DestroyCommandBuffers(this);
 	m_StandardShader.DestroyVulkanShader(this);
 	m_MainRenderpass.DestroyRenderpass(this, &m_MainRenderpass);
-	m_Swapchain.CleanupSwapchain(this);
 	m_Device.DestroyLogicalDevice(this);
 	vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 	DestroyDebugMessenger();
@@ -98,13 +98,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 bool CVulkanRenderer::RendererBackend_Update()
 {
-	if (m_FramebufferResized)
-	{
-		LOG_DEBUG("Framebuffer resized - Recreating Swapchain");
-		m_Swapchain.RecreateSwapchain(this);
-		return true;
-	}
-
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFrameFences[m_CurrentImageIndex], VK_TRUE, UINT64_MAX);
 
@@ -116,8 +109,8 @@ bool CVulkanRenderer::RendererBackend_Update()
 		if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			//LOG_DEBUG("Swapchain out of date - Recreating.");
-			//m_Swapchain.RecreateSwapchain(this);
-			m_FramebufferResized = true;
+			m_Swapchain.RecreateSwapchain(this);
+			//m_FramebufferResized = true;
 			return true;
 		}
 		else if (nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR)

@@ -246,7 +246,7 @@ bool VulkanSwapchain::FramebufferPresent(CVulkanRenderer* renderingContext, unsi
 	{
 		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
 		{
-			renderingContext->SetFramebufferResized(true);
+			renderingContext->GetSwapchain().RecreateSwapchain(renderingContext);
 			return true;
 		}
 		else
