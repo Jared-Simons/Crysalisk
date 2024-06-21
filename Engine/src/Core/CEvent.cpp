@@ -2,6 +2,8 @@
 
 #include "Core/Logging.h"
 
+#include <string>
+
 const int MAX_EVENTS_PER_CATEGORY = 32;
 #define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::EVENT_TYPE_MAX_EVENTS)
 
@@ -19,8 +21,22 @@ class CEventSystem : public IEventSystem
 public:
 	CEventSystem() : m_numRegisteredEvents{ 0 } {}
 
-	bool	EventSystem_Initialize() override;
-	void	EventSystem_Shutdown() override;
+	void*	operator new(size_t size, LinearAllocator *pAllocator)
+	{	
+		void* block = pAllocator->allocate(size);
+		if (block)
+		{
+			return block;
+		}
+		else
+		{
+			LOG_FATAL("Systems Allocator failed to allocate memory for the event system!");
+			return nullptr;
+		}
+	}
+
+	bool	Initialize() override;
+	void	Shutdown() override;
 
 	bool	EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
 	bool	EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
@@ -31,7 +47,54 @@ private:
 	int	m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
 };
 
-bool CEventSystem::EventSystem_Initialize()
+static CEventSystem* sEngineEvents{ nullptr };
+IEventSystem* gpEngineEvents = sEngineEvents;
+
+
+//-----------------------------------------------------------------------------
+// Factory method to initialize an event system.
+//-----------------------------------------------------------------------------
+bool IEventSystem::EventSystem_Create(IEventSystem* statePtr, LinearAllocator* pAllocator)
+{
+	if (statePtr)
+	{
+		LOG_ERROR("EventSystem_Create() -> An active event system already exists at this location. Aborting!");
+		return false;
+	}
+
+	// Setup the engine's event handler
+	if (statePtr == gpEngineEvents)
+	{
+		sEngineEvents = new (pAllocator) CEventSystem();
+
+		if (!sEngineEvents->Initialize())
+		{
+			return false;
+		}
+		gpEngineEvents = sEngineEvents;
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Factory method to shutdown an event system.
+//-----------------------------------------------------------------------------
+void IEventSystem::EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemory)
+{
+	if (statePtr)
+	{
+		statePtr->Shutdown();
+
+		if (bOwnsMemory)
+		{
+			delete statePtr;
+			statePtr = nullptr;
+		}
+	}
+}
+
+bool CEventSystem::Initialize()
 {
 	// Loop through and invalidate event entries.
 	for (int i = 0; i < NUM_EVENT_CATEGORIES; i++)
@@ -50,7 +113,7 @@ bool CEventSystem::EventSystem_Initialize()
 	return true;
 }
 
-void CEventSystem::EventSystem_Shutdown()
+void CEventSystem::Shutdown()
 {
 	LOG_INFO("Event System Shutting Down");
 
@@ -156,7 +219,4 @@ bool CEventSystem::EventFire(eEventCategory eventCategory, EventData_t data)
 
 	return true;
 }
-
-static CEventSystem sEngineEvents;
-IEventSystem* gpEngineEvents = &sEngineEvents;
 

@@ -11,11 +11,13 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"UNKNOWN		",
 	"ARRAY			",
 	"CVECTOR		",
+	"LIST			",
+	"SET			",
 	"STRING			",
+	"LINEAR ALLOC		",
 	"ENGINE			",
 	"GAME			",
-	"RENDERER		",
-	"LINEAR ALLOC		"
+	"RENDERER		"
 };
 
 class CMemorySystem : public IMemorySystem

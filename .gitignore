@@ -10,3 +10,4 @@
 *.vcxproj
 *.vcxproj.filters
 logging.txt
+*.spv

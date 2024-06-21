@@ -5,7 +5,7 @@
 
 int CreateAndDestroyLinearAllocator()
 {
-	LinearAllocator<unsigned long long> linearAlloc(1);
+	LinearAllocator linearAlloc(1 * sizeof(unsigned long long));
 
 	if (linearAlloc.GetMemory() == nullptr)
 		return FAIL;
@@ -22,10 +22,10 @@ int CreateAndDestroyLinearAllocator()
 
 int LinearAllocatorSingleAllocationAllSpace()
 {
-	LinearAllocator<unsigned long long> linearAlloc(1);
+	LinearAllocator linearAlloc(1 * sizeof(unsigned long long));
 
 	// Single allocation.
-	void* block = linearAlloc.allocate();
+	void* block = linearAlloc.allocate(sizeof(unsigned long long));
 
 	// Validate it
 	if (linearAlloc.GetMemory() == nullptr)
@@ -41,13 +41,13 @@ int LinearAllocatorSingleAllocationAllSpace()
 int LinearAllocatorMultiAllocationAllSpace()
 {
 	unsigned long long maxAllocs = 1024;
-	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
+	LinearAllocator LinearAlloc(maxAllocs * sizeof(unsigned long long));
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = LinearAlloc.allocate();
+		block = LinearAlloc.allocate(sizeof(unsigned long long));
 
 		// Validate it
 		if (block == nullptr)
@@ -67,13 +67,13 @@ int LinearAllocatorMultiAllocationAllSpace()
 int LinearAllocatorMultiAllocationOverAllocate()
 {
 	unsigned long long maxAllocs = 1024;
-	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
+	LinearAllocator LinearAlloc(maxAllocs * sizeof(unsigned long long));
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = LinearAlloc.allocate();
+		block = LinearAlloc.allocate(sizeof(unsigned long long));
 
 		// Validate it
 		if (block == nullptr)
@@ -88,7 +88,7 @@ int LinearAllocatorMultiAllocationOverAllocate()
 	LOG_DEBUG("Note: The following error is intentionally caused by this test.");
 
 	// Ask for one more allocation. Should error and return 0.
-	block = LinearAlloc.allocate();
+	block = LinearAlloc.allocate(sizeof(char));
 
 	// Validate the nullptr.
 	if (block != nullptr)
@@ -105,13 +105,13 @@ int LinearAllocatorMultiAllocationOverAllocate()
 int LinearAllocatorMultiAllocationAllSpaceThenFree()
 {
 	unsigned long long maxAllocs = 1024;
-	LinearAllocator<unsigned long long> LinearAlloc(maxAllocs);
+	LinearAllocator LinearAlloc(maxAllocs * sizeof(unsigned long long));
 
 	// Multiple allocations - full.
 	void* block;
 	for (int i = 0; i < maxAllocs; i++)
 	{
-		block = LinearAlloc.allocate();
+		block = LinearAlloc.allocate(sizeof(unsigned long long));
 
 		// Validate it
 		if (block == nullptr)

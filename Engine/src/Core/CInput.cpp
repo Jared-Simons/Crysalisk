@@ -16,9 +16,23 @@ class CInputSystem : public IInputSystem
 public:
 	CInputSystem() : m_KeysState{ 0 }, m_PrevKeysState{ 0 }, m_KeyStateDirty{ true } {}
 
-	bool		InputSystem_Initialize() override;
-	void		InputSystem_Shutdown() override;
-	void		InputSystem_Update() override;
+	void* operator new(size_t size, LinearAllocator* pAllocator)
+	{
+		void* block = pAllocator->allocate(size);
+		if (block)
+		{
+			return block;
+		}
+		else
+		{
+			LOG_FATAL("Systems Allocator failed to allocate memory for the input system!");
+			return nullptr;
+		}
+	}
+
+	bool		Initialize() override;
+	void		Shutdown() override;
+	void		Update() override;
 
 	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
 	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
@@ -32,7 +46,53 @@ private:
 	bool		m_KeyStateDirty;
 };
 
-bool CInputSystem::InputSystem_Initialize()
+static CInputSystem* sInputSystem{ nullptr };
+IInputSystem* gpInputSystem = sInputSystem;
+
+//-----------------------------------------------------------------------------
+// Factory method to initialize an event system.
+//-----------------------------------------------------------------------------
+bool IInputSystem::InputSystem_Initialize(IInputSystem* statePtr, LinearAllocator* pAllocator)
+{
+	if (statePtr)
+	{
+		LOG_ERROR("InputSystem_Create() -> An active input system already exists at this location. Aborting!");
+		return false;
+	}
+
+	// Setup the engine's input system
+	if (statePtr == gpInputSystem)
+	{
+		sInputSystem = new (pAllocator) CInputSystem();
+
+		if (!sInputSystem->Initialize())
+		{
+			return false;
+		}
+		gpInputSystem = sInputSystem;
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Factory method to shutdown an input system.
+//-----------------------------------------------------------------------------
+void IInputSystem::InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory)
+{
+	if (statePtr)
+	{
+		statePtr->Shutdown();
+
+		if (bOwnsMemory)
+		{
+			delete statePtr;
+			statePtr = nullptr;
+		}
+	}
+}
+
+bool CInputSystem::Initialize()
 {
 	// setup m_KeysState table
 	for (char i = 0; i < MAX_INPUT_KEYS; i++)
@@ -57,12 +117,12 @@ bool CInputSystem::InputSystem_Initialize()
 	return true;
 }
 
-void CInputSystem::InputSystem_Shutdown()
+void CInputSystem::Shutdown()
 {
 	LOG_INFO("Input System Shutting Down");
 }
 
-void CInputSystem::InputSystem_Update()
+void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
@@ -160,6 +220,3 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, eventData);
 	}
 }
-
-static CInputSystem sInputSystem;
-IInputSystem* gpInputSystem = &sInputSystem;

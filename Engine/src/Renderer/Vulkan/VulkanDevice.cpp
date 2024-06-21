@@ -223,8 +223,8 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 
 	if (renderingContext->EnableValidationLayers())
 	{
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(renderingContext->GetValidationLayers().GetCount());
-		deviceCreateInfo.ppEnabledLayerNames = renderingContext->GetValidationLayers().Data();
+		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(renderingContext->GetNumValidationLayers());
+		deviceCreateInfo.ppEnabledLayerNames = renderingContext->GetValidationLayers();
 	}
 	else
 	{

@@ -11,6 +11,8 @@
 #include <cstring>
 #include <stdio.h>
 
+#include <Systems/IMemory.h>
+
 template<typename T>
 class CVector
 {
@@ -21,31 +23,32 @@ public:
 	};
 
 	CVector()
-	{
-		m_Count = 0;
-		m_Capacity = 0;
-		m_Stride = static_cast<unsigned int>(sizeof(T));
-		m_ResizeFactor = 2;
-		m_Data = nullptr;
-	}
+		: m_Count{ 0 }
+		, m_Capacity{ 0 }
+		, m_Stride{ sizeof(T) }
+		, m_ResizeFactor{ 2 }
+		, m_Data{ nullptr } {}
 
 	CVector(size_t capacity)
+		: m_Count{ capacity }
+		, m_Capacity{ capacity }
+		, m_Stride{ sizeof(T) }
+		, m_ResizeFactor{ 2 }
 	{
-		m_Count = capacity;
-		m_Capacity = capacity;
-		m_Stride = static_cast<unsigned int>(sizeof(T));
-		m_ResizeFactor = 2;
-		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
-		memset(m_Data, 0, sizeof(T) * capacity);
+		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		
+		if (m_Data)
+			memset(m_Data, 0, sizeof(T) * capacity);
 	}
 
 	CVector(T firstIndex)
+		: m_Count{ 1 }
+		, m_Capacity{ 1 }
+		, m_Stride{ sizeof(T) }
+		, m_ResizeFactor{ 2 }
 	{
-		m_Count = 1;
-		m_Capacity = 1;
-		m_Stride = static_cast<unsigned int>(sizeof(T));
-		m_ResizeFactor = 2;
-		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
+		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		
 		if (m_Data != nullptr)
 		{
 			m_Data[0] = firstIndex;
@@ -53,12 +56,12 @@ public:
 	}
 
 	CVector(size_t capacity, T initialValue)
+		: m_Count{ capacity }
+		, m_Capacity{ capacity }
+		, m_Stride{ sizeof(T) }
+		, m_ResizeFactor{ 2 }
 	{
-		m_Count = capacity;
-		m_Capacity = capacity;
-		m_Stride = static_cast<unsigned int>(sizeof(T));
-		m_ResizeFactor = 2;
-		m_Data = static_cast<T*>(malloc(sizeof(T) * capacity));
+		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		if (m_Data != nullptr)
 		{
 			for (int i = 0; i < capacity; i++)
@@ -69,19 +72,19 @@ public:
 	}
 
 	CVector(CVector& otherVector)
+		: m_Count{ otherVector.m_Count }
+		, m_Capacity{ otherVector.m_Capacity }
+		, m_Stride{ otherVector.m_Stride }
+		, m_ResizeFactor{ otherVector.m_ResizeFactor }
 	{
-		m_Count = otherVector.m_Count;
-		m_Capacity = otherVector.m_Capacity;
-		m_Stride = otherVector.m_Stride;
-		m_ResizeFactor = 2;
-		m_Data = static_cast<T*>(malloc(sizeof(T) * m_Capacity));
+		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		if (m_Data != nullptr)
 			memcpy(m_Data, otherVector.m_Data, m_Capacity * m_Stride);
 	}
 
 	virtual ~CVector()
 	{
-		free(m_Data);
+		gpMemorySystem->MemFree(m_Data, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 	}
 
 	T& operator[] (int index)
@@ -94,18 +97,18 @@ public:
 		if (m_Data != nullptr)
 		{
 			T* oldData = m_Data;
-			m_Data = (T*)malloc(m_Stride * newCapacity);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 
 			if (m_Data != nullptr)
 			{
 				memcpy(m_Data, oldData, m_Stride * newCapacity);
 			}
 
-			free(oldData);
+			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_Data = (T*)malloc(m_Stride * newCapacity);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 
 
@@ -119,18 +122,18 @@ public:
 		{
 			T* oldData = m_Data;
 
-			m_Data = (T*)malloc(m_Stride * newCapacity);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 			
 			if (m_Data != nullptr)
 			{
 				memcpy(m_Data, oldData, m_Stride * newCapacity);
 			}
 
-			free(oldData);
+			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_Data = (T*)malloc(m_Stride * newCapacity);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 
 		if (newCapacity < (int)m_Capacity)
