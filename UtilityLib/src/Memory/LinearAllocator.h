@@ -27,13 +27,13 @@ public:
 
 	~LinearAllocator()
 	{
-		m_AllocatorSize = 0;
-
 		if (m_BytesAllocated != 0)
 			free();
 
 		if (m_pData)
-			gpMemorySystem->MemFree(m_pData, sizeof(m_pData), eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			gpMemorySystem->MemFree(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+
+		m_AllocatorSize = 0;
 
 		//LOG_DEBUG("Stack allocator destroyed");
 	}
