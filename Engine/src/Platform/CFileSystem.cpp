@@ -9,9 +9,9 @@
 #include "Core/Logging.h"
 
 #include "String_Utils.h"
-#include "Containers/CVector.h"
 
 #include <stdio.h>	// Needed for FILE type
+#include <string>
 
 
 class CFileSystem : public IFileSystem

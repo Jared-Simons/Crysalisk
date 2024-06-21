@@ -7,6 +7,7 @@
 #pragma once
 
 #include "EngineGlobals.h"
+#include "Platform/Platform.h"
 
 const int MAX_LOGGERS = 1;
 
@@ -48,18 +49,24 @@ public:
 	// TODO: Check for nullptrs
 	Logger* GetLoggerByIndex(int index) const;
 
+	// TODO: This is temporary until a logging system refactor happens
+	static void	PlatformLog(eLogLevel level, const char* message)
+	{
+		Platform_LogMessage((int)level, message);
+	}
+
 private:
 	Logger* m_RegiseredLoggers[MAX_LOGGERS];
 };
 
 // General-purpose logging macros
 // These macros assume that there will always be a general logging channel at index 0, not very flexible...
-#define LOG_VERBOSE(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_VERBOSE, message, __VA_ARGS__))
-#define LOG_INFO(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_INFO, message, __VA_ARGS__))
-#define LOG_DEBUG(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_DEBUG, message, __VA_ARGS__))
-#define LOG_WARN(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_WARN, message, __VA_ARGS__))
-#define LOG_ERROR(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_ERROR, message, __VA_ARGS__))
-#define LOG_FATAL(message, ...) (g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_FATAL, message, __VA_ARGS__))
+#define LOG_VERBOSE(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_VERBOSE, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_VERBOSE, message))
+#define LOG_INFO(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_INFO, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_INFO, message))
+#define LOG_DEBUG(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_DEBUG, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_DEBUG, message))
+#define LOG_WARN(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_WARN, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_WARN, message))
+#define LOG_ERROR(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_ERROR, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_ERROR, message))
+#define LOG_FATAL(message, ...) (g_Logger->GetLoggerByIndex(0) ? g_Logger->GetLoggerByIndex(0)->LogMessage(eLogLevel::LOG_LEVEL_FATAL, message, __VA_ARGS__) : LogSystem::PlatformLog(eLogLevel::LOG_LEVEL_FATAL, message))
 
 ENGINE_API extern LogSystem* g_Logger;
 

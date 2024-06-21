@@ -99,8 +99,6 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 		}
 	}
 
-	LOG_DEBUG("Total Subsystem Size: %u B", m_SystemsAllocator->GetBytesAllocated());
-
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
@@ -159,12 +157,9 @@ void CEngine::Engine_Shutdown()
 
 	// Destroy the subsystem allocator
 	m_SystemsAllocator->free(false);
-
-	LOG_DEBUG("Systems Allocator Destroying with %u B Active", m_SystemsAllocator->GetBytesAllocated());
 	delete m_SystemsAllocator;
 	m_SystemsAllocator = nullptr;
 
-	gpMemorySystem->PrintMemoryStats();
 	gpMemorySystem->MemorySystem_Shutdown();
 
 	Logging_Shutdown();

@@ -102,13 +102,17 @@ int LogSystem::RegisterLogger(Logger& logger)
 Logger* LogSystem::GetLoggerByIndex(int index) const
 {
 	// TODO: If this returns nullptr, still print the message, but also error.
-
-	if (m_RegiseredLoggers[index] != nullptr)
-		return m_RegiseredLoggers[index];
-	else
+	if (m_RegiseredLoggers)
 	{
-		LOG_ERROR("LOGGING ERROR: Invalid Logger Index at %d\n", index);
-		return nullptr;
+		if (m_RegiseredLoggers[index] != nullptr)
+		{
+			return m_RegiseredLoggers[index];
+		}
+		else
+		{
+			LOG_ERROR("LOGGING ERROR: Invalid Logger Index at %d\n", index);
+			return nullptr;
+		}
 	}
 }
 
