@@ -14,6 +14,8 @@
 #include "Platform/Platform.h"
 #include "Systems/IRenderer.h"
 
+#include <Memory/LinearAllocator.h>
+
 static bool s_bApplicationQuitCalled = false;
 static bool Event_ApplicationQuit(EventData_t data);
 static bool Event_KeyPressed(EventData_t data);
@@ -33,6 +35,7 @@ public:
 
 private:
 	EngineConfig_t	m_engineConfig;
+	LinearAllocator* m_SystemsAllocator{ nullptr };
 };
 
 bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
@@ -49,8 +52,12 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Initialize the subsystem memory allocator
+	m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
+	LOG_INFO("Systems Allocator created with %u B", m_SystemsAllocator->GetAllocatorSize());
+
 	// Event System
-	if (!gpEngineEvents->EventSystem_Initialize())
+	if (!IEventSystem::EventSystem_Create(gpEngineEvents, m_SystemsAllocator))
 	{
 		LOG_FATAL("Event System failed to initialize! Application cannot continue.");
 		return false;
@@ -66,7 +73,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 
 
 	// Input System
-	if (!gpInputSystem->InputSystem_Initialize())
+	if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))
 	{
 		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
 		return false;
@@ -85,12 +92,14 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// Renderer
 	if (!m_engineConfig.isHeadless)
 	{
-		if (!gpRenderer->Renderer_Initialize())
+		if (!IRenderer::Renderer_Create(gpRenderer, m_SystemsAllocator))
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 			return false;
 		}
 	}
+
+	LOG_DEBUG("Total Subsystem Size: %u B", m_SystemsAllocator->GetBytesAllocated());
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
@@ -102,11 +111,11 @@ bool CEngine::Engine_Run()
 	{
 		if (!m_engineConfig.isHeadless)
 		{
-			gpInputSystem->InputSystem_Update();
+			gpInputSystem->Update();
 
 			Platform_Update();
 
-			if (!gpRenderer->Renderer_Update())
+			if (!gpRenderer->Update())
 			{
 				LOG_FATAL("Renderer update failed!");
 				return false;
@@ -128,7 +137,7 @@ void CEngine::Engine_Shutdown()
 
 	if (!m_engineConfig.isHeadless)
 	{
-		gpRenderer->Renderer_Shutdown();
+		IRenderer::Renderer_Shutdown(gpRenderer, false);
 	}
 
 	if (!m_engineConfig.isHeadless)
@@ -136,7 +145,7 @@ void CEngine::Engine_Shutdown()
 		Platform_Shutdown();
 	}
 
-	gpInputSystem->InputSystem_Shutdown();
+	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);
 
 	// Unregister from engine-level events
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
@@ -146,8 +155,16 @@ void CEngine::Engine_Shutdown()
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, Event_KeyPressed);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
 
-	gpEngineEvents->EventSystem_Shutdown();
+	IEventSystem::EventSystem_Shutdown(gpEngineEvents, false);
 
+	// Destroy the subsystem allocator
+	m_SystemsAllocator->free(false);
+
+	LOG_DEBUG("Systems Allocator Destroying with %u B Active", m_SystemsAllocator->GetBytesAllocated());
+	delete m_SystemsAllocator;
+	m_SystemsAllocator = nullptr;
+
+	gpMemorySystem->PrintMemoryStats();
 	gpMemorySystem->MemorySystem_Shutdown();
 
 	Logging_Shutdown();

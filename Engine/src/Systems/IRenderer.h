@@ -6,12 +6,18 @@
 //=============================================================================
 #pragma once
 
+// Forward Declarations
+class LinearAllocator;
+
 class IRenderer
 {
 public:
-	virtual bool	Renderer_Initialize() = 0;
-	virtual void	Renderer_Shutdown() = 0;
-	virtual bool	Renderer_Update() = 0;
+	static bool		Renderer_Create(IRenderer* statePtr, LinearAllocator* pAllocator);
+	static void		Renderer_Shutdown(IRenderer* statePtr, bool bOwnsMemory = false);
+
+	virtual bool	Initialize() = 0;
+	virtual void	Shutdown() = 0;
+	virtual bool	Update() = 0;
 };
 
 extern IRenderer* gpRenderer;

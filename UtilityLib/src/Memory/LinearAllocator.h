@@ -10,6 +10,8 @@
 #include <Core/Logging.h>
 #include <Systems/IMemory.h>
 
+#include <cstring>
+
 class LinearAllocator
 {
 public:
@@ -49,12 +51,18 @@ public:
 		void* newBlock = (char*)m_pData + m_BytesAllocated;
 		m_BytesAllocated += size;
 
+		memset(newBlock, 0, size);
+
 		return newBlock;
 	}
 
 	void free(bool allocateNewMemory = true)
 	{
-		gpMemorySystem->MemFree(m_pData, sizeof(m_pData), eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+		if (m_pData)
+		{
+			gpMemorySystem->MemFree(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+		}
+
 		m_BytesAllocated = 0;
 
 		if (allocateNewMemory)

@@ -18,7 +18,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 	size_t vertShaderFileSize = gpFileSystem->FileSize(&vertShaderHandle);
-	char* vertShaderBytecode = new char[vertShaderFileSize];
+	char* vertShaderBytecode = (char*)gpMemorySystem->MemAllocate(sizeof(char) * vertShaderFileSize,eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	size_t vertShaderCodeSize;
 
 	if (!gpFileSystem->ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderHandle))
@@ -45,7 +45,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 	size_t fragShaderFileSize = gpFileSystem->FileSize(&fragShaderHandle);
-	char* fragShaderBytecode = new char[vertShaderFileSize];
+	char* fragShaderBytecode = (char*)gpMemorySystem->MemAllocate(sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	size_t fragShaderCodeSize;
 
 	if (!gpFileSystem->ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderHandle))
@@ -64,10 +64,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	// Release unnecessary resources.
-	delete[] fragShaderBytecode;
+	gpMemorySystem->MemFree(fragShaderBytecode, sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	gpFileSystem->CloseFile(&fragShaderHandle);
 
-	delete[] vertShaderBytecode;
+	gpMemorySystem->MemFree(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	gpFileSystem->CloseFile(&vertShaderHandle);
 
 	// Create the pipeline object

@@ -6,6 +6,11 @@
 //=============================================================================
 #pragma once
 
+#include <Memory/LinearAllocator.h>
+
+// Forward Declarations
+class LinearAllocator;
+
 enum class eEventCategory
 {
 	EVENT_TYPE_UNKNOWN = -1,
@@ -45,8 +50,11 @@ typedef bool (*Event_Callback)(EventData_t data);
 class IEventSystem
 {
 public:
-	virtual bool	EventSystem_Initialize() = 0;
-	virtual void	EventSystem_Shutdown() = 0;
+	static bool		EventSystem_Create(IEventSystem* statePtr, LinearAllocator* pAllocator);
+	static void		EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemeory = false);
+
+	virtual bool	Initialize() = 0;
+	virtual void	Shutdown() = 0;
 
 	virtual bool	EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback) = 0;
 	virtual bool	EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback) = 0;

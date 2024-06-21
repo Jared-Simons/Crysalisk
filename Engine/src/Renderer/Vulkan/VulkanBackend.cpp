@@ -27,7 +27,10 @@ static bool WindowResizedCallback(EventData_t eventData);
 
 IRendererBackend* GetVulkanBackend()
 {
-	return &VulkanRenderingContext;
+	if (!VulkanRenderingContext)
+		VulkanRenderingContext = new CVulkanRenderer;
+	
+	return VulkanRenderingContext;
 }
 
 bool CVulkanRenderer::RendererBackend_Initialize()
@@ -183,11 +186,11 @@ bool CVulkanRenderer::CreateVulkanInstance()
 			AssertMsg("Validation layers requested, but not available!");
 		}
 
-		createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.GetCount());
-		createInfo.ppEnabledLayerNames = m_ValidationLayers.Data();
+		createInfo.enabledLayerCount = static_cast<uint32_t>(m_NumValidationLayers);
+		createInfo.ppEnabledLayerNames = m_ValidationLayers;
 
 		LOG_INFO("Enabled Vulkan Validation Layers: ");
-		for (int i = 0; i < m_ValidationLayers.GetCount(); i++)
+		for (int i = 0; i < m_NumValidationLayers; i++)
 		{
 			LOG_VERBOSE(m_ValidationLayers[i]);
 		}
@@ -316,7 +319,7 @@ bool CVulkanRenderer::RequestValidationLayerSupport()
 	CVector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.Data());
 
-	for (int i = 0; i < m_ValidationLayers.GetCount(); i++)
+	for (int i = 0; i < m_NumValidationLayers; i++)
 	{
 		bool layerFound = false;
 		for (int j = 0; i < availableLayers.GetCount(); j++)
@@ -376,7 +379,7 @@ void CVulkanRenderer::DestroySyncObjects()
 bool WindowResizedCallback(EventData_t eventData)
 {
 	// Tell the swapchain framebuffer to resize.
-	VulkanRenderingContext.SetFramebufferResized(true);
+	VulkanRenderingContext->SetFramebufferResized(true);
 	return true;
 }
 

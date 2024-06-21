@@ -313,7 +313,8 @@ private:
 
 public:
 	VkInstance& GetVulkanInstance() { return m_Instance; }
-	CVector<const char*>& GetValidationLayers() { return m_ValidationLayers; }
+	const char* const* GetValidationLayers() { return m_ValidationLayers; }
+	size_t		GetNumValidationLayers() { return m_NumValidationLayers; }
 	// Only enabling Valdiation Layers on debug builds for now
 #if _DEBUG
 	bool	EnableValidationLayers() const { return true; }
@@ -336,13 +337,14 @@ private:
 
 	bool	RequestValidationLayerSupport();
 
-	CVector<const char*> m_ValidationLayers =
+	static const size_t				 m_NumValidationLayers{ 1 };
+	const char* m_ValidationLayers[m_NumValidationLayers] =
 	{
 		"VK_LAYER_KHRONOS_validation"
 	};
 };
 
-static CVulkanRenderer VulkanRenderingContext;
+static CVulkanRenderer* VulkanRenderingContext{ nullptr };
 
 IRendererBackend* GetVulkanBackend();
 

@@ -6,6 +6,11 @@
 //=============================================================================
 #pragma once
 
+#include <Memory/LinearAllocator.h>
+
+// Forward Declarations
+class LinearAllocator;
+
 enum eKeyTable
 {
 	KEY_UNDEFINED = 0,
@@ -112,9 +117,12 @@ struct MouseState_t
 class IInputSystem
 {
 public:
-	virtual bool	InputSystem_Initialize() = 0;
-	virtual void	InputSystem_Shutdown() = 0;
-	virtual void	InputSystem_Update() = 0;
+	static bool		InputSystem_Initialize(IInputSystem* statePtr, LinearAllocator* pAllocator);
+	static void		InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory = false);
+
+	virtual bool	Initialize() = 0;
+	virtual void	Shutdown() = 0;
+	virtual void	Update() = 0;
 
 	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed) = 0;
 	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) = 0;

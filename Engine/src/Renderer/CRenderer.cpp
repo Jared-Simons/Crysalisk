@@ -10,18 +10,83 @@
 #include "IRendererBackend.h"
 #include "Vulkan/VulkanBackend.h"
 
+#include <Memory/LinearAllocator.h>
 
 class CRenderer : public IRenderer
 {
-	virtual bool	Renderer_Initialize() override;
-	virtual void	Renderer_Shutdown() override;
-	virtual bool	Renderer_Update() override;
+public:
+	CRenderer() {}
+
+	void* operator new(size_t size, LinearAllocator* pAllocator)
+	{
+		void* block = pAllocator->allocate(size);
+		if (block)
+		{
+			return block;
+		}
+		else
+		{
+			LOG_FATAL("Systems Allocator failed to allocate memory for the renderer system!");
+			return nullptr;
+		}
+	}
+
+	virtual bool	Initialize() override;
+	virtual void	Shutdown() override;
+	virtual bool	Update() override;
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
 };
 
-bool CRenderer::Renderer_Initialize()
+static CRenderer* s_RendererFrontend{ nullptr };
+IRenderer* gpRenderer = s_RendererFrontend;
+
+//-----------------------------------------------------------------------------
+// Factory method to initialize a renderer.
+//-----------------------------------------------------------------------------
+bool IRenderer::Renderer_Create(IRenderer* statePtr, LinearAllocator* pAllocator)
+{
+	if (statePtr)
+	{
+		LOG_ERROR("Renderer_Create() -> An active Renderer already exists at this location. Aborting!");
+		return false;
+	}
+
+	// Setup the engine's renderer
+	if (statePtr == gpRenderer)
+	{
+		s_RendererFrontend = new (pAllocator) CRenderer();
+
+		if (!s_RendererFrontend->Initialize())
+		{
+			return false;
+		}
+		gpRenderer = s_RendererFrontend;
+	}
+
+	return true;
+}
+
+//-----------------------------------------------------------------------------
+// Factory method to shutdown a renderer.
+//-----------------------------------------------------------------------------
+void IRenderer::Renderer_Shutdown(IRenderer* statePtr, bool bOwnsMemory)
+{
+	if (statePtr)
+	{
+		statePtr->Shutdown();
+
+		if (bOwnsMemory)
+		{
+			delete statePtr;
+			statePtr = nullptr;
+		}
+	}
+}
+
+
+bool CRenderer::Initialize()
 {
 	// TODO: This currently only supports Vulkan...
 	m_RendererBackend = GetVulkanBackend();
@@ -44,14 +109,15 @@ bool CRenderer::Renderer_Initialize()
 	return true;
 }
 
-void CRenderer::Renderer_Shutdown()
+void CRenderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
 	m_RendererBackend->RendererBackend_Shutdown();
+	delete m_RendererBackend;
 	m_RendererBackend = nullptr;
 }
 
-bool CRenderer::Renderer_Update()
+bool CRenderer::Update()
 {
 	if (!m_RendererBackend->RendererBackend_Update())
 	{
@@ -60,6 +126,3 @@ bool CRenderer::Renderer_Update()
 
 	return true;
 }
-
-static CRenderer s_RendererFrontend;
-IRenderer* gpRenderer = &s_RendererFrontend;
