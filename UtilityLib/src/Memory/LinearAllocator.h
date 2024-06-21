@@ -10,23 +10,18 @@
 #include <Core/Logging.h>
 #include <Systems/IMemory.h>
 
-template<typename T>
 class LinearAllocator
 {
 public:
-	LinearAllocator()
-		: m_AllocatorSize{ 0 }
-		, m_BytesAllocated{ 0 }
-		, m_pData{ nullptr }
-		, m_pCurrentAlloc{ nullptr } {}
+	LinearAllocator() = delete;
 
-	LinearAllocator(size_t elementsToAllocate)
-		: m_AllocatorSize{ elementsToAllocate * sizeof(T) }
+	LinearAllocator(size_t bytesToAllocate)
+		: m_AllocatorSize{ bytesToAllocate }
 		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr }
 	{
-		m_pData = (T*)gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+		m_pData = gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 		m_pCurrentAlloc = m_pData;
 	}
 
@@ -43,7 +38,7 @@ public:
 		//LOG_DEBUG("Stack allocator destroyed");
 	}
 
-	T* allocate()
+	void* allocate(size_t size)
 	{
 		if (m_BytesAllocated == m_AllocatorSize)
 		{
@@ -51,9 +46,8 @@ public:
 			return nullptr;
 		}
 
-		T* newBlock = m_pCurrentAlloc;
-		m_BytesAllocated += sizeof(T);
-		m_pCurrentAlloc += 1;
+		void* newBlock = (char*)m_pData + m_BytesAllocated;
+		m_BytesAllocated += size;
 
 		return newBlock;
 	}
@@ -65,7 +59,7 @@ public:
 
 		if (allocateNewMemory)
 		{
-			m_pData = (T*)gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			m_pData = gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 			m_pCurrentAlloc = m_pData;
 		}
 		else
@@ -78,12 +72,12 @@ public:
 	size_t GetAllocatorSize() const { return m_AllocatorSize; }
 	size_t GetBytesAllocated() const { return m_BytesAllocated; }
 
-	T* GetMemory() const { return m_pData; }
+	void* GetMemory() const { return m_pData; }
 
 private:
 	size_t m_AllocatorSize;
 	size_t m_BytesAllocated;
-	T* m_pData;
+	void* m_pData;
 
-	T* m_pCurrentAlloc;
+	void* m_pCurrentAlloc;
 };
