@@ -24,6 +24,9 @@ static bool Event_MouseButtonPressed(EventData_t data);
 static bool Event_MouseButtonReleased(EventData_t data);
 static bool Event_WindowResized(EventData_t data);
 
+// TODO: Stick this in the engine class.
+static bool g_sApplicationSuspended{ false };
+
 class CEngine : public IEngine
 {
 public:
@@ -107,16 +110,20 @@ bool CEngine::Engine_Run()
 {
 	while (!s_bApplicationQuitCalled)
 	{
-		if (!m_engineConfig.isHeadless)
+		Platform_ProcessMessages();
+		if (!g_sApplicationSuspended)
 		{
-			gpInputSystem->Update();
-
-			Platform_Update();
-
-			if (!gpRenderer->Update())
+			if (!m_engineConfig.isHeadless)
 			{
-				LOG_FATAL("Renderer update failed!");
-				return false;
+				gpInputSystem->Update();
+
+				Platform_Update();
+
+				if (!gpRenderer->Update())
+				{
+					LOG_FATAL("Renderer update failed!");
+					return false;
+				}
 			}
 		}
 
@@ -217,6 +224,16 @@ static bool Event_WindowResized(EventData_t data)
 	height = data.u16[1];
 
 	LOG_DEBUG("Window Resized: %d / %d", width, height);
+
+	if (width == 0 || height == 0)
+	{
+		g_sApplicationSuspended = true;
+	}
+	else
+	{
+		g_sApplicationSuspended = false;
+	}
+
 	return true;
 }
 

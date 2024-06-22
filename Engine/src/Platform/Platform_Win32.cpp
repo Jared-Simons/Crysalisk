@@ -170,7 +170,7 @@ void Platform_Shutdown()
 
 bool Platform_Update()
 {
-	Platform_ProcessMessages();
+	//Platform_ProcessMessages();
 
 	return true;
 }

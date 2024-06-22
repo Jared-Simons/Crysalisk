@@ -91,6 +91,14 @@ void VulkanSwapchain::CleanupSwapchain(CVulkanRenderer* renderingContext)
 
 bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* renderingContext)
 {
+	unsigned int width, height;
+	Platform_GetWindowSize(&width, &height);
+
+	if (width == 0 || height == 0)
+	{
+		return false;
+	}
+
 	vkDeviceWaitIdle(renderingContext->GetDevice().GetLogicalDevice());
 
 	CleanupSwapchain(renderingContext);
@@ -242,9 +250,9 @@ bool VulkanSwapchain::FramebufferPresent(CVulkanRenderer* renderingContext, unsi
 	presentInfo.pImageIndices = &currImageIndex;
 
 	VkResult presentResult = vkQueuePresentKHR(renderingContext->GetDevice().GetPresentQueue(), &presentInfo);
-	if (presentResult != VK_SUCCESS)
+	if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
 	{
-		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
 		{
 			renderingContext->GetSwapchain().RecreateSwapchain(renderingContext);
 			return true;
