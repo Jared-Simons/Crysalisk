@@ -83,6 +83,24 @@ bool CreateWin32Window(LinearAllocator* pAllocator)
 	win32PlatformData = new (pAllocator) Platform_Win32_InternalData;
 
 	win32PlatformData->hInstance = GetModuleHandle(NULL);
+	
+	unsigned int windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
+	unsigned int windowExStyle = WS_EX_APPWINDOW;
+
+	// Do some fixup on the window dimensions to account for the window border.
+	size_t windowX = 100;
+	size_t windowY = 100;
+	size_t windowWidth = 1080;
+	size_t windowHeight = 720;
+
+	RECT borderRect = { 0 };
+	AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
+
+	windowX += borderRect.left;
+	windowY += borderRect.top;
+
+	windowWidth += borderRect.right - borderRect.left;
+	windowHeight += borderRect.bottom - borderRect.top;
 
 	WNDCLASSA wc{};
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -104,11 +122,11 @@ bool CreateWin32Window(LinearAllocator* pAllocator)
 		0,
 		windowClassName,
 		"Engine Testbed",
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		1080,
-		720,
+		windowStyle,
+		windowX,
+		windowY,
+		windowWidth,
+		windowHeight,
 		NULL,
 		NULL,
 		win32PlatformData->hInstance,
@@ -160,7 +178,7 @@ bool Platform_Update()
 void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
 {
 	RECT rect;
-	if (GetWindowRect(win32PlatformData->hWnd, &rect))
+	if (GetClientRect(win32PlatformData->hWnd, &rect))
 	{
 		int width = rect.right - rect.left;
 		int height = rect.bottom - rect.top;
