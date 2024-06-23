@@ -16,6 +16,17 @@
 
 struct FreeListNode_t
 {
+	void* operator new(size_t size)
+	{
+		void* block = gpMemorySystem->MemAllocate(size, eMemAllocCategories::MEM_CATEGORY_LIST);
+		return block;
+	}
+
+	void operator delete(void* ptr)
+	{
+		gpMemorySystem->MemFree(ptr, sizeof(FreeListNode_t), eMemAllocCategories::MEM_CATEGORY_LIST);
+	}
+
 	FreeListNode_t()
 		: size{ 0 }
 		, offset{ 0 }
@@ -31,6 +42,17 @@ struct FreeListNode_t
 class CFreeList
 {
 public:
+	void* operator new(size_t size)
+	{
+		void* block = gpMemorySystem->MemAllocate(size, eMemAllocCategories::MEM_CATEGORY_LIST);
+		return block;
+	}
+
+	void operator delete(void* ptr)
+	{
+		gpMemorySystem->MemFree(ptr, sizeof(CFreeList), eMemAllocCategories::MEM_CATEGORY_LIST);
+	}
+
 	CFreeList(size_t inTotalSize)
 		: m_TotalSize{ inTotalSize }
 	{
