@@ -201,11 +201,11 @@ public:
 
 	void SetResizeFactor(unsigned int resizeFactor) { m_ResizeFactor = resizeFactor; }
 	
-	size_t			GetCount() const { return m_Count; }
-	size_t			GetCapacity() const { return m_Capacity; }
-	size_t			GetStride() const { return m_Stride; }
+	size_t			size() const { return m_Count; }
+	size_t			capacity() const { return m_Capacity; }
+	size_t			stride() const { return m_Stride; }
 	unsigned int	GetResizeFactor() const { retur m_ResizeFactor; }
-	T*				Data() { return m_Data; }
+	T*				data() { return m_Data; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
