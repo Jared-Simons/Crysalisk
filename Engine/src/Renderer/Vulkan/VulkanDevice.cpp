@@ -9,7 +9,6 @@
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
 
-#include <Containers/CVector.h>
 #include <Containers/CSet.h>
 #include <String_Utils.h>
 
@@ -212,10 +211,28 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 		return false;
 	}
 
+	LOG_INFO("Vulkan device created");
+
 	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, 0, &m_GraphicsQueue);
 	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, 0, &m_PresentQueue);
 	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, 0, &m_TransferQueue);
 	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex, 0, &m_ComputeQueue);
 
 	return true;
+}
+
+void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails)
+{
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &pOutDetails->surfaceCapabilities);
+
+	unsigned int numFormats{ 0 };
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, nullptr);
+	pOutDetails->formats.Resize(numFormats);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, pOutDetails->formats.data());
+
+	unsigned int numPresentModes{ 0 };
+	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, nullptr);
+	pOutDetails->presentModes.Resize(numPresentModes);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, pOutDetails->presentModes.data());
+
 }

@@ -8,17 +8,23 @@
 
 #include "Renderer/IRendererBackend.h"
 #include "EngineGlobals.h"
+#include <Containers/CVector.h>
 
 #include <vulkan/vulkan.h>
 
 // Forward Declarations
 template <typename T> class CVector;
 
-class VulkanDevice;
-class CVulkanRenderer;
+class	VulkanDevice;
+struct	SwapchainSupportDetails;
+class	VulkanSwapchain;
+class	CVulkanRenderer;
 
 // Utility Macro for checking success with VkResult
 #define VK_CHECK(expr) expr == VK_SUCCESS
+
+// Maximum frames that can be worked with at once
+const char MAX_FRAMES_IN_FLIGHT{ 3 };
 
 //=================================
 // 
@@ -77,6 +83,8 @@ class VulkanDevice
 public:
 	static bool CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice);
 	static void DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice);
+	
+	void		QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails);
 
 private:
 	bool		SelectPhysicalDevice(CVulkanRenderer* pRenderingContext);
@@ -100,6 +108,30 @@ public:
 	DeviceQueueFamilyInfo_t		m_PhysicalDeviceQueueFamilyInfo{};
 
 	CVector<const char*>* m_DeviceExtensions;
+};
+
+//=================================
+// 
+// Vulkan Swapchain
+// 
+//=================================
+struct SwapchainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR	surfaceCapabilities;
+	CVector<VkSurfaceFormatKHR> formats;
+	CVector<VkPresentModeKHR>	presentModes;
+};
+
+class VulkanSwapchain
+{
+public:
+	static bool CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain);
+	static void DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain);
+
+
+	VkSwapchainKHR m_SwapchainHandle{ VK_NULL_HANDLE };
+	
+	SwapchainSupportDetails m_SwapchainSupport{};
 };
 
 
@@ -135,11 +167,14 @@ public:
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger{ VK_NULL_HANDLE };
 
+	// Surface
+	VkSurfaceKHR	m_Surface{ VK_NULL_HANDLE };
+
 	// Device
 	VulkanDevice	m_Device{};
 
-	// Surface
-	VkSurfaceKHR	m_Surface{ VK_NULL_HANDLE };
+	// Swapchain
+	VulkanSwapchain	m_Swapchain{};
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};
@@ -151,6 +186,9 @@ public:
 		return false;
 #endif
 	}
+
+	unsigned int m_FramebufferWidth{ 0 };
+	unsigned int m_FramebufferHeight{ 0 };
 };
 
 IRendererBackend* GetVulkanBackend();

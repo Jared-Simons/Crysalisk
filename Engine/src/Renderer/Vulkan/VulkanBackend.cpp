@@ -4,7 +4,6 @@
 
 #include "Core/Logging.h"
 
-#include <Containers/CVector.h>
 #include <String_Utils.h>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
@@ -15,6 +14,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 bool CVulkanRenderer::RendererBackend_Initialize()
 {
+	// Cache off window dimensions here for later 
+	// (it is VERY unlikely these will change again until the renderer is fully initialized)
+	Platform_GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
+
 	// Instance
 	if (!CreateVulkanInstance())
 		return false;
@@ -31,13 +34,20 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanDevice::CreateDevice(this, &m_Device))
 		return false;
 
+	// Swapchain
+	if (!VulkanSwapchain::CreateSwapchain(this, &m_Swapchain))
+		return false;
+
 
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
+
 	VulkanDevice::DestroyDevice(this, &m_Device);
+	
 	vkDestroySurfaceKHR(m_Instance, m_Surface, m_Allocator);
 	DestroyDebugMessenger();
 	vkDestroyInstance(m_Instance, m_Allocator);
