@@ -34,6 +34,8 @@ Device Creation - Selecting Queue Family Indices is possibly flawed (selecting t
 There are some Validation Errors when the framebuffer gets resized in regards to the semaphore objects. Very inconsistent and not sure how exactly to fix at this time. Maybe just disable the rendering loop while dragging the window?
 Also - Minimizing the window causes an endless stream of validation errors
 
+Vulkan rendering backed is not currently being allocated from our internal memory system.
+
 
 UnitTests:
 
