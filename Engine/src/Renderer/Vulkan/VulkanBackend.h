@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Renderer/IRendererBackend.h"
+#include "EngineGlobals.h"
 
 #include <vulkan/vulkan.h>
 
@@ -24,18 +25,81 @@ class CVulkanRenderer;
 // Vulkan Device
 // 
 //=================================
+struct DeviceQueueFamilyInfo_t
+{
+	unsigned char GraphicsQueueIndex{ INVALID_ID_U8 };
+	unsigned char ComputeQueueIndex{ INVALID_ID_U8 };
+	unsigned char TransferQueueIndex{ INVALID_ID_U8 };
+	unsigned char PresentQueueIndex{ INVALID_ID_U8 };
+
+	bool IsComplete()
+	{
+		if (IsConceptOccupied(&GraphicsQueueIndex) && IsConceptOccupied(&PresentQueueIndex) 
+			&& IsConceptOccupied(&TransferQueueIndex) && IsConceptOccupied(&ComputeQueueIndex))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	bool IsConceptOccupied(unsigned char* queueIndex) { return *queueIndex != INVALID_ID_U8; }
+	bool IsIndexOccupied(unsigned char index)
+	{
+		return (GraphicsQueueIndex == index) || (ComputeQueueIndex == index) || 
+			(TransferQueueIndex == index) || (PresentQueueIndex == index);
+	}
+
+	size_t GetNumberOfValidQueues()
+	{
+		size_t numQueues{ 0 };
+
+		if (IsConceptOccupied(&GraphicsQueueIndex))
+			numQueues++;
+
+		if (IsConceptOccupied(&ComputeQueueIndex))
+			numQueues++;
+
+		if (IsConceptOccupied(&TransferQueueIndex))
+			numQueues++;
+
+		if (IsConceptOccupied(&PresentQueueIndex))
+			numQueues++;
+
+		return numQueues;
+	}
+};
+
 class VulkanDevice
 {
 public:
 	static bool CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice);
+	static void DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice);
 
 private:
 	bool		SelectPhysicalDevice(CVulkanRenderer* pRenderingContext);
+	bool		QueryDeviceQueueFamilyProperties(CVulkanRenderer* pRenderingContext, VkPhysicalDevice& physicalDevice, DeviceQueueFamilyInfo_t* pOutQueueInfo);
+	bool		QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice);
 
-private:
-	VkPhysicalDevice	m_PhysicalDevice{ VK_NULL_HANDLE };
+	bool		CreateLogicalDevice(CVulkanRenderer* pRenderingContext);
 
-	VkPhysicalDeviceProperties m_PhysicalDeviceProperties{};
+public:
+	VkDevice			m_LogicalDevice{ VK_NULL_HANDLE };
+
+	VkQueue				m_GraphicsQueue{ VK_NULL_HANDLE };
+	VkQueue				m_PresentQueue{ VK_NULL_HANDLE };
+	VkQueue				m_TransferQueue{ VK_NULL_HANDLE };
+	VkQueue				m_ComputeQueue{ VK_NULL_HANDLE };
+
+	VkPhysicalDevice			m_PhysicalDevice{ VK_NULL_HANDLE };
+
+	VkPhysicalDeviceProperties	m_PhysicalDeviceProperties{};
+	VkPhysicalDeviceFeatures	m_PhysicalDeviceFeatures{};
+	DeviceQueueFamilyInfo_t		m_PhysicalDeviceQueueFamilyInfo{};
+
+	CVector<const char*>* m_DeviceExtensions;
 };
 
 
@@ -53,8 +117,6 @@ public:
 	void		RendererBackend_Shutdown() override;
 	bool		RendererBackend_Update() { return true; }
 
-	VkInstance& GetInstance() { return m_Instance; }
-
 private:
 	bool		CreateVulkanInstance();
 	bool		QueryInstanceExtensionSupport(CVector<const char*>& requiredExtensions);
@@ -63,7 +125,7 @@ private:
 	bool		CreateDebugMessenger();
 	void		DestroyDebugMessenger();
 
-private:
+public:
 	// Instance
 	VkInstance	m_Instance{ VK_NULL_HANDLE };
 
@@ -74,8 +136,13 @@ private:
 	VkDebugUtilsMessengerEXT	m_DebugMessenger{ VK_NULL_HANDLE };
 
 	// Device
-	VulkanDevice m_Device;
+	VulkanDevice	m_Device{};
 
+	// Surface
+	VkSurfaceKHR	m_Surface{ VK_NULL_HANDLE };
+
+	// Validation Layers
+	CVector<const char*>* m_ValidationLayers{};
 	bool		EnableValidationLayers()
 	{
 #ifdef _DEBUG

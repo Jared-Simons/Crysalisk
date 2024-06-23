@@ -23,6 +23,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!CreateDebugMessenger())
 		return false;
 
+	// Surface
+	if (!Platform_CreateVulkanSurface(this))
+		return false;
+
 	// Device
 	if (!VulkanDevice::CreateDevice(this, &m_Device))
 		return false;
@@ -33,8 +37,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	VulkanDevice::DestroyDevice(this, &m_Device);
+	vkDestroySurfaceKHR(m_Instance, m_Surface, m_Allocator);
 	DestroyDebugMessenger();
-
 	vkDestroyInstance(m_Instance, m_Allocator);
 }
 
@@ -66,23 +71,23 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		return false;
 	}
 
-	instanceInfo.enabledExtensionCount = requiredExtensions.GetCount();
-	instanceInfo.ppEnabledExtensionNames = requiredExtensions.Data();
+	instanceInfo.enabledExtensionCount = requiredExtensions.size();
+	instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 	// Validation Layers
-	CVector<const char*> requiredValidationLayers;
 	if (EnableValidationLayers())
 	{
-		requiredValidationLayers.PushBack("VK_LAYER_KHRONOS_validation");
+		m_ValidationLayers = new CVector<const char*>;
+		m_ValidationLayers->PushBack("VK_LAYER_KHRONOS_validation");
 
-		if (!QueryValidationLayerSupport(requiredValidationLayers))
+		if (!QueryValidationLayerSupport(*m_ValidationLayers))
 		{
 			LOG_ERROR("Required Vulkan validation layers were not found - Application cannot continue.");
 			return false;
 		}
 
-		instanceInfo.enabledLayerCount = requiredValidationLayers.GetCount();
-		instanceInfo.ppEnabledLayerNames = requiredValidationLayers.Data();
+		instanceInfo.enabledLayerCount = m_ValidationLayers->size();
+		instanceInfo.ppEnabledLayerNames = m_ValidationLayers->data();
 	}
 	else
 	{
@@ -97,15 +102,16 @@ bool CVulkanRenderer::CreateVulkanInstance()
 	if (EnableValidationLayers())
 	{
 		LOG_INFO("Enabled Vulkan Extensions:");
-		for (int i = 0; i < requiredExtensions.GetCount(); i++)
+		for (int i = 0; i < requiredExtensions.size(); i++)
 		{
 			LOG_DEBUG("%s", requiredExtensions[i]);
 		}
 
 		LOG_INFO("Enabled Validation Layers:");
-		for (int i = 0; i < requiredValidationLayers.GetCount(); i++)
+		
+		for (int i = 0; i < m_ValidationLayers->size(); i++)
 		{
-			LOG_DEBUG("%s", requiredValidationLayers[i]);
+			LOG_DEBUG("%s", m_ValidationLayers->data()[i]);
 		}
 	}
 
@@ -118,9 +124,9 @@ bool CVulkanRenderer::QueryInstanceExtensionSupport(CVector<const char*>& requir
 	unsigned int extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	CVector<VkExtensionProperties> instanceExtensions(extensionCount);
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, instanceExtensions.Data());
+	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, instanceExtensions.data());
 
-	for (unsigned int i = 0; i < requiredExtensions.GetCount(); i++)
+	for (unsigned int i = 0; i < requiredExtensions.size(); i++)
 	{
 		bool bFound = false;
 		for (unsigned int j = 0; j < extensionCount; j++)
@@ -147,14 +153,16 @@ bool CVulkanRenderer::QueryValidationLayerSupport(CVector<const char*>& required
 	unsigned int layerCount = 0;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 	CVector<VkLayerProperties> availableLayers(layerCount);
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.Data());
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-	for (unsigned int i = 0; i < requiredValidationLayers.GetCount(); i++)
+
+	for (unsigned int i = 0; i < requiredValidationLayers.size(); i++)
 	{
 		bool bFound = false;
 		for (unsigned int j = 0; j < layerCount; j++)
 		{
-			if (StringCompare(requiredValidationLayers[i], availableLayers[j].layerName))
+			const char* currentValidationLayer = requiredValidationLayers[i];
+			if (StringCompare(currentValidationLayer, availableLayers[j].layerName))
 			{
 				bFound = true;
 			}
@@ -176,7 +184,7 @@ bool CVulkanRenderer::CreateDebugMessenger()
 	if (!EnableValidationLayers())
 	{
 		// No Vulkan debug callbacks in release builds!
-		return false;
+		return true;
 	}
 
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };

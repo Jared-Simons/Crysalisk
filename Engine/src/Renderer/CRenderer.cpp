@@ -95,7 +95,6 @@ bool CRenderer::Initialize()
 	{
 		if (!m_RendererBackend->RendererBackend_Initialize())
 		{
-			LOG_FATAL("Failed to initialize rendering backend! Application cannot continue.");
 			return false;
 		}
 	}
