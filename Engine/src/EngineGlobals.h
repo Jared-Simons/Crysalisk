@@ -38,6 +38,9 @@
 #define MEBIBYTES(x) (x * (1024 * 1024))
 #define GIBIBYTES(x) (x * (1024 * 1024 * 1024))
 
+// Invalid IDs
+#define INVALID_ID_U8	255
+
 // Utility Functions
 
 static void IntClamp(int* val, int* min, int* max)
