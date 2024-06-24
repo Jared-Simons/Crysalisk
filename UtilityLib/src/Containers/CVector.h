@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include <Systems/IMemory.h>
+#include <Core/Logging.h>
 
 template<typename T>
 class CVector
@@ -122,7 +123,7 @@ public:
 		{
 			T* oldData = m_Data;
 
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 			
 			if (m_Data != nullptr)
 			{
@@ -133,7 +134,7 @@ public:
 		}
 		else
 		{
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 
 		if (newCapacity < (int)m_Capacity)
@@ -173,18 +174,17 @@ public:
 			// Need to resize the vector to make space!
 
 			T* oldData = m_Data;
-			m_Capacity++;
-			m_Count++;
 
 			if (m_Data != nullptr)
 			{
-				Resize(m_Capacity, val);
+				Resize(m_Capacity + 1, val);
 			}
 			else
 			{
-				Resize(m_Capacity, val);
+				Resize(m_Capacity + 1, val);
 			}
 		}
+		m_Count++;
 
 		if (m_Data != nullptr)
 		{
