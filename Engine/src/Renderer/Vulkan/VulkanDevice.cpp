@@ -36,6 +36,7 @@ void VulkanDevice::DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevic
 {
 	if (pDevice && pDevice->m_LogicalDevice)
 	{
+		delete pDevice->m_DeviceExtensions;
 		vkDestroyDevice(pDevice->m_LogicalDevice, pRenderingContext->m_Allocator);
 	}
 }

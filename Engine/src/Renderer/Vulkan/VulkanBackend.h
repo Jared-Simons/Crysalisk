@@ -128,10 +128,45 @@ public:
 	static bool CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain);
 	static void DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain);
 
+	bool		GetSwapchainImages(CVulkanRenderer* pRenderingContext);
+	bool		CreateImageViews(CVulkanRenderer* pRenderingContext);
 
-	VkSwapchainKHR m_SwapchainHandle{ VK_NULL_HANDLE };
-	
+	VkSwapchainKHR			m_SwapchainHandle{ VK_NULL_HANDLE };
 	SwapchainSupportDetails m_SwapchainSupport{};
+	CVector<VkImage>		m_SwapchainImages;
+	CVector<VkImageView>	m_SwapchainImageViews;
+
+	VkFormat			m_SwapchainImageFormat;
+	VkExtent2D			m_SwapchainExtent;
+};
+
+//=================================
+// 
+// Vulkan Command Buffer
+// 
+//=================================
+class VulkanCommandBuffer
+{
+public:
+
+	VkCommandBuffer m_Handle{ VK_NULL_HANDLE };
+};
+
+//=================================
+// 
+// Vulkan Renderpass
+// 
+//=================================
+class VulkanRenderpass
+{
+public:
+	static bool		CreateRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pOutRenderpass);
+	static void		DestroyRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass);
+
+	bool			Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
+	bool			End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
+
+	VkRenderPass m_Handle{ VK_NULL_HANDLE };
 };
 
 
@@ -175,6 +210,9 @@ public:
 
 	// Swapchain
 	VulkanSwapchain	m_Swapchain{};
+
+	// Main Renderpass
+	VulkanRenderpass	m_MainRenderpass{};
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

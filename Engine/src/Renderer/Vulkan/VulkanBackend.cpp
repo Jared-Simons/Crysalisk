@@ -38,18 +38,26 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanSwapchain::CreateSwapchain(this, &m_Swapchain))
 		return false;
 
+	// Main Renderpass
+	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
+		return false;
 
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	VulkanRenderpass::DestroyRenderpass(this, &m_MainRenderpass);
+
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
 
 	VulkanDevice::DestroyDevice(this, &m_Device);
 	
 	vkDestroySurfaceKHR(m_Instance, m_Surface, m_Allocator);
 	DestroyDebugMessenger();
+
+	delete m_ValidationLayers;
+
 	vkDestroyInstance(m_Instance, m_Allocator);
 }
 
