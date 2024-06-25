@@ -18,6 +18,8 @@ template <typename T> class CVector;
 class	VulkanDevice;
 struct	SwapchainSupportDetails;
 class	VulkanSwapchain;
+class	VulkanCommandPool;
+class	VulkanCommandBuffer;
 class	CVulkanRenderer;
 
 // Utility Macro for checking success with VkResult
@@ -142,18 +144,6 @@ public:
 
 //=================================
 // 
-// Vulkan Command Buffer
-// 
-//=================================
-class VulkanCommandBuffer
-{
-public:
-
-	VkCommandBuffer m_Handle{ VK_NULL_HANDLE };
-};
-
-//=================================
-// 
 // Vulkan Renderpass
 // 
 //=================================
@@ -167,6 +157,51 @@ public:
 	bool			End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
 
 	VkRenderPass m_Handle{ VK_NULL_HANDLE };
+};
+
+//=================================
+// 
+// Vulkan Command Buffer
+// 
+//=================================
+enum class eVulkanCommandBufferState
+{
+	/* The command buffer has just been allocated or has been reset to the initial state. Can only be set to record or freed. */
+	COMMAND_BUFFER_STATE_INITIAL,
+	/* The command buffer can be written to with vkCmd calls. */
+	COMMAND_BUFFER_STATE_RECORDING,
+	/* The command buffer has been written to and can be freed or submitted for execution. */
+	COMMAND_BUFFER_EXECUTABLE,
+	/* The command buffer has been submitted for queue submission and CANNOT be modified at this point. */
+	COMMAND_BUFFER_STATE_PENDING,
+	/* The command buffer has been invalidated through an operation that modified it's resources, can be freed or rest. */
+	COMMAND_BUFFER_STATE_INVALID
+};
+
+class VulkanCommandPool
+{
+public:
+	static bool		CreateCommandPool(CVulkanRenderer* pRenderingContext, VulkanCommandPool* pOutPool);
+	static void		DestroyCommandPool(CVulkanRenderer* pRenderingContext, VulkanCommandPool* pPool);
+
+public:
+	VkCommandPool				m_Handle{ VK_NULL_HANDLE };
+	VkCommandPoolCreateFlags	m_PoolFlags;
+};
+
+class VulkanCommandBuffer
+{
+public:
+	static bool		CreateCommandBuffer(CVulkanRenderer* pRenderingContext, bool isPrimary, VulkanCommandBuffer* pOutCommandBuffer);
+	static void		DestroyCommandBuffer(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
+
+
+public:
+	VkCommandBuffer				m_Handle{ VK_NULL_HANDLE };
+	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL };
+
+	// Is this a primary or secondary level command buffer?
+	bool						m_bIsPrimary{ false };
 };
 
 
@@ -213,6 +248,11 @@ public:
 
 	// Main Renderpass
 	VulkanRenderpass	m_MainRenderpass{};
+
+	// Command Pool
+	VulkanCommandPool	m_CommandPool{};
+
+	CVector<VulkanCommandBuffer> m_CommandBuffers;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

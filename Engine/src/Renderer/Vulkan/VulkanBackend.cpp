@@ -42,11 +42,29 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
+	// Command Pool
+	if (!VulkanCommandPool::CreateCommandPool(this, &m_CommandPool))
+		return false;
+
+	// Command Buffers
+	// one per frame
+	m_CommandBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < m_CommandBuffers.size(); i++)
+	{
+		if (!VulkanCommandBuffer::CreateCommandBuffer(this, true, &m_CommandBuffers[i]))
+			return false;
+	}
+
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	for (int i = 0; i < m_CommandBuffers.size(); i++)
+		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
+
+	VulkanCommandPool::DestroyCommandPool(this, &m_CommandPool);
+
 	VulkanRenderpass::DestroyRenderpass(this, &m_MainRenderpass);
 
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
