@@ -43,7 +43,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		return false;
 
 	// Command Pool
-	if (!VulkanCommandPool::CreateCommandPool(this, &m_CommandPool))
+	if (!VulkanCommandPool::CreateCommandPool(this, &m_GraphicsCommandPool))
 		return false;
 
 	// Command Buffers
@@ -64,18 +64,49 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
+	// Fences
+	// one per frame
+	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+	{
+		if (!VulkanFence::CreateFence(this, true, &m_FrameInFlightFences[i]))
+			return false;
+	}
+
+	// Semaphores
+	// one per frame
+	m_ImageAvailableSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
+	m_RenderFinishedSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]))
+			return false;
+
+		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]))
+			return false;
+	}
+
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
+		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]);
+	}
+
+	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
+
 	for (int i = 0; i < m_Framebuffers.size(); i++)
 		VulkanFramebuffer::DestroyFramebuffer(this, &m_Framebuffers[i]);
 
 	for (int i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
-	VulkanCommandPool::DestroyCommandPool(this, &m_CommandPool);
+	VulkanCommandPool::DestroyCommandPool(this, &m_GraphicsCommandPool);
 
 	VulkanRenderpass::DestroyRenderpass(this, &m_MainRenderpass);
 

@@ -21,6 +21,8 @@ class	VulkanSwapchain;
 class	VulkanCommandPool;
 class	VulkanCommandBuffer;
 class	VulkanFramebuffer;
+class	VulkanFence;
+class	VulkanSemaphore;
 class	CVulkanRenderer;
 
 // Utility Macro for checking success with VkResult
@@ -224,6 +226,39 @@ public:
 
 //=================================
 // 
+// Vulkan Fence
+// 
+//=================================
+class VulkanFence
+{
+public:
+	static bool		CreateFence(CVulkanRenderer* pRenderingContext, bool bCreateSignaled, VulkanFence* pOutFence);
+	static void		DestroyFence(CVulkanRenderer* pRenderingContext, VulkanFence* pFence);
+
+public:
+		VkFence	m_Handle{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
+// Vulkan Semaphore
+// 
+//=================================
+class VulkanSemaphore
+{
+public:
+	// This needs to be named 'CreateVulkanSemaphore' as there is an existing 'CreateSemaphore' macro in the Win32 API that I don't want to disturb.
+	static bool		CreateVulkanSemaphore(CVulkanRenderer* pRenderingContext, VulkanSemaphore* pOutSemaphore);
+	static void		DestroyVulkanSemaphore(CVulkanRenderer* pRenderingContext, VulkanSemaphore* pSemaphore);
+
+public:
+	VkSemaphore m_Handle{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
 // Vulkan Rendering Context
 // 
 //=================================
@@ -267,11 +302,16 @@ public:
 	VulkanRenderpass	m_MainRenderpass{};
 
 	// Command Buffers
-	VulkanCommandPool	m_CommandPool{};
+	VulkanCommandPool	m_GraphicsCommandPool{};
 	CVector<VulkanCommandBuffer> m_CommandBuffers;
 
 	// Framebuffers
 	CVector<VulkanFramebuffer> m_Framebuffers;
+
+	// Sync Objects
+	CVector<VulkanFence> m_FrameInFlightFences;
+	CVector<VulkanSemaphore> m_ImageAvailableSemaphores;
+	CVector<VulkanSemaphore> m_RenderFinishedSemaphores;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

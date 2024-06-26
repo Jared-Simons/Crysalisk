@@ -12,7 +12,7 @@ bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, Vu
 {
 	if (!pOutFramebuffer)
 	{
-		LOG_ERROR("CreateFramebuffer() -> Requires a pointer to a valid VulkanFramebuffer object");
+		LOG_ERROR("CreateFramebuffer() -> Requires a pointer to a valid VulkanFramebuffer object.");
 		return false;
 	}
 

@@ -51,7 +51,7 @@ bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer* pRenderingContext
 
 	VkCommandBufferAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	allocateInfo.commandBufferCount = 1;
-	allocateInfo.commandPool = pRenderingContext->m_CommandPool.m_Handle;
+	allocateInfo.commandPool = pRenderingContext->m_GraphicsCommandPool.m_Handle;
 	allocateInfo.level = isPrimary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 
 	if (!VK_CHECK(vkAllocateCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, &allocateInfo, &pOutCommandBuffer->m_Handle)))
@@ -68,7 +68,7 @@ void VulkanCommandBuffer::DestroyCommandBuffer(CVulkanRenderer* pRenderingContex
 {
 	if (pCommandBuffer && pCommandBuffer->m_Handle)
 	{
-		vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, pRenderingContext->m_CommandPool.m_Handle, 1, &pCommandBuffer->m_Handle);
+		vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, pRenderingContext->m_GraphicsCommandPool.m_Handle, 1, &pCommandBuffer->m_Handle);
 	}
 }
 
