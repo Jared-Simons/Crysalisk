@@ -20,6 +20,7 @@ struct	SwapchainSupportDetails;
 class	VulkanSwapchain;
 class	VulkanCommandPool;
 class	VulkanCommandBuffer;
+class	VulkanFramebuffer;
 class	CVulkanRenderer;
 
 // Utility Macro for checking success with VkResult
@@ -207,6 +208,22 @@ public:
 
 //=================================
 // 
+// Vulkan Framebuffer
+// 
+//=================================
+class VulkanFramebuffer
+{
+public:
+	static bool		CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer);
+	static void		DestroyFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pFramebuffer);
+
+public:
+	VkFramebuffer			m_Handle{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
 // Vulkan Rendering Context
 // 
 //=================================
@@ -249,10 +266,12 @@ public:
 	// Main Renderpass
 	VulkanRenderpass	m_MainRenderpass{};
 
-	// Command Pool
+	// Command Buffers
 	VulkanCommandPool	m_CommandPool{};
-
 	CVector<VulkanCommandBuffer> m_CommandBuffers;
+
+	// Framebuffers
+	CVector<VulkanFramebuffer> m_Framebuffers;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

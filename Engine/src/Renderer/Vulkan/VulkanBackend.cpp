@@ -55,11 +55,23 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
+	// Framebuffers
+	// one per frame
+	m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < m_Framebuffers.size(); i++)
+	{
+		if (!VulkanFramebuffer::CreateFramebuffer(this, &m_Framebuffers[i]))
+			return false;
+	}
+
 	return true;
 }
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	for (int i = 0; i < m_Framebuffers.size(); i++)
+		VulkanFramebuffer::DestroyFramebuffer(this, &m_Framebuffers[i]);
+
 	for (int i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
