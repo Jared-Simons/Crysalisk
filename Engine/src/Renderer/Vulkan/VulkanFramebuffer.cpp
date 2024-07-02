@@ -15,12 +15,14 @@ bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, Vu
 		LOG_ERROR("CreateFramebuffer() -> Requires a pointer to a valid VulkanFramebuffer object.");
 		return false;
 	}
+	// TODO: Temp value to make this more configurable.
+	static int framebufferIndex{ 0 };
 
 	// TODO: Make configurable
 	VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 	createInfo.renderPass = pRenderingContext->m_MainRenderpass.m_Handle;
 	createInfo.attachmentCount = 1;
-	createInfo.pAttachments = pRenderingContext->m_Swapchain.m_SwapchainImageViews.data();
+	createInfo.pAttachments = &pRenderingContext->m_Swapchain.m_SwapchainImageViews[framebufferIndex];
 	createInfo.width = pRenderingContext->m_Swapchain.m_SwapchainExtent.width;
 	createInfo.height = pRenderingContext->m_Swapchain.m_SwapchainExtent.height;
 	createInfo.layers = 1;
@@ -29,6 +31,14 @@ bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, Vu
 	{
 		LOG_ERROR("Failed to create framebuffer");
 		return false;
+	}
+
+	framebufferIndex++;
+	if (framebufferIndex == 3)
+	{
+		// HACK: By having this set here, we require all 3 main framebuffers to be recreated at once AND we cannot create framebuffers for other purposes.
+		// This should be refactored.
+		framebufferIndex = 0;
 	}
 
 	return true;

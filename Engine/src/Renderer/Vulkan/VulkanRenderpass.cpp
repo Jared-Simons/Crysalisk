@@ -54,3 +54,40 @@ void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* pRenderingContext, Vul
 		vkDestroyRenderPass(pRenderingContext->m_Device.m_LogicalDevice, pRenderpass->m_Handle, pRenderingContext->m_Allocator);
 	}
 }
+
+bool VulkanRenderpass::Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, unsigned int imageIndex)
+{
+	if (!m_Handle || !pCommandBuffer || !pCommandBuffer->m_Handle)
+	{
+		LOG_ERROR("VulkanRenderpass::Begin() -> Requires a valid renderpass handle and command buffer.");
+		return false;
+	}
+
+	// TODO: Make this configurable
+	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderpassInfo.renderPass = m_Handle;
+	renderpassInfo.framebuffer = pRenderingContext->m_Framebuffers[imageIndex].m_Handle;
+	renderpassInfo.renderArea.offset = { 0, 0 };
+	renderpassInfo.renderArea.extent = pRenderingContext->m_Swapchain.m_SwapchainExtent;
+
+	VkClearValue clearColor = { 0.0f, 0.2f, 0.2f };
+	renderpassInfo.clearValueCount = 1;
+	renderpassInfo.pClearValues = &clearColor;
+
+	vkCmdBeginRenderPass(pCommandBuffer->m_Handle, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	return true;
+}
+
+void VulkanRenderpass::End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer)
+{
+	if (m_Handle && pCommandBuffer && pCommandBuffer->m_Handle)
+	{
+		vkCmdEndRenderPass(pCommandBuffer->m_Handle);
+		return;
+	}
+	else
+	{
+		LOG_ERROR("VulkanRenderpass::End() -> Requires a valid renderpass and command buffer.");
+		return;
+	}
+}

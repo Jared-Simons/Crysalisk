@@ -156,8 +156,8 @@ public:
 	static bool		CreateRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pOutRenderpass);
 	static void		DestroyRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass);
 
-	bool			Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
-	bool			End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
+	bool			Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, unsigned int imageIndex);
+	void			End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
 
 	VkRenderPass m_Handle{ VK_NULL_HANDLE };
 };
@@ -197,6 +197,10 @@ class VulkanCommandBuffer
 public:
 	static bool		CreateCommandBuffer(CVulkanRenderer* pRenderingContext, bool isPrimary, VulkanCommandBuffer* pOutCommandBuffer);
 	static void		DestroyCommandBuffer(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
+
+	bool			Begin();
+	void			End();
+	void			Reset();
 
 
 public:
@@ -269,7 +273,7 @@ public:
 
 	bool		RendererBackend_Initialize() override;
 	void		RendererBackend_Shutdown() override;
-	bool		RendererBackend_Update() { return true; }
+	bool		RendererBackend_Update();
 
 private:
 	bool		CreateVulkanInstance();
@@ -323,6 +327,8 @@ public:
 		return false;
 #endif
 	}
+
+	unsigned char m_CurrentFrame{ 0 };
 
 	unsigned int m_FramebufferWidth{ 0 };
 	unsigned int m_FramebufferHeight{ 0 };

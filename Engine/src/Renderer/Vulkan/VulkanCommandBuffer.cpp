@@ -72,3 +72,60 @@ void VulkanCommandBuffer::DestroyCommandBuffer(CVulkanRenderer* pRenderingContex
 	}
 }
 
+bool VulkanCommandBuffer::Begin()
+{
+	if (!m_Handle)
+	{
+		LOG_ERROR("VulkanCommandBuffer::Begin() -> Requires a pointer to a valid command buffer object.");
+		return false;
+	}
+
+	if (m_State != eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL)
+	{
+		LOG_ERROR("VulkanCommandBuffer::Begin() -> Command buffer was not in initial state, thus could not begin recording commands.");
+		return false;
+	}
+
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+
+	if (!VK_CHECK(vkBeginCommandBuffer(m_Handle, &beginInfo)))
+	{
+		LOG_ERROR("VulkanCommandBuffer::Begin() -> Command buffer failed to begin recording.");
+		return false;
+	}
+
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING;
+	return true;
+}
+
+void VulkanCommandBuffer::End()
+{
+	if (m_Handle && m_State == eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING)
+	{
+		if (!VK_CHECK(vkEndCommandBuffer(m_Handle)))
+		{
+			LOG_ERROR("VulkanCommandBuffer::End() -> Command buffer failed to stop recording.");
+			return;
+		}
+
+		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE;
+	}
+	else
+	{
+		LOG_ERROR("VulkanCommandBuffer::End() -> Command buffer either does not exist or was not in a recording state.");
+		return;
+	}
+}
+
+void VulkanCommandBuffer::Reset()
+{
+	if (m_Handle)
+	{
+		vkResetCommandBuffer(m_Handle, 0);
+		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL;
+	}
+	else
+	{
+		LOG_ERROR("VulkanCommandBuffer::Reset() -> Requires a handle to a valid command buffer object.");
+	}
+}

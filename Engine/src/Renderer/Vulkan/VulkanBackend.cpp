@@ -91,6 +91,8 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
+	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
+
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
@@ -120,6 +122,77 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	delete m_ValidationLayers;
 
 	vkDestroyInstance(m_Instance, m_Allocator);
+}
+
+bool CVulkanRenderer::RendererBackend_Update()
+{
+	// Wait for the previous frame to finish it's work
+	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
+
+	unsigned int imageIndex;
+	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
+
+	// TODO: Swapchain recreation
+
+	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
+
+	VulkanCommandBuffer& commandBuffer = m_CommandBuffers[m_CurrentFrame];
+
+	if (!commandBuffer.m_Handle)
+	{
+		LOG_ERROR("CVulkanRednerer::Update() -> Failed to obtain frame command buffer.");
+		return false;
+	}
+
+	commandBuffer.Reset();
+	commandBuffer.Begin();
+
+		if (!m_MainRenderpass.Begin(this, &commandBuffer, imageIndex))
+		{
+			LOG_ERROR("Failed to begin Vulkan Renderpass");
+			return false;
+		}
+
+		// TODO: Handle all draw calls here
+
+		m_MainRenderpass.End(this, &commandBuffer);
+
+	commandBuffer.End();
+
+	// Submit the command buffer for execution
+	// TODO: Move this to the swapchain.
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer.m_Handle;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame].m_Handle;
+
+	if (!VK_CHECK(vkQueueSubmit(m_Device.m_GraphicsQueue, 1, &submitInfo, m_FrameInFlightFences[m_CurrentFrame].m_Handle)))
+	{
+		LOG_ERROR("Failed to submit command buffer");
+		return false;
+	}
+	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+
+	// Present the framebuffer
+	// TODO: Move this to the swapchain.
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame].m_Handle;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &m_Swapchain.m_SwapchainHandle;
+	presentInfo.pImageIndices = &imageIndex;
+
+	VkResult presentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+	// TODO: Swapchain recreation
+
+	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	return true;
 }
 
 bool CVulkanRenderer::CreateVulkanInstance()
