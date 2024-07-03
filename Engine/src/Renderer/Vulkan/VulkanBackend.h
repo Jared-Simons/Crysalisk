@@ -226,6 +226,34 @@ public:
 
 //=================================
 // 
+// Vulkan Shader
+// 
+//=================================
+class VulkanShader
+{
+public:
+	VulkanShader()
+		: m_VertModule{ VK_NULL_HANDLE }
+		, m_FragModule{ VK_NULL_HANDLE }
+		, m_Pipeline{ VK_NULL_HANDLE }
+		, m_PipelineLayout{ VK_NULL_HANDLE } {}
+
+	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
+
+	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+
+private:
+	VkShaderModule		m_VertModule;
+	VkShaderModule		m_FragModule;
+
+	VkPipeline			m_Pipeline;
+	VkPipelineLayout	m_PipelineLayout;
+};
+
+
+//=================================
+// 
 // Vulkan Framebuffer
 // 
 //=================================
@@ -325,6 +353,9 @@ public:
 	CVector<VulkanFence> m_FrameInFlightFences;
 	CVector<VulkanSemaphore> m_ImageAvailableSemaphores;
 	CVector<VulkanSemaphore> m_RenderFinishedSemaphores;
+
+	// Shaders
+	VulkanShader		m_StandardShader;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

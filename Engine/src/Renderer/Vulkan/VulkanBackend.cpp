@@ -49,6 +49,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
+	// Main shader
+	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
+		return false;
+
 	// Command Pool
 	if (!VulkanCommandPool::CreateCommandPool(this, &m_GraphicsCommandPool))
 		return false;
@@ -116,6 +120,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
 	VulkanCommandPool::DestroyCommandPool(this, &m_GraphicsCommandPool);
+
+	VulkanShader::DestroyVulkanShader(this, &m_StandardShader);
 
 	VulkanRenderpass::DestroyRenderpass(this, &m_MainRenderpass);
 
