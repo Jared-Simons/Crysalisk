@@ -32,6 +32,11 @@ class	CVulkanRenderer;
 // Maximum frames that can be worked with at once
 const char MAX_FRAMES_IN_FLIGHT{ 3 };
 
+// TODO: These should be temporary
+static unsigned int g_NewWidth{ 0 };
+static unsigned int g_NewHeight{ 0 };
+static bool g_FramebufferResized{ false };
+
 //=================================
 // 
 // Vulkan Device
@@ -135,6 +140,7 @@ public:
 	static void DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain);
 
 	bool		RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight);
+	bool		Present(CVulkanRenderer* pRenderingContext, unsigned int imageIndex);
 
 	bool		GetSwapchainImages(CVulkanRenderer* pRenderingContext);
 	bool		CreateImageViews(CVulkanRenderer* pRenderingContext);
@@ -207,6 +213,7 @@ public:
 	bool			Begin();
 	void			End();
 	void			Reset();
+	bool			Submit(CVulkanRenderer* pRenderingContext);
 
 public:
 	VkCommandBuffer				m_Handle{ VK_NULL_HANDLE };

@@ -133,6 +133,28 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsi
 	return true;
 }
 
+bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, unsigned int imageIndex)
+{
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &pRenderingContext->m_Swapchain.m_SwapchainHandle;
+	presentInfo.pImageIndices = &imageIndex;
+
+	VkResult presentResult = vkQueuePresentKHR(pRenderingContext->m_Device.m_PresentQueue, &presentInfo);
+
+	if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || g_FramebufferResized)
+	{
+		LOG_INFO("Swapchain out of date - Recreating.");
+		g_FramebufferResized = false;
+		RecreateSwapchain(pRenderingContext, g_NewWidth, g_NewHeight);
+		return true;
+	}
+
+	return true;
+}
+
 bool VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* pRenderingContext)
 {
 	unsigned int imageCount{ 0 };

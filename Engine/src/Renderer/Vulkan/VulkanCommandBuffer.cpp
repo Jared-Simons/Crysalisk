@@ -129,3 +129,38 @@ void VulkanCommandBuffer::Reset()
 		LOG_ERROR("VulkanCommandBuffer::Reset() -> Requires a handle to a valid command buffer object.");
 	}
 }
+
+bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
+{
+	if (!m_Handle)
+	{
+		LOG_ERROR("VulkanCommandBuffer::Submit() -> Requires a pointer to a valid command buffer object.");
+		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+		return false;
+	}
+
+	if (m_State != eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE)
+	{
+		LOG_ERROR("VulkanCommandBuffer::Submit() -> Command buffer is in an invalid state and cannot be submitted.");
+		return false;
+	}
+
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &pRenderingContext->m_ImageAvailableSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_Handle;
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+
+	if (!VK_CHECK(vkQueueSubmit(pRenderingContext->m_Device.m_GraphicsQueue, 1, &submitInfo, pRenderingContext->m_FrameInFlightFences[pRenderingContext->m_CurrentFrame].m_Handle)))
+	{
+		LOG_ERROR("Failed to submit command buffer");
+		return false;
+	}
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+
+	return true;
+}

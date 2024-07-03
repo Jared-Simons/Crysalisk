@@ -15,9 +15,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 // TODO: This event callback really should be a part of the renderer backend class
 bool Event_FramebufferResized(EventData_t data);
-static unsigned int s_NewWidth{ 0 };
-static unsigned int s_NewHeight{ 0 };
-static bool s_FramebufferResized{ false };
 
 bool CVulkanRenderer::RendererBackend_Initialize()
 {
@@ -147,7 +144,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		LOG_INFO("Swapchain out of date - Recreating.");
-		m_Swapchain.RecreateSwapchain(this, s_NewWidth, s_NewHeight);
+		m_Swapchain.RecreateSwapchain(this, g_NewWidth, g_NewHeight);
 		return true;
 	}
 
@@ -177,43 +174,11 @@ bool CVulkanRenderer::RendererBackend_Update()
 	commandBuffer.End();
 
 	// Submit the command buffer for execution
-	// TODO: Move this to the swapchain.
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle;
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer.m_Handle;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame].m_Handle;
-
-	if (!VK_CHECK(vkQueueSubmit(m_Device.m_GraphicsQueue, 1, &submitInfo, m_FrameInFlightFences[m_CurrentFrame].m_Handle)))
-	{
-		LOG_ERROR("Failed to submit command buffer");
-		return false;
-	}
-	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+	commandBuffer.Submit(this);
 
 	// Present the framebuffer
-	// TODO: Move this to the swapchain.
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &m_RenderFinishedSemaphores[m_CurrentFrame].m_Handle;
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &m_Swapchain.m_SwapchainHandle;
-	presentInfo.pImageIndices = &imageIndex;
-
-	VkResult presentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+	m_Swapchain.Present(this, imageIndex);
 	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
-	
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || s_FramebufferResized)
-	{
-		LOG_INFO("Swapchain out of date - Recreating.");
-		s_FramebufferResized = false;
-		m_Swapchain.RecreateSwapchain(this, s_NewWidth, s_NewHeight);
-		return true;
-	}
 
 	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return true;
@@ -454,9 +419,9 @@ bool Event_FramebufferResized(EventData_t data)
 	width = data.u16[0];
 	height = data.u16[1];
 
-	s_NewWidth = width;
-	s_NewHeight = height;
-	s_FramebufferResized = true;
+	g_NewWidth = width;
+	g_NewHeight = height;
+	g_FramebufferResized = true;
 
 	return true;
 }
