@@ -108,6 +108,9 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 
 bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight)
 {
+	pRenderingContext->m_FramebufferWidth = newWidth;
+	pRenderingContext->m_FramebufferHeight = newHeight;
+
 	// Handle minimization
 	if (newWidth == 0 || newHeight == 0)
 		return true;
