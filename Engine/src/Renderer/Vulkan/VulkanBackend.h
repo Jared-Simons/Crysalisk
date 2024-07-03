@@ -243,6 +243,8 @@ public:
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer);
+
 private:
 	VkShaderModule		m_VertModule;
 	VkShaderModule		m_FragModule;

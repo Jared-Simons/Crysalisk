@@ -173,7 +173,25 @@ bool CVulkanRenderer::RendererBackend_Update()
 			return false;
 		}
 
-		// TODO: Handle all draw calls here
+		// Handle all draw calls here
+
+		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
+
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = m_Swapchain.m_SwapchainExtent.width;
+		viewport.height = m_Swapchain.m_SwapchainExtent.height;
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer.m_Handle, 0, 1, &viewport);
+
+		VkRect2D scissor{};
+		scissor.offset = { 0, 0 };
+		scissor.extent = m_Swapchain.m_SwapchainExtent;
+		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
+
+		vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
 
 		m_MainRenderpass.End(this, &commandBuffer);
 

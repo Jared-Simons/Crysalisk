@@ -189,6 +189,14 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
+	// Dynamic state
+	CVector<VkDynamicState> dynamicStates(2);
+	dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
+	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
+
+	VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+	dynamicState.dynamicStateCount = dynamicStates.size();
+	dynamicState.pDynamicStates = dynamicStates.data();
 
 	// Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -209,7 +217,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	pipelineCreateInfo.pMultisampleState = &multisampleInfo;
 	pipelineCreateInfo.pDepthStencilState = nullptr;
 	pipelineCreateInfo.pColorBlendState = &colorBlending;
-	pipelineCreateInfo.pDynamicState = nullptr;
+	pipelineCreateInfo.pDynamicState = &dynamicState;
 	pipelineCreateInfo.layout = pOutShader->m_PipelineLayout;
 	pipelineCreateInfo.renderPass = pRenderingContext->m_MainRenderpass.m_Handle;
 	pipelineCreateInfo.subpass = 0;
@@ -219,6 +227,13 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	{
 		return false;
 	}
+
+	return true;
+}
+
+bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer)
+{
+	vkCmdBindPipeline(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
 	return true;
 }
