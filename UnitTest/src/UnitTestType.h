@@ -43,7 +43,8 @@ public:
 
 			singleClock.Stop();
 
-			LOG_VERBOSE("%s\t\t\t\t [%s]", m_RegisteredTestNames[i], passed ? "PASS" : "FAIL");
+			if (!passed)
+				LOG_VERBOSE("[%s]\t\t\t\t %s", passed ? "PASS" : "FAIL", m_RegisteredTestNames[i]);
 		}
 
 		m_TestClock.Stop();

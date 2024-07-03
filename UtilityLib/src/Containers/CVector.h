@@ -30,8 +30,11 @@ public:
 		, m_ResizeFactor{ 2 }
 		, m_Data{ nullptr } {}
 
-	CVector(size_t capacity)
-		: m_Count{ capacity }
+	CVector(size_t capacity, bool bAutoPopulate = false) 
+		// This 'Auto Populate' flag is here because there may be cases (such as in the Vulkan Renderer) where external code will fill the Vector, but not increment it's number of elements
+		// This can prove to be fatal in many cases so we give an option here: If the flag is true then m_Count will be set to the capacity of the Vector, and won't have to do anything after being filled.
+		// A good judgement call is to leave this to false by default, as the Vector will keep track of elements pushed into it, but if the array will be filled by some external API - this should be set to true.
+		: m_Count{ bAutoPopulate ? capacity : 0 }
 		, m_Capacity{ capacity }
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
@@ -172,7 +175,6 @@ public:
 		if (m_Count + 1 > m_Capacity)
 		{
 			// Need to resize the vector to make space!
-
 			T* oldData = m_Data;
 
 			if (m_Data != nullptr)
@@ -197,6 +199,14 @@ public:
 		T value = m_Data[m_Count - 1];
 		m_Data[m_Count - 1] = -1;
 		return value;
+	}
+
+	void Insert(size_t position, T value)
+	{
+		if (m_Data[position])
+		{
+			m_Data[position] = value;
+		}
 	}
 
 	void SetResizeFactor(unsigned int resizeFactor) { m_ResizeFactor = resizeFactor; }
