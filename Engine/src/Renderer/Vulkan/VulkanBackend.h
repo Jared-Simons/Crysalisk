@@ -18,6 +18,7 @@ template <typename T> class CVector;
 class	VulkanDevice;
 struct	SwapchainSupportDetails;
 class	VulkanSwapchain;
+class	VulkanRenderpass;
 class	VulkanCommandPool;
 class	VulkanCommandBuffer;
 class	VulkanFramebuffer;
@@ -143,6 +144,9 @@ public:
 	CVector<VkImage>		m_SwapchainImages;
 	CVector<VkImageView>	m_SwapchainImageViews;
 
+	// Framebuffers for rendering to the screen
+	CVector<VulkanFramebuffer> m_Framebuffers;
+
 	VkFormat			m_SwapchainImageFormat;
 	VkExtent2D			m_SwapchainExtent;
 };
@@ -204,7 +208,6 @@ public:
 	void			End();
 	void			Reset();
 
-
 public:
 	VkCommandBuffer				m_Handle{ VK_NULL_HANDLE };
 	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL };
@@ -222,7 +225,7 @@ public:
 class VulkanFramebuffer
 {
 public:
-	static bool		CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer);
+	static bool		CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, unsigned int framebufferIndex);
 	static void		DestroyFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pFramebuffer);
 
 public:
@@ -254,7 +257,7 @@ public:
 class VulkanSemaphore
 {
 public:
-	// This needs to be named 'CreateVulkanSemaphore' as there is an existing 'CreateSemaphore' macro in the Win32 API that I don't want to disturb.
+	// NOTE: This needs to be named 'CreateVulkanSemaphore' as there is an existing 'CreateSemaphore' macro in the Win32 API that I don't want to disturb.
 	static bool		CreateVulkanSemaphore(CVulkanRenderer* pRenderingContext, VulkanSemaphore* pOutSemaphore);
 	static void		DestroyVulkanSemaphore(CVulkanRenderer* pRenderingContext, VulkanSemaphore* pSemaphore);
 
@@ -310,9 +313,6 @@ public:
 	// Command Buffers
 	VulkanCommandPool	m_GraphicsCommandPool{};
 	CVector<VulkanCommandBuffer> m_CommandBuffers;
-
-	// Framebuffers
-	CVector<VulkanFramebuffer> m_Framebuffers;
 
 	// Sync Objects
 	CVector<VulkanFence> m_FrameInFlightFences;

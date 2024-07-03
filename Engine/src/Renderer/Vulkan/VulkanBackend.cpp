@@ -67,10 +67,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Framebuffers
 	// one per frame
-	m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_Framebuffers.size(); i++)
+	m_Swapchain.m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 	{
-		if (!VulkanFramebuffer::CreateFramebuffer(this, &m_Framebuffers[i]))
+		if (!VulkanFramebuffer::CreateFramebuffer(this, &m_Swapchain.m_Framebuffers[i], i))
 			return false;
 	}
 
@@ -112,8 +112,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
 		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
 
-	for (int i = 0; i < m_Framebuffers.size(); i++)
-		VulkanFramebuffer::DestroyFramebuffer(this, &m_Framebuffers[i]);
+	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
+		VulkanFramebuffer::DestroyFramebuffer(this, &m_Swapchain.m_Framebuffers[i]);
 
 	for (int i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
@@ -144,7 +144,6 @@ bool CVulkanRenderer::RendererBackend_Update()
 	unsigned int imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
-	// TODO: Swapchain recreation
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		LOG_INFO("Swapchain out of date - Recreating.");
@@ -207,8 +206,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 	VkResult presentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
 	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
-
-	// TODO: Swapchain recreation
+	
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || s_FramebufferResized)
 	{
 		LOG_INFO("Swapchain out of date - Recreating.");

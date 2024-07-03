@@ -120,14 +120,13 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsi
 	DestroySwapchain(pRenderingContext, this);
 
 	CreateSwapchain(pRenderingContext, this);
-	
-	// TOOD: Move framebuffers to the swapchain.
-	for (int i = 0; i < pRenderingContext->m_Framebuffers.size(); i++)
-		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Framebuffers[i]);
 
-	for (int i = 0; i < pRenderingContext->m_Framebuffers.size(); i++)
+	for (int i = 0; i < m_Framebuffers.size(); i++)
+		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Swapchain.m_Framebuffers[i]);
+
+	for (int i = 0; i < m_Framebuffers.size(); i++)
 	{
-		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &pRenderingContext->m_Framebuffers[i]))
+		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &m_Framebuffers[i], i))
 			return false;
 	}
 

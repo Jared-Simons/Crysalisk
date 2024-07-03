@@ -8,15 +8,13 @@
 
 #include "Core/Logging.h"
 
-bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer)
+bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, unsigned int framebufferIndex)
 {
 	if (!pOutFramebuffer)
 	{
 		LOG_ERROR("CreateFramebuffer() -> Requires a pointer to a valid VulkanFramebuffer object.");
 		return false;
 	}
-	// TODO: Temp value to make this more configurable.
-	static int framebufferIndex{ 0 };
 
 	// TODO: Make configurable
 	VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
@@ -31,13 +29,6 @@ bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, Vu
 	{
 		LOG_ERROR("Failed to create framebuffer");
 		return false;
-	}
-
-	framebufferIndex++;
-	if (framebufferIndex == 3)
-	{
-		// HACK: By having this set here, we require all 3 main framebuffers to be recreated at once AND we cannot create framebuffers for other purposes.
-		// This should be refactored.
 		framebufferIndex = 0;
 	}
 

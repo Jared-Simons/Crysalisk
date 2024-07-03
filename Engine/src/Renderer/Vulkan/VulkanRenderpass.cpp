@@ -66,7 +66,7 @@ bool VulkanRenderpass::Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBu
 	// TODO: Make this configurable
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpassInfo.renderPass = m_Handle;
-	renderpassInfo.framebuffer = pRenderingContext->m_Framebuffers[imageIndex].m_Handle;
+	renderpassInfo.framebuffer = pRenderingContext->m_Swapchain.m_Framebuffers[imageIndex].m_Handle;
 	renderpassInfo.renderArea.offset = { 0, 0 };
 	renderpassInfo.renderArea.extent = pRenderingContext->m_Swapchain.m_SwapchainExtent;
 
