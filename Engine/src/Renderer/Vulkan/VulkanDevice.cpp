@@ -45,7 +45,7 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 {
 	unsigned int deviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, nullptr);
-	CVector<VkPhysicalDevice> devices(deviceCount);
+	CVector<VkPhysicalDevice> devices(deviceCount, true);
 	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, devices.data());
 
 
@@ -98,7 +98,7 @@ bool VulkanDevice::QueryDeviceQueueFamilyProperties(CVulkanRenderer* pRenderingC
 
 	unsigned int queueFamilyPropertyCount{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
-	CVector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
+	CVector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount, true);
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
 
 	for (unsigned int i = 0; i < queueFamilyProperties.size(); i++)

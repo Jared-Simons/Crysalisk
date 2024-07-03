@@ -190,7 +190,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	colorBlending.blendConstants[3] = 0.0f;
 
 	// Dynamic state
-	CVector<VkDynamicState> dynamicStates(2);
+	CVector<VkDynamicState> dynamicStates(2, true);
 	dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
 	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
 
