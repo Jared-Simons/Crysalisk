@@ -28,7 +28,7 @@ public:
 	{
 		m_TestClock.Start();
 
-		for (int i = 0; i < m_RegisteredTests.GetCount(); i++)
+		for (int i = 0; i < m_RegisteredTests.size(); i++)
 		{
 			Clock singleClock;
 			singleClock.Start();

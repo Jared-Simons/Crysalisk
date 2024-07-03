@@ -11,161 +11,166 @@
 #include "Platform/Platform.h"
 #include "EngineGlobals.h"
 
-bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* renderingContext)
+bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain)
 {
-	// We requery the device's swapchain support details here - just in case the framebuffer was recreated - or any other details changed.
-	renderingContext->GetDevice().QueryDeviceSwapchainSupport(renderingContext, renderingContext->GetDevice().GetPhysicalDevice(), renderingContext->GetSwapchain());
-	SwapchainSupportDetails_t& swapchainSupport = m_SwapchainSupportDetails;
-
-	VkSurfaceFormatKHR surfaceFormat = ChooseSwapchainSurfaceFormat(swapchainSupport.formats);
-	VkPresentModeKHR presentMode = ChooseSwapchainPresentMode(swapchainSupport.presentModes);
-	VkExtent2D extent = ChooseSwapchainExtent(renderingContext, swapchainSupport.capabilities);
-
-	uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
-	if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount)
-	{
-		imageCount = swapchainSupport.capabilities.maxImageCount;
-	}
+	pRenderingContext->m_Device.QuerySwapchainSupportDetails(pRenderingContext, &pOutSwapchain->m_SwapchainSupport);
+	SwapchainSupportDetails* swapchainSupport = &pOutSwapchain->m_SwapchainSupport;
 
 	VkSwapchainCreateInfoKHR swapchainCreateInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-	swapchainCreateInfo.surface = renderingContext->GetVulkanSurface();
-	swapchainCreateInfo.minImageCount = imageCount;
-	swapchainCreateInfo.imageFormat = surfaceFormat.format;
-	swapchainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-	swapchainCreateInfo.imageExtent = extent;
-	swapchainCreateInfo.imageArrayLayers = 1;
+
+	// Select image format
+	for (unsigned int i = 0; i < swapchainSupport->formats.size(); i++)
+	{
+		if ((swapchainSupport->formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) && (swapchainSupport->formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
+		{
+			// These are our preferred format and color space.
+			swapchainCreateInfo.imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
+			swapchainCreateInfo.imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+			break;
+		}
+	}
+
+	if (swapchainCreateInfo.imageFormat == VK_FORMAT_UNDEFINED)
+	{
+		// If we can't find our preferred format, just select the first available.
+		swapchainCreateInfo.imageFormat = swapchainSupport->formats[0].format;
+		swapchainCreateInfo.imageColorSpace = swapchainSupport->formats[0].colorSpace;
+	}
+
+	// Select present mode
+	for (unsigned int i = 0; i < swapchainSupport->presentModes.size(); i++)
+	{
+		if (swapchainSupport->presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+		{
+			swapchainCreateInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+		}
+	}
+
+	if (swapchainCreateInfo.presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+	{
+		// Fall back on this present mode if needed, as it is the only one guaranteed to exist.
+		swapchainCreateInfo.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	}
+
+	swapchainCreateInfo.imageExtent = swapchainSupport->surfaceCapabilities.currentExtent;
+	swapchainCreateInfo.imageArrayLayers = swapchainSupport->surfaceCapabilities.maxImageArrayLayers;
+	
+	swapchainCreateInfo.minImageCount = swapchainSupport->surfaceCapabilities.minImageCount;
 	swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	DeviceQueueFamilyProperties_t& indices = renderingContext->GetDevice().GetPhysicalDeviceQueueIndices();
-	uint32_t queueFamilyIndices[] = { indices.graphicsIndex, indices.presentIndex };
-
-	if (indices.graphicsIndex != indices.presentIndex)
+	if ((swapchainCreateInfo.minImageCount < MAX_FRAMES_IN_FLIGHT) && (MAX_FRAMES_IN_FLIGHT < swapchainSupport->surfaceCapabilities.maxImageCount))
 	{
-		swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		swapchainCreateInfo.queueFamilyIndexCount = 2;
-		swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndices;
-	}
-	else
-	{
-		swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		// Bump up the max image count in the case that MAX_FRAMES_IN_FLIGHT is higher than the minImageCount returned from the device query.
+		swapchainCreateInfo.minImageCount = MAX_FRAMES_IN_FLIGHT;
 	}
 
-	swapchainCreateInfo.preTransform = swapchainSupport.capabilities.currentTransform;
-	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	swapchainCreateInfo.presentMode = presentMode;
+	swapchainCreateInfo.surface = pRenderingContext->m_Surface;
+	swapchainCreateInfo.preTransform = swapchainSupport->surfaceCapabilities.currentTransform;
 	swapchainCreateInfo.clipped = VK_TRUE;
-	swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	// TODO: Custom Allocator.
-	if (vkCreateSwapchainKHR(renderingContext->GetDevice().GetLogicalDevice(), &swapchainCreateInfo, nullptr, &m_SwapchainHandle) != VK_SUCCESS)
+	if (!VK_CHECK(vkCreateSwapchainKHR(pRenderingContext->m_Device.m_LogicalDevice, &swapchainCreateInfo, pRenderingContext->m_Allocator, &pOutSwapchain->m_SwapchainHandle)))
 	{
-		AssertMsg("Failed to create swapchain!");
-	}
-
-	GetSwapchainImages(renderingContext);
-
-	m_SwapchainImageFormat = surfaceFormat.format;
-	m_SwapchainExtent = extent;
-
-	LOG_INFO("Vulkan Swapchain Created");
-	return true;
-}
-
-void VulkanSwapchain::CleanupSwapchain(CVulkanRenderer* renderingContext)
-{
-	// TODO: Custom Allocator
-
-	// NOTE: The 3 here is for triple-buffering - this will need to be swapped out for runtime swapping of double and triple buffering.
-	for (int i = 0; i < 3; i++)
-	{
-		vkDestroyFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), m_Framebuffers[i], nullptr);
-	}
-
-	for (int i = 0; i < m_SwapchainImageViews.GetCount(); i++)
-	{
-		vkDestroyImageView(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainImageViews[i], nullptr);
-	}
-
-	vkDestroySwapchainKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, nullptr);
-}
-
-bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* renderingContext)
-{
-	unsigned int width, height;
-	Platform_GetWindowSize(&width, &height);
-
-	if (width == 0 || height == 0)
-	{
+		LOG_ERROR("Failed to create swapchain");
 		return false;
 	}
 
-	vkDeviceWaitIdle(renderingContext->GetDevice().GetLogicalDevice());
+	pOutSwapchain->m_SwapchainImageFormat = swapchainCreateInfo.imageFormat;
+	pOutSwapchain->m_SwapchainExtent = swapchainCreateInfo.imageExtent;
 
-	CleanupSwapchain(renderingContext);
+	if (!pOutSwapchain->GetSwapchainImages(pRenderingContext))
+	{
+		LOG_ERROR("Failed to get swapchain images");
+		return false;
+	}
 
-	CreateSwapchain(renderingContext);
-	CreateImageViews(renderingContext);
-	CreateFramebuffers(renderingContext);
+	if (!pOutSwapchain->CreateImageViews(pRenderingContext))
+	{
+		LOG_ERROR("Failed to create swapchain image views");
+		return false;
+	}
 
-	renderingContext->SetFramebufferResized(false);
+	LOG_INFO("Swapchain created");
+	return true;
+}
+
+void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain)
+{
+	if (pRenderingContext && pSwapchain && pSwapchain->m_SwapchainHandle)
+	{
+		for (int i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
+		{
+			vkDestroyImageView(pRenderingContext->m_Device.m_LogicalDevice, pSwapchain->m_SwapchainImageViews[i], pRenderingContext->m_Allocator);
+		}
+
+		vkDestroySwapchainKHR(pRenderingContext->m_Device.m_LogicalDevice, pSwapchain->m_SwapchainHandle, pRenderingContext->m_Allocator);
+	}
+}
+
+bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight)
+{
+	pRenderingContext->m_FramebufferWidth = newWidth;
+	pRenderingContext->m_FramebufferHeight = newHeight;
+
+	// Handle minimization
+	if (newWidth == 0 || newHeight == 0)
+		return true;
+	
+	vkDeviceWaitIdle(pRenderingContext->m_Device.m_LogicalDevice);
+
+	DestroySwapchain(pRenderingContext, this);
+
+	CreateSwapchain(pRenderingContext, this);
+
+	for (int i = 0; i < m_Framebuffers.size(); i++)
+		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Swapchain.m_Framebuffers[i]);
+
+	for (int i = 0; i < m_Framebuffers.size(); i++)
+	{
+		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &m_Framebuffers[i], i))
+			return false;
+	}
 
 	return true;
 }
 
-VkSurfaceFormatKHR VulkanSwapchain::ChooseSwapchainSurfaceFormat(CVector<VkSurfaceFormatKHR>& availableFormats)
+bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, unsigned int imageIndex)
 {
-	for (int i = 0; i < availableFormats.GetCount(); i++)
+	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = &pRenderingContext->m_Swapchain.m_SwapchainHandle;
+	presentInfo.pImageIndices = &imageIndex;
+
+	VkResult presentResult = vkQueuePresentKHR(pRenderingContext->m_Device.m_PresentQueue, &presentInfo);
+
+	if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || g_FramebufferResized)
 	{
-		if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB && availableFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-		{
-			return availableFormats[i];
-		}
+		LOG_INFO("Swapchain out of date - Recreating.");
+		g_FramebufferResized = false;
+		RecreateSwapchain(pRenderingContext, g_NewWidth, g_NewHeight);
+		return true;
 	}
 
-	return availableFormats[0];
+	return true;
 }
 
-VkPresentModeKHR VulkanSwapchain::ChooseSwapchainPresentMode(CVector<VkPresentModeKHR>& availablePresentModes)
+bool VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* pRenderingContext)
 {
-	for (int i = 0; i < availablePresentModes.GetCount(); i++)
-	{
-		if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
-		{
-			return availablePresentModes[i];
-		}
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D VulkanSwapchain::ChooseSwapchainExtent(CVulkanRenderer* renderingContext, const VkSurfaceCapabilitiesKHR& capabilities)
-{
-	unsigned int width, height;
-	Platform_GetWindowSize(&width, &height);
-
-	VkExtent2D min = capabilities.minImageExtent;
-	VkExtent2D max = capabilities.maxImageExtent;
-	VkExtent2D actualExtent = capabilities.currentExtent;
-	IntClamp((int*)actualExtent.width, (int*)min.width, (int*)max.width);
-	IntClamp((int*)actualExtent.height, (int*)min.height, (int*)max.height);
-	return actualExtent;
-}
-
-void VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* renderingContext)
-{
-	uint32_t imageCount{ 0 };
-	vkGetSwapchainImagesKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, &imageCount, nullptr);
+	unsigned int imageCount{ 0 };
+	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, nullptr);
 	m_SwapchainImages.Resize(imageCount);
-	vkGetSwapchainImagesKHR(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainHandle, &imageCount, m_SwapchainImages.Data());
+	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, m_SwapchainImages.data());
 
 	LOG_INFO("Vulkan Swapchain Images Found");
+	return true;
 }
 
-bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
+bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* pRenderingContext)
 {
-	m_SwapchainImageViews.Resize(m_SwapchainImages.GetCount());
+	m_SwapchainImageViews.Resize(m_SwapchainImages.size());
 
-	for (int i = 0; i < m_SwapchainImages.GetCount(); i++)
+	for (int i = 0; i < m_SwapchainImages.size(); i++)
 	{
 		VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		createInfo.image = m_SwapchainImages[i];
@@ -182,10 +187,9 @@ bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
 
-		// TODO: Custom Allocator
-		if (vkCreateImageView(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &m_SwapchainImageViews[i]) != VK_SUCCESS)
+		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &m_SwapchainImageViews[i])))
 		{
-			AssertMsg("VulkanRenderer - Failed to create image views!");
+			LOG_ERROR("Failed to create image views");
 			return false;
 		}
 	}
@@ -193,76 +197,3 @@ bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* renderingContext)
 	LOG_INFO("Vulkan Swapchain Image Views Created");
 	return true;
 }
-
-void VulkanSwapchain::DestroyImageViews(CVulkanRenderer* renderingContext)
-{
-	for (int i = 0; i < m_SwapchainImageViews.GetCount(); i++)
-	{
-		vkDestroyImageView(renderingContext->GetDevice().GetLogicalDevice(), m_SwapchainImageViews[i], nullptr);
-	}
-}
-
-bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer* renderingContext)
-{
-	// TODO: This will link to our single renderpass for output
-	// This will need to be more configurable asap.
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-		createInfo.flags = 0;
-		createInfo.layers = 1;
-		createInfo.renderPass = renderingContext->GetRenderpass().GetHandle();
-		createInfo.attachmentCount = 1;
-		createInfo.pAttachments = &m_SwapchainImageViews[i];
-		createInfo.width = m_SwapchainExtent.width;
-		createInfo.height = m_SwapchainExtent.height;
-
-		// TODO: Custom allocator
-		VkResult result = vkCreateFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &m_Framebuffers[i]);
-		if (result != VK_SUCCESS)
-		{
-			LOG_ERROR("Failed to create swapchain framebuffers!");
-			return false;
-		}
-	}
-
-	LOG_INFO("Swapchain framebuffers created");
-	return true;
-}
-
-void VulkanSwapchain::DestroyFramebuffers(CVulkanRenderer* renderingContext)
-{
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		// TODO: Custom allocator
-		vkDestroyFramebuffer(renderingContext->GetDevice().GetLogicalDevice(), m_Framebuffers[i], nullptr);
-	}
-}
-
-bool VulkanSwapchain::FramebufferPresent(CVulkanRenderer* renderingContext, unsigned int currImageIndex)
-{
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &renderingContext->GetRenderFinishedSemaphore(currImageIndex);
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &m_SwapchainHandle;
-	presentInfo.pImageIndices = &currImageIndex;
-
-	VkResult presentResult = vkQueuePresentKHR(renderingContext->GetDevice().GetPresentQueue(), &presentInfo);
-	if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR)
-	{
-		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
-		{
-			renderingContext->GetSwapchain().RecreateSwapchain(renderingContext);
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-

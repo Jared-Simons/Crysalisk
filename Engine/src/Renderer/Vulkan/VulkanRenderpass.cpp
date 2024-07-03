@@ -10,10 +10,10 @@
 #include "Core/Assertions.h"
 
 
-bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass)
+bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pOutRenderpass)
 {
 	VkAttachmentDescription colorAttachment{};
-	colorAttachment.format = renderingContext->GetSwapchain().GetImageFormat();
+	colorAttachment.format = pRenderingContext->m_Swapchain.m_SwapchainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -37,41 +37,57 @@ bool VulkanRenderpass::CreateRenderpass(CVulkanRenderer* renderingContext, Vulka
 	createInfo.subpassCount = 1;
 	createInfo.pSubpasses = &subpass;
 
-	// TODO: Custom Allocator
-	if (vkCreateRenderPass(renderingContext->GetDevice().GetLogicalDevice(), &createInfo, nullptr, &pOutRenderpass->GetHandle()) != VK_SUCCESS)
+	if (!VK_CHECK(vkCreateRenderPass(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &pOutRenderpass->m_Handle)))
 	{
-		AssertMsg("Vulkan Renderer - Failed to create renderpass!");
+		LOG_ERROR("Failed to create renderpass!");
 		return false;
 	}
 
-	LOG_INFO("Primary Renderpass Created");
+	LOG_INFO("Main Renderpass Created");
 	return true;
 }
 
-void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* renderingContext, VulkanRenderpass* pOutRenderpass)
+void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass)
 {
-	// TODO: Custom Allocator
-	vkDestroyRenderPass(renderingContext->GetDevice().GetLogicalDevice(), pOutRenderpass->GetHandle(), nullptr);
+	if (pRenderingContext && pRenderpass)
+	{
+		vkDestroyRenderPass(pRenderingContext->m_Device.m_LogicalDevice, pRenderpass->m_Handle, pRenderingContext->m_Allocator);
+	}
 }
 
-bool VulkanRenderpass::BeginRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer)
+bool VulkanRenderpass::Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, unsigned int imageIndex)
 {
+	if (!m_Handle || !pCommandBuffer || !pCommandBuffer->m_Handle)
+	{
+		LOG_ERROR("VulkanRenderpass::Begin() -> Requires a valid renderpass handle and command buffer.");
+		return false;
+	}
+
+	// TODO: Make this configurable
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderpassInfo.renderPass = m_RenderpassHandle;
-	renderpassInfo.framebuffer = renderingContext->GetSwapchain().GetFramebuffer(renderingContext->GetCurrentFrameIndex());
+	renderpassInfo.renderPass = m_Handle;
+	renderpassInfo.framebuffer = pRenderingContext->m_Swapchain.m_Framebuffers[imageIndex].m_Handle;
 	renderpassInfo.renderArea.offset = { 0, 0 };
-	renderpassInfo.renderArea.extent = renderingContext->GetSwapchain().GetExtent();
+	renderpassInfo.renderArea.extent = pRenderingContext->m_Swapchain.m_SwapchainExtent;
 
 	VkClearValue clearColor = { 0.0f, 0.2f, 0.2f };
 	renderpassInfo.clearValueCount = 1;
 	renderpassInfo.pClearValues = &clearColor;
 
-	vkCmdBeginRenderPass(*pCommandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
+	vkCmdBeginRenderPass(pCommandBuffer->m_Handle, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	return true;
 }
 
-void VulkanRenderpass::EndRenderpass(CVulkanRenderer* renderingContext, VkCommandBuffer* pCommandBuffer)
+void VulkanRenderpass::End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer)
 {
-	vkCmdEndRenderPass(*pCommandBuffer);
+	if (m_Handle && pCommandBuffer && pCommandBuffer->m_Handle)
+	{
+		vkCmdEndRenderPass(pCommandBuffer->m_Handle);
+		return;
+	}
+	else
+	{
+		LOG_ERROR("VulkanRenderpass::End() -> Requires a valid renderpass and command buffer.");
+		return;
+	}
 }

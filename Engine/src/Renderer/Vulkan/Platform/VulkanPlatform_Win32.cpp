@@ -2,6 +2,7 @@
 #ifdef PLAT_WINDOWS
 #include "VulkanPlatform.h"
 #include "../VulkanBackend.h"
+#include "Core/Logging.h"
 #include "Core/Assertions.h"
 
 const char* Platform_GetVulkanExtensions()
@@ -9,20 +10,18 @@ const char* Platform_GetVulkanExtensions()
 	return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
 }
 
-bool Platform_CreateVulkanSurface(CVulkanRenderer* renderingContext)
+bool Platform_CreateVulkanSurface(CVulkanRenderer* pRenderingContext)
 {
 	VkWin32SurfaceCreateInfoKHR createInfo = Platform_GetVulkanSurface();
 
-	// TODO: Custom allocator
-	if (vkCreateWin32SurfaceKHR(renderingContext->GetVulkanInstance(), &createInfo, nullptr, &renderingContext->GetVulkanSurface()))
+	if (!VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext->m_Instance, &createInfo, pRenderingContext->m_Allocator, &pRenderingContext->m_Surface)))
 	{
-		AssertMsg("Failed to create Vulkan Window Surface!");
+		LOG_FATAL("Failed to create Vulkan Window Surface");
 		return false;
 	}
 
-	LOG_INFO("Vulkan Surface Created.");
+	LOG_INFO("Vulkan Surface Created");
 	return true;
 }
-
 #endif
 

@@ -8,172 +8,157 @@
 
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
-#include <Containers/CVector.h>
-#include <String_Utils.h>
-#include <stdint.h>
 
 #include <Containers/CSet.h>
+#include <String_Utils.h>
 
-
-bool VulkanDevice::CreateVulkanDevice(CVulkanRenderer* renderingContext)
+bool VulkanDevice::CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice)
 {
-	if (!SelectPhysicalDevice(renderingContext))
+	// Setup required device extensions
+	pOutDevice->m_DeviceExtensions = new CVector<const char*> { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+	if (!pOutDevice->SelectPhysicalDevice(pRenderingContext))
 		return false;
 
-	GetQueueFamilyData(renderingContext);
+	if (!pOutDevice->CreateLogicalDevice(pRenderingContext))
+		return false;
 
-	// Query the device's swapchain support and pass that information to the swapchain itself.
-	QueryDeviceSwapchainSupport(renderingContext, m_PhysicalDeviceHandle, renderingContext->GetSwapchain());
-
-	CreateLogicalDevice(renderingContext);
+	LOG_DEBUG("Selected GPU: '%s'", pOutDevice->m_PhysicalDeviceProperties.deviceName);
+	LOG_DEBUG("Graphics Queue Index:\t%d", pOutDevice->m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex);
+	LOG_DEBUG("Present Queue Index:\t%d", pOutDevice->m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex);
+	LOG_DEBUG("Transfer Queue Index:\t%d", pOutDevice->m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex);
+	LOG_DEBUG("Compute Queue Index:\t%d", pOutDevice->m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex);
 
 	return true;
 }
 
-void VulkanDevice::DestroyLogicalDevice(CVulkanRenderer* renderingContext)
+void VulkanDevice::DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice)
 {
-	// TODO: Custom Allocator
-	vkDestroyDevice(GetLogicalDevice(), nullptr);
+	if (pDevice && pDevice->m_LogicalDevice)
+	{
+		delete pDevice->m_DeviceExtensions;
+		vkDestroyDevice(pDevice->m_LogicalDevice, pRenderingContext->m_Allocator);
+	}
 }
 
-void VulkanDevice::QueryDeviceSwapchainSupport(CVulkanRenderer* renderingContext, VkPhysicalDevice device, VulkanSwapchain& swapchain)
+bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 {
-	// Get a handle to the (yet-to-be-created) swapchain to hand it the data directly.
-	SwapchainSupportDetails_t& swapchainSupportDetails = swapchain.GetSwapchainSupportDetails();
+	unsigned int deviceCount{ 0 };
+	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, nullptr);
+	CVector<VkPhysicalDevice> devices(deviceCount);
+	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, devices.data());
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderingContext->GetVulkanSurface(), &swapchainSupportDetails.capabilities);
 
-	uint32_t formatCount = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderingContext->GetVulkanSurface(), &formatCount, nullptr);
+	VkPhysicalDevice* pDevice = nullptr;
 
-	if (formatCount != 0)
+	// Select the first device that is a discrete GPU
+	for (unsigned int i = 0; i < devices.size(); i++)
 	{
-		swapchainSupportDetails.formats.Resize(formatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderingContext->GetVulkanSurface(), &formatCount, swapchainSupportDetails.formats.Data());
-	}
+		VkPhysicalDevice* currDevice = &devices[i];
+		VkPhysicalDeviceProperties properties;
+		
+		vkGetPhysicalDeviceProperties(*currDevice, &properties);
 
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderingContext->GetVulkanSurface(), &presentModeCount, nullptr);
-
-	if (presentModeCount != 0)
-	{
-		swapchainSupportDetails.presentModes.Resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderingContext->GetVulkanSurface(), &presentModeCount, swapchainSupportDetails.presentModes.Data());
-	}
-
-	// Flip the 'supports swapchain' flag to true if this is the case
-	m_bDeviceSupportsSwapchain = (!(swapchainSupportDetails.formats.Empty() && swapchainSupportDetails.presentModes.Empty()));
-}
-
-bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* renderingContext)
-{
-	uint32_t physicalDeviceCount = 0;
-	vkEnumeratePhysicalDevices(renderingContext->GetVulkanInstance(), &physicalDeviceCount, nullptr);
-	CVector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(renderingContext->GetVulkanInstance(), &physicalDeviceCount, physicalDevices.Data());
-
-	for (int i = 0; i < physicalDevices.GetCount(); i++)
-	{
-		if (PhysicalDeviceMeetsRequirements(renderingContext, physicalDevices[i]))
+		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && QueryDeviceExtensionSupport(*currDevice))
 		{
+			pDevice = currDevice;
 			break;
 		}
 	}
 
-	if (m_PhysicalDeviceHandle == VK_NULL_HANDLE)
+	// If we get here with no device, then none was suitable. Exit out here.
+	if (!pDevice)
 	{
-		LOG_FATAL("Unable to find a physical graphics device, application cannot continue.");
+		LOG_ERROR("Failed to find Discrete GPU with Vulkan support");
 		return false;
 	}
-	else
+
+	// Save off the selected device and it's properties.
+	m_PhysicalDevice = *pDevice;
+	vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_PhysicalDeviceProperties);
+	vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_PhysicalDeviceFeatures);
+
+	// Get the device's queue family properties.
+	if (!QueryDeviceQueueFamilyProperties(pRenderingContext, m_PhysicalDevice, &m_PhysicalDeviceQueueFamilyInfo))
 	{
-		LOG_DEBUG("Selected Graphics Device: %s", m_PhysicalDeviceProperties.deviceName);
-		return true;
+		LOG_ERROR("Failed to find Queue Family Properties for selected device.");
+		return false;
 	}
+
+	return true;
 }
 
-bool VulkanDevice::PhysicalDeviceMeetsRequirements(CVulkanRenderer* renderingContext, VkPhysicalDevice& physicalDevice)
+bool VulkanDevice::QueryDeviceQueueFamilyProperties(CVulkanRenderer* pRenderingContext, VkPhysicalDevice& physicalDevice, DeviceQueueFamilyInfo_t* pOutQueueInfo)
 {
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-
-	bool deviceHasRequiredExtensions = QueryDeviceExtensionSupport(physicalDevice);
-
-
-	// Select the first physical device that meets the requirements set here.
-	// Currently the only requirements are a discrete GPU and that it has access to the swapchain extension.
-	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && deviceHasRequiredExtensions)
+	if (!physicalDevice)
 	{
-		// Save off attributes about the device.
-		m_PhysicalDeviceProperties = deviceProperties;
-
-		// Save off a handle to the device.
-		m_PhysicalDeviceHandle = physicalDevice;
-		return true;
+		LOG_ERROR("QueryDeviceQueueFamilyProperties() -> physicalDevice was nullptr: device setup cannot continue.");
+		return false;
 	}
 
-	return false;
-}
+	unsigned int queueFamilyPropertyCount{ 0 };
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
+	CVector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
 
-void VulkanDevice::GetQueueFamilyData(CVulkanRenderer* renderingContext)
-{
-	uint32_t numOfDeviceQueueFamiliesAvailable = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, nullptr);
-	CVector<VkQueueFamilyProperties> deviceQueueFamilyProperties(numOfDeviceQueueFamiliesAvailable);
-	vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDeviceHandle, &numOfDeviceQueueFamiliesAvailable, deviceQueueFamilyProperties.Data());
-
-	VkBool32 presentSupport = false;
-	for (int i = 0; i < deviceQueueFamilyProperties.GetCount(); i++)
+	for (unsigned int i = 0; i < queueFamilyProperties.size(); i++)
 	{
-		// We query support for the present queue index first as it is very possible that this queue is shared with another task
-		// Putting this above the rest of the loop allows it to be run only once, as well as allows the other 'if' checks to continue
-		// after finding an index without worrying about the present queue.
-		vkGetPhysicalDeviceSurfaceSupportKHR(m_PhysicalDeviceHandle, i, renderingContext->GetVulkanSurface(), &presentSupport);
-
-		if (presentSupport)
+		// Look for a graphics queue.
+		if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
 		{
-			m_PhysicalDeviceQueueIndices.presentIndex = i;
+			pOutQueueInfo->GraphicsQueueIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		// Look for a compute queue.
+		if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0)
 		{
-			m_PhysicalDeviceQueueIndices.graphicsIndex = i;
-			continue;
+			pOutQueueInfo->ComputeQueueIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+		// Look for a transfer queue.
+		if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT) != 0)
 		{
-			m_PhysicalDeviceQueueIndices.computeIndex = i;
-			continue;
+			pOutQueueInfo->TransferQueueIndex = i;
 		}
 
-		if (deviceQueueFamilyProperties[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
-		{
-			m_PhysicalDeviceQueueIndices.transferIndex = i;
-			continue;
-		}
+		// Look for a present queue.
+		VkBool32 queueSupportsPresent = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, pRenderingContext->m_Surface, &queueSupportsPresent);
 
-		if (m_PhysicalDeviceQueueIndices.IsComplete())
+		if (queueSupportsPresent)
 		{
-			break;
+			pOutQueueInfo->PresentQueueIndex = i;
 		}
 	}
+
+
+	if (!pOutQueueInfo->IsComplete())
+	{
+		LOG_ERROR("QueryDeviceQueueFamilyProperties() -> Could not find necessary queue families - device setup cannot continue.");
+		return false;
+	}
+
+	return true;
 }
 
 bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 {
-	uint32_t deviceExtensionCount = 0;
+	// Check for required device extensions.
+	// Currently we are only looking for the swapchain extension.
+
+	unsigned int deviceExtensionCount{ 0 };
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, nullptr);
 	CVector<VkExtensionProperties> availableDeviceExtensions(deviceExtensionCount);
-	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, availableDeviceExtensions.Data());
+	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, availableDeviceExtensions.data());
 
-	int extensionsToQuery = m_DeviceExtensions.GetCount();
-	
-	for (int i = 0; i < m_DeviceExtensions.GetCount(); i++)
+	CVector<const char*> requiredExtensions = *m_DeviceExtensions;
+
+	int extensionsToQuery = requiredExtensions.size();
+	for (int i = 0; i < requiredExtensions.size(); i++)
 	{
 		for (int j = 0; j < deviceExtensionCount; j++)
 		{
-			if (StringCompare(availableDeviceExtensions[j].extensionName, m_DeviceExtensions[i]) == true)
+			if (StringCompare(availableDeviceExtensions[j].extensionName, requiredExtensions[i]) == true)
 			{
 				// Found the current extension
 				extensionsToQuery--;
@@ -187,24 +172,22 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 #if _DEBUG
 	LOG_VERBOSE("Enabled Vulkan Device Extensions:");
-	for (int i = 0; i < m_DeviceExtensions.GetCount(); i++)
+	for (int i = 0; i < requiredExtensions.size(); i++)
 	{
-		LOG_VERBOSE("%s", m_DeviceExtensions[i]);
+		LOG_VERBOSE("%s", requiredExtensions[i]);
 	}
 #endif
 
 	return extensionsToQuery == 0;
 }
 
-bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
+bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 {
-	DeviceQueueFamilyProperties_t& queueIndices = m_PhysicalDeviceQueueIndices;
+	const float queuePriority{ 1.0f };
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	CSet<int> uniqueQueueFamilies{ (int)queueIndices.graphicsIndex, (int)queueIndices.presentIndex, (int)queueIndices.transferIndex, (int)queueIndices.computeIndex };
+	CSet<int> uniqueQueueFamilies{ m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex };
 
-	// Set up the device queues
-	float queuePriority = 1.0f;
 	for (int i = 0; i < uniqueQueueFamilies.GetSize(); i++)
 	{
 		VkDeviceQueueCreateInfo queueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
@@ -215,132 +198,42 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* renderingContext)
 	}
 
 	VkDeviceCreateInfo deviceCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.GetCount());
-	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.Data();
+	deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+	deviceCreateInfo.enabledExtensionCount = m_DeviceExtensions->size();
+	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions->data();
+	deviceCreateInfo.enabledLayerCount = 0;
+	deviceCreateInfo.ppEnabledLayerNames = nullptr;
+	deviceCreateInfo.pEnabledFeatures = &m_PhysicalDeviceFeatures;
 
-	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.GetCount());
-	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions.Data();
-
-	if (renderingContext->EnableValidationLayers())
+	if (!VK_CHECK(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, pRenderingContext->m_Allocator, &m_LogicalDevice)))
 	{
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(renderingContext->GetNumValidationLayers());
-		deviceCreateInfo.ppEnabledLayerNames = renderingContext->GetValidationLayers();
-	}
-	else
-	{
-		deviceCreateInfo.enabledLayerCount = 0;
+		LOG_ERROR("Failed to create logical device.");
+		return false;
 	}
 
-	// TODO: Custom Allocator
-	if (vkCreateDevice(m_PhysicalDeviceHandle, &deviceCreateInfo, nullptr, &m_LogicalDeviceHandle) != VK_SUCCESS)
-	{
-		AssertMsg("Failed to create logical device!");
-	}
+	LOG_INFO("Vulkan device created");
 
-	LOG_INFO("Vulkan Logical Device created.");
-
-	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.graphicsIndex, 0, &m_GraphicsQueue);
-	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.presentIndex, 0, &m_PresentQueue);
-	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.transferIndex, 0, &m_TransferQueue);
-	vkGetDeviceQueue(m_LogicalDeviceHandle, queueIndices.computeIndex, 0, &m_PresentQueue);
-
-	LOG_DEBUG("Graphics Queue Index: %d", m_PhysicalDeviceQueueIndices.graphicsIndex);
-	LOG_DEBUG("Present Queue Index: %d", m_PhysicalDeviceQueueIndices.presentIndex);
-	LOG_DEBUG("Transfer Queue Index: %d", m_PhysicalDeviceQueueIndices.transferIndex);
-	LOG_DEBUG("Compute Queue Index: %d", m_PhysicalDeviceQueueIndices.computeIndex);
+	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, 0, &m_GraphicsQueue);
+	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, 0, &m_PresentQueue);
+	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, 0, &m_TransferQueue);
+	vkGetDeviceQueue(m_LogicalDevice, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex, 0, &m_ComputeQueue);
 
 	return true;
 }
 
-bool VulkanDevice::CreateCommandBuffers(CVulkanRenderer* renderingContext)
+void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails)
 {
-	// Create the graphics command buffer pool.
-	VkCommandPoolCreateInfo graphicsCommandPoolCreateInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	// Allow us to reset our allocated command buffers.
-	graphicsCommandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	graphicsCommandPoolCreateInfo.queueFamilyIndex = m_PhysicalDeviceQueueIndices.graphicsIndex;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &pOutDetails->surfaceCapabilities);
 
-	// TODO: Custom allocator
-	VkResult result = vkCreateCommandPool(m_LogicalDeviceHandle, &graphicsCommandPoolCreateInfo, nullptr, &m_GraphicsCommandPool);
+	unsigned int numFormats{ 0 };
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, nullptr);
+	pOutDetails->formats.Resize(numFormats);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, pOutDetails->formats.data());
 
-	if (result != VK_SUCCESS)
-	{
-		LOG_ERROR("Failed to create graphics command pool!");
-		return false;
-	}
+	unsigned int numPresentModes{ 0 };
+	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, nullptr);
+	pOutDetails->presentModes.Resize(numPresentModes);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, pOutDetails->presentModes.data());
 
-	// Allocate our command buffers (one per concurrent frame)
-	VkCommandBufferAllocateInfo commandBufferAllocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-	commandBufferAllocInfo.commandPool = m_GraphicsCommandPool;
-	commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; // TODO: This should probably be configurable.
-	commandBufferAllocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
-
-	result = vkAllocateCommandBuffers(m_LogicalDeviceHandle, &commandBufferAllocInfo, m_GraphicsCommandBuffers);
-
-	if (result != VK_SUCCESS)
-	{
-		LOG_ERROR("Failed to allocate graphics command buffers!");
-		return false;
-	}
-
-	LOG_INFO("Command Buffers Allocated");
-	return true;
 }
-
-void VulkanDevice::DestroyCommandBuffers(CVulkanRenderer* renderingContext)
-{
-	// TODO: Custom allocator
-	vkFreeCommandBuffers(m_LogicalDeviceHandle, m_GraphicsCommandPool, MAX_FRAMES_IN_FLIGHT, m_GraphicsCommandBuffers);
-	vkDestroyCommandPool(m_LogicalDeviceHandle, m_GraphicsCommandPool, nullptr);
-}
-
-bool VulkanDevice::BeginCommandBuffer(VkCommandBuffer& commandBuffer)
-{
-	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-
-	VkResult beginResult = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-	if (beginResult != VK_SUCCESS)
-	{
-		LOG_ERROR("BeginCommandBuffer()->Failed to start recording");
-		return false;
-	}
-
-	return true;
-}
-
-bool VulkanDevice::EndCommandBuffer(VkCommandBuffer& commandBuffer)
-{
-	VkResult endResult = vkEndCommandBuffer(commandBuffer);
-
-	if (endResult != VK_SUCCESS)
-	{
-		LOG_ERROR("BeginCommandBuffer()->Failed to start recording");
-		return false;
-	}
-
-	return true;
-}
-
-bool VulkanDevice::SubmitCommandBuffer(CVulkanRenderer* renderingContext, VkCommandBuffer& commandBuffer, int currentImageIndex)
-{
-	// TODO: These should be more configurable
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &renderingContext->GetImageAvailableSemaphore(currentImageIndex);
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &renderingContext->GetRenderFinishedSemaphore(currentImageIndex);
-
-	if (vkQueueSubmit(m_GraphicsQueue, 1, &submitInfo, renderingContext->GetInFlightFrameFence(currentImageIndex)))
-	{
-		LOG_ERROR("Command Buffer failed to submit!");
-		return false;
-	}
-
-	return true;
-}
-
