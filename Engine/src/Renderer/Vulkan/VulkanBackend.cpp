@@ -3,6 +3,7 @@
 #include "Platform/VulkanPlatform.h"
 
 #include "Core/Logging.h"
+#include "Systems/IEvent.h"
 
 #include <String_Utils.h>
 
@@ -12,11 +13,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData);
 
+// TODO: This event callback really should be a part of the renderer backend class
+bool Event_FramebufferResized(EventData_t data);
+static unsigned int s_NewWidth{ 0 };
+static unsigned int s_NewHeight{ 0 };
+static bool s_FramebufferResized{ false };
+
 bool CVulkanRenderer::RendererBackend_Initialize()
 {
 	// Cache off window dimensions here for later 
 	// (it is VERY unlikely these will change again until the renderer is fully initialized)
 	Platform_GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
+
+	// Register for window resize events
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
 
 	// Instance
 	if (!CreateVulkanInstance())
@@ -122,6 +132,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	delete m_ValidationLayers;
 
 	vkDestroyInstance(m_Instance, m_Allocator);
+
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
 }
 
 bool CVulkanRenderer::RendererBackend_Update()
@@ -133,6 +145,12 @@ bool CVulkanRenderer::RendererBackend_Update()
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
 	// TODO: Swapchain recreation
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		LOG_INFO("Swapchain out of date - Recreating.");
+		m_Swapchain.RecreateSwapchain(this, s_NewWidth, s_NewHeight);
+		return true;
+	}
 
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
@@ -189,7 +207,15 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 	VkResult presentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
 	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+
 	// TODO: Swapchain recreation
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || s_FramebufferResized)
+	{
+		LOG_INFO("Swapchain out of date - Recreating.");
+		s_FramebufferResized = false;
+		m_Swapchain.RecreateSwapchain(this, s_NewWidth, s_NewHeight);
+		return true;
+	}
 
 	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return true;
@@ -422,5 +448,18 @@ IRendererBackend* GetVulkanBackend()
 	{
 		return s_VulkanRenderer;
 	}
+}
+
+bool Event_FramebufferResized(EventData_t data)
+{
+	unsigned int width, height;
+	width = data.u16[0];
+	height = data.u16[1];
+
+	s_NewWidth = width;
+	s_NewHeight = height;
+	s_FramebufferResized = true;
+
+	return true;
 }
 

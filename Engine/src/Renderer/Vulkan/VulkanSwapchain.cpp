@@ -106,6 +106,31 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 	}
 }
 
+bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight)
+{
+	// Handle minimization
+	if (newWidth == 0 || newHeight == 0)
+		return true;
+	
+	vkDeviceWaitIdle(pRenderingContext->m_Device.m_LogicalDevice);
+
+	DestroySwapchain(pRenderingContext, this);
+
+	CreateSwapchain(pRenderingContext, this);
+	
+	// TOOD: Move framebuffers to the swapchain.
+	for (int i = 0; i < pRenderingContext->m_Framebuffers.size(); i++)
+		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Framebuffers[i]);
+
+	for (int i = 0; i < pRenderingContext->m_Framebuffers.size(); i++)
+	{
+		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &pRenderingContext->m_Framebuffers[i]))
+			return false;
+	}
+
+	return true;
+}
+
 bool VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* pRenderingContext)
 {
 	unsigned int imageCount{ 0 };

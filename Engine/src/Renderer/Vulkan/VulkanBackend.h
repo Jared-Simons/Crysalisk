@@ -133,6 +133,8 @@ public:
 	static bool CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain);
 	static void DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain);
 
+	bool		RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight);
+
 	bool		GetSwapchainImages(CVulkanRenderer* pRenderingContext);
 	bool		CreateImageViews(CVulkanRenderer* pRenderingContext);
 
