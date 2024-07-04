@@ -75,6 +75,12 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
+	// Buffers
+	VkDeviceSize bufferSize = sizeof(unsigned long long);
+
+	if (!VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
+		return false;
+
 	// Fences
 	// one per frame
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
@@ -112,6 +118,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
 		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
+
+	VulkanBuffer::DestroyBuffer(this, &m_VertexBuffer);
 
 	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 		VulkanFramebuffer::DestroyFramebuffer(this, &m_Swapchain.m_Framebuffers[i]);

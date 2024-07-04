@@ -24,6 +24,9 @@ class	VulkanCommandBuffer;
 class	VulkanFramebuffer;
 class	VulkanFence;
 class	VulkanSemaphore;
+class	VulkanBuffer;
+class	VulkanImage;
+class	VulkanShader;
 class	CVulkanRenderer;
 
 // Utility Macro for checking success with VkResult
@@ -94,6 +97,8 @@ class VulkanDevice
 public:
 	static bool CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice);
 	static void DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice);
+
+	unsigned int	FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties);
 	
 	void		QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails);
 
@@ -226,36 +231,6 @@ public:
 
 //=================================
 // 
-// Vulkan Shader
-// 
-//=================================
-class VulkanShader
-{
-public:
-	VulkanShader()
-		: m_VertModule{ VK_NULL_HANDLE }
-		, m_FragModule{ VK_NULL_HANDLE }
-		, m_Pipeline{ VK_NULL_HANDLE }
-		, m_PipelineLayout{ VK_NULL_HANDLE } {}
-
-	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
-	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
-
-	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
-
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer);
-
-private:
-	VkShaderModule		m_VertModule;
-	VkShaderModule		m_FragModule;
-
-	VkPipeline			m_Pipeline;
-	VkPipelineLayout	m_PipelineLayout;
-};
-
-
-//=================================
-// 
 // Vulkan Framebuffer
 // 
 //=================================
@@ -300,6 +275,52 @@ public:
 
 public:
 	VkSemaphore m_Handle{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
+// Vulkan Buffer
+// 
+//=================================
+class VulkanBuffer
+{
+public:
+	static bool		CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VulkanBuffer* pOutBuffer);
+	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
+
+	VkBuffer		m_Handle{ VK_NULL_HANDLE };
+	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
+// Vulkan Shader
+// 
+//=================================
+class VulkanShader
+{
+public:
+	VulkanShader()
+		: m_VertModule{ VK_NULL_HANDLE }
+		, m_FragModule{ VK_NULL_HANDLE }
+		, m_Pipeline{ VK_NULL_HANDLE }
+		, m_PipelineLayout{ VK_NULL_HANDLE } {}
+
+	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
+
+	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer);
+
+private:
+	VkShaderModule		m_VertModule;
+	VkShaderModule		m_FragModule;
+
+	VkPipeline			m_Pipeline;
+	VkPipelineLayout	m_PipelineLayout;
 };
 
 
@@ -355,6 +376,9 @@ public:
 	CVector<VulkanFence> m_FrameInFlightFences;
 	CVector<VulkanSemaphore> m_ImageAvailableSemaphores;
 	CVector<VulkanSemaphore> m_RenderFinishedSemaphores;
+
+	// Buffers
+	VulkanBuffer m_VertexBuffer;
 
 	// Shaders
 	VulkanShader		m_StandardShader;

@@ -237,3 +237,20 @@ void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingConte
 	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, pOutDetails->presentModes.data());
 
 }
+
+unsigned int VulkanDevice::FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties)
+{
+	VkPhysicalDeviceMemoryProperties deviceMemProperties;
+	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &deviceMemProperties);
+
+	for (int i = 0; i < deviceMemProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (deviceMemProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	LOG_ERROR("VulkanDevice::FindMemoryType() -> Failed to find suitable memory type!");
+	return -1;
+}
