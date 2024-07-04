@@ -23,7 +23,7 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize
 
 	if (!VK_CHECK(vkCreateBuffer(pRenderingContext->m_Device.m_LogicalDevice, &bufferCreateInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Handle)))
 	{
-		LOG_ERROR("VulanBuffer::CreateBuffer(): Failed to create buffer.");
+		LOG_ERROR("VulKanBuffer::CreateBuffer(): Failed to create buffer.");
 		return false;
 	}
 
@@ -36,7 +36,7 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize
 
 	if (!VK_CHECK(vkAllocateMemory(pRenderingContext->m_Device.m_LogicalDevice, &allocInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Memory)))
 	{
-		LOG_ERROR("VulanBuffer::CreateBuffer(): Failed to allocate buffer memory.");
+		LOG_ERROR("VulKanBuffer::CreateBuffer(): Failed to allocate buffer memory.");
 		return false;
 	}
 
@@ -54,7 +54,21 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer* pRenderContext, VulkanBuffer* 
 	}
 	else
 	{
-		LOG_ERROR("VulanBuffer::DestroyBuffer() -> Requires a valid pointer to a Vulkan Buffer object.");
+		LOG_ERROR("VulKanBuffer::DestroyBuffer() -> Requires a valid pointer to a Vulkan Buffer object.");
 		return;
 	}
+}
+
+void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data)
+{
+	if (!data || dataSize <= 0)
+	{
+		LOG_ERROR("VulkanBuffer::UploadDataToBuffer() -> Requires valid data and data size.");
+		return;
+	}
+
+	void* bufferData;
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, 0, dataSize, 0, &bufferData);
+		memcpy(bufferData, data, dataSize);
+	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory);
 }

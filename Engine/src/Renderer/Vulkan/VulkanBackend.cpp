@@ -5,6 +5,8 @@
 #include "Core/Logging.h"
 #include "Systems/IEvent.h"
 
+#include <Math/VertexTypes.h>
+
 #include <String_Utils.h>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
@@ -76,10 +78,20 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	}
 
 	// Buffers
-	VkDeviceSize bufferSize = sizeof(unsigned long long);
 
-	if (!VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
+	// TODO: Temp rendering data
+	CVector<Vertex3D> vertices(3);
+	vertices.PushBack(Vertex3D(Vector2D(0.0, -0.5), Vector3D(1.0, 0.0, 0.0)));
+	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 1.0, 0.0)));
+	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(0.0, 0.0, 1.0)));
+
+	VkDeviceSize bufferSize = sizeof(vertices[0]) * 3;
+
+	if (!VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
 		return false;
+
+	// Upload the data to the GPU
+	m_VertexBuffer.UploadDataToBuffer(this, bufferSize, vertices.data());
 
 	// Fences
 	// one per frame
@@ -184,6 +196,9 @@ bool CVulkanRenderer::RendererBackend_Update()
 		// Handle all draw calls here
 
 		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
+
+		VkDeviceSize offset[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;

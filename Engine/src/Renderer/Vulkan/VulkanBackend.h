@@ -289,6 +289,9 @@ public:
 	static bool		CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VulkanBuffer* pOutBuffer);
 	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
 
+	// TODO: Handle offsets and other data here
+	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data);
+
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
 };
