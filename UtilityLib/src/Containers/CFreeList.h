@@ -124,7 +124,7 @@ public:
 		}
 
 		size_t remainingSpace = GetFreeSpace();
-		LOG_WARN("CFreeList->Allocate() - no block with enough free space found (requested: %uB, available: %lluB).", m_TotalSize, remainingSpace);
+		LOG_WARN("CFreeList->Allocate() - no block with enough free space found (requested: %uB, available: %lluB).", size, remainingSpace);
 		return false;
 	}
 
@@ -134,67 +134,82 @@ public:
 		FreeListNode_t* currNode = m_pHead;
 		FreeListNode_t* prevNode = nullptr;
 
-		while (currNode != nullptr)
+		if (currNode == nullptr)
 		{
-			if (currNode->offset == offset)
+			// In this case, the entire block was allocated... return it all
+			// TODO: This logic is sloppy and possibly prone to memory leaks
+			// Clean up
+			m_pHead = new FreeListNode_t;
+			m_pHead->size = size;
+			m_pHead->offset = offset;
+			m_pHead->pNext = nullptr;
+
+			return true;
+		}
+		else
+		{
+			while (currNode != nullptr)
 			{
-				// Can just be appended to this node.
-				currNode->size += size;
-
-				// Check if this then connects the range between this and the next
-				// node, and if so, combine them and return the second node...
-				if (currNode->pNext && currNode->pNext->offset == currNode->offset + currNode->size)
+				if (currNode->offset == offset)
 				{
-					currNode->size += currNode->pNext->size;
-					FreeListNode_t* pNext = currNode->pNext;
-					currNode->pNext = currNode->pNext->pNext;
-					ReturnNode(pNext);
+					// Can just be appended to this node.
+					currNode->size += size;
+
+					// Check if this then connects the range between this and the next
+					// node, and if so, combine them and return the second node...
+					if (currNode->pNext && currNode->pNext->offset == currNode->offset + currNode->size)
+					{
+						currNode->size += currNode->pNext->size;
+						FreeListNode_t* pNext = currNode->pNext;
+						currNode->pNext = currNode->pNext->pNext;
+						ReturnNode(pNext);
+					}
+					return true;
 				}
-				return true;
+				else if (currNode->offset > offset)
+				{
+					// Iterated beyond the space to be freed. Need a new node.
+					FreeListNode_t* newNode = GetNode();
+					newNode->offset = offset;
+					newNode->size = size;
+
+					// If there is a previous node, the new node should be inserted between this and it.
+					if (prevNode)
+					{
+						prevNode->pNext = newNode;
+						newNode->pNext = currNode;
+					}
+					else
+					{
+						// Otherwise, the new node becomes the head.
+						newNode->pNext = currNode;
+						m_pHead = newNode;
+					}
+
+					// Double-check next node to see if it can be joined.
+					if (newNode->pNext && newNode->offset + newNode->size == newNode->pNext->offset)
+					{
+						newNode->size += newNode->pNext->size;
+						FreeListNode_t* rubbish = newNode->pNext;
+						newNode->pNext = rubbish->pNext;
+						ReturnNode(rubbish);
+					}
+
+					// Double-check previous node to see if it can be joined.
+					if (prevNode && prevNode->offset + prevNode->size == newNode->offset)
+					{
+						prevNode->size += newNode->size;
+						FreeListNode_t* rubbish = newNode;
+						prevNode->pNext = rubbish->pNext;
+						ReturnNode(rubbish);
+					}
+
+					return true;
+				}
+
+				prevNode = currNode;
+				currNode = currNode->pNext;
 			}
-			else if (currNode->offset > offset)
-			{
-				// Iterated beyond the space to be freed. Need a new node.
-				FreeListNode_t* newNode = GetNode();
-				newNode->offset = offset;
-				newNode->size = size;
-
-				// If there is a previous node, the new node should be inserted between this and it.
-				if (prevNode)
-				{
-					prevNode->pNext = newNode;
-					newNode->pNext = currNode;
-				}
-				else
-				{
-					// Otherwise, the new node becomes the head.
-					newNode->pNext = currNode;
-					m_pHead = newNode;
-				}
-
-				// Double-check next node to see if it can be joined.
-				if (newNode->pNext && newNode->offset + newNode->size == newNode->pNext->offset)
-				{
-					newNode->size += newNode->pNext->size;
-					FreeListNode_t* rubbish = newNode->pNext;
-					newNode->pNext = rubbish->pNext;
-					ReturnNode(rubbish);
-				}
-
-				// Double-check previous node to see if it can be joined.
-				if (prevNode && prevNode->offset + prevNode->size == newNode->offset)
-				{
-					prevNode->size += newNode->size;
-					FreeListNode_t* rubbish = newNode;
-					prevNode->pNext = rubbish->pNext;
-					ReturnNode(rubbish);
-				}
-
-				return true;
-			}
-
-			prevNode = currNode;
-			currNode = currNode->pNext;
 		}
 
 		LOG_WARN("CFreeList->Free(): Unable to find block to be freed. Corruption possible?");

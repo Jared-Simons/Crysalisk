@@ -15,6 +15,7 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"SET			",
 	"STRING			",
 	"LINEAR ALLOC		",
+	"DYNAMIC ALLOC		",
 	"ENGINE			",
 	"GAME			",
 	"RENDERER		"
