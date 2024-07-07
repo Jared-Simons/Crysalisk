@@ -28,11 +28,12 @@ const size_t ALLOC_BLOCK_HEADER_SIZE{ sizeof(MemoryBlockMetadata_t) };
 class DynamicAllocator
 {
 public:
-	DynamicAllocator(size_t allocatorSize)
+	DynamicAllocator(size_t allocatorSize, size_t alignment = 1)
 		: m_TotalSize{ allocatorSize }
 		, m_pMemory{ nullptr }
 		, m_FreeList{ allocatorSize }
 	{
+		// TODO: Replace with memory system.
 		m_pMemory = malloc(allocatorSize);
 		memset(m_pMemory, 0, allocatorSize);
 	}

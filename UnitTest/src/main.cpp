@@ -12,12 +12,14 @@
 #include <Containers/LinkedListTests.h>
 #include <Memory/LinearAllocatorTests.h>
 #include <Containers/FreeListTests.h>
+#include <Memory/DynamicAllocatorTests.h>
 
 bool PerformUnitTests()
 {
 	g_LinearAllocatorTests->PerformTests();
 	g_LinkedListTests->PerformTests();
 	g_FreeListTests->PerformTests();
+	g_DynamicAllocatorTests->PerformTests();
 	
 	return true;
 }
@@ -31,9 +33,12 @@ int main()
 	if (!Engine->Engine_Initialize(engineConfig))
 		return -1;
 
+	LOG_VERBOSE("\n\n\n\n\n");
+
 	PerformUnitTests();
 
-	gpMemorySystem->PrintMemoryStats();
+	//gpMemorySystem->PrintMemoryStats();
+	LOG_VERBOSE("\n\n\n\n\n");
 
 	Engine->Engine_Shutdown();
 
