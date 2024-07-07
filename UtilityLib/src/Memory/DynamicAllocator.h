@@ -34,6 +34,7 @@ public:
 		, m_FreeList{ allocatorSize }
 	{
 		m_pMemory = malloc(allocatorSize);
+		memset(m_pMemory, 0, allocatorSize);
 	}
 
 	~DynamicAllocator()
@@ -57,7 +58,8 @@ public:
 		{
 			// The start of the block will store the header data 
 			// Then will move forward by ALLOC_BLOCK_HEADER_SIZE bytes for the data section (which will be returned).
-			MemoryBlockMetadata_t* metaData = (MemoryBlockMetadata_t*)m_pMemory + offset;
+			void* blockHeader = (void*)((size_t)m_pMemory + offset);
+			MemoryBlockMetadata_t* metaData = (MemoryBlockMetadata_t*)blockHeader;
 
 			// TODO: Memory alignment
 			metaData->alignment = 1;
@@ -65,7 +67,7 @@ public:
 			metaData->size = size;
 
 			// Push the pointer forward.
-			memoryBlock = (uintptr_t*)m_pMemory + offset + ALLOC_BLOCK_HEADER_SIZE;
+			memoryBlock = (void*)((size_t)blockHeader + ALLOC_BLOCK_HEADER_SIZE);
 
 			return memoryBlock;
 		}
@@ -86,7 +88,7 @@ public:
 		}
 
 		// Retrieve the data from the block's header.
-		void* blockHeader = (uintptr_t*)pMemBlock - ALLOC_BLOCK_HEADER_SIZE;
+		void* blockHeader = (void*)((size_t)pMemBlock - ALLOC_BLOCK_HEADER_SIZE);
 		MemoryBlockMetadata_t* metaData = (MemoryBlockMetadata_t*)blockHeader;
 
 		m_FreeList.Free(metaData->size + ALLOC_BLOCK_HEADER_SIZE, metaData->offset);
