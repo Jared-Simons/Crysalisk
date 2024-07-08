@@ -33,7 +33,7 @@ public:
 	bool	MemorySystem_Initialize() override;
 	void	MemorySystem_Shutdown() override;
 
-	void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory) override;
+	void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) override;
 	void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) override;
 	void*	MemReallocate(void* memory, size_t newSize) override;
 	void*	MemCopy(void* dest, const void* source, size_t size) override;

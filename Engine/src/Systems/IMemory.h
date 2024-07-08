@@ -31,7 +31,7 @@ public:
 	virtual bool	MemorySystem_Initialize() = 0;
 	virtual void	MemorySystem_Shutdown() = 0;
 
-	virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory) = 0;
+	virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) = 0;
 	virtual void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) = 0;
 	virtual void*	MemReallocate(void* memory, size_t newSize) = 0;
 	virtual void*	MemCopy(void* dest, const void* source, size_t size) = 0;
