@@ -85,13 +85,26 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 1.0, 0.0)));
 	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(0.0, 0.0, 1.0)));
 
-	VkDeviceSize bufferSize = sizeof(vertices[0]) * 3;
+	CVector<unsigned short> indices((size_t)6);
+	indices.PushBack(0);
+	indices.PushBack(1);
+	indices.PushBack(2);
+	indices.PushBack(2);
+	indices.PushBack(3);
+	indices.PushBack(0);
 
-	if (!VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
+	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * 3;
+	VkDeviceSize indexBufferSize = sizeof(indices[0]) * 6;
+
+	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
+		return false;
+
+	if (!VulkanBuffer::CreateBuffer(this, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_IndexBuffer))
 		return false;
 
 	// Upload the data to the GPU
-	m_VertexBuffer.UploadDataToBuffer(this, bufferSize, vertices.data());
+	m_VertexBuffer.UploadDataToBuffer(this, vertexBufferSize, vertices.data());
+	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
 
 	// Fences
 	// one per frame
@@ -131,6 +144,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
 		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
 
+	VulkanBuffer::DestroyBuffer(this, &m_IndexBuffer);
 	VulkanBuffer::DestroyBuffer(this, &m_VertexBuffer);
 
 	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
@@ -213,6 +227,17 @@ bool CVulkanRenderer::RendererBackend_Update()
 		scissor.offset = { 0, 0 };
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
+
+		// If we are able to draw with indices, do so.
+		if (!m_IndexBuffer.m_Handle)
+		{
+			vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
+		}
+		else
+		{
+			vkCmdBindIndexBuffer(commandBuffer.m_Handle, m_IndexBuffer.m_Handle, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdDrawIndexed(commandBuffer.m_Handle, 6, 1, 0, 0, 0);
+		}
 
 		vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
 

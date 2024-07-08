@@ -382,6 +382,7 @@ public:
 
 	// Buffers
 	VulkanBuffer m_VertexBuffer;
+	VulkanBuffer m_IndexBuffer;
 
 	// Shaders
 	VulkanShader		m_StandardShader;
