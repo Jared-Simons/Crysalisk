@@ -9,6 +9,10 @@
 
 #include <String_Utils.h>
 
+// TODO: Move to texture manager or resource loader
+#define STB_IMAGE_IMPLEMENTATION
+#include <Vendor/stb_image.h>
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -106,6 +110,40 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	m_VertexBuffer.UploadDataToBuffer(this, vertexBufferSize, vertices.data());
 	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
 
+	// Image data
+	int texWidth, texHeight, texChannels;
+	char* filePath = "Assets/Textures/container.jpg";
+	unsigned char* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+	VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+	if (!pixels)
+	{
+		LOG_ERROR("Failed to load image '%s'.", filePath);
+	}
+	else
+	{
+		VulkanBuffer imageBuffer;
+		VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
+
+		void* data;
+		vkMapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
+			memcpy(data, pixels, (size_t)imageSize);
+		vkUnmapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory);
+
+		// Create Vulkan Resources for image
+		VulkanImage::CreateImage(this, texWidth, texHeight, 4, pixels, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
+
+		m_TextureImage.TransitionImageLayout(this, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		imageBuffer.CopyBufferToImage(this, texWidth, texHeight, &m_TextureImage);
+		m_TextureImage.TransitionImageLayout(this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		VulkanBuffer::DestroyBuffer(this, &imageBuffer);
+	}
+
+	stbi_image_free(pixels);
+
+	// TODO: END TEMP
+
 	// Fences
 	// one per frame
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
@@ -135,6 +173,10 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
 
+	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
+
+	VulkanImage::DestroyImage(this, &m_TextureImage);
+
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
@@ -158,8 +200,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	VulkanShader::DestroyVulkanShader(this, &m_StandardShader);
 
 	VulkanRenderpass::DestroyRenderpass(this, &m_MainRenderpass);
-
-	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
 
 	VulkanDevice::DestroyDevice(this, &m_Device);
 	

@@ -164,3 +164,40 @@ bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
 
 	return true;
 }
+
+bool VulkanCommandBuffer::BeginSingleUse(CVulkanRenderer* pRenderingContext, VkCommandPool* pCommandPool)
+{
+	VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandPool = *pCommandPool;
+	allocInfo.commandBufferCount = 1;
+
+	vkAllocateCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, &allocInfo, &m_Handle);
+
+	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	m_bIsPrimary = true;
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING;
+
+	vkBeginCommandBuffer(m_Handle, &beginInfo);
+	return true;
+}
+
+void VulkanCommandBuffer::EndSingleUse(CVulkanRenderer* pRenderingContext, VkCommandPool* pCommandPool)
+{
+	vkEndCommandBuffer(m_Handle);
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE;
+
+	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_Handle;
+
+	vkQueueSubmit(pRenderingContext->m_Device.m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+
+	vkQueueWaitIdle(pRenderingContext->m_Device.m_GraphicsQueue);
+
+	vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, *pCommandPool, 1, &m_Handle);
+	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+}

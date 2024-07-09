@@ -220,6 +220,9 @@ public:
 	void			Reset();
 	bool			Submit(CVulkanRenderer* pRenderingContext);
 
+	bool			BeginSingleUse(CVulkanRenderer* pRenderingContext, VkCommandPool* pCommandPool);
+	void			EndSingleUse(CVulkanRenderer* pRenderingContext, VkCommandPool* pCommandPool);
+
 public:
 	VkCommandBuffer				m_Handle{ VK_NULL_HANDLE };
 	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL };
@@ -291,9 +294,31 @@ public:
 
 	// TODO: Handle offsets and other data here
 	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data);
+	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, unsigned int width, unsigned int height, VulkanImage* pImage);
 
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
+// Vulkan Image
+// 
+//=================================
+class VulkanImage
+{
+public:
+	static bool		CreateImage(CVulkanRenderer* pRenderingContext, int width, int height, int numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
+	static void		DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* pImage);
+
+	bool			TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+	VkImage			m_Handle{ VK_NULL_HANDLE };
+	VkDeviceMemory	m_ImageMemory{ VK_NULL_HANDLE };
+	VkImageView		m_ImageView{ VK_NULL_HANDLE };
+
+	VkFormat		m_ImageFormat;
 };
 
 
@@ -383,6 +408,9 @@ public:
 	// Buffers
 	VulkanBuffer m_VertexBuffer;
 	VulkanBuffer m_IndexBuffer;
+
+	// Images
+	VulkanImage m_TextureImage;
 
 	// Shaders
 	VulkanShader		m_StandardShader;
