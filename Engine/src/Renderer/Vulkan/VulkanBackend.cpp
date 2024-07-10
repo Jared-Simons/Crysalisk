@@ -55,6 +55,25 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
+	// Descriptor set layouts
+	// TODO: Re-locate this
+	VkDescriptorSetLayoutBinding descriptorLayoutBinding[2];
+	descriptorLayoutBinding[1].binding = 1;
+	descriptorLayoutBinding[1].descriptorCount = 1;
+	descriptorLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorLayoutBinding[1].pImmutableSamplers = nullptr;
+	descriptorLayoutBinding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	descriptorSetLayoutInfo.bindingCount = 1;
+	descriptorSetLayoutInfo.pBindings = &descriptorLayoutBinding[1];
+
+	if (!VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_LogicalDevice, &descriptorSetLayoutInfo, m_Allocator, &m_DescriptorSetLayout)))
+	{
+		LOG_ERROR("Failed to create Vulkan descriptor set layout");
+		return false;
+	}
+
 	// Main shader
 	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
 		return false;
@@ -144,6 +163,29 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// TODO: END TEMP
 
+	// Descriptor pool
+	{
+		VkDescriptorPoolSize poolSizes[2];
+
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
+
+		VkDescriptorPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+		poolCreateInfo.poolSizeCount = 1;
+		poolCreateInfo.pPoolSizes = &poolSizes[1];
+		poolCreateInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
+
+		if (!VK_CHECK(vkCreateDescriptorPool(m_Device.m_LogicalDevice, &poolCreateInfo, m_Allocator, &m_DescriptorPool)))
+		{
+			LOG_ERROR("Failed to create Vulkan Descriptor Pool");
+			return false;
+		}
+	}
+
+	// Descriptor Sets
+	{
+	}
+
 	// Fences
 	// one per frame
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
@@ -176,6 +218,10 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
 
 	VulkanImage::DestroyImage(this, &m_TextureImage);
+
+	vkDestroyDescriptorPool(m_Device.m_LogicalDevice, m_DescriptorPool, m_Allocator);
+
+	vkDestroyDescriptorSetLayout(m_Device.m_LogicalDevice, m_DescriptorSetLayout, m_Allocator);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{

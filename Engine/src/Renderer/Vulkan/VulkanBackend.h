@@ -317,6 +317,7 @@ public:
 	VkImage			m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_ImageMemory{ VK_NULL_HANDLE };
 	VkImageView		m_ImageView{ VK_NULL_HANDLE };
+	VkSampler		m_ImageSampler{ VK_NULL_HANDLE };
 
 	VkFormat		m_ImageFormat;
 };
@@ -414,6 +415,10 @@ public:
 
 	// Shaders
 	VulkanShader		m_StandardShader;
+
+	VkDescriptorSetLayout	m_DescriptorSetLayout;
+	VkDescriptorPool		m_DescriptorPool;
+	VkDescriptorSet			m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // TODO: Make dynamic?
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

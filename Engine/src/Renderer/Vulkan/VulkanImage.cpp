@@ -51,11 +51,65 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, int width, int
 	// TODO: Bind on create parameter?
 	vkBindImageMemory(pRenderingContext->m_Device.m_LogicalDevice, pOutImage->m_Handle, pOutImage->m_ImageMemory, 0);
 
+	// Create Image View
+	if (bCreateView)
+	{
+		VkImageViewCreateInfo viewCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+		viewCreateInfo.image = pOutImage->m_Handle;
+		viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D; // TODO: Make configurable
+		viewCreateInfo.format = pOutImage->m_ImageFormat;
+		viewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		viewCreateInfo.subresourceRange.baseMipLevel = 0;
+		viewCreateInfo.subresourceRange.levelCount = 1;
+		viewCreateInfo.subresourceRange.baseArrayLayer = 0;
+		viewCreateInfo.subresourceRange.layerCount = 1;
+
+		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.m_LogicalDevice, &viewCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageView)))
+		{
+			LOG_ERROR("Failed to create Vulkan Image View");
+			return false;
+		}
+	}
+
+	// Create sampler
+	{
+		// TODO: Configurable parameters
+		VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+		samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreateInfo.anisotropyEnable = VK_TRUE;
+		samplerCreateInfo.maxAnisotropy = pRenderingContext->m_Device.m_PhysicalDeviceProperties.limits.maxSamplerAnisotropy;
+		samplerCreateInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerCreateInfo.compareEnable = VK_FALSE;
+		samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+		if (!VK_CHECK(vkCreateSampler(pRenderingContext->m_Device.m_LogicalDevice, &samplerCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageSampler)))
+		{
+			LOG_ERROR("Failed to create Vulkan Image Sampler");
+			return false;
+		}
+	}
+
 	return true;
 }
 
 void VulkanImage::DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* pImage)
 {
+	if (pImage->m_ImageSampler)
+	{
+		vkDestroySampler(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_ImageSampler, pRenderingContext->m_Allocator);
+	}
+
+	if (pImage->m_ImageView)
+	{
+		vkDestroyImageView(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_ImageView, pRenderingContext->m_Allocator);
+	}
+
 	if (pImage)
 	{
 		vkDestroyImage(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_Handle, pRenderingContext->m_Allocator);

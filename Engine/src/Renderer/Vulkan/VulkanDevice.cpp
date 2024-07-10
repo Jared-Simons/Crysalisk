@@ -56,10 +56,12 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 	{
 		VkPhysicalDevice* currDevice = &devices[i];
 		VkPhysicalDeviceProperties properties;
+		VkPhysicalDeviceFeatures features;
 		
 		vkGetPhysicalDeviceProperties(*currDevice, &properties);
+		vkGetPhysicalDeviceFeatures(*currDevice, &features);
 
-		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && QueryDeviceExtensionSupport(*currDevice))
+		if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && QueryDeviceExtensionSupport(*currDevice) && features.samplerAnisotropy)
 		{
 			pDevice = currDevice;
 			break;
