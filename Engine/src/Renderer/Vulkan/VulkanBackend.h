@@ -8,7 +8,10 @@
 
 #include "Renderer/IRendererBackend.h"
 #include "EngineGlobals.h"
+
 #include <Containers/CVector.h>
+#include <Math/MatrixTypes.h>
+#include <Math/VectorTypes.h>
 
 #include <vulkan/vulkan.h>
 
@@ -355,6 +358,21 @@ private:
 
 //=================================
 // 
+// Uniform Buffer
+// 
+//=================================
+struct UniformBufferObject
+{
+	UniformBufferObject() {}
+
+	Matrix4x4 model;
+	Matrix4x4 view;
+	Matrix4x4 projection;
+};
+
+
+//=================================
+// 
 // Vulkan Rendering Context
 // 
 //=================================
@@ -419,6 +437,8 @@ public:
 	VkDescriptorSetLayout	m_DescriptorSetLayout;
 	VkDescriptorPool		m_DescriptorPool;
 	VkDescriptorSet			m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // TODO: Make dynamic?
+	CVector<VulkanBuffer>	m_UniformBuffers;
+	CVector<void*>			m_UniformBuffersMappedMemory;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};

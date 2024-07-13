@@ -68,3 +68,58 @@ public:
 
 };
 
+class Matrix4x4
+{
+public:
+	float r1[4];
+	float r2[4];
+	float r3[4];
+	float r4[4];
+
+	Matrix4x4()
+	{
+		r1[0] = 0;
+		r1[1] = 0;
+		r1[2] = 0;
+		r1[3] = 0;
+
+		r2[0] = 0;
+		r2[1] = 0;
+		r2[2] = 0;
+		r2[3] = 0;
+
+		r3[0] = 0;
+		r3[1] = 0;
+		r3[2] = 0;
+		r3[3] = 0;
+
+		r4[0] = 0;
+		r4[1] = 0;
+		r4[2] = 0;
+		r4[3] = 0;
+	}
+
+	Matrix4x4(float initalValue)
+	{
+		r1[0] = initalValue;
+		r1[1] = 0;
+		r1[2] = 0;
+		r1[3] = 0;
+
+		r2[0] = 0;
+		r2[1] = initalValue;
+		r2[2] = 0;
+		r2[3] = 0;
+
+		r3[0] = 0;
+		r3[1] = 0;
+		r3[2] = initalValue;
+		r3[3] = 0;
+
+		r4[0] = 0;
+		r4[1] = 0;
+		r4[2] = 0;
+		r4[3] = initalValue;
+	}
+};
+
