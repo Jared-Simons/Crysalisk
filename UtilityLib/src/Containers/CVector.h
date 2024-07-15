@@ -144,9 +144,9 @@ public:
 			m_Count = newCapacity;
 
 		m_Capacity = newCapacity;
-		int newIndex = newCapacity - m_Count;
+		int newIndex = static_cast<int>(newCapacity - m_Count);
 
-		for (int i = m_Capacity - newIndex; i < newCapacity; i++)
+		for (int i = (int)m_Capacity - newIndex; i < newCapacity; i++)
 		{
 			if (m_Data != nullptr)
 			{

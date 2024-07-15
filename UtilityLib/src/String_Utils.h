@@ -9,6 +9,7 @@
 // TODO: Does this need to be included here? Would much rather have this in the .cpp file...
 #include <stdarg.h>
 
+size_t StringLength(const char* str);
 
 void StringFormat(const char* format, const char* str1, const char* str2, char* outString);
 

@@ -21,7 +21,7 @@ public:
 	bool			CloseFile(FileHandle_t* fileHandle) override;
 	size_t			FileSize(FileHandle_t* fileHandle) override;
 
-	bool 			ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
+	bool 			ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
 	bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
 
 	bool			ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
@@ -120,7 +120,7 @@ size_t CFileSystem::FileSize(FileHandle_t* fileHandle)
 	return fileSize;
 }
 
-bool CFileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool CFileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{

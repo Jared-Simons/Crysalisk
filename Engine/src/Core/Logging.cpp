@@ -114,6 +114,7 @@ Logger* LogSystem::GetLoggerByIndex(int index) const
 			return nullptr;
 		}
 	}
+	return nullptr;
 }
 
 // Global logging interface

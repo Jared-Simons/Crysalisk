@@ -155,10 +155,10 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 	CVector<const char*> requiredExtensions = *m_DeviceExtensions;
 
-	int extensionsToQuery = requiredExtensions.size();
+	int extensionsToQuery = static_cast<int>(requiredExtensions.size());
 	for (int i = 0; i < requiredExtensions.size(); i++)
 	{
-		for (int j = 0; j < deviceExtensionCount; j++)
+		for (unsigned int j = 0; j < deviceExtensionCount; j++)
 		{
 			if (StringCompare(availableDeviceExtensions[j].extensionName, requiredExtensions[i]) == true)
 			{
@@ -200,9 +200,9 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 	}
 
 	VkDeviceCreateInfo deviceCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
+	deviceCreateInfo.queueCreateInfoCount = static_cast<unsigned int>(queueCreateInfos.size());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.enabledExtensionCount = m_DeviceExtensions->size();
+	deviceCreateInfo.enabledExtensionCount = static_cast<unsigned int>(m_DeviceExtensions->size());
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions->data();
 	deviceCreateInfo.enabledLayerCount = 0;
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;
@@ -224,7 +224,7 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 	return true;
 }
 
-void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails)
+void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails) const
 {
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &pOutDetails->surfaceCapabilities);
 
@@ -240,12 +240,12 @@ void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingConte
 
 }
 
-unsigned int VulkanDevice::FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties)
+unsigned int VulkanDevice::FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties) const
 {
 	VkPhysicalDeviceMemoryProperties deviceMemProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &deviceMemProperties);
 
-	for (int i = 0; i < deviceMemProperties.memoryTypeCount; i++)
+	for (unsigned int i = 0; i < deviceMemProperties.memoryTypeCount; i++)
 	{
 		if ((typeFilter & (1 << i)) && (deviceMemProperties.memoryTypes[i].propertyFlags & properties) == properties)
 		{

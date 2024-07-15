@@ -31,7 +31,7 @@ public:
 	virtual bool			CloseFile(FileHandle_t* fileHandle) = 0;
 	virtual size_t			FileSize(FileHandle_t* fileHandle) = 0;
 
-	virtual bool 			ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
+	virtual bool 			ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
 	virtual bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
 	virtual bool			ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) = 0;
 	/*

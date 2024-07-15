@@ -57,7 +57,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Descriptor set layouts
 	// TODO: Re-locate this
-	VkDescriptorSetLayoutBinding descriptorLayoutBinding[2];
+	VkDescriptorSetLayoutBinding descriptorLayoutBinding[2]{};
 	descriptorLayoutBinding[1].binding = 1;
 	descriptorLayoutBinding[1].descriptorCount = 1;
 	descriptorLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -133,7 +133,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	int texWidth, texHeight, texChannels;
 	char* filePath = "Assets/Textures/container.jpg";
 	unsigned char* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = texWidth * texHeight * 4;
+	VkDeviceSize imageSize = (size_t)texWidth * (size_t)texHeight * 4;
 
 	if (!pixels)
 	{
@@ -165,7 +165,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Descriptor pool
 	{
-		VkDescriptorPoolSize poolSizes[2];
+		VkDescriptorPoolSize poolSizes[2]{};
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
@@ -303,8 +303,8 @@ bool CVulkanRenderer::RendererBackend_Update()
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = m_Swapchain.m_SwapchainExtent.width;
-		viewport.height = m_Swapchain.m_SwapchainExtent.height;
+		viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
+		viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer.m_Handle, 0, 1, &viewport);
@@ -370,8 +370,8 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		return false;
 	}
 
-	instanceInfo.enabledExtensionCount = requiredExtensions.size();
-	instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
+	instanceInfo.enabledExtensionCount = static_cast<unsigned int>(requiredExtensions.size());
+	instanceInfo.ppEnabledExtensionNames = static_cast<const char**>(requiredExtensions.data());
 
 	// Validation Layers
 	if (EnableValidationLayers())
@@ -385,8 +385,8 @@ bool CVulkanRenderer::CreateVulkanInstance()
 			return false;
 		}
 
-		instanceInfo.enabledLayerCount = m_ValidationLayers->size();
-		instanceInfo.ppEnabledLayerNames = m_ValidationLayers->data();
+		instanceInfo.enabledLayerCount = static_cast<unsigned int>(m_ValidationLayers->size());
+		instanceInfo.ppEnabledLayerNames = static_cast<const char**>(m_ValidationLayers->data());
 	}
 	else
 	{

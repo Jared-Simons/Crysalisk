@@ -28,7 +28,7 @@ project "Engine"
 
 	disablewarnings
 	{
-		C4302	---'type-cast' truncation (primary for void* casts).
+		C4302	---'type-cast' truncation (primary for void* casts)
 	}
 	
 	includedirs

@@ -48,7 +48,7 @@ public:
 		y = y / scalar;
 	}
 
-	Vector2D operator+(const Vector2D& const otherVector)
+	Vector2D operator+(Vector2D& otherVector)
 	{
 		Vector2D outVector{};
 		outVector.x = x + otherVector.x;
@@ -56,7 +56,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator-(const Vector2D& const otherVector)
+	Vector2D operator-(Vector2D& otherVector)
 	{
 		Vector2D outVector{};
 		outVector.x = x - otherVector.x;
@@ -64,7 +64,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator*(const Vector2D& const otherVector)
+	Vector2D operator*(Vector2D& otherVector)
 	{
 		Vector2D outVector{};
 		outVector.x = x * otherVector.x;
@@ -72,7 +72,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator/(const Vector2D& const otherVector)
+	Vector2D operator/(Vector2D& otherVector)
 	{
 		Vector2D outVector{};
 		outVector.x = x / otherVector.x;
@@ -80,7 +80,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D Negate()
+	Vector2D Negate() const
 	{
 		Vector2D outVector{};
 		outVector.x = -x;
@@ -94,12 +94,12 @@ public:
 		y = -y;
 	}
 
-	float Length()
+	float Length() const
 	{
 		return sqrt((x * x) + (y * y));
 	}
 
-	Vector2D Normalize()
+	Vector2D Normalize() const
 	{
 		Vector2D outVector{};
 		float length = Length();
@@ -170,7 +170,7 @@ public:
 		z = z / scalar;
 	}
 
-	Vector3D operator+(const Vector3D& const otherVector)
+	Vector3D operator+(Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x + otherVector.x;
@@ -179,7 +179,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator-(const Vector3D& const otherVector)
+	Vector3D operator-(Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x - otherVector.x;
@@ -188,7 +188,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator*(const Vector3D& const otherVector)
+	Vector3D operator*(Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x * otherVector.x;
@@ -197,7 +197,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator/(const Vector3D& const otherVector)
+	Vector3D operator/(Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x / otherVector.x;
@@ -206,7 +206,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D Negate()
+	Vector3D Negate() const
 	{
 		Vector3D outVector{};
 		outVector.x = -x;
@@ -222,12 +222,12 @@ public:
 		z = -z;
 	}
 
-	float Length()
+	float Length() const
 	{
 		return sqrt((x * x) + (y * y) + (z * z));
 	}
 
-	Vector3D Normalize()
+	Vector3D Normalize() const
 	{
 		Vector3D outVector{};
 		float length = Length();
@@ -315,7 +315,7 @@ public:
 		w = w / scalar;
 	}
 
-	Vector4D operator+(const Vector4D& const otherVector)
+	Vector4D operator+( Vector4D& otherVector)
 	{
 		Vector4D outVector{};
 		outVector.x = x + otherVector.x;
@@ -325,7 +325,7 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator-(const Vector4D& const otherVector)
+	Vector4D operator-(Vector4D& otherVector)
 	{
 		Vector4D outVector{};
 		outVector.x = x - otherVector.x;
@@ -335,7 +335,7 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator*(const Vector4D& const otherVector)
+	Vector4D operator*(Vector4D& otherVector)
 	{
 		Vector4D outVector{};
 		outVector.x = x * otherVector.x;
@@ -345,7 +345,7 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator/(const Vector4D& const otherVector)
+	Vector4D operator/(Vector4D& otherVector)
 	{
 		Vector4D outVector{};
 		outVector.x = x / otherVector.x;
@@ -355,7 +355,7 @@ public:
 		return outVector;
 	}
 
-	Vector4D Negate()
+	Vector4D Negate() const
 	{
 		Vector4D outVector{};
 		outVector.x = -x;
@@ -373,12 +373,12 @@ public:
 		w = -w;
 	}
 
-	float Length()
+	float Length() const
 	{
 		return sqrt((x * x) + (y * y) + (z * z) + (w * w));
 	}
 
-	Vector4D Normalize()
+	Vector4D Normalize() const
 	{
 		Vector4D outVector{};
 		float length = Length();

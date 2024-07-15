@@ -88,10 +88,10 @@ bool CreateWin32Window(LinearAllocator* pAllocator)
 	unsigned int windowExStyle = WS_EX_APPWINDOW;
 
 	// Do some fixup on the window dimensions to account for the window border.
-	size_t windowX = 100;
-	size_t windowY = 100;
-	size_t windowWidth = 1080;
-	size_t windowHeight = 720;
+	int windowX = 100;
+	int windowY = 100;
+	int windowWidth = 1080;
+	int windowHeight = 720;
 
 	RECT borderRect = { 0 };
 	AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
@@ -233,7 +233,7 @@ void Platform_LogMessage(int level, const char* message)
 	static char levelColor[6] = { 8, 3, 5, 6, 4, 64 };	// Borrowed from Kohi
 	SetConsoleTextAttribute(outputHandle, levelColor[level]);
 	size_t length = strlen(message);
-	WriteConsoleA(outputHandle, message, length, 0, 0);
+	WriteConsoleA(outputHandle, message, (DWORD)length, 0, 0);
 	// Clear the console back to light gray after printing the message
 	SetConsoleTextAttribute(outputHandle, 15);
 }

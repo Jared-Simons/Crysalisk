@@ -226,7 +226,9 @@ public:
 				m_pNodes[i].offset = 0;
 				return &m_pNodes[i];
 			}
+			return nullptr;
 		}
+		return nullptr;
 	}
 
 	// Small utility method to prepare a node to be pulled from the list

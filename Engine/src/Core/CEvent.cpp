@@ -35,6 +35,11 @@ public:
 		}
 	}
 
+	// NOTE: This does nothing and just exists to clear a compiler warning, 
+	// the memory was allocated and will be freed when the linear allocator gets cleared.
+	// If the creation of this system fails, the engine will shutdown regardless.
+	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
+
 	bool	Initialize() override;
 	void	Shutdown() override;
 

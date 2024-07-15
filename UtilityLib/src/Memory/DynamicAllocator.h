@@ -35,7 +35,8 @@ public:
 	{
 		// TODO: Replace with memory system.
 		m_pMemory = malloc(allocatorSize);
-		memset(m_pMemory, 0, allocatorSize);
+		if (m_pMemory)
+			memset(m_pMemory, 0, allocatorSize);
 	}
 
 	~DynamicAllocator()

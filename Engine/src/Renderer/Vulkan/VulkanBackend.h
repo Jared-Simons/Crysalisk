@@ -69,7 +69,7 @@ struct DeviceQueueFamilyInfo_t
 	}
 
 	bool IsConceptOccupied(unsigned char* queueIndex) { return *queueIndex != INVALID_ID_U8; }
-	bool IsIndexOccupied(unsigned char index)
+	bool IsIndexOccupied(unsigned char index) const
 	{
 		return (GraphicsQueueIndex == index) || (ComputeQueueIndex == index) || 
 			(TransferQueueIndex == index) || (PresentQueueIndex == index);
@@ -101,9 +101,9 @@ public:
 	static bool CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice);
 	static void DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice);
 
-	unsigned int	FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties);
+	unsigned int	FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties) const;
 	
-	void		QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails);
+	void		QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails) const;
 
 private:
 	bool		SelectPhysicalDevice(CVulkanRenderer* pRenderingContext);
@@ -322,7 +322,7 @@ public:
 	VkImageView		m_ImageView{ VK_NULL_HANDLE };
 	VkSampler		m_ImageSampler{ VK_NULL_HANDLE };
 
-	VkFormat		m_ImageFormat;
+	VkFormat		m_ImageFormat{ VK_FORMAT_UNDEFINED };
 };
 
 
@@ -345,7 +345,7 @@ public:
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer);
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer) const;
 
 private:
 	VkShaderModule		m_VertModule;
@@ -434,9 +434,9 @@ public:
 	// Shaders
 	VulkanShader		m_StandardShader;
 
-	VkDescriptorSetLayout	m_DescriptorSetLayout;
-	VkDescriptorPool		m_DescriptorPool;
-	VkDescriptorSet			m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // TODO: Make dynamic?
+	VkDescriptorSetLayout	m_DescriptorSetLayout{ VK_NULL_HANDLE };
+	VkDescriptorPool		m_DescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSet			m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]{ VK_NULL_HANDLE }; // TODO: Make dynamic?
 	CVector<VulkanBuffer>	m_UniformBuffers;
 	CVector<void*>			m_UniformBuffersMappedMemory;
 

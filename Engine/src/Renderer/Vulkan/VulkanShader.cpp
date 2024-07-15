@@ -141,7 +141,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
 	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
 
-	VkVertexInputAttributeDescription attributeDescriptions[2];
+	VkVertexInputAttributeDescription attributeDescriptions[2]{};
 
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
@@ -161,7 +161,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	vertexAssemblyCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
 	// Viewport
-	VkViewport viewport;
+	VkViewport viewport{};
 	viewport.x = 0;
 	viewport.y = 0;
 	viewport.width = (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.width;
@@ -169,7 +169,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
-	VkRect2D scissor;
+	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
 	scissor.extent = pRenderingContext->m_Swapchain.m_SwapchainExtent;
 
@@ -197,7 +197,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	// TODO: Depth/Stencil testing
 
 	// Color blending
-	VkPipelineColorBlendAttachmentState colorBlendAttachment;
+	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
 	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -222,7 +222,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
 
 	VkPipelineDynamicStateCreateInfo dynamicState{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-	dynamicState.dynamicStateCount = dynamicStates.size();
+	dynamicState.dynamicStateCount = static_cast<unsigned int>(dynamicStates.size());
 	dynamicState.pDynamicStates = dynamicStates.data();
 
 	// Pipeline Layout
@@ -258,7 +258,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	return true;
 }
 
-bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer)
+bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer) const
 {
 	vkCmdBindPipeline(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
