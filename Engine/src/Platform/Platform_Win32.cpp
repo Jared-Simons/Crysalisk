@@ -264,7 +264,8 @@ LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case WM_DESTROY:
-		PostQuitMessage(0);
+		// TODO: Change this to only affect the main window if and when we have multiple windows going.
+		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, EventData_t());
 		return 0;
 		break;
 
