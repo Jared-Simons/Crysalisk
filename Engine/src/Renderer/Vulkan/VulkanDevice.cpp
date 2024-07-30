@@ -45,16 +45,15 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 {
 	unsigned int deviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, nullptr);
-	CVector<VkPhysicalDevice> devices(deviceCount, true);
-	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, devices.data());
-
+	VkPhysicalDevice physicalDeviceCandidates[32];
+	VkResult result = vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, physicalDeviceCandidates);
 
 	VkPhysicalDevice* pDevice = nullptr;
 
 	// Select the first device that is a discrete GPU
-	for (unsigned int i = 0; i < devices.size(); i++)
+	for (unsigned int i = 0; i < deviceCount; i++)
 	{
-		VkPhysicalDevice* currDevice = &devices[i];
+		VkPhysicalDevice* currDevice = &physicalDeviceCandidates[i];
 		VkPhysicalDeviceProperties properties;
 		VkPhysicalDeviceFeatures features;
 		
@@ -100,10 +99,10 @@ bool VulkanDevice::QueryDeviceQueueFamilyProperties(CVulkanRenderer* pRenderingC
 
 	unsigned int queueFamilyPropertyCount{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
-	CVector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyPropertyCount, true);
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties.data());
+	VkQueueFamilyProperties queueFamilyProperties[32];
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties);
 
-	for (unsigned int i = 0; i < queueFamilyProperties.size(); i++)
+	for (unsigned int i = 0; i < queueFamilyPropertyCount; i++)
 	{
 		// Look for a graphics queue.
 		if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
