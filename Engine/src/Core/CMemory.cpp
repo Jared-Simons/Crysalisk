@@ -35,7 +35,7 @@ public:
 	void	MemorySystem_Shutdown() override;
 
 	inline void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) override;
-	inline void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) override;
+	inline void		MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) override;
 	inline void*	MemReallocate(void* memory, size_t newSize) override;
 	inline void*	MemCopy(void* dest, const void* source, size_t size) override;
 	inline void*	MemSet(void* memory, int value, size_t size) override;
