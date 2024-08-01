@@ -20,18 +20,18 @@ class CListNode
 public:
 	CListNode()
 		: m_pNext{ nullptr }
-		, m_Data{} {}
+		, m_pData{} {}
 
 	CListNode(T val)
 		: m_pNext{ nullptr }
-		, m_Data{ val } {}
+		, m_pData{ val } {}
 
 	CListNode(CListNode& otherNode)
 		: m_pNext{ otherNode.m_pNext }
-		, m_Data{ otherNode.m_Data } {}
+		, m_pData{ otherNode.m_pData } {}
 
 	CListNode* m_pNext;
-	T m_Data;
+	T m_pData;
 };
 
 template<typename T>
@@ -159,13 +159,13 @@ public:
 		for (int i = 0; i < index; i++)
 			currentNode = currentNode->m_pNext;
 
-		return currentNode->m_Data;
+		return currentNode->m_pData;
 	}
 
 	T Front()
 	{
 		if (m_pHead)
-			return m_pHead->m_Data;
+			return m_pHead->m_pData;
 
 		LOG_ERROR("CList->Front() - Attempting to access data that does not exist, returning -1");
 		return -1;
@@ -177,7 +177,7 @@ public:
 		while (currentNode->m_pNext != nullptr)
 			currentNode = currentNode->m_pNext;
 
-		return currentNode->m_Data;
+		return currentNode->m_pData;
 	}
 
 	void PushFront(T val)
@@ -210,7 +210,7 @@ public:
 		CListNode<T>* poppedNode = m_pHead;
 
 		m_pHead = poppedNode->m_pNext;
-		T poppedValue = poppedNode->m_Data;
+		T poppedValue = poppedNode->m_pData;
 		delete(poppedNode);
 
 		m_Size--;
@@ -225,7 +225,7 @@ public:
 		while (m_Size != 1 && newLastNode->m_pNext->m_pNext != nullptr)
 			newLastNode = newLastNode->m_pNext;
 
-		T poppedValue = newLastNode->m_pNext->m_Data;
+		T poppedValue = newLastNode->m_pNext->m_pData;
 
 		delete newLastNode->m_pNext;
 		newLastNode->m_pNext = nullptr;
@@ -257,7 +257,7 @@ public:
 		{
 			CListNode<T>* newNode = new CListNode<T>;
 			newElement->m_pNext = newNode;
-			newNode->m_Data = element;
+			newNode->m_pData = element;
 			newElement = newNode;
 			m_Size++;
 			elementsAdded++;
@@ -267,7 +267,7 @@ public:
 		newElement->m_pNext = linkToBeAdjusted;
 
 		m_Size++;
-		return newPosIndexSub1->m_pNext->m_Data;
+		return newPosIndexSub1->m_pNext->m_pData;
 	}
 
 	size_t GetSize() const { return m_Size; }

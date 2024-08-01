@@ -28,7 +28,7 @@ public:
 		, m_Capacity{ 0 }
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
-		, m_Data{ nullptr } {}
+		, m_pData{ nullptr } {}
 
 	CVector(size_t capacity) 
 		: m_Count{ 0 }
@@ -36,10 +36,10 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		
-		if (m_Data)
-			memset(m_Data, 0, sizeof(T) * capacity);
+		if (m_pData)
+			memset(m_pData, 0, sizeof(T) * capacity);
 	}
 
 	CVector(T firstIndex)
@@ -48,11 +48,11 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		
-		if (m_Data != nullptr)
+		if (m_pData != nullptr)
 		{
-			m_Data[0] = firstIndex;
+			m_pData[0] = firstIndex;
 		}
 	}
 
@@ -62,12 +62,12 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
-		if (m_Data != nullptr)
+		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		if (m_pData != nullptr)
 		{
 			for (int i = 0; i < capacity; i++)
 			{
-				m_Data[i] = initialValue;
+				m_pData[i] = initialValue;
 			}
 		}
 	}
@@ -78,38 +78,38 @@ public:
 		, m_Stride{ otherVector.m_Stride }
 		, m_ResizeFactor{ otherVector.m_ResizeFactor }
 	{
-		m_Data = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
-		if (m_Data != nullptr)
-			memcpy(m_Data, otherVector.m_Data, m_Capacity * m_Stride);
+		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		if (m_pData != nullptr)
+			memcpy(m_pData, otherVector.m_pData, m_Capacity * m_Stride);
 	}
 
 	virtual ~CVector()
 	{
-		gpMemorySystem->MemFree(m_Data, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+		gpMemorySystem->MemFree(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 	}
 
 	T& operator[] (int index)
 	{
-		return m_Data[index];
+		return m_pData[index];
 	}
 
 	void Resize(size_t newCapacity)
 	{
-		if (m_Data != nullptr)
+		if (m_pData != nullptr)
 		{
-			T* oldData = m_Data;
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			T* oldData = m_pData;
+			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 
-			if (m_Data != nullptr)
+			if (m_pData != nullptr)
 			{
-				memcpy(m_Data, oldData, m_Stride * newCapacity);
+				memcpy(m_pData, oldData, m_Stride * newCapacity);
 			}
 
 			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 
 
@@ -119,22 +119,22 @@ public:
 
 	void Resize(size_t newCapacity, T newValue)
 	{
-		if (m_Data != nullptr)
+		if (m_pData != nullptr)
 		{
-			T* oldData = m_Data;
+			T* oldData = m_pData;
 
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 			
-			if (m_Data != nullptr)
+			if (m_pData != nullptr)
 			{
-				memcpy(m_Data, oldData, m_Stride * newCapacity);
+				memcpy(m_pData, oldData, m_Stride * newCapacity);
 			}
 
 			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_Data = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 
 		if (newCapacity < (int)m_Capacity)
@@ -145,26 +145,26 @@ public:
 
 		for (int i = (int)m_Capacity - newIndex; i < newCapacity; i++)
 		{
-			if (m_Data != nullptr)
+			if (m_pData != nullptr)
 			{
-				m_Data[i] = newValue;
+				m_pData[i] = newValue;
 			}
 		}
 	}
 
 	T& Begin()
 	{
-		return m_Data[0];
+		return m_pData[0];
 	}
 
 	T& End()
 	{
-		return m_Data[m_Capacity - 1];
+		return m_pData[m_Capacity - 1];
 	}
 
 	bool Empty()
 	{
-		return (m_Count == 0) && (m_Capacity == 0) && (m_Data == nullptr);
+		return (m_Count == 0) && (m_Capacity == 0) && (m_pData == nullptr);
 	}
 
 	void PushBack(T val)
@@ -172,9 +172,9 @@ public:
 		if (m_Count + 1 > m_Capacity)
 		{
 			// Need to resize the vector to make space!
-			T* oldData = m_Data;
+			T* oldData = m_pData;
 
-			if (m_Data != nullptr)
+			if (m_pData != nullptr)
 			{
 				Resize(m_Capacity + 1, val);
 			}
@@ -185,24 +185,24 @@ public:
 		}
 		m_Count++;
 
-		if (m_Data != nullptr)
+		if (m_pData != nullptr)
 		{
-			m_Data[m_Count - 1] = val;
+			m_pData[m_Count - 1] = val;
 		}
 	}
 
 	T PopBack()
 	{
-		T value = m_Data[m_Count - 1];
-		m_Data[m_Count - 1] = -1;
+		T value = m_pData[m_Count - 1];
+		m_pData[m_Count - 1] = -1;
 		return value;
 	}
 
 	void Insert(size_t position, T value)
 	{
-		if (m_Data[position])
+		if (m_pData[position])
 		{
-			m_Data[position] = value;
+			m_pData[position] = value;
 		}
 	}
 
@@ -212,7 +212,7 @@ public:
 	size_t			capacity() const { return m_Capacity; }
 	size_t			stride() const { return m_Stride; }
 	unsigned int	GetResizeFactor() const { retur m_ResizeFactor; }
-	T*				data() { return m_Data; }
+	T*				data() { return m_pData; }
 
 private:
 	/* The current number of elements in the array (not necessarily the capacity) */
@@ -228,5 +228,5 @@ private:
 	unsigned int m_ResizeFactor;
 
 	/* The data included in the array, can be accessed with the [] operators */
-	T* m_Data;
+	T* m_pData;
 };
