@@ -14,6 +14,7 @@ enum class eMemAllocCategories
 	MEM_CATEGORY_ARRAY,
 	MEM_CATEGORY_CVECTOR,
 	MEM_CATEGORY_LIST,
+	MEM_CATEGORY_QUEUE,
 	MEM_CATEGORY_SET,
 	MEM_CATEGORY_STRING,
 	MEM_CATEGORY_LINEAR_ALLOC,
@@ -31,11 +32,11 @@ public:
 	virtual bool	MemorySystem_Initialize() = 0;
 	virtual void	MemorySystem_Shutdown() = 0;
 
-	virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) = 0;
-	virtual void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) = 0;
-	virtual void*	MemReallocate(void* memory, size_t newSize) = 0;
-	virtual void*	MemCopy(void* dest, const void* source, size_t size) = 0;
-	virtual void*	MemSet(void* memory, int value, size_t size) = 0;
+	inline virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) = 0;
+	inline virtual void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) = 0;
+	inline virtual void*	MemReallocate(void* memory, size_t newSize) = 0;
+	inline virtual void*	MemCopy(void* dest, const void* source, size_t size) = 0;
+	inline virtual void*	MemSet(void* memory, int value, size_t size) = 0;
 
 	virtual void	PrintMemoryStats() = 0;
 };
