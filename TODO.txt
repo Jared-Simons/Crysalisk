@@ -4,6 +4,9 @@ Features to be developed:
 - Implement Geometry System
 - Implement some form of camera system
 
+- Create an engine subsystem base class? (And add systems to a systems manager?)
+   - Also investigate subsystem creation, possibly cleanup system factory functions.
+
 - Experiment with build system, just to learn something (is Premake really the best for us now?)
 
 Chores:
@@ -23,5 +26,3 @@ Chores:
 
 - Wrap the platform layer up into a namespace.
 	- Also need a way to log messages without the 'log level' label placed before the message (Possibly expose here?)
-	
-Current issues with the codebase:
