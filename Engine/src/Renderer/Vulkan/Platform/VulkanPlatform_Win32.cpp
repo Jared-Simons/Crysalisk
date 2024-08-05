@@ -7,14 +7,14 @@
 
 namespace Platform {
 
-	const char* Platform_GetVulkanExtensions()
+	const char* GetVulkanExtensions()
 	{
 		return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
 	}
 
-	bool Platform_CreateVulkanSurface(CVulkanRenderer* pRenderingContext)
+	bool CreateVulkanSurface(CVulkanRenderer* pRenderingContext)
 	{
-		VkWin32SurfaceCreateInfoKHR createInfo = Platform::Platform_GetVulkanSurface();
+		VkWin32SurfaceCreateInfoKHR createInfo = Platform::GetVulkanSurface();
 
 		if (!VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext->m_Instance, &createInfo, pRenderingContext->m_Allocator, &pRenderingContext->m_Surface)))
 		{

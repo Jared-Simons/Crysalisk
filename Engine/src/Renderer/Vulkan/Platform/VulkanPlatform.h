@@ -12,11 +12,11 @@
 class CVulkanRenderer;
 
 namespace Platform {
-	const char* Platform_GetVulkanExtensions();
+	const char* GetVulkanExtensions();
 
-	bool Platform_CreateVulkanSurface(CVulkanRenderer* renderingContext);
+	bool CreateVulkanSurface(CVulkanRenderer* renderingContext);
 
 #ifdef PLAT_WINDOWS
-	VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface();
+	VkWin32SurfaceCreateInfoKHR GetVulkanSurface();
 #endif
 }

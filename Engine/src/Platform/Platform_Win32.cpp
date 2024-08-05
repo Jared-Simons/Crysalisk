@@ -51,7 +51,7 @@ namespace Platform {
 	static int ProcessWin32Input_MouseButton(UINT uMsg);
 	static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
-	bool Platform_Initialize(LinearAllocator* pAllocator)
+	bool Initialize(LinearAllocator* pAllocator)
 	{
 		if (win32PlatformData != nullptr)
 		{
@@ -157,7 +157,7 @@ namespace Platform {
 		return true;
 	}
 
-	void Platform_Shutdown()
+	void Shutdown()
 	{
 		LOG_INFO("Platform_Shutdown called");
 
@@ -170,14 +170,14 @@ namespace Platform {
 		}
 	}
 
-	bool Platform_Update()
+	bool Update()
 	{
 		//Platform_ProcessMessages();
 
 		return true;
 	}
 
-	void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
+	void GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
 	{
 		RECT rect;
 		if (GetClientRect(win32PlatformData->hWnd, &rect))
@@ -190,14 +190,14 @@ namespace Platform {
 		}
 	}
 
-	double Platform_GetAbsoluteTime()
+	double GetAbsoluteTime()
 	{
 		// If the clock has not yet been initialized (possibly due to headless mode)
 		// initialize it here
 		if (win32PlatformData->m_ClockFreq == -1)
 		{
 			// 2 = Debug level message
-			Platform_LogMessage(1, "Platform Clock not yet initialized - Initializing now\n");
+			LogMessage(1, "Platform Clock not yet initialized - Initializing now\n");
 			CreateWin32Clock();
 		}
 
@@ -228,7 +228,7 @@ namespace Platform {
 	#define WHITE			15
 	*/
 
-	void Platform_LogMessage(int level, const char* message)
+	void LogMessage(int level, const char* message)
 	{
 		HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 		// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
@@ -240,7 +240,7 @@ namespace Platform {
 		SetConsoleTextAttribute(outputHandle, 15);
 	}
 
-	VkWin32SurfaceCreateInfoKHR Platform_GetVulkanSurface()
+	VkWin32SurfaceCreateInfoKHR GetVulkanSurface()
 	{
 		VkWin32SurfaceCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		createInfo.hwnd = win32PlatformData->hWnd;
@@ -251,7 +251,7 @@ namespace Platform {
 	// ============================================================================
 	//  WIN32 Event Callbacks
 	// ============================================================================
-	bool Platform_ProcessMessages()
+	bool ProcessMessages()
 	{
 		MSG msg = {};
 		while (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE))
@@ -484,17 +484,17 @@ namespace Platform {
 	// 
 	// Do NOT call these directly, instead call through the memory manager
 	//-----------------------------------------------------------------------------
-	void* Platform_MemoryAllocate(size_t size)
+	void* MemoryAllocate(size_t size)
 	{
 		return malloc(size);
 	}
 
-	void Platform_MemoryFree(void* memory)
+	void MemoryFree(void* memory)
 	{
 		free(memory);
 	}
 
-	void* Platform_MemoryReallocate(void* memory, size_t newSize)
+	void* MemoryReallocate(void* memory, size_t newSize)
 	{
 		if (memory && newSize)
 			return realloc(memory, newSize);
@@ -503,7 +503,7 @@ namespace Platform {
 		return nullptr;
 	}
 
-	void* Platform_MemoryCopy(void* dest, const void* source, size_t size)
+	void* MemoryCopy(void* dest, const void* source, size_t size)
 	{
 		if (dest && source && size)
 			return memcpy(dest, source, size);
@@ -512,7 +512,7 @@ namespace Platform {
 		return nullptr;
 	}
 
-	void* Platform_MemorySet(void* memory, int value, size_t size)
+	void* MemorySet(void* memory, int value, size_t size)
 	{
 		if (memory && size)
 			return memset(memory, value, size);

@@ -26,7 +26,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 {
 	// Cache off window dimensions here for later 
 	// (it is VERY unlikely these will change again until the renderer is fully initialized)
-	Platform::Platform_GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
+	Platform::GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
 
 	// Register for window resize events
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
@@ -40,7 +40,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		return false;
 
 	// Surface
-	if (!Platform::Platform_CreateVulkanSurface(this))
+	if (!Platform::CreateVulkanSurface(this))
 		return false;
 
 	// Device
@@ -357,7 +357,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 	// Extensions
 	CVector<const char*> requiredExtensions;
 	requiredExtensions.PushBack(VK_KHR_SURFACE_EXTENSION_NAME);
-	requiredExtensions.PushBack(Platform::Platform_GetVulkanExtensions());
+	requiredExtensions.PushBack(Platform::GetVulkanExtensions());
 
 	if (EnableValidationLayers())
 	{

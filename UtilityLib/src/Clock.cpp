@@ -11,7 +11,7 @@
 
 void Clock::Start()
 {
-	m_StartTime = Platform::Platform_GetAbsoluteTime();
+	m_StartTime = Platform::GetAbsoluteTime();
 	m_IsActive = true;
 }
 
@@ -25,7 +25,7 @@ void Clock::Update()
 {
 	if (m_IsActive)
 	{
-		double currentTime = Platform::Platform_GetAbsoluteTime();
+		double currentTime = Platform::GetAbsoluteTime();
 		m_ElapsedTime = currentTime - m_StartTime;
 	}
 }

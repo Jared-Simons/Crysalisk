@@ -13,26 +13,26 @@ class LinearAllocator;
 
 namespace Platform {
 
-	bool	Platform_Initialize(LinearAllocator* pAllocator);
-	bool	Platform_Update();
-	void	Platform_Shutdown();
+	bool	Initialize(LinearAllocator* pAllocator);
+	bool	Update();
+	void	Shutdown();
 
-	bool	Platform_ProcessMessages();
+	bool	ProcessMessages();
 
-	void	Platform_LogMessage(int level, const char* message);
+	void	LogMessage(int level, const char* message);
 
-	ENGINE_API void Platform_GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight);
+	ENGINE_API void GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight);
 
-	ENGINE_API double	Platform_GetAbsoluteTime();
+	ENGINE_API double	GetAbsoluteTime();
 
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
 	// 
-	// Do NOT call these directly, instead call through the memory manager
+	// Do NOT call these directly, instead call through the memory system
 	//-----------------------------------------------------------------------------
-	void* Platform_MemoryAllocate(size_t size);
-	void	Platform_MemoryFree(void* memory);
-	void* Platform_MemoryReallocate(void* memory, size_t newSize);
-	void* Platform_MemoryCopy(void* dest, const void* source, size_t size);
-	void* Platform_MemorySet(void* memory, int value, size_t size);
+	void* MemoryAllocate(size_t size);
+	void	MemoryFree(void* memory);
+	void* MemoryReallocate(void* memory, size_t newSize);
+	void* MemoryCopy(void* dest, const void* source, size_t size);
+	void* MemorySet(void* memory, int value, size_t size);
 }

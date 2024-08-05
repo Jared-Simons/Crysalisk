@@ -85,7 +85,7 @@ void* CMemorySystem::MemAllocate(size_t numBytes, eMemAllocCategories eAllocCate
 	// TODO: Memory alignment
 	void* block = nullptr;
 
-	block = Platform::Platform_MemoryAllocate(numBytes);
+	block = Platform::MemoryAllocate(numBytes);
 
 	if (block != nullptr)
 	{
@@ -112,7 +112,7 @@ void CMemorySystem::MemFree(void* block, size_t size, eMemAllocCategories eAlloc
 	
 	// There is nothing wrong with calling free() on a nullptr,
 	// so no need to check.
-	Platform::Platform_MemoryFree(block);
+	Platform::MemoryFree(block);
 }
 
 
@@ -121,10 +121,10 @@ void* CMemorySystem::MemReallocate(void* memory, size_t newSize)
 	// TODO: Memory alignment
 	void* block = nullptr;
 
-	block = Platform::Platform_MemoryReallocate(memory, newSize);
+	block = Platform::MemoryReallocate(memory, newSize);
 
 	// Free the original block
-	Platform::Platform_MemoryFree(memory);
+	Platform::MemoryFree(memory);
 
 	if (block != nullptr)
 		return block;
@@ -138,7 +138,7 @@ void* CMemorySystem::MemReallocate(void* memory, size_t newSize)
 void* CMemorySystem::MemCopy(void* dest, const void* source, size_t size)
 {
 	if (dest && source && size)
-		return Platform::Platform_MemoryCopy(dest, source, size);
+		return Platform::MemoryCopy(dest, source, size);
 
 	LOG_ERROR("MemorySystem->MemCopy requires all parameters to be valid to operate. Returning nullptr.");
 	return nullptr;
@@ -148,7 +148,7 @@ void* CMemorySystem::MemCopy(void* dest, const void* source, size_t size)
 void* CMemorySystem::MemSet(void* memory, int value, size_t size)
 {
 	if (memory)
-		return Platform::Platform_MemorySet(memory, value, size);
+		return Platform::MemorySet(memory, value, size);
 
 	LOG_ERROR("MemorySystem->MemSet requires a valid pointer to a memory block. Returning nullptr.");
 	return nullptr;
