@@ -60,7 +60,7 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	char outMessage2[4092];
 	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
 
-	Platform_LogMessage((int)level, outMessage2);
+	Platform::Platform_LogMessage((int)level, outMessage2);
 }
 
 bool LogSystem::InitLoggingSystems()

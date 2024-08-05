@@ -52,7 +52,7 @@ public:
 	// TODO: This is temporary until a logging system refactor happens
 	static void	PlatformLog(eLogLevel level, const char* message)
 	{
-		Platform_LogMessage((int)level, message);
+		Platform::Platform_LogMessage((int)level, message);
 	}
 
 private:

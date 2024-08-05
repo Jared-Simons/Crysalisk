@@ -85,7 +85,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// Platform Layer
 	if (!m_engineConfig.isHeadless)
 	{
-		if (!Platform_Initialize(m_SystemsAllocator))
+		if (!Platform::Platform_Initialize(m_SystemsAllocator))
 		{
 			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
 			return false;
@@ -110,14 +110,14 @@ bool CEngine::Engine_Run()
 {
 	while (!s_bApplicationQuitCalled)
 	{
-		Platform_ProcessMessages();
+		Platform::Platform_ProcessMessages();
 		if (!g_sApplicationSuspended)
 		{
 			if (!m_engineConfig.isHeadless)
 			{
 				gpInputSystem->Update();
 
-				Platform_Update();
+				Platform::Platform_Update();
 
 				if (!gpRenderer->Update())
 				{
@@ -147,7 +147,7 @@ void CEngine::Engine_Shutdown()
 
 	if (!m_engineConfig.isHeadless)
 	{
-		Platform_Shutdown();
+		Platform::Platform_Shutdown();
 	}
 
 	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);

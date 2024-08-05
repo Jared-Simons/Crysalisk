@@ -24,5 +24,4 @@ Chores:
 	
 - Completely overhaul the logging system, it needs to be consolidated for simplified for the time being.
 
-- Wrap the platform layer up into a namespace.
-	- Also need a way to log messages without the 'log level' label placed before the message (Possibly expose here?)
+- Need a way to log messages without the 'log level' label placed before the message (Possibly expose here?)

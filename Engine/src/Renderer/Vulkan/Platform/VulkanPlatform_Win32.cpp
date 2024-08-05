@@ -5,23 +5,26 @@
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
 
-const char* Platform_GetVulkanExtensions()
-{
-	return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
-}
+namespace Platform {
 
-bool Platform_CreateVulkanSurface(CVulkanRenderer* pRenderingContext)
-{
-	VkWin32SurfaceCreateInfoKHR createInfo = Platform_GetVulkanSurface();
-
-	if (!VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext->m_Instance, &createInfo, pRenderingContext->m_Allocator, &pRenderingContext->m_Surface)))
+	const char* Platform_GetVulkanExtensions()
 	{
-		LOG_FATAL("Failed to create Vulkan Window Surface");
-		return false;
+		return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
 	}
 
-	LOG_INFO("Vulkan Surface Created");
-	return true;
-}
+	bool Platform_CreateVulkanSurface(CVulkanRenderer* pRenderingContext)
+	{
+		VkWin32SurfaceCreateInfoKHR createInfo = Platform::Platform_GetVulkanSurface();
+
+		if (!VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext->m_Instance, &createInfo, pRenderingContext->m_Allocator, &pRenderingContext->m_Surface)))
+		{
+			LOG_FATAL("Failed to create Vulkan Window Surface");
+			return false;
+		}
+
+		LOG_INFO("Vulkan Surface Created");
+		return true;
+	}
 #endif
 
+}
