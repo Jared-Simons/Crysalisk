@@ -123,7 +123,7 @@ namespace Platform {
 		HWND hWndInit = CreateWindowExA(
 			0,
 			windowClassName,
-			"Engine Testbed",
+			"Crysalisk Engine",
 			windowStyle,
 			windowX,
 			windowY,
