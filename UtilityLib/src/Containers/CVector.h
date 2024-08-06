@@ -85,7 +85,10 @@ public:
 
 	virtual ~CVector()
 	{
-		gpMemorySystem->MemFree(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+		if(m_pData)
+			gpMemorySystem->MemFree(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+
+		m_pData = nullptr;
 	}
 
 	T& operator[] (int index)

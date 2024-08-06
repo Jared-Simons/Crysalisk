@@ -32,7 +32,10 @@ public:
 
 	virtual ~CDeque()
 	{
-		gpMemorySystem->MemFree(m_pData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_QUEUE);
+		if (m_pData)
+			gpMemorySystem->MemFree(m_pData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_QUEUE);
+
+		m_pData = nullptr;
 	}
 
 	CDeque& operator=(const CDeque& other)

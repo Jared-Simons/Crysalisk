@@ -13,6 +13,7 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"CVECTOR		",
 	"LIST			",
 	"QUEUE			",
+	"STACK			",
 	"SET			",
 	"STRING			",
 	"LINEAR ALLOC		",

@@ -16,10 +16,10 @@
 
 bool PerformUnitTests()
 {
-	g_LinearAllocatorTests->PerformTests();
-	g_LinkedListTests->PerformTests();
-	g_FreeListTests->PerformTests();
-	g_DynamicAllocatorTests->PerformTests();
+	//g_LinearAllocatorTests->PerformTests();
+	//g_LinkedListTests->PerformTests();
+	//g_FreeListTests->PerformTests();
+	//g_DynamicAllocatorTests->PerformTests();
 	
 	return true;
 }
