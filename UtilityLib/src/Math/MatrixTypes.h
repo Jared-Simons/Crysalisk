@@ -74,80 +74,77 @@ public:
 class Matrix4x4
 {
 public:
-	float r1[4];
-	float r2[4];
-	float r3[4];
-	float r4[4];
+	float data[4][4];
 
 	Matrix4x4()
 	{
-		r1[0] = 0;
-		r1[1] = 0;
-		r1[2] = 0;
-		r1[3] = 0;
+		data[0][0] = 0;
+		data[0][1] = 0;
+		data[0][2] = 0;
+		data[0][3] = 0;
 
-		r2[0] = 0;
-		r2[1] = 0;
-		r2[2] = 0;
-		r2[3] = 0;
+		data[1][0] = 0;
+		data[1][1] = 0;
+		data[1][2] = 0;
+		data[1][3] = 0;
 
-		r3[0] = 0;
-		r3[1] = 0;
-		r3[2] = 0;
-		r3[3] = 0;
+		data[2][0] = 0;
+		data[2][1] = 0;
+		data[2][2] = 0;
+		data[2][3] = 0;
 
-		r4[0] = 0;
-		r4[1] = 0;
-		r4[2] = 0;
-		r4[3] = 0;
+		data[3][0] = 0;
+		data[3][1] = 0;
+		data[3][2] = 0;
+		data[3][3] = 0;
 	}
 
 	Matrix4x4(float initalValue)
 	{
-		r1[0] = initalValue;
-		r1[1] = 0;
-		r1[2] = 0;
-		r1[3] = 0;
+		data[0][0] = initalValue;
+		data[0][1] = 0;
+		data[0][2] = 0;
+		data[0][3] = 0;
 
-		r2[0] = 0;
-		r2[1] = initalValue;
-		r2[2] = 0;
-		r2[3] = 0;
+		data[1][0] = 0;
+		data[1][1] = initalValue;
+		data[1][2] = 0;
+		data[1][3] = 0;
 
-		r3[0] = 0;
-		r3[1] = 0;
-		r3[2] = initalValue;
-		r3[3] = 0;
+		data[2][0] = 0;
+		data[2][1] = 0;
+		data[2][2] = initalValue;
+		data[2][3] = 0;
 
-		r4[0] = 0;
-		r4[1] = 0;
-		r4[2] = 0;
-		r4[3] = initalValue;
+		data[3][0] = 0;
+		data[3][1] = 0;
+		data[3][2] = 0;
+		data[3][3] = initalValue;
 	}
 
 	static Matrix4x4& Translate(Matrix4x4& inMatrix, Vector3D& inVector)
 	{
-		inMatrix.r1[3] += inVector.x;
-		inMatrix.r2[3] += inVector.y;
-		inMatrix.r3[3] += inVector.z;
+		inMatrix.data[0][3] += inVector.x;
+		inMatrix.data[1][3] += inVector.y;
+		inMatrix.data[2][3] += inVector.z;
 
 		return inMatrix;
 	}
 
 	static Matrix4x4& Scale(Matrix4x4& inMatrix, int valueToScaleBy)
 	{
-		inMatrix.r1[0] *= valueToScaleBy;
-		inMatrix.r2[1] *= valueToScaleBy;
-		inMatrix.r3[2] *= valueToScaleBy;
+		inMatrix.data[0][0] *= valueToScaleBy;
+		inMatrix.data[1][1] *= valueToScaleBy;
+		inMatrix.data[2][2] *= valueToScaleBy;
 
 		return inMatrix;
 	}
 
 	static Matrix4x4& Scale(Matrix4x4& inMatrix, Vector3D& inVector)
 	{
-		inMatrix.r1[0] *= inVector.x;
-		inMatrix.r2[1] *= inVector.y;
-		inMatrix.r3[2] *= inVector.z;
+		inMatrix.data[0][0] *= inVector.x;
+		inMatrix.data[1][1] *= inVector.y;
+		inMatrix.data[2][2] *= inVector.z;
 
 		return inMatrix;
 	}
@@ -155,27 +152,95 @@ public:
 	// TODO: Implement a quaternion type!
 	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D& axis)
 	{
-		inMatrix.r1[0] = M_COS(angle) + (axis.x * axis.x) * (1 - M_COS(angle));
-		inMatrix.r1[1] = (axis.x * axis.y) * (1 - M_COS(angle) + (axis.z * M_SIN(angle)));
-		inMatrix.r1[2] = (axis.x * axis.z) * (1 - M_COS(angle) + (axis.y * M_SIN(angle)));
-		inMatrix.r1[3] = 0;
+		inMatrix.data[0][0] = M_COS(angle) + (axis.x * axis.x) * (1 - M_COS(angle));
+		inMatrix.data[0][1] = (axis.x * axis.y) * (1 - M_COS(angle) + (axis.z * M_SIN(angle)));
+		inMatrix.data[0][2] = (axis.x * axis.z) * (1 - M_COS(angle) + (axis.y * M_SIN(angle)));
+		inMatrix.data[0][3] = 0;
 
-		inMatrix.r2[0] = (axis.y * axis.x) * (1 - M_COS(angle) + (axis.z * M_SIN(angle)));
-		inMatrix.r2[1] = M_COS(angle) + (axis.y * axis.y) * (1 - M_COS(angle));
-		inMatrix.r2[2] = (axis.y * axis.z) * (1 - M_COS(angle)) - (axis.x * M_SIN(angle));
-		inMatrix.r2[3] = 0;
+		inMatrix.data[1][0] = (axis.y * axis.x) * (1 - M_COS(angle) + (axis.z * M_SIN(angle)));
+		inMatrix.data[1][1] = M_COS(angle) + (axis.y * axis.y) * (1 - M_COS(angle));
+		inMatrix.data[1][2] = (axis.y * axis.z) * (1 - M_COS(angle)) - (axis.x * M_SIN(angle));
+		inMatrix.data[1][3] = 0;
 
-		inMatrix.r3[0] = (axis.z * axis.x) * (1 - M_COS(angle)) - (axis.y * M_SIN(angle));
-		inMatrix.r3[1] = (axis.z * axis.y) * (1 - M_COS(angle)) + (axis.x * M_SIN(angle));
-		inMatrix.r3[2] = M_COS(angle) + (axis.z * axis.z) * (1 - M_COS(angle));
-		inMatrix.r3[3] = 0;
+		inMatrix.data[2][0] = (axis.z * axis.x) * (1 - M_COS(angle)) - (axis.y * M_SIN(angle));
+		inMatrix.data[2][1] = (axis.z * axis.y) * (1 - M_COS(angle)) + (axis.x * M_SIN(angle));
+		inMatrix.data[2][2] = M_COS(angle) + (axis.z * axis.z) * (1 - M_COS(angle));
+		inMatrix.data[2][3] = 0;
 
-		inMatrix.r4[0] = 0;
-		inMatrix.r4[1] = 0;
-		inMatrix.r4[2] = 0;
-		inMatrix.r4[3] = 1;
+		inMatrix.data[3][0] = 0;
+		inMatrix.data[3][1] = 0;
+		inMatrix.data[3][2] = 0;
+		inMatrix.data[3][3] = 1;
 
 		return inMatrix;
+	}
+
+	static Matrix4x4 LookAt(Vector3D position, Vector3D target, Vector3D vecUp)
+	{
+		Matrix4x4 newMatrix(1.0f);
+
+		// TODO: Hardcoded right vector
+
+		newMatrix.data[0][0] = 1.0f;
+		newMatrix.data[0][1] = 0.0f;
+		newMatrix.data[0][2] = 0.0f;
+		newMatrix.data[0][3] = -position.x;
+
+		newMatrix.data[1][0] = vecUp.x;
+		newMatrix.data[1][1] = vecUp.y;
+		newMatrix.data[1][2] = vecUp.z;
+		newMatrix.data[1][3] = -position.y;
+
+		newMatrix.data[2][0] = target.x;
+		newMatrix.data[2][1] = target.y;
+		newMatrix.data[2][2] = target.z;
+		newMatrix.data[2][3] = -position.z;
+
+		newMatrix.data[3][0] = 0;
+		newMatrix.data[3][1] = 0;
+		newMatrix.data[3][2] = 0;
+		newMatrix.data[3][3] = 1;
+
+		return newMatrix;
+	}
+
+	// Reference for matrix calculation: https://www.songho.ca/opengl/gl_projectionmatrix.html#fov
+	// also: https://jsantell.com/3d-projection/
+	static Matrix4x4& Perspective(float fov, float aspectRatio, float nearClippingPlane, float farClippingPlane)
+	{
+		Matrix4x4 newMatrix(1.0f);
+		float right = 0.0f;
+		float left = 0.0f;
+		float top = 0.0f;
+		float bottom = 0.0f;
+
+		// First calculate the primitive values for plane creation
+		top = nearClippingPlane * M_TAN(fov / 2);
+		bottom = -top;
+		right = aspectRatio * top;
+		left = -right;
+
+		newMatrix.data[0][0] = (2.0f * nearClippingPlane) / (right - left);
+		newMatrix.data[0][1] = 0;
+		newMatrix.data[0][2] = (right + left) / (right - left);
+		newMatrix.data[0][3] = 0;
+
+		newMatrix.data[1][0] = 0;
+		newMatrix.data[1][1] = (2.0 * nearClippingPlane) / (top - bottom);
+		newMatrix.data[1][2] = (top + bottom) / (top - bottom);
+		newMatrix.data[1][3] = 0;
+
+		newMatrix.data[2][0] = 0;
+		newMatrix.data[2][1] = 0;
+		newMatrix.data[2][2] = (farClippingPlane + nearClippingPlane) / (nearClippingPlane - farClippingPlane);
+		newMatrix.data[2][3] = (2.0f * farClippingPlane * nearClippingPlane) / (nearClippingPlane - farClippingPlane);
+
+		newMatrix.data[3][0] = 0;
+		newMatrix.data[3][1] = 0;
+		newMatrix.data[3][2] = -1;
+		newMatrix.data[3][3] = 0;
+
+		return newMatrix;
 	}
 };
 
