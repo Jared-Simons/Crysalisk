@@ -178,69 +178,52 @@ public:
 	static Matrix4x4 LookAt(Vector3D position, Vector3D target, Vector3D vecUp)
 	{
 		Matrix4x4 newMatrix(1.0f);
+		Vector3D zAxis;
 
-		// TODO: Hardcoded right vector
+		zAxis.x = target.x - position.x;
+		zAxis.y = target.y - position.y;
+		zAxis.z = target.z - position.z;
 
-		newMatrix.data[0][0] = 1.0f;
-		newMatrix.data[0][1] = 0.0f;
-		newMatrix.data[0][2] = 0.0f;
-		newMatrix.data[0][3] = -position.x;
+		zAxis.NormalizeInPlace();
+		Vector3D xAxis = Vector3D::CrossProduct(zAxis, vecUp);
+		xAxis.NormalizeInPlace();
 
-		newMatrix.data[1][0] = vecUp.x;
-		newMatrix.data[1][1] = vecUp.y;
-		newMatrix.data[1][2] = vecUp.z;
-		newMatrix.data[1][3] = -position.y;
+		Vector3D yAxis = Vector3D::CrossProduct(xAxis, zAxis);
 
-		newMatrix.data[2][0] = target.x;
-		newMatrix.data[2][1] = target.y;
-		newMatrix.data[2][2] = target.z;
-		newMatrix.data[2][3] = -position.z;
-
+		newMatrix.data[0][0] = xAxis.x;
+		newMatrix.data[1][0] = yAxis.x;
+		newMatrix.data[2][0] = -zAxis.x;
 		newMatrix.data[3][0] = 0;
+
+		newMatrix.data[0][1] = xAxis.y;
+		newMatrix.data[1][1] = yAxis.y;
+		newMatrix.data[2][1] = -zAxis.y;
 		newMatrix.data[3][1] = 0;
+
+		newMatrix.data[0][2] = xAxis.z;
+		newMatrix.data[1][2] = yAxis.z;
+		newMatrix.data[2][2] = -zAxis.z;
 		newMatrix.data[3][2] = 0;
-		newMatrix.data[3][3] = 1;
+
+		newMatrix.data[0][3] = -Vector3D::DotProduct(xAxis, position);
+		newMatrix.data[1][3] = -Vector3D::DotProduct(yAxis, position);
+		newMatrix.data[2][3] = Vector3D::DotProduct(zAxis, position);
+		newMatrix.data[3][3] = 1.0f;
 
 		return newMatrix;
 	}
 
-	// Reference for matrix calculation: https://www.songho.ca/opengl/gl_projectionmatrix.html#fov
-	// also: https://jsantell.com/3d-projection/
 	static Matrix4x4& Perspective(float fov, float aspectRatio, float nearClippingPlane, float farClippingPlane)
 	{
-		Matrix4x4 newMatrix(1.0f);
-		float right = 0.0f;
-		float left = 0.0f;
-		float top = 0.0f;
-		float bottom = 0.0f;
+		Matrix4x4 newMatrix(0.0f);
+		float halfTanFOV = M_TAN(fov * 0.5f);
 
-		// First calculate the primitive values for plane creation
-		top = nearClippingPlane * M_TAN(fov / 2);
-		bottom = -top;
-		right = aspectRatio * top;
-		left = -right;
-
-		newMatrix.data[0][0] = (2.0f * nearClippingPlane) / (right - left);
-		newMatrix.data[0][1] = 0;
-		newMatrix.data[0][2] = (right + left) / (right - left);
-		newMatrix.data[0][3] = 0;
-
-		newMatrix.data[1][0] = 0;
-		newMatrix.data[1][1] = (2.0 * nearClippingPlane) / (top - bottom);
-		newMatrix.data[1][2] = (top + bottom) / (top - bottom);
-		newMatrix.data[1][3] = 0;
-
-		newMatrix.data[2][0] = 0;
-		newMatrix.data[2][1] = 0;
-		newMatrix.data[2][2] = (farClippingPlane + nearClippingPlane) / (nearClippingPlane - farClippingPlane);
-		newMatrix.data[2][3] = (2.0f * farClippingPlane * nearClippingPlane) / (nearClippingPlane - farClippingPlane);
-
-		newMatrix.data[3][0] = 0;
-		newMatrix.data[3][1] = 0;
-		newMatrix.data[3][2] = -1;
-		newMatrix.data[3][3] = 0;
+		newMatrix.data[0][0] = 1.0f / (aspectRatio * halfTanFOV);
+		newMatrix.data[1][1] = 1.0f / halfTanFOV;
+		newMatrix.data[2][2] = -((farClippingPlane + nearClippingPlane) / (farClippingPlane - nearClippingPlane));
+		newMatrix.data[3][2] = -1.0f;
+		newMatrix.data[2][3] = -((2.0f * farClippingPlane * nearClippingPlane) / (farClippingPlane - nearClippingPlane));
 
 		return newMatrix;
 	}
 };
-
