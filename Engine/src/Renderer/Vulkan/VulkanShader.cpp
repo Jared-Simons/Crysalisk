@@ -151,7 +151,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = sizeof(Vector2D);
+	attributeDescriptions[1].offset = offsetof(Vertex3D, Color);
 
 	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 2;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;
@@ -185,7 +185,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL; // SET THIS TO MODE_LINE for wireframe rendering
 	rasterizationInfo.lineWidth = 1.0f;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 
 	// Multisampling
@@ -227,6 +227,8 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 
 	// Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &pRenderingContext->m_DescriptorSetLayout;
 	if (vkCreatePipelineLayout(pRenderingContext->m_Device.m_LogicalDevice, &pipelineLayoutInfo, pRenderingContext->m_Allocator, &pOutShader->m_PipelineLayout) != VK_SUCCESS)
 	{
 		LOG_ERROR("Failed to create Vulkan Pipeline Layout");
