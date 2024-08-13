@@ -142,32 +142,40 @@ public:
 		, y{ y_ }
 		, z{ z_ } {}
 
-	void operator+(const float scalar)
+	Vector3D operator+(const float scalar)
 	{
 		x = x + scalar;
 		y = y + scalar;
 		z = z + scalar;
+
+		return *this;
 	}
 
-	void operator-(const float scalar)
+	Vector3D operator-(const float scalar)
 	{
 		x = x - scalar;
 		y = y - scalar;
 		z = z - scalar;
+
+		return *this;
 	}
 
-	void operator*(const float scalar)
+	Vector3D operator*(const float scalar)
 	{
 		x = x * scalar;
 		y = y * scalar;
 		z = z * scalar;
+
+		return *this;
 	}
 
-	void operator/(const float scalar)
+	Vector3D operator/(const float scalar)
 	{
 		x = x / scalar;
 		y = y / scalar;
 		z = z / scalar;
+
+		return *this;
 	}
 
 	Vector3D operator+(Vector3D& otherVector)
