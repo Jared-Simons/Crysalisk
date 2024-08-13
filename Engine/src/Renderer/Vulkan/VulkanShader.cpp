@@ -141,7 +141,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
 	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
 
-	VkVertexInputAttributeDescription attributeDescriptions[2]{};
+	VkVertexInputAttributeDescription attributeDescriptions[3]{};
 
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
@@ -151,9 +151,14 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = offsetof(Vertex3D, Color);
+	attributeDescriptions[1].offset = sizeof(Vector2D);
+	
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = sizeof(Vector2D) + sizeof(Vector3D);
 
-	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 2;
+	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 3;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;
 
 	// Input Assembly

@@ -67,9 +67,18 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		uboLayoutBinding.pImmutableSamplers = nullptr;
 
+		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.descriptorCount = 1;
+		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding bindings[2] = { uboLayoutBinding, samplerLayoutBinding };
+
 		VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		layoutInfo.bindingCount = 1;
-		layoutInfo.pBindings = &uboLayoutBinding;
+		layoutInfo.bindingCount = 2;
+		layoutInfo.pBindings = bindings;
 
 		if (!VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_LogicalDevice, &layoutInfo, m_Allocator, &m_DescriptorSetLayout)))
 		{
@@ -108,10 +117,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// TODO: Temp rendering data
 	CVector<Vertex3D> vertices(4);
-	vertices.PushBack(Vertex3D(Vector2D(-0.5, -0.5), Vector3D(1.0, 0.0, 0.0)));
-	vertices.PushBack(Vertex3D(Vector2D(0.5, -0.5), Vector3D(0.0, 1.0, 0.0)));
-	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 0.0, 1.0)));
-	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(1.0, 1.0, 1.0)));
+	vertices.PushBack(Vertex3D(Vector2D(-0.5, -0.5), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(0.5, -0.5), Vector3D(0.0, 1.0, 0.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
 
 	CVector<uint16_t> indices((size_t)6);
 	indices.PushBack(0);
@@ -184,13 +193,16 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Descriptor pool
 	{
-		VkDescriptorPoolSize poolSizes{};
-		poolSizes.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes.descriptorCount = MAX_FRAMES_IN_FLIGHT;
+		VkDescriptorPoolSize poolSizes[2];
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
+
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolCreateInfo.poolSizeCount = 1;
-		poolCreateInfo.pPoolSizes = &poolSizes;
+		poolCreateInfo.poolSizeCount = 2;
+		poolCreateInfo.pPoolSizes = poolSizes;
 		poolCreateInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
 
 		if (!VK_CHECK(vkCreateDescriptorPool(m_Device.m_LogicalDevice, &poolCreateInfo, m_Allocator, &m_DescriptorPool)))
@@ -227,15 +239,33 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(UniformBufferObject);
 
-			VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			descriptorWrite.dstSet = m_DescriptorSets[i];
-			descriptorWrite.dstBinding = 0;
-			descriptorWrite.dstArrayElement = 0;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.pBufferInfo = &bufferInfo;
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = m_TextureImage.m_ImageView;
+			imageInfo.sampler = m_TextureImage.m_ImageSampler;
 
-			vkUpdateDescriptorSets(m_Device.m_LogicalDevice, 1, &descriptorWrite, 0, nullptr);
+			// Note: Why wont the C-style array work here?
+			CVector<VkWriteDescriptorSet> descriptorWrites(2);
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = m_DescriptorSets[i];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = m_DescriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			// TODO: This is ugly, again, a C array would be nice here
+			VkWriteDescriptorSet descriptorWriteArray[2] = { descriptorWrites[0], descriptorWrites[1] };
+			
+			vkUpdateDescriptorSets(m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
 		}
 	}
 
