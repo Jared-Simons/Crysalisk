@@ -42,6 +42,8 @@ public:
 	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
 	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
 
+	bool		IsKeyPressed(const int key) const override;
+
 private:
 	KeyState_T	m_KeysState[256];
 	KeyState_T	m_PrevKeysState[256];
@@ -145,6 +147,7 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 		if (pressed)
 		{
 			eventData.c[0] = processedKeyInput;
+			m_KeysState[processedKeyInput - 65].m_Pressed = true;
 			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, eventData);
 		}
 		else
@@ -224,4 +227,12 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 
 		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, eventData);
 	}
+}
+
+bool CInputSystem::IsKeyPressed(const int key) const
+{
+	if (m_KeysState[key - 65].m_Pressed)
+		return true;
+
+	return false;
 }
