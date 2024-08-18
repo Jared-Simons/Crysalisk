@@ -29,11 +29,9 @@ int DynamicAllocator_SingleAllocationAllSpace()
 	return PASS;
 }
 
-
-/*
 int DynamicAllocator_MultiAllocationAllSpace()
 {
-	const size_t totalAllocatorSize = 1024 + (ALLOC_BLOCK_HEADER_SIZE * 3);
+	const size_t totalAllocatorSize = 1024 + (ALLOC_HEADER_SIZE * 3);
 
 	DynamicAllocator allocator(totalAllocatorSize);
 	if (allocator.GetFreeSpace() != totalAllocatorSize)
@@ -41,12 +39,12 @@ int DynamicAllocator_MultiAllocationAllSpace()
 
 	// Allocate part of the block
 	void* block = allocator.Allocate(256);
-	if (allocator.GetFreeSpace() != (768 + (ALLOC_BLOCK_HEADER_SIZE * 2)) || !block)
+	if (allocator.GetFreeSpace() != (768 + (ALLOC_HEADER_SIZE * 2)) || !block)
 		return FAIL;
 
 	// Allocate another part of the block
 	void* block2 = allocator.Allocate(512);
-	if (allocator.GetFreeSpace() != (256 + (ALLOC_BLOCK_HEADER_SIZE * 1)) || !block2)
+	if (allocator.GetFreeSpace() != (256 + (ALLOC_HEADER_SIZE * 1)) || !block2)
 		return FAIL;
 
 	// Allocate the last part of the block
@@ -56,11 +54,11 @@ int DynamicAllocator_MultiAllocationAllSpace()
 
 	// Free all allocations, out of order
 	allocator.Free(block3);
-	if (allocator.GetFreeSpace() != (256 + (ALLOC_BLOCK_HEADER_SIZE * 1)))
+	if (allocator.GetFreeSpace() != (256 + (ALLOC_HEADER_SIZE * 1)))
 		return FAIL;
 
 	allocator.Free(block);
-	if (allocator.GetFreeSpace() != (512 + (ALLOC_BLOCK_HEADER_SIZE * 2)))
+	if (allocator.GetFreeSpace() != (512 + (ALLOC_HEADER_SIZE * 2)))
 		return FAIL;
 
 	allocator.Free(block2);
@@ -72,7 +70,7 @@ int DynamicAllocator_MultiAllocationAllSpace()
 
 int DynamicAllocator_MultiAllocationOverAllocate()
 {
-	const size_t totalAllocatorSize = 1024 + (ALLOC_BLOCK_HEADER_SIZE * 3);
+	const size_t totalAllocatorSize = 1024 + (ALLOC_HEADER_SIZE * 3);
 
 	DynamicAllocator allocator(totalAllocatorSize);
 	if (allocator.GetFreeSpace() != totalAllocatorSize)
@@ -80,12 +78,12 @@ int DynamicAllocator_MultiAllocationOverAllocate()
 
 	// Allocate part of the block
 	void* block = allocator.Allocate(256);
-	if (allocator.GetFreeSpace() != (768 + (ALLOC_BLOCK_HEADER_SIZE * 2)) || !block)
+	if (allocator.GetFreeSpace() != (768 + (ALLOC_HEADER_SIZE * 2)) || !block)
 		return FAIL;
 
 	// Allocate another part of the block
 	void* block2 = allocator.Allocate(512);
-	if (allocator.GetFreeSpace() != (256 + (ALLOC_BLOCK_HEADER_SIZE * 1)) || !block2)
+	if (allocator.GetFreeSpace() != (256 + (ALLOC_HEADER_SIZE * 1)) || !block2)
 		return FAIL;
 
 	// Allocate the last part of the block
@@ -106,6 +104,56 @@ int DynamicAllocator_MultiAllocationOverAllocate()
 
 	return PASS;
 }
-*/
+
+int DynamicAllocator_MultiAllocationMostSpaceRequestTooBig()
+{
+	const size_t totalAllocatorSize = 1024 + (ALLOC_HEADER_SIZE * 3);
+
+	DynamicAllocator allocator(totalAllocatorSize);
+
+	// Allocate part of the block
+	void* block = allocator.Allocate(256);
+
+	if (!block)
+		return FAIL;
+
+	// Verify free space
+	if (allocator.GetFreeSpace() != (768 + (ALLOC_HEADER_SIZE * 2)))
+		return FAIL;
+
+	// Allocate another part of the block
+	void* block2 = allocator.Allocate(512);
+
+	if (!block2)
+		return FAIL;
+
+	// Verify free space
+	if (allocator.GetFreeSpace() != (256 + (ALLOC_HEADER_SIZE * 1)))
+		return FAIL;
+
+	// Allocate the last part of the block
+	void* block3 = allocator.Allocate(128);
+	
+	if (!block3)
+		return FAIL;
+
+	// Verify free space
+	if (allocator.GetFreeSpace() != (128 + (ALLOC_HEADER_SIZE * 0)))
+		return FAIL;
+
+	// Attempt one more allocation, deliberately trying to overflow
+	LOG_DEBUG("Note: The following warning and errors are intentionally caused by this test.");
+	void* failBlock = allocator.Allocate(256);
+
+	if (failBlock != nullptr)
+		return FAIL;
+
+	// Verify free space. Should not have changed.
+	if (allocator.GetFreeSpace() != (128 + (ALLOC_HEADER_SIZE * 0)))
+		return FAIL;
+
+	return PASS;
+}
+
 static CDynamicAllocatorTests s_DynamicAllocatorUnitTests("Dynamic Allocator Tests");
 UnitTestGroup* g_DynamicAllocatorTests = &s_DynamicAllocatorUnitTests;

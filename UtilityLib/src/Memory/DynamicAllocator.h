@@ -59,12 +59,12 @@ DynamicAllocator::DynamicAllocator(size_t sizeInBytes)
 	pFirstNode->pNext = nullptr;
 	m_pHeadNode = pFirstNode;
 
-	LOG_INFO("Dynamic Allocator created with %d bytes.", m_Size);
+	//LOG_INFO("Dynamic Allocator created with %d bytes.", m_Size);
 }
 
 DynamicAllocator::~DynamicAllocator()
 {
-	LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
+	//LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
 
 	memset(m_pData, 0, m_Size);
 	Platform::MemoryFree(m_pData);
@@ -117,7 +117,7 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 			if (pNextNode == nullptr)
 			{
 				// Need to create a new node here
-				void* pNewData = static_cast<char*>(m_pData) + (size + ALLOC_HEADER_SIZE);
+				void* pNewData = static_cast<char*>(m_pData) + (pCurrentNode->offset + size + ALLOC_HEADER_SIZE);
 				pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
 				pNextNode->blockSize = m_Size - m_Allocated;
@@ -138,7 +138,7 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 		if (pNextNode == nullptr)
 		{
 			// Need to create a new node here
-			void* pNewData = static_cast<char*>(m_pData) + (size + ALLOC_HEADER_SIZE);
+			void* pNewData = static_cast<char*>(m_pData) + (pCurrentNode->offset + size + ALLOC_HEADER_SIZE);
 			pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
 			pNextNode->blockSize = m_Size - m_Allocated;
@@ -170,43 +170,54 @@ void DynamicAllocator::Free(void* pMemBlock)
 	FreeListNode_t* pNodeToReturn = static_cast<FreeListNode_t*>(pNodeAddress);
 
 	// Look at the node to determine where the memory should be returned to.
-	if (pNodeToReturn->offset == 0)
+	if (m_pHeadNode == nullptr)
 	{
-		// This is the head of the allocator's memory block.
-		// We will become the new head node.
-		FreeListNode_t* pCurrentHeadNode = m_pHeadNode;
-
-		// Clear out whatever was in this memory block.
+		// If there is no head node, then the whole memory block must be allocated.
+		// Set this to be the head node and zero it out.
 		memset(pMemBlock, 0, pNodeToReturn->blockSize);
-		
-		pNodeToReturn->pNext = pCurrentHeadNode;
 
 		m_pHeadNode = pNodeToReturn;
 	}
 	else
 	{
-		FreeListNode_t* pPreviousNode = m_pHeadNode;
-		FreeListNode_t* pCurrentNode = m_pHeadNode->pNext;
-
-		while (pCurrentNode != nullptr)
+		if (pNodeToReturn->offset == 0)
 		{
-			if ((pPreviousNode->offset < pNodeToReturn->offset) && (pCurrentNode->offset > pNodeToReturn->offset))
+			// This is the head of the allocator's memory block.
+			// We will become the new head node.
+			FreeListNode_t* pCurrentHeadNode = m_pHeadNode;
+
+			// Clear out whatever was in this memory block.
+			memset(pMemBlock, 0, pNodeToReturn->blockSize);
+
+			pNodeToReturn->pNext = pCurrentHeadNode;
+
+			m_pHeadNode = pNodeToReturn;
+		}
+		else
+		{
+			FreeListNode_t* pPreviousNode = m_pHeadNode;
+			FreeListNode_t* pCurrentNode = m_pHeadNode->pNext;
+
+			while (pCurrentNode != nullptr)
 			{
-				// We found a suitable place to link our node back.
-				memset(pMemBlock, 0, pNodeToReturn->blockSize);
+				if ((pPreviousNode->offset < pNodeToReturn->offset) && (pCurrentNode->offset > pNodeToReturn->offset))
+				{
+					// We found a suitable place to link our node back.
+					memset(pMemBlock, 0, pNodeToReturn->blockSize);
 
-				pPreviousNode->pNext = pNodeToReturn;
-				pNodeToReturn->pNext = pCurrentNode;
+					pPreviousNode->pNext = pNodeToReturn;
+					pNodeToReturn->pNext = pCurrentNode;
+				}
+
+				pPreviousNode = pCurrentNode;
+				pCurrentNode = pCurrentNode->pNext;
 			}
-
-			pPreviousNode = pCurrentNode;
-			pCurrentNode = pCurrentNode->pNext;
 		}
 	}
 
 	m_Allocated -= pNodeToReturn->blockSize + ALLOC_HEADER_SIZE;
 
-	ReportMemoryFragmentation();
+	//ReportMemoryFragmentation();
 
 	// TODO: Clean up memory fragmentation!
 }
