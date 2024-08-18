@@ -17,7 +17,7 @@ bool PerformUnitTests()
 {
 	//g_LinearAllocatorTests->PerformTests();
 	//g_LinkedListTests->PerformTests();
-	//g_DynamicAllocatorTests->PerformTests();
+	g_DynamicAllocatorTests->PerformTests();
 	
 	return true;
 }

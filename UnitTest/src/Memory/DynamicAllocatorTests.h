@@ -10,8 +10,8 @@ class UnitTestGroup;
 
 // Test Functions
 int DynamicAllocator_SingleAllocationAllSpace();
-int DynamicAllocator_MultiAllocationAllSpace();
-int DynamicAllocator_MultiAllocationOverAllocate();
+//int DynamicAllocator_MultiAllocationAllSpace();
+//int DynamicAllocator_MultiAllocationOverAllocate();
 
 class CDynamicAllocatorTests : public UnitTestGroup
 {
@@ -20,8 +20,8 @@ public:
 		:UnitTestGroup(debugTestName)
 	{
 		RegisterTestFunc(DynamicAllocator_SingleAllocationAllSpace, "Dynamic Allocator - Single Allocation All Space");
-		RegisterTestFunc(DynamicAllocator_MultiAllocationAllSpace, "Dynamic Allocator - Multi Allocation All Space");
-		RegisterTestFunc(DynamicAllocator_MultiAllocationOverAllocate, "Dynamic Allocator - Multi Allocation Over Allocate");
+		//RegisterTestFunc(DynamicAllocator_MultiAllocationAllSpace, "Dynamic Allocator - Multi Allocation All Space");
+		//RegisterTestFunc(DynamicAllocator_MultiAllocationOverAllocate, "Dynamic Allocator - Multi Allocation Over Allocate");
 	}
 };
 

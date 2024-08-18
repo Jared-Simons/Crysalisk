@@ -28,6 +28,10 @@ public:
 	void* Allocate(size_t size, size_t alignment = 2);
 	void Free(void* pMemBlock);
 
+	size_t GetAllocatorSize() const { return m_Size; }
+	size_t GetBytesAllocated() const { return m_Allocated; }
+	size_t GetFreeSpace() const { return m_Size - m_Allocated; }
+
 	void ReportMemoryFragmentation();
 
 private:
@@ -62,6 +66,7 @@ DynamicAllocator::~DynamicAllocator()
 {
 	LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
 
+	memset(m_pData, 0, m_Size);
 	Platform::MemoryFree(m_pData);
 	m_pData = nullptr;
 }
@@ -106,15 +111,20 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 		pCurrentNode->alignment = alignment;
 		pCurrentNode->pNext = nullptr;
 
-		if (pNextNode == nullptr)
+		// We still have enough room to add a new node after
+		if (m_Allocated + ALLOC_HEADER_SIZE < m_Size)
 		{
-			// Need to create a new node here
-			pNextNode = static_cast<FreeListNode_t*>(m_pData) + (ALLOC_HEADER_SIZE + size);
+			if (pNextNode == nullptr)
+			{
+				// Need to create a new node here
+				void* pNewData = static_cast<char*>(m_pData) + (size + ALLOC_HEADER_SIZE);
+				pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
-			pNextNode->blockSize = m_Size - m_Allocated;
-			pNextNode->offset = m_Allocated;
-			pNextNode->alignment = 2;
-			pNextNode->pNext = nullptr;
+				pNextNode->blockSize = m_Size - m_Allocated;
+				pNextNode->offset = m_Allocated;
+				pNextNode->alignment = 2;
+				pNextNode->pNext = nullptr;
+			}
 		}
 
 		m_pHeadNode = pNextNode;
@@ -122,14 +132,14 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 	else
 	{
 		pCurrentNode->blockSize = size;
-		//pCurrentNode->offset = pPreviousNode->offset + ALLOC_HEADER_SIZE + pPreviousNode->blockSize;
 		pCurrentNode->alignment = alignment;
 		pCurrentNode->pNext = nullptr;
 
 		if (pNextNode == nullptr)
 		{
 			// Need to create a new node here
-			pNextNode = static_cast<FreeListNode_t*>(m_pData) + (ALLOC_HEADER_SIZE + size);
+			void* pNewData = static_cast<char*>(m_pData) + (size + ALLOC_HEADER_SIZE);
+			pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
 			pNextNode->blockSize = m_Size - m_Allocated;
 			pNextNode->offset = pCurrentNode->offset + pCurrentNode->blockSize;
@@ -141,7 +151,8 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 		pPreviousNode->pNext = pNextNode;
 	}
 
-	void* pMemBlock = pCurrentNode + ALLOC_HEADER_SIZE;
+	//void* pMemBlock = pCurrentNode + ALLOC_HEADER_SIZE;
+	void* pMemBlock = static_cast<char*>((void*)pCurrentNode) + ALLOC_HEADER_SIZE;
 	memset(pMemBlock, 0, size);
 
 	return pMemBlock;
@@ -155,7 +166,8 @@ void DynamicAllocator::Free(void* pMemBlock)
 		return;
 	}
 
-	FreeListNode_t* pNodeToReturn = static_cast<FreeListNode_t*>(pMemBlock) - ALLOC_HEADER_SIZE;
+	void* pNodeAddress = static_cast<char*>(pMemBlock) - ALLOC_HEADER_SIZE;
+	FreeListNode_t* pNodeToReturn = static_cast<FreeListNode_t*>(pNodeAddress);
 
 	// Look at the node to determine where the memory should be returned to.
 	if (pNodeToReturn->offset == 0)
