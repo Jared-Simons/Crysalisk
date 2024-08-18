@@ -364,14 +364,14 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 	// Update Uniform Buffer
 	{
-		static float startTime = Platform::GetAbsoluteTime();
-		float currentTime = Platform::GetAbsoluteTime();
+		static double startTime = Platform::GetAbsoluteTime();
+		double currentTime = Platform::GetAbsoluteTime();
 
-		float time = currentTime - startTime;
+		double time = currentTime - startTime;
 		
 		UniformBufferObject ubo{};
 		//ubo.model = Matrix4x4(1.0f);
-		ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
+		ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f)); 
 		ubo.view = Matrix4x4::LookAt(Vector3D(2.0f, 2.0f, 2.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 0.0f, 1.0f));
 		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10.0f);
 		ubo.projection.data[1][1] *= -1;
