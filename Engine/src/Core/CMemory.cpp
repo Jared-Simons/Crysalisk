@@ -3,7 +3,9 @@
 
 #include "Platform/Platform.h"
 #include "EngineGlobals.h"
-#include "String_Utils.h"
+
+#include <Memory/DynamicAllocator.h>
+#include <String_Utils.h>
 
 const size_t MAX_MEM_CATEGORIES = (size_t)eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES;
 static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
@@ -30,9 +32,9 @@ public:
 		: m_numAllocations{ 0 }
 		, m_numBytesAllocated{ 0 }
 		, m_taggedAllocations{ 0 }
-		, m_pBaseMemoryBlock{ nullptr } {}
+		, m_InternalAllocator{ nullptr } {}
 
-	bool	MemorySystem_Initialize() override;
+	bool	MemorySystem_Initialize(DynamicAllocator& internalAllocator) override;
 	void	MemorySystem_Shutdown() override;
 
 	inline void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) override;
@@ -47,31 +49,20 @@ private:
 	unsigned int	m_numAllocations;
 	size_t			m_numBytesAllocated;
 	size_t			m_taggedAllocations[MAX_MEM_CATEGORIES];
-	void*			m_pBaseMemoryBlock;
+	DynamicAllocator* m_InternalAllocator;
 };
 
-bool CMemorySystem::MemorySystem_Initialize()
+bool CMemorySystem::MemorySystem_Initialize(DynamicAllocator& internalAllocator)
 {
-	// TODO: Allocate from a custom allocator (this will require some form of heap allocator class)
-	/*
-	m_numAllocations = 0;
+	m_InternalAllocator = &internalAllocator;
 
-	m_numBytesAllocated = MEBIBYTES(512);
-
-	m_pBaseMemoryBlock = Platform_MemoryAllocate(MEBIBYTES(512));
-	*/
-	LOG_INFO("Memory System initialized with %d bytes of system memory", m_numBytesAllocated);
+	LOG_INFO("Memory System initialized with %d bytes of system memory", m_InternalAllocator->GetAllocatorSize());
 	return true;
 }
 
 
 void CMemorySystem::MemorySystem_Shutdown()
 {
-	// Free engine memory on shutdown
-	/*
-	Platform_MemoryFree(m_pBaseMemoryBlock);
-	m_numBytesAllocated = 0;
-	*/
 	LOG_INFO("Memory System Shutdown");
 }
 
@@ -86,7 +77,9 @@ void* CMemorySystem::MemAllocate(size_t numBytes, eMemAllocCategories eAllocCate
 	// TODO: Memory alignment
 	void* block = nullptr;
 
-	block = Platform::MemoryAllocate(numBytes);
+	//block = Platform::MemoryAllocate(numBytes);
+
+	block = m_InternalAllocator->Allocate(numBytes);
 
 	if (block != nullptr)
 	{
@@ -113,7 +106,7 @@ void CMemorySystem::MemFree(void* block, size_t size, eMemAllocCategories eAlloc
 	
 	// There is nothing wrong with calling free() on a nullptr,
 	// so no need to check.
-	Platform::MemoryFree(block);
+	m_InternalAllocator->Free(block);
 }
 
 

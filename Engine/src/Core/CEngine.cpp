@@ -15,6 +15,7 @@
 #include "Systems/IRenderer.h"
 
 #include <Memory/LinearAllocator.h>
+#include <Memory/DynamicAllocator.h>
 
 static bool s_bApplicationQuitCalled = false;
 static bool Event_ApplicationQuit(EventData_t data);
@@ -38,6 +39,7 @@ public:
 
 private:
 	EngineConfig_t	m_engineConfig;
+	DynamicAllocator* m_EngineHeap{ nullptr };
 	LinearAllocator* m_SystemsAllocator{ nullptr };
 };
 
@@ -45,11 +47,13 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
 	m_engineConfig = engineConfig;
 
+	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1));
+
 	// Logging Utilities
 	Logging_Initialize();
 
 	// Memory System
-	if (!gpMemorySystem->MemorySystem_Initialize())
+	if (!gpMemorySystem->MemorySystem_Initialize(*m_EngineHeap))
 	{
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
@@ -91,6 +95,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 			return false;
 		}
 	}
+
+	LOG_WARN("FREE SPACE: %d", m_EngineHeap->GetFreeSpace());
 
 	// Renderer
 	if (!m_engineConfig.isHeadless)
