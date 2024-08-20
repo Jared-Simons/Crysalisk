@@ -47,7 +47,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
 	m_engineConfig = engineConfig;
 
-	m_EngineHeap = new DynamicAllocator(MEBIBYTES(2));
+	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1));
 
 	// Logging Utilities
 	Logging_Initialize();
