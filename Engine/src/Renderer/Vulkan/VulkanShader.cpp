@@ -141,7 +141,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	vertexInputStateCreateInfo.vertexBindingDescriptionCount = 1;
 	vertexInputStateCreateInfo.pVertexBindingDescriptions = &bindingDescription;
 
-	VkVertexInputAttributeDescription attributeDescriptions[2]{};
+	VkVertexInputAttributeDescription attributeDescriptions[3]{};
 
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
@@ -152,8 +152,13 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attributeDescriptions[1].offset = sizeof(Vector2D);
+	
+	attributeDescriptions[2].binding = 0;
+	attributeDescriptions[2].location = 2;
+	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[2].offset = sizeof(Vector2D) + sizeof(Vector3D);
 
-	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 2;
+	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 3;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;
 
 	// Input Assembly
@@ -185,7 +190,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL; // SET THIS TO MODE_LINE for wireframe rendering
 	rasterizationInfo.lineWidth = 1.0f;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 
 	// Multisampling
@@ -227,6 +232,8 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 
 	// Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.pSetLayouts = &pRenderingContext->m_DescriptorSetLayout;
 	if (vkCreatePipelineLayout(pRenderingContext->m_Device.m_LogicalDevice, &pipelineLayoutInfo, pRenderingContext->m_Allocator, &pOutShader->m_PipelineLayout) != VK_SUCCESS)
 	{
 		LOG_ERROR("Failed to create Vulkan Pipeline Layout");

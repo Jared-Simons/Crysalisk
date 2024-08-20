@@ -6,100 +6,40 @@
 //=============================================================================
 #pragma once
 
-#include "../Containers/CFreeList.h"
+#include <Core/Logging.h>
+#include <Platform/Platform.h>
 
-// TODO: TEMP
-#include <malloc.h>
-// TODO: END TEMP
-
-
-struct MemoryBlockMetadata_t
+struct FreeListNode_t
 {
-	// The size of the memory block
-	size_t size;
-	// The offset into the memory block
-	size_t offset;
-	// The memory block's alignment
-	size_t alignment;
+	size_t					blockSize;
+	size_t					offset;
+	size_t					alignment;
+	struct FreeListNode_t*	pNext;
 };
 
-const size_t ALLOC_BLOCK_HEADER_SIZE{ sizeof(MemoryBlockMetadata_t) };
+const size_t ALLOC_HEADER_SIZE = sizeof(FreeListNode_t);
 
 class DynamicAllocator
 {
 public:
-	DynamicAllocator(size_t allocatorSize, size_t alignment = 1)
-		: m_TotalSize{ allocatorSize }
-		, m_pMemory{ nullptr }
-		, m_FreeList{ allocatorSize }
-	{
-		// TODO: Replace with memory system.
-		m_pMemory = malloc(allocatorSize);
-		if (m_pMemory)
-			memset(m_pMemory, 0, allocatorSize);
-	}
+	DynamicAllocator(size_t sizeInBytes);
+	virtual ~DynamicAllocator();
 
-	~DynamicAllocator()
-	{
-		if (m_pMemory)
-			free(m_pMemory);
+	void* Allocate(size_t size, size_t alignment = 2);
+	void Free(void* pMemBlock);
 
-		m_pMemory = nullptr;
-	}
+	size_t GetAllocatorSize() const { return m_Size; }
+	size_t GetBytesAllocated() const { return m_Allocated; }
+	size_t GetFreeSpace() const { return m_Size - m_Allocated; }
 
-	void* Allocate(size_t size)
-	{
-		// Size of allocation plus the size required to store the header.
-		size_t requiredSize = size + ALLOC_BLOCK_HEADER_SIZE;
-
-		// Allocate the memory
-		size_t offset = 0;
-		void* memoryBlock = nullptr;
-
-		if (m_FreeList.Allocate(requiredSize, &offset))
-		{
-			// The start of the block will store the header data 
-			// Then will move forward by ALLOC_BLOCK_HEADER_SIZE bytes for the data section (which will be returned).
-			void* blockHeader = (void*)((size_t)m_pMemory + offset);
-			MemoryBlockMetadata_t* metaData = (MemoryBlockMetadata_t*)blockHeader;
-
-			// TODO: Memory alignment
-			metaData->alignment = 1;
-			metaData->offset = offset;
-			metaData->size = size;
-
-			// Push the pointer forward.
-			memoryBlock = (void*)((size_t)blockHeader + ALLOC_BLOCK_HEADER_SIZE);
-
-			return memoryBlock;
-		}
-		else
-		{
-			// Could not allocate memory block
-			LOG_ERROR("DynamicAllocator->Allocate(): Failed to allocate memory block. Returning nullptr.");
-			return nullptr;
-		}
-	}
-
-	void Free(void* pMemBlock)
-	{
-		if (!pMemBlock)
-		{
-			LOG_ERROR("DynamicAllocator->Free(): Requires valid pointer to memory block. Nothing was done.");
-			return;
-		}
-
-		// Retrieve the data from the block's header.
-		void* blockHeader = (void*)((size_t)pMemBlock - ALLOC_BLOCK_HEADER_SIZE);
-		MemoryBlockMetadata_t* metaData = (MemoryBlockMetadata_t*)blockHeader;
-
-		m_FreeList.Free(metaData->size + ALLOC_BLOCK_HEADER_SIZE, metaData->offset);
-	}
-
-	size_t GetFreeSpace() const { return m_FreeList.GetFreeSpace(); }
+	void ReportMemoryFragmentation();
 
 private:
-	size_t		m_TotalSize;
-	void*		m_pMemory;
-	CFreeList	m_FreeList;
+	DynamicAllocator() = delete;
+
+private:
+	size_t			m_Size;
+	size_t			m_Allocated;
+	void*			m_pData;
+	FreeListNode_t* m_pHeadNode;
 };

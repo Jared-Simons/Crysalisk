@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint> // TODO: needed for uintptr_t type. Perhaps move to PCH
+
 // Exports
 #if defined ENGINE_DLL
 #define ENGINE_API __declspec(dllexport)
@@ -42,6 +44,9 @@
 #define INVALID_ID_U8	255
 
 // Utility Functions
+
+static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
+static inline bool IsPointerAddrAPowerOfTwo(uintptr_t x) { return (x & (x - 1)) == 0; }
 
 static void IntClamp(int* val, int* min, int* max)
 {

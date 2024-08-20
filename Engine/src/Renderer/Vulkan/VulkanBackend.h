@@ -347,7 +347,7 @@ public:
 
 	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer) const;
 
-private:
+public:
 	VkShaderModule		m_VertModule;
 	VkShaderModule		m_FragModule;
 

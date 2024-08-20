@@ -29,10 +29,11 @@ namespace Platform {
 	// Platform memory functions
 	// 
 	// Do NOT call these directly, instead call through the memory system
+	// TODO: Setup memory allocation hooks for external libs.
 	//-----------------------------------------------------------------------------
-	void* MemoryAllocate(size_t size);
-	void	MemoryFree(void* memory);
-	void* MemoryReallocate(void* memory, size_t newSize);
-	void* MemoryCopy(void* dest, const void* source, size_t size);
-	void* MemorySet(void* memory, int value, size_t size);
+	ENGINE_API void* MemoryAllocate(size_t size);
+	ENGINE_API void	MemoryFree(void* memory);
+	ENGINE_API void* MemoryReallocate(void* memory, size_t newSize);
+	ENGINE_API void* MemoryCopy(void* dest, const void* source, size_t size);
+	ENGINE_API void* MemorySet(void* memory, int value, size_t size);
 }

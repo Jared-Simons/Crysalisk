@@ -126,6 +126,8 @@ public:
 
 	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed) = 0;
 	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) = 0;
+
+	virtual bool	IsKeyPressed(const int key) const = 0;
 };
 
 extern IInputSystem* gpInputSystem;

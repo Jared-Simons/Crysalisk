@@ -8,6 +8,9 @@
 
 #include "EngineGlobals.h"
 
+// Foward Declarations
+class DynamicAllocator;
+
 enum class eMemAllocCategories
 {
 	MEM_CATEGORY_UNKNOWN,
@@ -15,10 +18,10 @@ enum class eMemAllocCategories
 	MEM_CATEGORY_CVECTOR,
 	MEM_CATEGORY_LIST,
 	MEM_CATEGORY_QUEUE,
+	MEM_CATEGORY_STACK,
 	MEM_CATEGORY_SET,
 	MEM_CATEGORY_STRING,
 	MEM_CATEGORY_LINEAR_ALLOC,
-	MEM_CATEGORY_DYNAMIC_ALLOC,
 	MEM_CATEGORY_ENGINE,
 	MEM_CATEGORY_GAME,
 	MEM_CATEGORY_RENDERER,
@@ -29,7 +32,7 @@ enum class eMemAllocCategories
 class IMemorySystem
 {
 public:
-	virtual bool	MemorySystem_Initialize() = 0;
+	virtual bool	MemorySystem_Initialize(DynamicAllocator& internalAllocator) = 0;
 	virtual void	MemorySystem_Shutdown() = 0;
 
 	inline virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) = 0;

@@ -1,5 +1,6 @@
 #include "VulkanBackend.h"
 
+#include "Platform/Platform.h"
 #include "Platform/VulkanPlatform.h"
 
 #include "Core/Logging.h"
@@ -8,6 +9,7 @@
 #include <Math/VertexTypes.h>
 
 #include <String_Utils.h>
+
 
 // TODO: Move to texture manager or resource loader
 #define STB_IMAGE_IMPLEMENTATION
@@ -56,22 +58,33 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		return false;
 
 	// Descriptor set layouts
-	// TODO: Re-locate this
-	VkDescriptorSetLayoutBinding descriptorLayoutBinding[2]{};
-	descriptorLayoutBinding[1].binding = 1;
-	descriptorLayoutBinding[1].descriptorCount = 1;
-	descriptorLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorLayoutBinding[1].pImmutableSamplers = nullptr;
-	descriptorLayoutBinding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	descriptorSetLayoutInfo.bindingCount = 1;
-	descriptorSetLayoutInfo.pBindings = &descriptorLayoutBinding[1];
-
-	if (!VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_LogicalDevice, &descriptorSetLayoutInfo, m_Allocator, &m_DescriptorSetLayout)))
+	// TODO: Re-locate this (to the shader class?)
 	{
-		LOG_ERROR("Failed to create Vulkan descriptor set layout");
-		return false;
+		VkDescriptorSetLayoutBinding uboLayoutBinding{};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+		samplerLayoutBinding.binding = 1;
+		samplerLayoutBinding.descriptorCount = 1;
+		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		samplerLayoutBinding.pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutBinding bindings[2] = { uboLayoutBinding, samplerLayoutBinding };
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		layoutInfo.bindingCount = 2;
+		layoutInfo.pBindings = bindings;
+
+		if (!VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_LogicalDevice, &layoutInfo, m_Allocator, &m_DescriptorSetLayout)))
+		{
+			LOG_ERROR("Failed to create descriptor set layout!");
+			return false;
+		}
 	}
 
 	// Main shader
@@ -103,12 +116,13 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Buffers
 
 	// TODO: Temp rendering data
-	CVector<Vertex3D> vertices(3);
-	vertices.PushBack(Vertex3D(Vector2D(0.0, -0.5), Vector3D(1.0, 0.0, 0.0)));
-	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 1.0, 0.0)));
-	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(0.0, 0.0, 1.0)));
+	CVector<Vertex3D> vertices(4);
+	vertices.PushBack(Vertex3D(Vector2D(-0.5, -0.5), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(0.5, -0.5), Vector3D(0.0, 1.0, 0.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
 
-	CVector<unsigned short> indices((size_t)6);
+	CVector<uint16_t> indices((size_t)6);
 	indices.PushBack(0);
 	indices.PushBack(1);
 	indices.PushBack(2);
@@ -116,7 +130,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	indices.PushBack(3);
 	indices.PushBack(0);
 
-	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * 3;
+	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * 4;
 	VkDeviceSize indexBufferSize = sizeof(indices[0]) * 6;
 
 	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
@@ -128,6 +142,20 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Upload the data to the GPU
 	m_VertexBuffer.UploadDataToBuffer(this, vertexBufferSize, vertices.data());
 	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
+
+	// Uniform Buffer
+	{
+		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+		m_UniformBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
+		m_UniformBuffersMappedMemory.Resize(MAX_FRAMES_IN_FLIGHT);
+
+		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &m_UniformBuffers[i]);
+			vkMapMemory(m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
+		}
+	}
 
 	// Image data
 	int texWidth, texHeight, texChannels;
@@ -165,14 +193,16 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Descriptor pool
 	{
-		VkDescriptorPoolSize poolSizes[2]{};
+		VkDescriptorPoolSize poolSizes[2];
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolCreateInfo.poolSizeCount = 1;
-		poolCreateInfo.pPoolSizes = &poolSizes[1];
+		poolCreateInfo.poolSizeCount = 2;
+		poolCreateInfo.pPoolSizes = poolSizes;
 		poolCreateInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
 
 		if (!VK_CHECK(vkCreateDescriptorPool(m_Device.m_LogicalDevice, &poolCreateInfo, m_Allocator, &m_DescriptorPool)))
@@ -183,7 +213,60 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	}
 
 	// Descriptor Sets
+	// TODO: Move to shader?
 	{
+		CVector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT);
+		for (int i = 0; i < layouts.capacity(); i++)
+		{
+			layouts[i] = m_DescriptorSetLayout;
+		}
+
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
+		descriptorSetAllocInfo.pSetLayouts = layouts.data();
+
+		if (!VK_CHECK(vkAllocateDescriptorSets(m_Device.m_LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets)))
+		{
+			LOG_ERROR("Failed to allocate descriptor sets!");
+			return false;
+		}
+
+		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		{
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkDescriptorImageInfo imageInfo{};
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = m_TextureImage.m_ImageView;
+			imageInfo.sampler = m_TextureImage.m_ImageSampler;
+
+			// Note: Why wont the C-style array work here?
+			CVector<VkWriteDescriptorSet> descriptorWrites(2);
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = m_DescriptorSets[i];
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = m_DescriptorSets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			// TODO: This is ugly, again, a C array would be nice here
+			VkWriteDescriptorSet descriptorWriteArray[2] = { descriptorWrites[0], descriptorWrites[1] };
+			
+			vkUpdateDescriptorSets(m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
+		}
 	}
 
 	// Fences
@@ -220,6 +303,11 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	VulkanImage::DestroyImage(this, &m_TextureImage);
 
 	vkDestroyDescriptorPool(m_Device.m_LogicalDevice, m_DescriptorPool, m_Allocator);
+
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VulkanBuffer::DestroyBuffer(this, &m_UniformBuffers[i]);
+	}
 
 	vkDestroyDescriptorSetLayout(m_Device.m_LogicalDevice, m_DescriptorSetLayout, m_Allocator);
 
@@ -274,6 +362,23 @@ bool CVulkanRenderer::RendererBackend_Update()
 		return true;
 	}
 
+	// Update Uniform Buffer
+	{
+		static double startTime = Platform::GetAbsoluteTime();
+		double currentTime = Platform::GetAbsoluteTime();
+
+		double time = currentTime - startTime;
+		
+		UniformBufferObject ubo{};
+		//ubo.model = Matrix4x4(1.0f);
+		ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f)); 
+		ubo.view = Matrix4x4::LookAt(Vector3D(2.0f, 2.0f, 2.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 0.0f, 1.0f));
+		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10.0f);
+		ubo.projection.data[1][1] *= -1;
+
+		memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
+	}
+
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
 	VulkanCommandBuffer& commandBuffer = m_CommandBuffers[m_CurrentFrame];
@@ -295,11 +400,6 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 		// Handle all draw calls here
 
-		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
-
-		VkDeviceSize offset[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
-
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
@@ -314,6 +414,13 @@ bool CVulkanRenderer::RendererBackend_Update()
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
+		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
+
+		VkDeviceSize offset[] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
+
+		vkCmdBindDescriptorSets(commandBuffer.m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, m_StandardShader.m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
+
 		// If we are able to draw with indices, do so.
 		if (!m_IndexBuffer.m_Handle)
 		{
@@ -325,7 +432,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 			vkCmdDrawIndexed(commandBuffer.m_Handle, 6, 1, 0, 0, 0);
 		}
 
-		vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
+		//vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
 
 		m_MainRenderpass.End(this, &commandBuffer);
 

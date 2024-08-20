@@ -12,6 +12,7 @@ class UnitTestGroup;
 int DynamicAllocator_SingleAllocationAllSpace();
 int DynamicAllocator_MultiAllocationAllSpace();
 int DynamicAllocator_MultiAllocationOverAllocate();
+int DynamicAllocator_MultiAllocationMostSpaceRequestTooBig();
 
 class CDynamicAllocatorTests : public UnitTestGroup
 {
@@ -22,6 +23,7 @@ public:
 		RegisterTestFunc(DynamicAllocator_SingleAllocationAllSpace, "Dynamic Allocator - Single Allocation All Space");
 		RegisterTestFunc(DynamicAllocator_MultiAllocationAllSpace, "Dynamic Allocator - Multi Allocation All Space");
 		RegisterTestFunc(DynamicAllocator_MultiAllocationOverAllocate, "Dynamic Allocator - Multi Allocation Over Allocate");
+		RegisterTestFunc(DynamicAllocator_MultiAllocationMostSpaceRequestTooBig, "Dynamic Allocator - Multi Allocation Most Space Request Too Big");
 	}
 };
 
