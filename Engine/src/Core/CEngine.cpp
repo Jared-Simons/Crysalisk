@@ -47,7 +47,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
 	m_engineConfig = engineConfig;
 
-	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1));
+	m_EngineHeap = new DynamicAllocator(MEBIBYTES(2));
 
 	// Logging Utilities
 	Logging_Initialize();
@@ -95,8 +95,6 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 			return false;
 		}
 	}
-
-	LOG_WARN("FREE SPACE: %d", m_EngineHeap->GetFreeSpace());
 
 	// Renderer
 	if (!m_engineConfig.isHeadless)

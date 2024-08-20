@@ -89,6 +89,10 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 				pNextNode->pNext = nullptr;
 			}
 		}
+		else
+		{
+			LOG_WARN("Dynamic Allocator -> We are almost full!");
+		}
 
 		m_pHeadNode = pNextNode;
 	}

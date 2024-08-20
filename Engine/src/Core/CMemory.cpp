@@ -19,7 +19,6 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"SET			",
 	"STRING			",
 	"LINEAR ALLOC		",
-	"DYNAMIC ALLOC		",
 	"ENGINE			",
 	"GAME			",
 	"RENDERER		"
@@ -56,7 +55,7 @@ bool CMemorySystem::MemorySystem_Initialize(DynamicAllocator& internalAllocator)
 {
 	m_InternalAllocator = &internalAllocator;
 
-	LOG_INFO("Memory System initialized with %d bytes of system memory", m_InternalAllocator->GetAllocatorSize());
+	LOG_INFO("Engine Memory Heap initialized with %d bytes of system memory", m_InternalAllocator->GetAllocatorSize());
 	return true;
 }
 
@@ -156,9 +155,16 @@ void CMemorySystem::PrintMemoryStats()
 	for (size_t i = 0; i < MAX_MEM_CATEGORIES; i++)
 	{
 		char categoryString[256]{ 0 };
+
 		StringFormat_V(" %s\t: %d B\n", nullptr, categoryString, s_MemCategoryStrings[i], m_taggedAllocations[i]);
 		StringConcat(memStatsString, categoryString);
 	}
+
+	char totalMemUsageString[256]{ 0 };
+	size_t totalMemoryUsed = m_InternalAllocator->GetAllocatorSize() - m_InternalAllocator->GetFreeSpace();
+	float totalMemoryUsedPercentage = (float)totalMemoryUsed / m_InternalAllocator->GetAllocatorSize();
+	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, m_InternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
+	StringConcat(memStatsString, totalMemUsageString);
 
 	char totalAllocationString[256]{ 0 };
 	StringFormat_V(" Total Memory Allocations: %d", nullptr, totalAllocationString, m_numAllocations);

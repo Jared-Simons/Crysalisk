@@ -42,6 +42,12 @@ public:
 
 	void* allocate(size_t size)
 	{
+		if (m_AllocatorSize <= size + m_BytesAllocated)
+		{
+			LOG_ERROR("StackAllocator->Allocate() - Cannot allocate anymore memory, returning nullptr.");
+			return nullptr;
+		}
+
 		if (m_BytesAllocated == m_AllocatorSize)
 		{
 			LOG_ERROR("StackAllocator->Allocate() - Cannot allocate anymore memory, returning nullptr.");
