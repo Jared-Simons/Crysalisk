@@ -10,6 +10,7 @@
 
 #define M_PI 3.14159265359
 
+#define M_SQRT(x) sqrt(x)
 #define M_SIN(x) sin(x)
 #define M_COS(x) cos(x)
 #define M_TAN(x) tan(x)
