@@ -24,6 +24,8 @@ static bool Event_KeyReleased(EventData_t data);
 static bool Event_MouseButtonPressed(EventData_t data);
 static bool Event_MouseButtonReleased(EventData_t data);
 static bool Event_WindowResized(EventData_t data);
+static bool Event_WindowResizedPause(EventData_t data);
+static bool Event_WindowResizedUnpause(EventData_t data);
 
 // TODO: Stick this in the engine class.
 static bool g_sApplicationSuspended{ false };
@@ -77,6 +79,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
 	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, Event_WindowResizedPause);
+	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, Event_WindowResizedUnpause);
 
 
 	// Input System
@@ -157,6 +161,8 @@ void CEngine::Engine_Shutdown()
 	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);
 
 	// Unregister from engine-level events
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, Event_WindowResizedUnpause);
+	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, Event_WindowResizedPause);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
 	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
@@ -238,6 +244,18 @@ static bool Event_WindowResized(EventData_t data)
 		g_sApplicationSuspended = false;
 	}
 
+	return true;
+}
+
+static bool Event_WindowResizedPause(EventData_t data)
+{
+	g_sApplicationSuspended = true;
+	return true;
+}
+
+static bool Event_WindowResizedUnpause(EventData_t data)
+{
+	g_sApplicationSuspended = false;
 	return true;
 }
 

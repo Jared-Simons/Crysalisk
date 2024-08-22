@@ -145,18 +145,18 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
-	attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 	attributeDescriptions[0].offset = 0;
 
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = sizeof(Vector2D);
+	attributeDescriptions[1].offset = sizeof(Vector3D);
 	
 	attributeDescriptions[2].binding = 0;
 	attributeDescriptions[2].location = 2;
 	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attributeDescriptions[2].offset = sizeof(Vector2D) + sizeof(Vector3D);
+	attributeDescriptions[2].offset = sizeof(Vector3D) + sizeof(Vector3D);
 
 	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 3;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;

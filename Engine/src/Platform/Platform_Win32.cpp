@@ -336,6 +336,18 @@ namespace Platform {
 			break;
 		}
 
+		case WM_ENTERSIZEMOVE:
+		{
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, EventData_t{});
+			break;
+		}
+
+		case WM_EXITSIZEMOVE:
+		{
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, EventData_t{});
+			break;
+		}
+
 		default:
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 			break;
