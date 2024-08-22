@@ -83,15 +83,15 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 				void* pNewData = static_cast<char*>(m_pData) + (pCurrentNode->offset + size + ALLOC_HEADER_SIZE);
 				pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
-				pNextNode->blockSize = m_Size - m_Allocated;
-				pNextNode->offset = m_Allocated;
+				pNextNode->offset = pCurrentNode->offset + size + ALLOC_HEADER_SIZE;
+				pNextNode->blockSize = m_Size - pNextNode->offset;
 				pNextNode->alignment = 2;
 				pNextNode->pNext = nullptr;
 			}
 		}
 		else
 		{
-			LOG_WARN("Dynamic Allocator -> We are almost full!");
+			LOG_WARN("Dynamic Allocator -> We are full!");
 		}
 
 		m_pHeadNode = pNextNode;
@@ -108,8 +108,8 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 			void* pNewData = static_cast<char*>(m_pData) + (pCurrentNode->offset + size + ALLOC_HEADER_SIZE);
 			pNextNode = static_cast<FreeListNode_t*>(pNewData);
 
-			pNextNode->blockSize = m_Size - m_Allocated;
-			pNextNode->offset = pCurrentNode->offset + ALLOC_HEADER_SIZE + pCurrentNode->blockSize;
+			pNextNode->offset = pCurrentNode->offset + size + ALLOC_HEADER_SIZE;
+			pNextNode->blockSize = m_Size - pNextNode->offset;
 			pNextNode->alignment = 2;
 			pNextNode->pNext = nullptr;
 		}
@@ -220,7 +220,7 @@ void DynamicAllocator::Free(void* pMemBlock)
 
 	//ReportMemoryFragmentation();
 
-	// TODO: Clean up memory fragmentation!
+	CleanupMemoryFragmentation();
 }
 
 void DynamicAllocator::ReportMemoryFragmentation()
@@ -246,4 +246,25 @@ void DynamicAllocator::ReportMemoryFragmentation()
 	}
 
 	LOG_DEBUG("Dynamic Allocator Memory Fragmentation Report: %d Free Node(s). (%d contiguous node(s))", numberOfFreeMemoryNodes, numberOfContiguousNodes);
+}
+
+void DynamicAllocator::CleanupMemoryFragmentation()
+{
+	FreeListNode_t* pCurrentNode = m_pHeadNode;
+
+	while (pCurrentNode)
+	{
+		if (pCurrentNode->pNext)
+		{
+			if ((pCurrentNode->offset + ALLOC_HEADER_SIZE + pCurrentNode->blockSize) == pCurrentNode->pNext->offset)
+			{
+				LOG_VERBOSE("Cleaning up memory fragmentation");
+
+				pCurrentNode->blockSize = pCurrentNode->blockSize + ALLOC_HEADER_SIZE + pCurrentNode->pNext->blockSize;
+				pCurrentNode->pNext = pCurrentNode->pNext->pNext;
+			}
+		}
+
+		pCurrentNode = pCurrentNode->pNext;
+	}
 }
