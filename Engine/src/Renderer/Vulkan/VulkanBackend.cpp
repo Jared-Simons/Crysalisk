@@ -14,6 +14,7 @@
 // TODO: Move to texture manager or resource loader
 #define STB_IMAGE_IMPLEMENTATION
 #include <Vendor/stb_image.h>
+#include "Systems/IInput.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -73,12 +74,23 @@ float lastFrame = 0.0f;
 
 void UpdateCameraPosition(float deltaTime)
 {
-	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
+	float cameraSpeed = static_cast<float>(2.5f * deltaTime);
 	//float cameraSpeed = 0.001f;
 
-	s_Camera.Position = s_Camera.Position - (s_Camera.Front * cameraSpeed);
-
-	LOG_DEBUG("%.2f %.2f %.2f / %.2f", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z, cameraSpeed);
+	if (gpInputSystem->IsKeyPressed(KEY_W))
+		s_Camera.Position = s_Camera.Position + (s_Camera.Front * cameraSpeed);
+	if (gpInputSystem->IsKeyPressed(KEY_S))
+		s_Camera.Position = s_Camera.Position - (s_Camera.Front * cameraSpeed);
+	if (gpInputSystem->IsKeyPressed(KEY_A))
+	{
+		Vector3D newVector = (Vector3D::CrossProduct(s_Camera.Front, s_Camera.Up));
+		s_Camera.Position = s_Camera.Position - (newVector.Normalize() * cameraSpeed);
+	}
+	if (gpInputSystem->IsKeyPressed(KEY_D))
+	{
+		Vector3D newVector = (Vector3D::CrossProduct(s_Camera.Front, s_Camera.Up));
+		s_Camera.Position = s_Camera.Position + (newVector.Normalize() * cameraSpeed);
+	}
 }
 // END TEMP: Camera
 
