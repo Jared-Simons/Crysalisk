@@ -9,6 +9,7 @@
 #include "Renderer/IRendererBackend.h"
 #include "EngineGlobals.h"
 
+#include <Clock.h>
 #include <Containers/CVector.h>
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
@@ -455,6 +456,8 @@ public:
 
 	unsigned int m_FramebufferWidth{ 0 };
 	unsigned int m_FramebufferHeight{ 0 };
+
+	Clock m_RendererClock;
 };
 
 IRendererBackend* GetVulkanBackend();

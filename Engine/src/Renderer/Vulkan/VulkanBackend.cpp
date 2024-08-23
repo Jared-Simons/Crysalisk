@@ -56,7 +56,7 @@ struct Camera
 		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
 		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
 		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		//Front = front.Normalize();
+		Front = front.Normalize();
 		Front = Vector3D(0.0f, 0.0f, -1.0f); // TODO: TEMP
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
@@ -68,6 +68,18 @@ struct Camera
 };
 
 Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+void UpdateCameraPosition(float deltaTime)
+{
+	float cameraSpeed = static_cast<float>(2.5 * deltaTime);
+	//float cameraSpeed = 0.001f;
+
+	s_Camera.Position = s_Camera.Position - (s_Camera.Front * cameraSpeed);
+
+	LOG_DEBUG("%.2f %.2f %.2f / %.2f", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z, cameraSpeed);
+}
 // END TEMP: Camera
 
 bool CVulkanRenderer::RendererBackend_Initialize()
@@ -339,6 +351,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
+	LOG_DEBUG("%.2f %.2f %.2f ", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
+	m_RendererClock.Start();
+
 	return true;
 }
 
@@ -400,6 +415,16 @@ bool CVulkanRenderer::RendererBackend_Update()
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
 
+	// TEMP
+	// Update camera position
+
+	float currentTime = static_cast<float>(m_RendererClock.GetElapsedTime());
+	deltaTime = currentTime - lastFrame;
+	lastFrame = currentTime;
+
+	UpdateCameraPosition(deltaTime);
+	// END TEMP
+
 	unsigned int imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
@@ -423,6 +448,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 		//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
 		ubo.view = s_Camera.GetViewMatrix();
 		//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
+
 		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
 		//ubo.projection.data[1][1] *= -1;
 

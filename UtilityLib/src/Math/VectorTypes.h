@@ -162,11 +162,12 @@ public:
 
 	Vector3D operator*(const float scalar)
 	{
-		x = x * scalar;
-		y = y * scalar;
-		z = z * scalar;
+		Vector3D outVector;
+		outVector.x = x * scalar;
+		outVector.y = y * scalar;
+		outVector.z = z * scalar;
 
-		return *this;
+		return outVector;
 	}
 
 	Vector3D operator/(const float scalar)
@@ -262,11 +263,18 @@ public:
 
 	void NormalizeInPlace()
 	{
+		Vector3D outVector{ x, y, z };
+		/*
 		float length = Length();
 
 		x = x / length;
 		y = y / length;
-		z = z / length;
+		z = z / length;*/
+
+		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		float invSqrt = 1 / M_SQRT(flDot);
+
+		*this * invSqrt;
 	}
 
 	static float DotProduct(Vector3D& vecA, Vector3D& vecB)
