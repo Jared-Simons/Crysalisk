@@ -452,7 +452,7 @@ public:
 #endif
 	}
 
-	unsigned char m_CurrentFrame{ 0 };
+	unsigned int m_CurrentFrame{ 0 };
 
 	unsigned int m_FramebufferWidth{ 0 };
 	unsigned int m_FramebufferHeight{ 0 };
