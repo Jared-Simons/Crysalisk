@@ -33,6 +33,7 @@ public:
 	size_t GetFreeSpace() const { return m_Size - m_Allocated; }
 
 	void ReportMemoryFragmentation();
+	void CleanupMemoryFragmentation();
 
 private:
 	DynamicAllocator() = delete;

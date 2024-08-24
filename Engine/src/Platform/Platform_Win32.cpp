@@ -336,6 +336,18 @@ namespace Platform {
 			break;
 		}
 
+		case WM_ENTERSIZEMOVE:
+		{
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, EventData_t{});
+			break;
+		}
+
+		case WM_EXITSIZEMOVE:
+		{
+			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, EventData_t{});
+			break;
+		}
+
 		default:
 			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 			break;
@@ -351,6 +363,21 @@ namespace Platform {
 	{
 		switch (wParam)
 		{
+		case 0x11:
+			return KEY_CTRL;
+			break;
+
+		case 0x20:
+			return KEY_SPACE;
+			break;
+
+		case 0x26:
+			return KEY_UP;
+			break;
+		case 0x28:
+			return KEY_DOWN;
+			break;
+
 		case 0x41:
 			return KEY_A;
 			break;

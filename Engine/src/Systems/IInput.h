@@ -15,6 +15,13 @@ enum eKeyTable
 {
 	KEY_UNDEFINED = 0,
 
+	KEY_CTRL = 17,
+
+	KEY_SPACE = 32,
+
+	KEY_UP = 38,
+	KEY_DOWN,
+
 	KEY_A = 65,
 	KEY_B,
 	KEY_C,
@@ -62,6 +69,14 @@ enum eMouseButtonTable
 // NOTE!!!: This string array MUST stay in parody with e_KeyTable!!
 static const char* e_KeyTable_Strings[MAX_INPUT_KEYS] = {
 	"UNDEFINED KEY!",
+
+	"CTRL",
+
+	"SPACE",
+
+	"UP",
+	"DOWN",
+
 	"A",
 	"B",
 	"C",

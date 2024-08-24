@@ -162,11 +162,12 @@ public:
 
 	Vector3D operator*(const float scalar)
 	{
-		x = x * scalar;
-		y = y * scalar;
-		z = z * scalar;
+		Vector3D outVector;
+		outVector.x = x * scalar;
+		outVector.y = y * scalar;
+		outVector.z = z * scalar;
 
-		return *this;
+		return outVector;
 	}
 
 	Vector3D operator/(const float scalar)
@@ -214,6 +215,15 @@ public:
 		return outVector;
 	}
 
+	Vector3D operator=(const Vector3D& otherVector)
+	{
+		Vector3D outVector{};
+		x = otherVector.x;
+		y = otherVector.y;
+		z = otherVector.z;
+		return outVector;
+	}
+
 	Vector3D Negate() const
 	{
 		Vector3D outVector{};
@@ -237,28 +247,40 @@ public:
 
 	Vector3D Normalize() const
 	{
-		Vector3D outVector{};
+		Vector3D outVector{x, y, z};
+		/*
 		float length = Length();
 
 		outVector.x = x / length;
 		outVector.y = y / length;
-		outVector.z = z / length;
+		outVector.z = z / length;*/
 
-		return outVector;
+		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		float invSqrt = 1 / M_SQRT(flDot);
+
+		return outVector * invSqrt;
 	}
 
 	void NormalizeInPlace()
 	{
+		Vector3D outVector{ x, y, z };
+		/*
 		float length = Length();
 
 		x = x / length;
 		y = y / length;
-		z = z / length;
+		z = z / length;*/
+
+		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		float invSqrt = 1 / M_SQRT(flDot);
+
+		*this * invSqrt;
 	}
 
-	static float DotProduct(const Vector3D& vecA, const Vector3D& vecB)
+	static float DotProduct(Vector3D& vecA, Vector3D& vecB)
 	{
-		return (vecA.x * vecB.x) + (vecA.y * vecB.y) + (vecA.z * vecB.z);
+		Vector3D tempVec(vecA * vecB);
+		return tempVec.x + tempVec.y + tempVec.z;
 	}
 
 	static Vector3D CrossProduct(const Vector3D& vecA, const Vector3D& vecB)

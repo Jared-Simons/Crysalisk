@@ -14,6 +14,7 @@
 // TODO: Move to texture manager or resource loader
 #define STB_IMAGE_IMPLEMENTATION
 #include <Vendor/stb_image.h>
+#include "Systems/IInput.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -23,6 +24,114 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 // TODO: This event callback really should be a part of the renderer backend class
 bool Event_FramebufferResized(EventData_t data);
+
+// TEMP: Camera
+struct Camera
+{
+	Vector3D Position;
+	Vector3D Front;
+	Vector3D Up;
+	Vector3D Right;
+	Vector3D WorldUp;
+
+	float Yaw;
+	float Pitch;
+
+	float MovementSpeed;
+
+	Camera(Vector3D inPosition, Vector3D inUp, float inYaw, float inPitch)
+		: Front(Vector3D(0.0f, 0.0f, -1.0f))
+		, MovementSpeed(1.0f)
+	{
+		Position = inPosition;
+		WorldUp = inUp;
+		Pitch = inPitch;
+		Yaw = inYaw;
+		UpdateCameraVectors();
+	}
+
+	Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(Position, Position + Front, Up); }
+
+	void UpdateCameraVectors()
+	{
+		Vector3D front;
+		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
+		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
+		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
+		Front = front.Normalize();
+
+		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
+		Right = newRight.Normalize();
+
+		Vector3D newUp = Vector3D::CrossProduct(Right, Front);
+		Up = newUp.Normalize();
+	}
+};
+
+Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+void UpdateCameraPosition(float deltaTime)
+{
+	float cameraSpeed = static_cast<float>(2.5f * deltaTime);
+	const float cameraRotationSpeedMultiplier = 20.0f;
+
+	if (gpInputSystem->IsKeyPressed(KEY_W))
+		s_Camera.Position = s_Camera.Position + (s_Camera.Front * cameraSpeed);
+	if (gpInputSystem->IsKeyPressed(KEY_S))
+		s_Camera.Position = s_Camera.Position - (s_Camera.Front * cameraSpeed);
+	if (gpInputSystem->IsKeyPressed(KEY_A))
+	{
+		Vector3D newVector = (Vector3D::CrossProduct(s_Camera.Front, s_Camera.Up));
+		s_Camera.Position = s_Camera.Position - (newVector.Normalize() * cameraSpeed);
+	}
+	if (gpInputSystem->IsKeyPressed(KEY_D))
+	{
+		Vector3D newVector = (Vector3D::CrossProduct(s_Camera.Front, s_Camera.Up));
+		s_Camera.Position = s_Camera.Position + (newVector.Normalize() * cameraSpeed);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_SPACE))
+		s_Camera.Position = s_Camera.Position - (s_Camera.Up * cameraSpeed);
+
+	if (gpInputSystem->IsKeyPressed(KEY_CTRL))
+		s_Camera.Position = s_Camera.Position + (s_Camera.Up * cameraSpeed);
+
+	if (gpInputSystem->IsKeyPressed(KEY_E))
+	{
+		s_Camera.Yaw += cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_Q))
+	{
+		s_Camera.Yaw -= cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_UP))
+	{
+		s_Camera.Pitch -= cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_DOWN))
+	{
+		s_Camera.Pitch += cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+}
+// END TEMP: Camera
 
 bool CVulkanRenderer::RendererBackend_Initialize()
 {
@@ -116,26 +225,28 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Buffers
 
 	// TODO: Temp rendering data
+	
 	CVector<Vertex3D> vertices(4);
-	vertices.PushBack(Vertex3D(Vector2D(-0.5, -0.5), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector2D(0.5, -0.5), Vector3D(0.0, 1.0, 0.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector2D(0.5, 0.5), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector2D(-0.5, 0.5), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.0f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.0f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.0f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
 
 	CVector<uint16_t> indices((size_t)6);
 	indices.PushBack(0);
 	indices.PushBack(1);
-	indices.PushBack(2);
+	indices.PushBack(3);
+	indices.PushBack(1);
 	indices.PushBack(2);
 	indices.PushBack(3);
-	indices.PushBack(0);
-
-	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * 4;
-	VkDeviceSize indexBufferSize = sizeof(indices[0]) * 6;
+	
+	
+	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.capacity();
+	VkDeviceSize indexBufferSize = sizeof(indices[0]) * indices.capacity();
 
 	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
 		return false;
-
+	
 	if (!VulkanBuffer::CreateBuffer(this, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_IndexBuffer))
 		return false;
 
@@ -291,6 +402,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
+	LOG_DEBUG("%.2f %.2f %.2f ", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
+	m_RendererClock.Start();
+
 	return true;
 }
 
@@ -352,6 +466,16 @@ bool CVulkanRenderer::RendererBackend_Update()
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
 
+	// TEMP
+	// Update camera position
+
+	float currentTime = static_cast<float>(m_RendererClock.GetElapsedTime());
+	deltaTime = currentTime - lastFrame;
+	lastFrame = currentTime;
+
+	UpdateCameraPosition(deltaTime);
+	// END TEMP
+
 	unsigned int imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
@@ -370,11 +494,14 @@ bool CVulkanRenderer::RendererBackend_Update()
 		double time = currentTime - startTime;
 		
 		UniformBufferObject ubo{};
-		//ubo.model = Matrix4x4(1.0f);
-		ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f)); 
-		ubo.view = Matrix4x4::LookAt(Vector3D(2.0f, 2.0f, 2.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 0.0f, 1.0f));
-		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10.0f);
-		ubo.projection.data[1][1] *= -1;
+		ubo.model = Matrix4x4(1.0f);
+		ubo.model = Matrix4x4::Translate(ubo.model, Vector3D(0.0f, 0.0f, 0.0f));
+		//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
+		ubo.view = s_Camera.GetViewMatrix();
+		//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
+
+		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
+		//ubo.projection.data[1][1] *= -1;
 
 		memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
 	}
@@ -432,7 +559,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 			vkCmdDrawIndexed(commandBuffer.m_Handle, 6, 1, 0, 0, 0);
 		}
 
-		//vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
+		//vkCmdDraw(commandBuffer.m_Handle, 6, 1, 0, 0);
 
 		m_MainRenderpass.End(this, &commandBuffer);
 
