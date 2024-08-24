@@ -54,13 +54,13 @@ void UpdateCameraPosition(float deltaTime)
 	if (gpInputSystem->IsKeyPressed(KEY_CTRL))
 		s_Camera.Position = s_Camera.Position - (s_Camera.Up * cameraSpeed);
 
-	if (gpInputSystem->IsKeyPressed(KEY_E))
+	if (gpInputSystem->IsKeyPressed(KEY_RIGHT))
 	{
 		s_Camera.Yaw += cameraSpeed * cameraRotationSpeedMultiplier;
 		s_Camera.UpdateCameraVectors();
 	}
 
-	if (gpInputSystem->IsKeyPressed(KEY_Q))
+	if (gpInputSystem->IsKeyPressed(KEY_LEFT))
 	{
 		s_Camera.Yaw -= cameraSpeed * cameraRotationSpeedMultiplier;
 		s_Camera.UpdateCameraVectors();
@@ -69,11 +69,18 @@ void UpdateCameraPosition(float deltaTime)
 	if (gpInputSystem->IsKeyPressed(KEY_UP))
 	{
 		s_Camera.Pitch += cameraSpeed * cameraRotationSpeedMultiplier;
+
+		if (s_Camera.Pitch > 89.0f)
+			s_Camera.Pitch = 89.0f;
+
 		s_Camera.UpdateCameraVectors();
 	}
 
 	if (gpInputSystem->IsKeyPressed(KEY_DOWN))
 	{
+		if (s_Camera.Pitch < -89.0f)
+			s_Camera.Pitch = -89.0f;
+
 		s_Camera.Pitch -= cameraSpeed * cameraRotationSpeedMultiplier;
 		s_Camera.UpdateCameraVectors();
 	}

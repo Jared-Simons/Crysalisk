@@ -19,7 +19,9 @@ enum eKeyTable
 
 	KEY_SPACE = 32,
 
-	KEY_UP = 38,
+	KEY_LEFT = 37,
+	KEY_UP,
+	KEY_RIGHT,
 	KEY_DOWN,
 
 	KEY_A = 65,

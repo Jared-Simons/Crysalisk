@@ -371,8 +371,14 @@ namespace Platform {
 			return KEY_SPACE;
 			break;
 
+		case 0x25:
+			return KEY_LEFT;
+			break;
 		case 0x26:
 			return KEY_UP;
+			break;
+		case 0x27:
+			return KEY_RIGHT;
 			break;
 		case 0x28:
 			return KEY_DOWN;
