@@ -46,6 +46,7 @@ struct Camera
 		Position = inPosition;
 		WorldUp = inUp;
 		Pitch = inPitch;
+		Yaw = inYaw;
 		UpdateCameraVectors();
 	}
 
@@ -58,7 +59,6 @@ struct Camera
 		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
 		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
 		Front = front.Normalize();
-		Front = Vector3D(0.0f, 0.0f, -1.0f); // TODO: TEMP
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
 		Right = newRight.Normalize();
@@ -75,7 +75,7 @@ float lastFrame = 0.0f;
 void UpdateCameraPosition(float deltaTime)
 {
 	float cameraSpeed = static_cast<float>(2.5f * deltaTime);
-	//float cameraSpeed = 0.001f;
+	const float cameraRotationSpeedMultiplier = 20.0f;
 
 	if (gpInputSystem->IsKeyPressed(KEY_W))
 		s_Camera.Position = s_Camera.Position + (s_Camera.Front * cameraSpeed);
@@ -91,6 +91,45 @@ void UpdateCameraPosition(float deltaTime)
 		Vector3D newVector = (Vector3D::CrossProduct(s_Camera.Front, s_Camera.Up));
 		s_Camera.Position = s_Camera.Position + (newVector.Normalize() * cameraSpeed);
 	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_SPACE))
+		s_Camera.Position = s_Camera.Position - (s_Camera.Up * cameraSpeed);
+
+	if (gpInputSystem->IsKeyPressed(KEY_CTRL))
+		s_Camera.Position = s_Camera.Position + (s_Camera.Up * cameraSpeed);
+
+	if (gpInputSystem->IsKeyPressed(KEY_E))
+	{
+		s_Camera.Yaw += cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_Q))
+	{
+		s_Camera.Yaw -= cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_UP))
+	{
+		s_Camera.Pitch -= cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_DOWN))
+	{
+		s_Camera.Pitch += cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+
+		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+	}
+
 }
 // END TEMP: Camera
 
