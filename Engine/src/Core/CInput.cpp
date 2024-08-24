@@ -147,12 +147,12 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 		if (pressed)
 		{
 			eventData.c[0] = processedKeyInput;
-			m_KeysState[processedKeyInput - 65].m_Pressed = true;
+			m_KeysState[processedKeyInput].m_Pressed = true;
 			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, eventData);
 		}
 		else
 		{
-			m_KeysState[processedKeyInput - 65].m_Pressed = false;
+			m_KeysState[processedKeyInput].m_Pressed = false;
 			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, eventData);
 		}
 	}
@@ -231,7 +231,7 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 
 bool CInputSystem::IsKeyPressed(const int key) const
 {
-	if (m_KeysState[key - 65].m_Pressed)
+	if (m_KeysState[key].m_Pressed)
 		return true;
 
 	return false;

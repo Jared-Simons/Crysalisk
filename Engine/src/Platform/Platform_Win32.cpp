@@ -363,6 +363,21 @@ namespace Platform {
 	{
 		switch (wParam)
 		{
+		case 0x11:
+			return KEY_CTRL;
+			break;
+
+		case 0x20:
+			return KEY_SPACE;
+			break;
+
+		case 0x26:
+			return KEY_UP;
+			break;
+		case 0x28:
+			return KEY_DOWN;
+			break;
+
 		case 0x41:
 			return KEY_A;
 			break;
