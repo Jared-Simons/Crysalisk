@@ -11,9 +11,7 @@
 #include <String_Utils.h>
 
 
-// TODO: Move to texture manager or resource loader
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
+
 #include "Systems/IInput.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
@@ -26,48 +24,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 bool Event_FramebufferResized(EventData_t data);
 
 // TEMP: Camera
-struct Camera
-{
-	Vector3D Position;
-	Vector3D Front;
-	Vector3D Up;
-	Vector3D Right;
-	Vector3D WorldUp;
-
-	float Yaw;
-	float Pitch;
-
-	float MovementSpeed;
-
-	Camera(Vector3D inPosition, Vector3D inUp, float inYaw, float inPitch)
-		: Front(Vector3D(0.0f, 0.0f, -1.0f))
-		, MovementSpeed(1.0f)
-	{
-		Position = inPosition;
-		WorldUp = inUp;
-		Pitch = inPitch;
-		Yaw = inYaw;
-		UpdateCameraVectors();
-	}
-
-	Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(Position, Position + Front, Up); }
-
-	void UpdateCameraVectors()
-	{
-		Vector3D front;
-		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
-		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		Front = front.Normalize();
-
-		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
-		Right = newRight.Normalize();
-
-		Vector3D newUp = Vector3D::CrossProduct(Right, Front);
-		Up = newUp.Normalize();
-	}
-};
-
 Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -168,7 +124,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Descriptor set layouts
 	// TODO: Re-locate this (to the shader class?)
-	{
+	/* {
 		VkDescriptorSetLayoutBinding uboLayoutBinding{};
 		uboLayoutBinding.binding = 0;
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -194,11 +150,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			LOG_ERROR("Failed to create descriptor set layout!");
 			return false;
 		}
-	}
-
-	// Main shader
-	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
-		return false;
+	}*/
 
 	// Command Pool
 	if (!VulkanCommandPool::CreateCommandPool(this, &m_GraphicsCommandPool))
@@ -212,6 +164,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		if (!VulkanCommandBuffer::CreateCommandBuffer(this, true, &m_CommandBuffers[i]))
 			return false;
 	}
+
+	// Main shader
+	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
+		return false;
 
 	// Framebuffers
 	// one per frame
@@ -255,7 +211,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
 
 	// Uniform Buffer
-	{
+	/* {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 		m_UniformBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
@@ -266,10 +222,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &m_UniformBuffers[i]);
 			vkMapMemory(m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
 		}
-	}
+	}*/
 
 	// Image data
-	int texWidth, texHeight, texChannels;
+	/*int texWidth, texHeight, texChannels;
 	char* filePath = "Assets/Textures/container.jpg";
 	unsigned char* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 	VkDeviceSize imageSize = (size_t)texWidth * (size_t)texHeight * 4;
@@ -298,12 +254,12 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		VulkanBuffer::DestroyBuffer(this, &imageBuffer);
 	}
 
-	stbi_image_free(pixels);
+	stbi_image_free(pixels);*/
 
 	// TODO: END TEMP
 
 	// Descriptor pool
-	{
+	/* {
 		VkDescriptorPoolSize poolSizes[2];
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
@@ -378,7 +334,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			
 			vkUpdateDescriptorSets(m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
 		}
-	}
+	}*/
 
 	// Fences
 	// one per frame
@@ -413,17 +369,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
 
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
-
-	VulkanImage::DestroyImage(this, &m_TextureImage);
-
-	vkDestroyDescriptorPool(m_Device.m_LogicalDevice, m_DescriptorPool, m_Allocator);
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		VulkanBuffer::DestroyBuffer(this, &m_UniformBuffers[i]);
-	}
-
-	vkDestroyDescriptorSetLayout(m_Device.m_LogicalDevice, m_DescriptorSetLayout, m_Allocator);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
@@ -487,24 +432,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 	}
 
 	// Update Uniform Buffer
-	{
-		static double startTime = Platform::GetAbsoluteTime();
-		double currentTime = Platform::GetAbsoluteTime();
-
-		double time = currentTime - startTime;
-		
-		UniformBufferObject ubo{};
-		ubo.model = Matrix4x4(1.0f);
-		ubo.model = Matrix4x4::Translate(ubo.model, Vector3D(0.0f, 0.0f, 0.0f));
-		//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
-		ubo.view = s_Camera.GetViewMatrix();
-		//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
-
-		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
-		//ubo.projection.data[1][1] *= -1;
-
-		memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
-	}
+	m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
 
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
@@ -541,12 +469,10 @@ bool CVulkanRenderer::RendererBackend_Update()
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
-		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
+		m_StandardShader.Bind(this, &commandBuffer.m_Handle, imageIndex);
 
 		VkDeviceSize offset[] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
-
-		vkCmdBindDescriptorSets(commandBuffer.m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, m_StandardShader.m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
 
 		// If we are able to draw with indices, do so.
 		if (!m_IndexBuffer.m_Handle)

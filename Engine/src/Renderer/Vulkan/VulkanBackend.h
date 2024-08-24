@@ -329,6 +329,22 @@ public:
 
 //=================================
 // 
+// Uniform Buffer
+// 
+//=================================
+// TODO: Move to the frontend
+struct UniformBufferObject
+{
+	UniformBufferObject() {}
+
+	Matrix4x4 model;
+	Matrix4x4 view;
+	Matrix4x4 projection;
+};
+
+
+//=================================
+// 
 // Vulkan Shader
 // 
 //=================================
@@ -339,14 +355,20 @@ public:
 		: m_VertModule{ VK_NULL_HANDLE }
 		, m_FragModule{ VK_NULL_HANDLE }
 		, m_Pipeline{ VK_NULL_HANDLE }
-		, m_PipelineLayout{ VK_NULL_HANDLE } {}
+		, m_PipelineLayout{ VK_NULL_HANDLE }
+		, m_DescriptorPool{ VK_NULL_HANDLE } {}
 
 	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer) const;
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
+
+private:
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext);
+	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
 
 public:
 	VkShaderModule		m_VertModule;
@@ -354,22 +376,61 @@ public:
 
 	VkPipeline			m_Pipeline;
 	VkPipelineLayout	m_PipelineLayout;
+
+	VkDescriptorSetLayout		m_DescriptorSetLayout;
+	VkDescriptorPool			m_DescriptorPool;
+	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of double and triple buffering
+
+	// TODO: Instance level resources!
+	CVector<VulkanBuffer>		m_UniformBuffers;
+	CVector<void*>				m_UniformBuffersMappedMemory;
+
+	VulkanImage m_TextureImage;
 };
 
-
-//=================================
-// 
-// Uniform Buffer
-// 
-//=================================
-struct UniformBufferObject
+// TODO TEMP
+struct Camera
 {
-	UniformBufferObject() {}
+	Vector3D Position;
+	Vector3D Front;
+	Vector3D Up;
+	Vector3D Right;
+	Vector3D WorldUp;
 
-	Matrix4x4 model;
-	Matrix4x4 view;
-	Matrix4x4 projection;
+	float Yaw;
+	float Pitch;
+
+	float MovementSpeed;
+
+	Camera(Vector3D inPosition, Vector3D inUp, float inYaw, float inPitch)
+		: Front(Vector3D(0.0f, 0.0f, -1.0f))
+		, MovementSpeed(1.0f)
+	{
+		Position = inPosition;
+		WorldUp = inUp;
+		Pitch = inPitch;
+		Yaw = inYaw;
+		UpdateCameraVectors();
+	}
+
+	Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(Position, Position + Front, Up); }
+
+	void UpdateCameraVectors()
+	{
+		Vector3D front;
+		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
+		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
+		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
+		Front = front.Normalize();
+
+		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
+		Right = newRight.Normalize();
+
+		Vector3D newUp = Vector3D::CrossProduct(Right, Front);
+		Up = newUp.Normalize();
+	}
 };
+// TODO END TEMP
 
 
 //=================================
@@ -429,17 +490,8 @@ public:
 	VulkanBuffer m_VertexBuffer;
 	VulkanBuffer m_IndexBuffer;
 
-	// Images
-	VulkanImage m_TextureImage;
-
 	// Shaders
 	VulkanShader		m_StandardShader;
-
-	VkDescriptorSetLayout	m_DescriptorSetLayout{ VK_NULL_HANDLE };
-	VkDescriptorPool		m_DescriptorPool{ VK_NULL_HANDLE };
-	VkDescriptorSet			m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]{ VK_NULL_HANDLE }; // TODO: Make dynamic?
-	CVector<VulkanBuffer>	m_UniformBuffers;
-	CVector<void*>			m_UniformBuffersMappedMemory;
 
 	// Validation Layers
 	CVector<const char*>* m_ValidationLayers{};
