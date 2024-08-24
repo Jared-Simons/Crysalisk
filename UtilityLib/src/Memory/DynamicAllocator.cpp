@@ -122,7 +122,9 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 	void* pMemBlock = static_cast<char*>((void*)pCurrentNode) + ALLOC_HEADER_SIZE;
 	Platform::MemorySet(pMemBlock, 0, size);
 
+#ifdef CRYS_DEBUG
 	LOG_VERBOSE("Memory Allocation -> size %d bytes, at address 0x%p.", pCurrentNode->blockSize, pMemBlock);
+#endif
 
 	return pMemBlock;
 }
@@ -216,7 +218,9 @@ void DynamicAllocator::Free(void* pMemBlock)
 
 	m_Allocated -= pNodeToReturn->blockSize + ALLOC_HEADER_SIZE;
 
+#ifdef CRYS_DEBUG
 	LOG_VERBOSE("Memory Freed -> size %d bytes, at address 0x%p.", pNodeToReturn->blockSize, pMemBlock);
+#endif
 
 	//ReportMemoryFragmentation();
 

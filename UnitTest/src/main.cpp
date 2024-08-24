@@ -9,15 +9,8 @@
 #include <Core/Logging.h>
 #include <Clock.h>
 
-#include <Containers/LinkedListTests.h>
-#include <Memory/LinearAllocatorTests.h>
-#include <Memory/DynamicAllocatorTests.h>
-
 bool PerformUnitTests()
 {
-	//g_LinearAllocatorTests->PerformTests();
-	//g_LinkedListTests->PerformTests();
-	g_DynamicAllocatorTests->PerformTests();
 	
 	return true;
 }

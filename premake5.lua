@@ -67,16 +67,16 @@ project "Engine"
 		}
 	
 	filter "configurations:Debug"
-		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DEBUG;ENGINE_DLL"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DEBUG;ENGINE_DLL"
 		symbols "on"
 		
 	filter "configurations:Release"
-		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DIST;ENGINE_RELEASE;ENGINE_DLL"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_RELEASE;ENGINE_RELEASE;ENGINE_DLL"
 		symbols "on"
 		optimize "on"
 	
 	filter "configurations:Distribution"
-		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;ENGINE_DIST;ENGINE_DLL"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DIST;ENGINE_DLL"
 		optimize "on"
 
 project "Testapp"
@@ -125,16 +125,16 @@ project "Testapp"
 		}
 	
 	filter "configurations:Debug"
-		defines "GAME_API;GAME_DEBUG;"
+		defines "GAME_API;CRYS_DEBUG;"
 		symbols "on"
 		
 	filter "configurations:Release"
-		defines "GAME_API;GAME_RELEASE;"
+		defines "GAME_API;CRYS_RELEASE;"
 		symbols "on"
 		optimize "on"
 	
 	filter "configurations:Distribution"
-		defines "GAME_API;GAME_DIST;"
+		defines "GAME_API;CRYS_DIST;"
 		optimize "on"
 		
 project "UnitTest"
@@ -191,17 +191,17 @@ project "UnitTest"
 		}
 	
 	filter "configurations:Debug"
-		defines "GAME_API;GAME_DEBUG;"
+		defines "GAME_API;CRYS_DEBUG;"
 		symbols "on"
 		debugdir = "bin/Debug-windows-x86_64/Testapp"
 		
 	filter "configurations:Release"
-		defines "GAME_API;GAME_RELEASE;"
+		defines "GAME_API;CRYS_RELEASE;"
 		symbols "on"
 		optimize "on"
 	
 	filter "configurations:Distribution"
-		defines "GAME_API;GAME_DIST;"
+		defines "GAME_API;CRYS_DIST;"
 		optimize "on"
 
 
@@ -250,15 +250,15 @@ project "UtilityLib"
 		}
 	
 	filter "configurations:Debug"
-		defines "UTILITY_DLL;UTILITY_API;UTILITY_DEBUG;"
+		defines "UTILITY_DLL;UTILITY_API;CRYS_DEBUG;"
 		symbols "on"
 		
 	filter "configurations:Release"
-		defines "UTILITY_DLL;UTILITY_API;UTILITY_RELEASE;"
+		defines "UTILITY_DLL;UTILITY_API;CRYS_RELEASE;"
 		symbols "on"
 		optimize "on"
 	
 	filter "configurations:Distribution"
-		defines "UTILITY_DLL;UTILITY_API;UTILITY_DIST;"
+		defines "UTILITY_DLL;UTILITY_API;CRYS_DIST;"
 		optimize "on"
 
