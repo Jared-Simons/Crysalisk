@@ -519,14 +519,14 @@ namespace Platform {
 	//-----------------------------------------------------------------------------
 	void* MemoryAllocate(size_t size)
 	{
-		void* pMemBlock = malloc(sizeof(unsigned int) + size); // memory block + header for tagging platform allocations
+		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, sizeof(unsigned int) + size); // memory block + header for tagging platform allocations
 		
 		unsigned int* blockHeader = static_cast<unsigned int*>(pMemBlock);
 
 		if (blockHeader)
 			*blockHeader = magicMemPlatformNumber;
 
-		return (unsigned int*)pMemBlock + 1;
+		return static_cast<unsigned int*>(pMemBlock) + 1;
 	}
 
 	void MemoryFree(void* memory)
@@ -538,7 +538,7 @@ namespace Platform {
 			LOG_WARN("Freeing memory at the platform level that was not properly tagged!");
 		}
 
-		free(blockHeader);
+		HeapFree(GetProcessHeap(), 0, blockHeader);
 	}
 
 	void* MemoryReallocate(void* memory, size_t newSize)

@@ -9,8 +9,14 @@
 #include <Core/Logging.h>
 #include <Clock.h>
 
+#include "Math/MathLib.h"
+#include "Math/VectorTypes.h"
+#include "Math/MatrixTypes.h"
+
 bool PerformUnitTests()
 {
+	Vector2D vector{ 4.7, -6 };
+	Vector2D vector2 = vector / 2;
 	
 	return true;
 }
