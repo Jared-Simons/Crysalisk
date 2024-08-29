@@ -49,7 +49,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
 	m_engineConfig = engineConfig;
 
-	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1));
+	void* engineMemoryBlock = Platform::MemoryAllocate(GIBIBYTES(1));
+	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1), engineMemoryBlock);
 
 	// Logging Utilities
 	Logging_Initialize();
@@ -179,7 +180,9 @@ void CEngine::Engine_Shutdown()
 
 	gpMemorySystem->MemorySystem_Shutdown();
 
+	void* pEngineMemoryBlock = m_EngineHeap->GetMemoryBlock();
 	delete m_EngineHeap;
+	Platform::MemoryFree(pEngineMemoryBlock);
 
 	Logging_Shutdown();
 }
@@ -198,14 +201,14 @@ bool Event_ApplicationQuit(EventData_t data)
 bool Event_KeyPressed(EventData_t data)
 {
 	char keycode = *data.c;
-	LOG_DEBUG("%c Key Pressed", keycode);
+	//LOG_DEBUG("%c Key Pressed", keycode);
 	return true;
 }
 
 bool Event_KeyReleased(EventData_t data)
 {
 	char keycode = *data.c;
-	LOG_DEBUG("%c Key Released", keycode);
+	//LOG_DEBUG("%c Key Released", keycode);
 
 	if (keycode == 'M')
 	{
@@ -217,14 +220,14 @@ bool Event_KeyReleased(EventData_t data)
 bool Event_MouseButtonPressed(EventData_t data)
 {
 	unsigned int mouseButtonFlags = *data.u16;
-	LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
+	//LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 
 bool Event_MouseButtonReleased(EventData_t data)
 {
 	unsigned int mouseButtonFlags = *data.u16;
-	LOG_DEBUG("%s Mouse Button Released", e_MouseButtonTable_Strings[mouseButtonFlags]);
+	//LOG_DEBUG("%s Mouse Button Released", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 

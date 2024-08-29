@@ -7,13 +7,17 @@
 
 #include "DynamicAllocator.h"
 
-DynamicAllocator::DynamicAllocator(size_t sizeInBytes)
+DynamicAllocator::DynamicAllocator(size_t sizeInBytes, void* pMemBlock)
 	: m_Size{ sizeInBytes }
 	, m_Allocated{ 0 }
-	, m_pData{ nullptr }
+	, m_pData{ pMemBlock }
 	, m_pHeadNode{ nullptr }
 {
-	m_pData = Platform::MemoryAllocate(sizeInBytes);
+	if (!pMemBlock)
+	{
+		LOG_ERROR("Dynamic Allocator REQUIRES a pointer to an allocated block of memory. Creation failed.");
+		return;
+	}
 
 	FreeListNode_t* pFirstNode = static_cast<FreeListNode_t*>(m_pData);
 	pFirstNode->blockSize = sizeInBytes;
@@ -28,9 +32,6 @@ DynamicAllocator::DynamicAllocator(size_t sizeInBytes)
 DynamicAllocator::~DynamicAllocator()
 {
 	//LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
-
-	//Platform::MemorySet(m_pData, 0, m_Size);
-	Platform::MemoryFree(m_pData);
 	m_pData = nullptr;
 }
 

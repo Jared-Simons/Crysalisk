@@ -22,7 +22,7 @@ const size_t ALLOC_HEADER_SIZE = sizeof(FreeListNode_t);
 class DynamicAllocator
 {
 public:
-	DynamicAllocator(size_t sizeInBytes);
+	DynamicAllocator(size_t sizeInBytes, void* pMemBlock);
 	virtual ~DynamicAllocator();
 
 	void* Allocate(size_t size, size_t alignment = 2);
@@ -31,6 +31,7 @@ public:
 	size_t GetAllocatorSize() const { return m_Size; }
 	size_t GetBytesAllocated() const { return m_Allocated; }
 	size_t GetFreeSpace() const { return m_Size - m_Allocated; }
+	void* GetMemoryBlock() const { return m_pData; }
 
 	void ReportMemoryFragmentation();
 	void CleanupMemoryFragmentation();
