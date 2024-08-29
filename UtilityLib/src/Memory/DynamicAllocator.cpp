@@ -29,7 +29,7 @@ DynamicAllocator::~DynamicAllocator()
 {
 	//LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
 
-	Platform::MemorySet(m_pData, 0, m_Size);
+	//Platform::MemorySet(m_pData, 0, m_Size);
 	Platform::MemoryFree(m_pData);
 	m_pData = nullptr;
 }

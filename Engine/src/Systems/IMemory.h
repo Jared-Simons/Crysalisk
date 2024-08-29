@@ -11,6 +11,9 @@
 // Foward Declarations
 class DynamicAllocator;
 
+// NOTE: Any block of memory allocated directly from the platform layer (thus bypassing the core memory system), will be tagged with this magic number
+const unsigned int magicMemPlatformNumber = 0xbadea; 
+
 enum class eMemAllocCategories
 {
 	MEM_CATEGORY_UNKNOWN,

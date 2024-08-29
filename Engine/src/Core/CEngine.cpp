@@ -179,6 +179,8 @@ void CEngine::Engine_Shutdown()
 
 	gpMemorySystem->MemorySystem_Shutdown();
 
+	delete m_EngineHeap;
+
 	Logging_Shutdown();
 }
 
