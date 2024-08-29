@@ -10,10 +10,17 @@
 
 #define M_PI 3.14159265359
 
-#define M_SQRT(x) sqrt(x)
-#define M_SIN(x) sin(x)
-#define M_COS(x) cos(x)
-#define M_TAN(x) tan(x)
+inline double M_SQRT(float x) { return sqrt(x); }
+inline float M_SQRTF(float x) { return sqrt(x); }
+
+inline double M_SIN(float x) { return sin(x); }
+inline float M_SINF(float x) { return sin(x); }
+
+inline double M_COS(float x) { return cos(x); }
+inline float M_COSF(float x) { return cos(x); }
+
+inline double M_TAN(float x) { return tan(x); }
+inline float M_TANF(float x) { return tan(x); }
 
 #define M_RAD_TO_DEG(angleInRadians) angleInRadians * (180 / M_PI)
 #define M_DEG_TO_RAD(angleInDegrees) angleInDegrees * (M_PI / 180)

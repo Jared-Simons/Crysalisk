@@ -6,9 +6,6 @@
 //=============================================================================
 #pragma once
 
-// TODO: Replace this with our own header at some point
-#include <cmath>
-
 class Vector2D
 {
 public:
@@ -24,28 +21,36 @@ public:
 		: x{ x_ }
 		, y{ y_ } {}
 
-	void operator+(const float scalar)
+	Vector2D operator+(const float scalar)
 	{
-		x = x + scalar;
-		y = y + scalar;
+		Vector2D outVector{ x, y };
+		outVector.x = x + scalar;
+		outVector.y = y + scalar;
+		return outVector;
 	}
 
-	void operator-(const float scalar)
+	Vector2D operator-(const float scalar)
 	{
-		x = x - scalar;
-		y = y - scalar;
+		Vector2D outVector{ x, y };
+		outVector.x = x - scalar;
+		outVector.y = y - scalar;
+		return outVector;
 	}
 
-	void operator*(const float scalar)
+	Vector2D operator*(const float scalar)
 	{
-		x = x * scalar;
-		y = y * scalar;
+		Vector2D outVector{ x, y };
+		outVector.x = x * scalar;
+		outVector.y = y * scalar;
+		return outVector;
 	}
 
-	void operator/(const float scalar)
+	Vector2D operator/(const float scalar)
 	{
-		x = x / scalar;
-		y = y / scalar;
+		Vector2D outVector{ x, y };
+		outVector.x = x / scalar;
+		outVector.y = y / scalar;
+		return outVector;
 	}
 
 	Vector2D operator+(Vector2D& otherVector)
@@ -96,7 +101,7 @@ public:
 
 	float Length() const
 	{
-		return sqrt((x * x) + (y * y));
+		return M_SQRT((x * x) + (y * y));
 	}
 
 	Vector2D Normalize() const
@@ -248,12 +253,6 @@ public:
 	Vector3D Normalize() const
 	{
 		Vector3D outVector{x, y, z};
-		/*
-		float length = Length();
-
-		outVector.x = x / length;
-		outVector.y = y / length;
-		outVector.z = z / length;*/
 
 		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
 		float invSqrt = 1 / M_SQRT(flDot);
@@ -264,12 +263,6 @@ public:
 	void NormalizeInPlace()
 	{
 		Vector3D outVector{ x, y, z };
-		/*
-		float length = Length();
-
-		x = x / length;
-		y = y / length;
-		z = z / length;*/
 
 		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
 		float invSqrt = 1 / M_SQRT(flDot);

@@ -356,7 +356,9 @@ public:
 		, m_FragModule{ VK_NULL_HANDLE }
 		, m_Pipeline{ VK_NULL_HANDLE }
 		, m_PipelineLayout{ VK_NULL_HANDLE }
-		, m_DescriptorPool{ VK_NULL_HANDLE } {}
+		, m_DescriptorPool{ VK_NULL_HANDLE }
+		, m_DescriptorSetLayout{ VK_NULL_HANDLE }
+		, m_DescriptorSets{ VK_NULL_HANDLE } {}
 
 	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
@@ -418,9 +420,9 @@ struct Camera
 	void UpdateCameraVectors()
 	{
 		Vector3D front;
-		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
-		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
+		front.x = M_COSF(M_DEG_TO_RAD(Yaw)) * M_COSF(M_DEG_TO_RAD(Pitch));
+		front.y = M_SINF(M_DEG_TO_RAD(Pitch));
+		front.z = M_SINF(M_DEG_TO_RAD(Yaw)) * M_COSF(M_DEG_TO_RAD(Pitch));
 		Front = front.Normalize();
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
