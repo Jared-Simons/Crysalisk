@@ -10,8 +10,6 @@
 
 #include <String_Utils.h>
 
-
-
 #include "Systems/IInput.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
@@ -601,6 +599,23 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	}
 
 	return VK_FALSE;
+}
+
+bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
+{
+	if (!m_StandardShader.AcquireInstanceResources(this, pTexture, pPixelData))
+	{
+		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
+		return false;
+	}
+
+	if (!m_StandardShader.CreateDescriptorResources(this))
+	{
+		LOG_ERROR("Failed to create descriptor resources for Vulkan Shader.");
+		return false;
+	}
+
+	return true;
 }
 
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };

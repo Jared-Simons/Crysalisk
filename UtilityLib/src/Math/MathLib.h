@@ -24,3 +24,5 @@ inline float M_TANF(float x) { return tan(x); }
 
 #define M_RAD_TO_DEG(angleInRadians) angleInRadians * (180 / M_PI)
 #define M_DEG_TO_RAD(angleInDegrees) angleInDegrees * (M_PI / 180)
+
+inline double M_ABS(double x) { return abs(x); }

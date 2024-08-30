@@ -367,10 +367,10 @@ public:
 
 	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
 	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
+	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
 
 private:
-	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext);
-	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
 
 public:
 	VkShaderModule		m_VertModule;
@@ -456,6 +456,8 @@ private:
 
 	bool		CreateDebugMessenger();
 	void		DestroyDebugMessenger();
+
+	bool		CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
 
 public:
 	// Instance

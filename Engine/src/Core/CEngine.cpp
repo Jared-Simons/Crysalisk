@@ -13,6 +13,7 @@
 #include "Systems/IInput.h"
 #include "Platform/Platform.h"
 #include "Systems/IRenderer.h"
+#include "Systems/TextureSystem.h"
 
 #include <Memory/LinearAllocator.h>
 #include <Memory/DynamicAllocator.h>
@@ -49,8 +50,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 {
 	m_engineConfig = engineConfig;
 
-	void* engineMemoryBlock = Platform::MemoryAllocate(GIBIBYTES(1));
-	m_EngineHeap = new DynamicAllocator(GIBIBYTES(1), engineMemoryBlock);
+	void* engineMemoryBlock = Platform::MemoryAllocate(MEBIBYTES(20));
+	m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
 
 	// Logging Utilities
 	Logging_Initialize();
@@ -111,6 +112,21 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 		}
 	}
 
+	// Texture System
+
+	// TODO: Overloaded new operator?
+	gpTextureSystem = (TextureSystem*)m_SystemsAllocator->allocate(sizeof(TextureSystem));
+
+	TextureSystemConfiguration textureSysConfig = { 1024 };
+	if (!gpTextureSystem->Initialize(&textureSysConfig))
+	{
+		LOG_FATAL("Texture system failed to initialize! Application cannot continue.");
+		return false;
+	}
+
+	// TEMP: Load up a texture
+	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
@@ -148,6 +164,9 @@ bool CEngine::Engine_Run()
 void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	// TODO: Overloaded delete operator?
+	gpTextureSystem->Shutdown();
 
 	if (!m_engineConfig.isHeadless)
 	{
@@ -214,6 +233,23 @@ bool Event_KeyReleased(EventData_t data)
 	{
 		gpMemorySystem->PrintMemoryStats();
 	}
+	
+	if (keycode == 'T')
+	{
+		// TODO: THIS CAUSES A MEMORY LEAK! TEXTURES ARE NOT BEING DESTROYED
+		// Once this is properly implemented, we need to make sure this is no longer leaking resources.
+		static int TextureChoice = 0;
+		const char* textureNames[] =
+		{
+			"Assets/Textures/container.jpg",
+			"Assets/Textures/container2.png",
+		};
+
+		TextureChoice = TextureChoice == 0 ? 1 : 0;
+
+		gpTextureSystem->LoadTexture(textureNames[TextureChoice]);
+	}
+
 	return true;
 }
 

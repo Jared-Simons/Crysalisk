@@ -40,6 +40,8 @@ public:
 	virtual void	Shutdown() override;
 	virtual bool	Update() override;
 
+	bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
+
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
 };
@@ -129,4 +131,15 @@ bool CRenderer::Update()
 	}
 
 	return true;
+}
+
+bool CRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
+{
+	if (!pPixelData)
+	{
+		LOG_ERROR("CreateTextureResources requires a valid pointer to pixel data. Texture creation failed.");
+		return false;
+	}
+
+	return m_RendererBackend->CreateTextureResources(pTexture, pPixelData);
 }

@@ -8,6 +8,7 @@
 
 // Forward Declarations
 class LinearAllocator;
+class Texture;
 
 class IRenderer
 {
@@ -18,6 +19,8 @@ public:
 	virtual bool	Initialize() = 0;
 	virtual void	Shutdown() = 0;
 	virtual bool	Update() = 0;
+
+	virtual bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) = 0;
 };
 
 extern IRenderer* gpRenderer;

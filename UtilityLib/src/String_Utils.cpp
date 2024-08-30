@@ -37,6 +37,11 @@ bool StringCompare(const char* str1, const char* str2)
 	return result == 0;
 }
 
+char* StringDuplicate(const char* pStrToCopy)
+{
+	return strdup(pStrToCopy);
+}
+
 void StringConcat(char* str1, const char* str2)
 {
 	size_t len = StringLength(str1) + StringLength(str2);

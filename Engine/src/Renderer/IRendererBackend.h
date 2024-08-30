@@ -7,11 +7,16 @@
 //=============================================================================
 #pragma once
 
+// Forward declarations
+class Texture;
+
 class IRendererBackend
 {
 public:
 	virtual bool	RendererBackend_Initialize() = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
 	virtual bool	RendererBackend_Update() = 0;
+
+	virtual bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) = 0;
 };
 

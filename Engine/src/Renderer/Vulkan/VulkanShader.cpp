@@ -10,12 +10,9 @@
 #include "Core/Logging.h"
 #include "Systems/IMemory.h"
 #include "Systems/IFileSystem.h"
+#include "Resources/ResourceTypes.h"
 
-#include <Math/VertexTypes.h> 
-
-// TODO: Move to texture manager or resource loader
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
+#include <Math/VertexTypes.h>
 
 
 bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader)
@@ -26,12 +23,28 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 
+	// TODO: This setup requires at least one texture to exist prior to the texture system's creation
+	// This will need to be reworked
+	{
+		Texture dummyTexture;
+		unsigned char* tempTexturePixels[16 * 16 * 4];
+		memset(tempTexturePixels, 255, 16 * 16 * 4);
+		dummyTexture.m_Width = dummyTexture.m_Height = 16;
+		dummyTexture.m_ChannelCount = 4;
+		if (!pOutShader->AcquireInstanceResources(pRenderingContext, dummyTexture, tempTexturePixels))
+		{
+			LOG_ERROR("Failed to acquire instance resources for Vulkan Shader.");
+			return false;
+		}
+
+	}
+
 	// TODO: This will need to handled elsewhere once we have multiple textures/meshes.
-	if (!pOutShader->AcquireInstanceResources(pRenderingContext))
+	/*if (!pOutShader->AcquireInstanceResources(pRenderingContext))
 	{
 		LOG_ERROR("Failed to acquire instance resources for Vulkan Shader.");
 		return false;
-	}
+	}*/
 
 	// Create shader modules
 
@@ -321,7 +334,7 @@ void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t i
 	memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
 }
 
-bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext)
+bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData) // TODO: MAKE CONFIGURABLE!!!
 {
 	// Uniform buffer
 	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
@@ -335,37 +348,26 @@ bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext)
 		vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
 	}
 
-	// Image data
-	int texWidth, texHeight, texChannels;
-	char* filePath = "Assets/Textures/container.jpg";
-	unsigned char* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = (size_t)texWidth * (size_t)texHeight * 4;
+	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * 4;
+	
+	VulkanBuffer imageBuffer;
+	VulkanBuffer::CreateBuffer(pRenderingContext, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
 
-	if (!pixels)
-	{
-		LOG_ERROR("Failed to load image '%s'.", filePath);
-	}
-	else
-	{
-		VulkanBuffer imageBuffer;
-		VulkanBuffer::CreateBuffer(pRenderingContext, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
+	void* data;
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
+	memcpy(data, pPixelData, (size_t)imageSize);
+	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory);
 
-		void* data;
-		vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
-		memcpy(data, pixels, (size_t)imageSize);
-		vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory);
+	// Create Vulkan Resources for image
+	VulkanImage::CreateImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, 4, pPixelData, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
 
-		// Create Vulkan Resources for image
-		VulkanImage::CreateImage(pRenderingContext, texWidth, texHeight, 4, pixels, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
+	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
+	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-		m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		imageBuffer.CopyBufferToImage(pRenderingContext, texWidth, texHeight, &m_TextureImage);
-		m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	VulkanBuffer::DestroyBuffer(pRenderingContext, &imageBuffer);
 
-		VulkanBuffer::DestroyBuffer(pRenderingContext, &imageBuffer);
-	}
-
-	stbi_image_free(pixels);
+	pTexture.m_InternalData = &m_TextureImage;
 
 	return true;
 }

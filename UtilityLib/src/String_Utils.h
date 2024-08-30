@@ -15,6 +15,8 @@ void StringFormat(const char* format, const char* str1, const char* str2, char* 
 
 void StringFormat_V(const char* format, const char* str1, char* outString, ...);
 
+char* StringDuplicate(const char* pStringToCopy);
+
 bool StringCompare(const char* str1, const char* str2);
 
 // Appends str2 to string 1.

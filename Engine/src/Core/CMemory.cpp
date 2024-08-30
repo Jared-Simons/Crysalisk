@@ -21,7 +21,8 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"LINEAR ALLOC		",
 	"ENGINE			",
 	"GAME			",
-	"RENDERER		"
+	"RENDERER		",
+	"TEXTURE		"
 };
 
 class CMemorySystem : public IMemorySystem
