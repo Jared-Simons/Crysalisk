@@ -25,7 +25,7 @@ bool TextureSystem::Initialize(void* pSystemConfig)
 
 	TextureSystemConfiguration* typedConfig = static_cast<TextureSystemConfiguration*>(pSystemConfig);
 
-	m_RegisteredTextures = CHashmap<const char*, Texture*>(typedConfig->maxTextureCount);
+	m_RegisteredTextures = CHashmap<const char*, Texture>(typedConfig->maxTextureCount);
 
 	LOG_INFO("Texture system initialized (MAX TEXTURES: %d)", typedConfig->maxTextureCount);
 
@@ -48,7 +48,8 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 		return false;
 	}
 
-	Texture* newTexture = (Texture*)gpMemorySystem->MemAllocate(sizeof(Texture), eMemAllocCategories::MEM_CATEGORY_TEXTURE);
+	Texture* newTexture = &m_RegisteredTextures[pTexturePath];
+
 	unsigned char* pixelData = stbi_load(pTexturePath, &newTexture->m_Width, &newTexture->m_Height, &newTexture->m_ChannelCount, 4); // NOTE: For now requiring 4 channels
 
 	if (!pixelData)
@@ -66,16 +67,11 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	// Free resources that are no longer needed.
 	stbi_image_free(pixelData);
 
-	RegisterTexture(newTexture);
+	m_NumRegisteredTextures++;
+
 	LOG_DEBUG("Loaded texture '%s'.", pTexturePath);
 
 	return true;
-}
-
-void TextureSystem::RegisterTexture(Texture* pTexture)
-{
-	m_RegisteredTextures[pTexture->m_TextureName] = pTexture;
-	m_NumRegisteredTextures++;
 }
 
 static TextureSystem* s_TextureSystem = nullptr;
