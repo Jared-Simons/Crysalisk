@@ -170,6 +170,11 @@ public:
 		return (m_Count == 0) && (m_Capacity == 0) && (m_pData == nullptr);
 	}
 
+	T& index(int index)
+	{
+		return m_pData[index];
+	}
+
 	void PushBack(T val)
 	{
 		if (m_Count + 1 > m_Capacity)
