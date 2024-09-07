@@ -47,7 +47,7 @@ private:
 
 public:
 	// TODO: TEMP
-	Texture* testTexture;
+	Texture* testTexture{ nullptr };
 	// TODO: END TEMP
 };
 

@@ -424,9 +424,9 @@ struct Camera
 	void UpdateCameraVectors()
 	{
 		Vector3D front;
-		front.x = M_COSF(M_DEG_TO_RAD(Yaw)) * M_COSF(M_DEG_TO_RAD(Pitch));
-		front.y = M_SINF(M_DEG_TO_RAD(Pitch));
-		front.z = M_SINF(M_DEG_TO_RAD(Yaw)) * M_COSF(M_DEG_TO_RAD(Pitch));
+		front.x = static_cast<float>(M_COS(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch)));
+		front.y = M_SIN(M_DEG2RAD(Pitch));
+		front.z = M_SIN(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch));
 		Front = front.Normalize();
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);

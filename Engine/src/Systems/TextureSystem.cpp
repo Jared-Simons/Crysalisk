@@ -63,7 +63,6 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	// Obtain GPU Texture resources
 	gpRenderer->CreateTextureResources(*newTexture, pixelData);
 
-
 	// Free resources that are no longer needed.
 	stbi_image_free(pixelData);
 

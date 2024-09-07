@@ -88,7 +88,7 @@ template <typename TKey, typename TValue>
 size_t CHashmap<TKey, TValue>::GetHashFromKey(const char* pString)
 {
 	int sum = 0, mul = 1;
-	int len = StringLength(pString);
+	size_t len = StringLength(pString);
 
 	for (int index = 0; index < len; index++)
 	{

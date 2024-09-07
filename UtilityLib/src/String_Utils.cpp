@@ -6,6 +6,8 @@
 //=============================================================================
 #include "String_Utils.h"
 
+#include <Systems/IMemory.h> // TODO: TEMP
+
 #include <stdio.h>
 #include <string>
 
@@ -26,9 +28,9 @@ void StringFormat_V(const char* format, const char* str1, char* outString, ...)
 	char stringBuffer[10000];
 	va_list varArgs;
 	va_start(varArgs, outString);
-	vsprintf(stringBuffer, format, varArgs);
+	vsnprintf_s(stringBuffer, 10000, format, varArgs);
 	va_end(varArgs);
-	strcpy(outString, stringBuffer);
+	strcpy_s(outString, 10000, stringBuffer);
 }
 
 bool StringCompare(const char* str1, const char* str2)
@@ -39,7 +41,12 @@ bool StringCompare(const char* str1, const char* str2)
 
 char* StringDuplicate(const char* pStrToCopy)
 {
-	return strdup(pStrToCopy);
+	size_t strLength = StringLength(pStrToCopy);
+	char* stringCopy = (char*)gpMemorySystem->MemAllocate(strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
+	memcpy(stringCopy, pStrToCopy, strLength + 1);
+
+	// NOTE: The caller is responsible for freeing this memory.
+	return stringCopy;
 }
 
 void StringConcat(char* str1, const char* str2)

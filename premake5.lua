@@ -219,6 +219,11 @@ project "UtilityLib"
 	{
 		C4302	---'type-cast' truncation (primary for void* casts).
 	}
+
+	defines
+	{
+		ENGINE_DLL  ---UtilityLib MUST be defined with every library that consumes it, so that there are no warnings with it trying to import unnecessary function symbols at link-time
+	}
 	
 	files
 	{

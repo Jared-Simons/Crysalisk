@@ -244,7 +244,6 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
-	LOG_DEBUG("%.2f %.2f %.2f ", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
 	m_RendererClock.Start();
 
 	return true;

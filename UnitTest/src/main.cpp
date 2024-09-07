@@ -15,7 +15,7 @@
 
 bool PerformUnitTests()
 {
-	Vector2D vector{ 4.7, -6 };
+	Vector2D vector{ 4.7f, -6.0f };
 	Vector2D vector2 = vector / 2;
 	
 	return true;

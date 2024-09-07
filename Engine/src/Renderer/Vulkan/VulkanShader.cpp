@@ -324,11 +324,11 @@ void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t i
 	UniformBufferObject ubo{};
 	ubo.model = Matrix4x4(1.0f);
 	ubo.model = Matrix4x4::Translate(ubo.model, Vector3D(0.0f, 0.0f, 0.0f));
-	//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
+	//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 1.0f, 0.0f));
 	ubo.view = s_Camera.GetViewMatrix();
 	//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
 
-	ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), pRenderingContext->m_Swapchain.m_SwapchainExtent.width / (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
+	ubo.projection = Matrix4x4::Perspective(M_DEG2RAD(45.0f), pRenderingContext->m_Swapchain.m_SwapchainExtent.width / (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
 	ubo.projection.data[1][1] *= -1; // Flip the Y coordinate
 
 	memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));

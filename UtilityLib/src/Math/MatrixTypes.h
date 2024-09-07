@@ -155,19 +155,19 @@ public:
 	// TODO: Implement a quaternion type!
 	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D& axis)
 	{
-		inMatrix.data[0][0] = M_COSF(angle) + (axis.x * axis.x) * (1 - M_COSF(angle));
-		inMatrix.data[0][1] = (axis.y * axis.x) * (1 - M_COSF(angle)) + (axis.z * M_SINF(angle));
-		inMatrix.data[0][2] = (axis.z * axis.x) * (1 - M_COSF(angle)) - (axis.y * M_SINF(angle));
+		inMatrix.data[0][0] = M_COS(angle) + (axis.x * axis.x) * (1 - M_COS(angle));
+		inMatrix.data[0][1] = (axis.y * axis.x) * (1 - M_COS(angle)) + (axis.z * M_SIN(angle));
+		inMatrix.data[0][2] = (axis.z * axis.x) * (1 - M_COS(angle)) - (axis.y * M_SIN(angle));
 		inMatrix.data[0][3] = 0.0f;
 
-		inMatrix.data[1][0] = (axis.x * axis.y) * (1 - M_COSF(angle)) - (axis.z * M_SINF(angle));
-		inMatrix.data[1][1] = M_COSF(angle) + (axis.y * axis.y) * (1 - M_COSF(angle));
-		inMatrix.data[1][2] = (axis.z * axis.y) * (1 - M_COSF(angle)) + (axis.x * M_SINF(angle));
+		inMatrix.data[1][0] = (axis.x * axis.y) * (1 - M_COS(angle)) - (axis.z * M_SIN(angle));
+		inMatrix.data[1][1] = M_COS(angle) + (axis.y * axis.y) * (1 - M_COS(angle));
+		inMatrix.data[1][2] = (axis.z * axis.y) * (1 - M_COS(angle)) + (axis.x * M_SIN(angle));
 		inMatrix.data[1][3] = 0.0f;
 
-		inMatrix.data[2][0] = (axis.x * axis.z) * (1 - M_COSF(angle)) + (axis.y * M_SINF(angle));
-		inMatrix.data[2][1] = (axis.y * axis.z) * (1 - M_COSF(angle)) - (axis.x * M_SINF(angle));
-		inMatrix.data[2][2] = M_COSF(angle) + (axis.z * axis.z) * (1 - M_COSF(angle));
+		inMatrix.data[2][0] = (axis.x * axis.z) * (1 - M_COS(angle)) + (axis.y * M_SIN(angle));
+		inMatrix.data[2][1] = (axis.y * axis.z) * (1 - M_COS(angle)) - (axis.x * M_SIN(angle));
+		inMatrix.data[2][2] = M_COS(angle) + (axis.z * axis.z) * (1 - M_COS(angle));
 		inMatrix.data[2][3] = 0.0f;
 
 		inMatrix.data[3][0] = 0.0f;
