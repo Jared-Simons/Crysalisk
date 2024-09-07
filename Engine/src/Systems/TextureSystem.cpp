@@ -74,5 +74,25 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	return true;
 }
 
+Texture* TextureSystem::AcquireTexture(const char* pTexturePath)
+{
+	if (!pTexturePath)
+	{
+		LOG_ERROR("AcquireTexture() Requires a string to a texture.");
+		return nullptr; // TODO: Return default texture?
+	}
+
+	Texture* pTexture = &m_RegisteredTextures[pTexturePath];
+	if (!pTexture->m_InternalData)
+	{
+		// TODO: Load the texture if it hasn't yet been loaded
+		LOG_WARN("AcquireTexture does not yet load textures... IMPLEMENT!");
+	}
+
+	// TODO: Handle reference counting
+
+	return pTexture;
+}
+
 static TextureSystem* s_TextureSystem = nullptr;
 TextureSystem* gpTextureSystem = s_TextureSystem;

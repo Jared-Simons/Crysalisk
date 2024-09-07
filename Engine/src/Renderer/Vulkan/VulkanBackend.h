@@ -368,7 +368,10 @@ public:
 	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
 	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
 	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
+	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
+
+	void			UpdateDescriptorSets(CVulkanRenderer* pRenderingContext);
 
 private:
 
@@ -388,6 +391,7 @@ public:
 	CVector<void*>				m_UniformBuffersMappedMemory;
 
 	VulkanImage m_TextureImage;
+	bool descriptorUpdateNeeded{ false };
 };
 
 // TODO TEMP
@@ -458,6 +462,7 @@ private:
 	void		DestroyDebugMessenger();
 
 	bool		CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
+	void		DestroyTextureResources(Texture& pTexture) override;
 
 public:
 	// Instance

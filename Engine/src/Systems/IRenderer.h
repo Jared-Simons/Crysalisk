@@ -21,6 +21,7 @@ public:
 	virtual bool	Update() = 0;
 
 	virtual bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) = 0;
+	virtual void	DestroyTextureResources(Texture& pTexture) = 0;
 };
 
 extern IRenderer* gpRenderer;

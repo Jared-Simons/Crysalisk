@@ -44,6 +44,11 @@ private:
 	EngineConfig_t	m_engineConfig;
 	DynamicAllocator* m_EngineHeap{ nullptr };
 	LinearAllocator* m_SystemsAllocator{ nullptr };
+
+public:
+	// TODO: TEMP
+	Texture* testTexture;
+	// TODO: END TEMP
 };
 
 bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
@@ -127,6 +132,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// TEMP: Load up a texture
 	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
 
+	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
+
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
@@ -164,6 +171,8 @@ bool CEngine::Engine_Run()
 void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	gpRenderer->DestroyTextureResources(*testTexture);
 
 	// TODO: Overloaded delete operator?
 	gpTextureSystem->Shutdown();

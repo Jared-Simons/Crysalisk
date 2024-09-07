@@ -24,6 +24,8 @@ public:
 
 	// TODO: Texture destruction!
 	bool	LoadTexture(const char* pTexturePath);
+
+	Texture*	AcquireTexture(const char* pTexturePath);
 private:
 	CHashmap<const char*, Texture>	m_RegisteredTextures;
 	size_t							m_NumRegisteredTextures;

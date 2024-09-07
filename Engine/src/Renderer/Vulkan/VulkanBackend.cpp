@@ -9,6 +9,7 @@
 #include <Math/VertexTypes.h>
 
 #include <String_Utils.h>
+#include <Resources/ResourceTypes.h>
 
 #include "Systems/IInput.h"
 
@@ -603,19 +604,30 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
 {
-	if (!m_StandardShader.AcquireInstanceResources(this, pTexture, pPixelData))
+	VulkanImage pOldTextureData = m_StandardShader.m_TextureImage;
+
+	if (!m_StandardShader.AcquireTextureResources(this, pTexture, pPixelData))
 	{
 		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
 		return false;
 	}
 
-	if (!m_StandardShader.CreateDescriptorResources(this))
-	{
-		LOG_ERROR("Failed to create descriptor resources for Vulkan Shader.");
-		return false;
-	}
+	VulkanImage::DestroyImage(this, &pOldTextureData);
+	m_StandardShader.UpdateDescriptorSets(this);
 
 	return true;
+}
+
+void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
+{
+	// Make sure this resource is not being used!
+	// TODO: Is this the most efficient way of doing this?
+	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
+
+	VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_InternalData);
+	
+	if (pTextureData)
+		VulkanImage::DestroyImage(this, pTextureData);
 }
 
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };

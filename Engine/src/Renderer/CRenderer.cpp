@@ -41,6 +41,7 @@ public:
 	virtual bool	Update() override;
 
 	bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
+	void	DestroyTextureResources(Texture& pTexture) override;
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
@@ -142,4 +143,9 @@ bool CRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelD
 	}
 
 	return m_RendererBackend->CreateTextureResources(pTexture, pPixelData);
+}
+
+void CRenderer::DestroyTextureResources(Texture& pTexture)
+{
+	m_RendererBackend->DestroyTextureResources(pTexture);
 }

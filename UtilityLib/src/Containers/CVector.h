@@ -170,6 +170,17 @@ public:
 		return (m_Count == 0) && (m_Capacity == 0) && (m_pData == nullptr);
 	}
 
+	void ClearAllElements()
+	{
+		gpMemorySystem->MemFree(m_pData, m_Capacity * m_Stride, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+		m_pData = nullptr;
+
+		m_Capacity = 0;
+		m_Count = 0;
+		m_Stride = 0;
+		m_ResizeFactor = 2;
+	}
+
 	T& index(int index)
 	{
 		return m_pData[index];

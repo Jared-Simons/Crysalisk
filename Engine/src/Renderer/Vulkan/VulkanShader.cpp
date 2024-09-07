@@ -135,7 +135,7 @@ void VulkanShader::DestroyVulkanShader(CVulkanRenderer* pRenderingContext, Vulka
 {
 	if (pShader)
 	{
-		VulkanImage::DestroyImage(pRenderingContext, &pShader->m_TextureImage);
+		//VulkanImage::DestroyImage(pRenderingContext, &pShader->m_TextureImage);
 
 		vkDestroyDescriptorPool(pRenderingContext->m_Device.m_LogicalDevice, pShader->m_DescriptorPool, pRenderingContext->m_Allocator);
 
@@ -372,6 +372,32 @@ bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, 
 	return true;
 }
 
+bool VulkanShader::AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData)
+{
+	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * 4;
+
+	VulkanBuffer imageBuffer;
+	VulkanBuffer::CreateBuffer(pRenderingContext, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
+
+	void* data;
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
+	memcpy(data, pPixelData, (size_t)imageSize);
+	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory);
+
+	// Create Vulkan Resources for image
+	VulkanImage::CreateImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, 4, pPixelData, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
+
+	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
+	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	VulkanBuffer::DestroyBuffer(pRenderingContext, &imageBuffer);
+
+	pTexture.m_InternalData = &m_TextureImage;
+
+	return true;
+}
+
 bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 {
 	// Descriptor set layouts
@@ -475,4 +501,41 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 	}
 
 	return true;
+}
+
+void VulkanShader::UpdateDescriptorSets(CVulkanRenderer* pRenderingContext)
+{
+	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		VkDescriptorBufferInfo bufferInfo{};
+		bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
+		bufferInfo.offset = 0;
+		bufferInfo.range = sizeof(UniformBufferObject);
+
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_TextureImage.m_ImageView;
+		imageInfo.sampler = m_TextureImage.m_ImageSampler;
+
+		CVector<VkWriteDescriptorSet> descriptorWrites(2);
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = m_DescriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = m_DescriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &imageInfo;
+
+		VkWriteDescriptorSet descriptorWriteArray[2] = { descriptorWrites[0], descriptorWrites[1] };
+
+		vkUpdateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
+	}
 }
