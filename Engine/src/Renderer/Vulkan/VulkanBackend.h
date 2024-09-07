@@ -451,7 +451,7 @@ public:
 
 	bool		RendererBackend_Initialize() override;
 	void		RendererBackend_Shutdown() override;
-	bool		RendererBackend_Update();
+	bool		RendererBackend_Update() override;
 
 private:
 	bool		CreateVulkanInstance();
