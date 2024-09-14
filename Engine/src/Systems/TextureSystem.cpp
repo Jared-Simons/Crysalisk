@@ -73,6 +73,18 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	return true;
 }
 
+void TextureSystem::UnloadTexture(Texture& pTexture)
+{
+	// Release GPU Texture resources
+	gpRenderer->DestroyTextureResources(pTexture);
+
+	pTexture.m_Width = pTexture.m_Height = pTexture.m_ChannelCount = 0;
+	pTexture.m_TextureName = nullptr;
+	pTexture.m_InternalData = nullptr;
+
+	m_NumRegisteredTextures--;
+}
+
 Texture* TextureSystem::AcquireTexture(const char* pTexturePath)
 {
 	if (!pTexturePath)

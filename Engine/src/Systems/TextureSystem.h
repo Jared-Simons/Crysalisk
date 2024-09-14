@@ -24,6 +24,7 @@ public:
 
 	// TODO: Texture destruction!
 	bool	LoadTexture(const char* pTexturePath);
+	void	UnloadTexture(Texture& pTexture);
 
 	Texture*	AcquireTexture(const char* pTexturePath);
 private:

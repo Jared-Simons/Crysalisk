@@ -5,7 +5,7 @@
 #include <string>
 
 const int MAX_EVENTS_PER_CATEGORY = 32;
-#define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::EVENT_TYPE_MAX_EVENTS)
+#define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::MAX_EVENTS)
 
 class Event
 {
@@ -106,7 +106,7 @@ bool CEventSystem::Initialize()
 	{
 		for (int j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
 		{
-			m_RegisteredEvents[i][j].m_EventCategory = eEventCategory::EVENT_TYPE_UNKNOWN;
+			m_RegisteredEvents[i][j].m_EventCategory = eEventCategory::UNKNOWN;
 			m_RegisteredEvents[i][j].m_EventID = -1;
 			m_RegisteredEvents[i][j].m_PFNEventCallback = 0;
 		}
@@ -136,7 +136,7 @@ void CEventSystem::Shutdown()
 
 bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback)
 {
-	if (eventCategory == eEventCategory::EVENT_TYPE_UNKNOWN || !PFN_Callback)
+	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
 	{
 		LOG_ERROR("CEventSystem::EventRegister() requires a valid Event Category and Callback function pointer.");
 		return false;
@@ -177,7 +177,7 @@ bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PF
 
 bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback)
 {
-	if (eventCategory == eEventCategory::EVENT_TYPE_UNKNOWN || !PFN_Callback)
+	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
 	{
 		LOG_ERROR("CEventSystem::EventUnregister() - requires a valid Event Category and Callback function pointer.");
 		return false;
@@ -191,7 +191,7 @@ bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback 
 		if (eventToBeFreed[i].m_EventCategory == eventCategory && eventToBeFreed[i].m_PFNEventCallback == PFN_Callback)
 		{
 			// Found the corresponding event entry, unregister and uninitialize.
-			eventToBeFreed[i].m_EventCategory = eEventCategory::EVENT_TYPE_UNKNOWN;
+			eventToBeFreed[i].m_EventCategory = eEventCategory::UNKNOWN;
 			eventToBeFreed[i].m_PFNEventCallback = nullptr;
 			eventToBeFreed[i].m_EventID = -1;
 

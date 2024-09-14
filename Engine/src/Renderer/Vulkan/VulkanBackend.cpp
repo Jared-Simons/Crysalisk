@@ -96,7 +96,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	Platform::GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
 
 	// Register for window resize events
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
+	gpEngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, Event_FramebufferResized);
 
 	// Instance
 	if (!CreateVulkanInstance())
@@ -288,7 +288,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	vkDestroyInstance(m_Instance, m_Allocator);
 
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
+	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, Event_FramebufferResized);
 }
 
 bool CVulkanRenderer::RendererBackend_Update()

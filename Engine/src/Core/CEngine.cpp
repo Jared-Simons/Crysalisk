@@ -84,14 +84,14 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Register for engine-level events
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, Event_KeyPressed);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, Event_KeyReleased);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, Event_WindowResizedPause);
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, Event_WindowResizedUnpause);
+	gpEngineEvents->EventRegister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
+	gpEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
+	gpEngineEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
+	gpEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
+	gpEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
+	gpEngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
+	gpEngineEvents->EventRegister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
+	gpEngineEvents->EventRegister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
 
 
 	// Input System
@@ -176,7 +176,7 @@ void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	gpRenderer->DestroyTextureResources(*testTexture);
+	gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
 	gpTextureSystem->Shutdown();
@@ -194,14 +194,14 @@ void CEngine::Engine_Shutdown()
 	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);
 
 	// Unregister from engine-level events
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, Event_WindowResizedUnpause);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, Event_WindowResizedPause);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_WindowResized);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, Event_KeyReleased);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, Event_KeyPressed);
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, Event_ApplicationQuit);
+	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
+	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
+	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
+	gpEngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
+	gpEngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
+	gpEngineEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
+	gpEngineEvents->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
+	gpEngineEvents->EventUnregister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
 
 	IEventSystem::EventSystem_Shutdown(gpEngineEvents, false);
 
