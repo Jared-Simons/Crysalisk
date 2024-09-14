@@ -263,7 +263,9 @@ void DynamicAllocator::CleanupMemoryFragmentation()
 		{
 			if ((pCurrentNode->offset + ALLOC_HEADER_SIZE + pCurrentNode->blockSize) == pCurrentNode->pNext->offset)
 			{
+#ifdef CRYS_DEBUG
 				LOG_VERBOSE("Cleaning up memory fragmentation");
+#endif
 
 				pCurrentNode->blockSize = pCurrentNode->blockSize + ALLOC_HEADER_SIZE + pCurrentNode->pNext->blockSize;
 				pCurrentNode->pNext = pCurrentNode->pNext->pNext;

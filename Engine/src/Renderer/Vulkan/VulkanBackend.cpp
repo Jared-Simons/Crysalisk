@@ -622,11 +622,14 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 	// Make sure this resource is not being used!
 	// TODO: Is this the most efficient way of doing this?
 	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
-
-	VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_InternalData);
 	
-	if (pTextureData)
-		VulkanImage::DestroyImage(this, pTextureData);
+	if (pTexture.m_InternalData)
+	{
+		VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_InternalData);
+
+		if (pTextureData)
+			VulkanImage::DestroyImage(this, pTextureData);
+	}
 }
 
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };

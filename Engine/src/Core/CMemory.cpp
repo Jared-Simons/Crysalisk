@@ -151,7 +151,7 @@ void* CMemorySystem::MemSet(void* memory, int value, size_t size)
 
 void CMemorySystem::PrintMemoryStats()
 {
-	char memStatsString[5000] = "Memory Stats:\n";
+	char memStatsString[10000] = "Memory Stats:\n";
 
 	for (size_t i = 0; i < MAX_MEM_CATEGORIES; i++)
 	{

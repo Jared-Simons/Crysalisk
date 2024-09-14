@@ -6,37 +6,27 @@
 //=============================================================================
 #pragma once
 
-// ----------------------------------------------------------------------------
-// Memory
-// ----------------------------------------------------------------------------
-typedef void* (*MemoryAllocate)(size_t size, size_t alignment);
-typedef void (*MemoryFree)(void* pMemBlock);
+// Forward declarations
+class DynamicAllocator;
 
 class UtilLibMemory
 {
 public:
-	UtilLibMemory(MemoryAllocate allocFunc, MemoryFree freeFunc);
+	void* operator new(size_t size, DynamicAllocator* pAllocator);
+	void  operator delete(void* pMemory, DynamicAllocator* pAllocator);
 
-private:
-	MemoryAllocate m_AllocateCallback{ nullptr };
-	MemoryFree m_FreeCallback{ nullptr };
+	UtilLibMemory(DynamicAllocator* pAllocator, const char* pConsumingLibraryName);
+
+	// The memory allocator that this instance of UtilLib will allocate from.
+	DynamicAllocator* m_pMemoryAllocator{ nullptr };
+	const char* m_szConsumingLibraryName{ nullptr };
 };
 
 extern UtilLibMemory* gpMemory;
 
-
-// ----------------------------------------------------------------------------
-// API handling
-// ----------------------------------------------------------------------------
-struct UtilLibAPIFuncPointers
-{
-	MemoryAllocate memAllocFunc = nullptr;
-	MemoryFree	memFreeFunc = nullptr;
-};
-
 // This must be called by EVERY consuming library that wishes to use these utilities.
 // Every function pointer MUST be assigned.
-bool ConnectUtilityLib(UtilLibAPIFuncPointers& apiFunctions);
+bool ConnectUtilityLib(DynamicAllocator* pMemAllocator, const char* pCallingLibraryName);
 
 // Similarly, this must be called when the consuming library is shutting down.
 void DisconnectUtilityLib();

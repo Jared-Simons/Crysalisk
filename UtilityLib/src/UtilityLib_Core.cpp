@@ -6,28 +6,74 @@
 //=============================================================================
 #include "UtilityLib_Core.h"
 
+#include "Memory/DynamicAllocator.h"
+
 #include <Core/Logging.h>
 
 static UtilLibMemory* s_UtilityLibMemCallbacks = nullptr;
 extern UtilLibMemory* gpMemory = s_UtilityLibMemCallbacks;
 
-UtilLibMemory::UtilLibMemory(MemoryAllocate allocFunc, MemoryFree freeFunc)
-	: m_AllocateCallback{ allocFunc }
-	, m_FreeCallback{ freeFunc }
+void* UtilLibMemory::operator new(size_t size, DynamicAllocator* pAllocator)
 {
-	
-}
-
-bool ConnectUtilityLib(UtilLibAPIFuncPointers& apiFunctions)
-{
-	// Make sure all function pointers are valid, and assign them
-	if (apiFunctions.memAllocFunc && apiFunctions.memFreeFunc)
+	if (pAllocator)
 	{
-		s_UtilityLibMemCallbacks = new UtilLibMemory(apiFunctions.memAllocFunc, apiFunctions.memFreeFunc);
+		void* pBlock = pAllocator->Allocate(size);
+		if (pBlock)
+		{
+			return pBlock;
+		}
+		else
+		{
+			// TODO: Logging
+			return nullptr;
+		}
 	}
 	else
 	{
-		LOG_WARN("ConnectUtilityLib() no callbacks passed for memory allocation. Allocations will be made from the system level.");
+		// TODO: Logging
+		return nullptr;
+	}
+}
+
+void UtilLibMemory::operator delete(void* pMemory, DynamicAllocator* pAllocator)
+{
+	if (pAllocator)
+	{
+		UtilLibMemory* pMemorySystem = reinterpret_cast<UtilLibMemory*>(pMemory);
+		if (pMemorySystem && pMemorySystem->m_pMemoryAllocator == pAllocator)
+		{
+			pAllocator->Free(pMemory);
+		}
+		else
+		{
+			// TODO: Logging
+		}
+	}
+}
+
+UtilLibMemory::UtilLibMemory(DynamicAllocator* pAllocator, const char* pConsumingLibraryName)
+{
+	if (!pAllocator || !pConsumingLibraryName)
+	{
+		// TODO: LOGGING
+	}
+
+	m_pMemoryAllocator = pAllocator;
+	m_szConsumingLibraryName = pConsumingLibraryName;
+
+	LOG_DEBUG("%s->UtilityLib connected!", m_szConsumingLibraryName);
+}
+
+bool ConnectUtilityLib(DynamicAllocator* pMemAllocator, const char* pCallingLibraryName = "")
+{
+	// Make sure all function pointers are valid, and assign them
+	if (pMemAllocator)
+	{
+		s_UtilityLibMemCallbacks = new (pMemAllocator) UtilLibMemory(pMemAllocator, pCallingLibraryName);
+	}
+	else
+	{
+		LOG_WARN("%s->ConnectUtilityLib() no callbacks passed for memory allocation. Allocations will be made from the system level.", pCallingLibraryName);
 		LOG_WARN("This should be fixed");
 	}
 
@@ -36,6 +82,6 @@ bool ConnectUtilityLib(UtilLibAPIFuncPointers& apiFunctions)
 
 void DisconnectUtilityLib()
 {
-	delete s_UtilityLibMemCallbacks;
+	s_UtilityLibMemCallbacks->operator delete(s_UtilityLibMemCallbacks, s_UtilityLibMemCallbacks->m_pMemoryAllocator);
 	s_UtilityLibMemCallbacks = nullptr;
 }

@@ -18,6 +18,8 @@
 #include <Memory/LinearAllocator.h>
 #include <Memory/DynamicAllocator.h>
 
+#include <UtilityLib_Core.h>
+
 static bool s_bApplicationQuitCalled = false;
 static bool Event_ApplicationQuit(EventData_t data);
 static bool Event_KeyPressed(EventData_t data);
@@ -67,6 +69,8 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
 	}
+
+	ConnectUtilityLib(m_EngineHeap, "Engine.dll");
 
 	// Initialize the subsystem memory allocator
 	m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
@@ -206,6 +210,8 @@ void CEngine::Engine_Shutdown()
 	delete m_SystemsAllocator;
 	m_SystemsAllocator = nullptr;
 
+	DisconnectUtilityLib();
+
 	gpMemorySystem->MemorySystem_Shutdown();
 
 	void* pEngineMemoryBlock = m_EngineHeap->GetMemoryBlock();
@@ -251,7 +257,7 @@ bool Event_KeyReleased(EventData_t data)
 		const char* textureNames[] =
 		{
 			"Assets/Textures/container.jpg",
-			"Assets/Textures/container2.png",
+			"Assets/Textures/plasterwall024b.png",
 		};
 
 		TextureChoice = TextureChoice == 0 ? 1 : 0;

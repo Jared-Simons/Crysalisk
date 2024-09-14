@@ -30,7 +30,8 @@ void StringFormat_V(const char* format, const char* str1, char* outString, ...)
 	va_start(varArgs, outString);
 	vsnprintf_s(stringBuffer, 10000, format, varArgs);
 	va_end(varArgs);
-	strcpy_s(outString, 10000, stringBuffer);
+	//strcpy_s(outString, 10000, stringBuffer);
+	strcpy(outString, stringBuffer);
 }
 
 bool StringCompare(const char* str1, const char* str2)
