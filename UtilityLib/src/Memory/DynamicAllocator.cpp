@@ -124,7 +124,7 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 	Platform::MemorySet(pMemBlock, 0, size);
 
 #ifdef CRYS_DEBUG
-	LOG_VERBOSE("Memory Allocation -> size %d bytes, at address 0x%p.", pCurrentNode->blockSize, pMemBlock);
+	//LOG_VERBOSE("Memory Allocation -> size %d bytes, at address 0x%p.", pCurrentNode->blockSize, pMemBlock);
 #endif
 
 	return pMemBlock;
@@ -220,7 +220,7 @@ void DynamicAllocator::Free(void* pMemBlock)
 	m_Allocated -= pNodeToReturn->blockSize + ALLOC_HEADER_SIZE;
 
 #ifdef CRYS_DEBUG
-	LOG_VERBOSE("Memory Freed -> size %d bytes, at address 0x%p.", pNodeToReturn->blockSize, pMemBlock);
+	//LOG_VERBOSE("Memory Freed -> size %d bytes, at address 0x%p.", pNodeToReturn->blockSize, pMemBlock);
 #endif
 
 	//ReportMemoryFragmentation();
@@ -264,7 +264,7 @@ void DynamicAllocator::CleanupMemoryFragmentation()
 			if ((pCurrentNode->offset + ALLOC_HEADER_SIZE + pCurrentNode->blockSize) == pCurrentNode->pNext->offset)
 			{
 #ifdef CRYS_DEBUG
-				LOG_VERBOSE("Cleaning up memory fragmentation");
+				//LOG_VERBOSE("Cleaning up memory fragmentation");
 #endif
 
 				pCurrentNode->blockSize = pCurrentNode->blockSize + ALLOC_HEADER_SIZE + pCurrentNode->pNext->blockSize;

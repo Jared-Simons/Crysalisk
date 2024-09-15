@@ -59,7 +59,7 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer* pRenderContext, VulkanBuffer* 
 	}
 }
 
-void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data)
+void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data, size_t offset)
 {
 	if (!data || dataSize <= 0)
 	{
@@ -68,7 +68,7 @@ void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t
 	}
 
 	void* bufferData;
-	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, 0, dataSize, 0, &bufferData);
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, offset, dataSize, 0, &bufferData);
 		memcpy(bufferData, data, dataSize);
 	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory);
 }

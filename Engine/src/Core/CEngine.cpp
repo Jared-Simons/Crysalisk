@@ -19,6 +19,8 @@
 #include <Memory/DynamicAllocator.h>
 
 #include <UtilityLib_Core.h>
+#include <Containers/CVector.h>
+#include <Math/VertexTypes.h>
 
 static bool s_bApplicationQuitCalled = false;
 static bool Event_ApplicationQuit(EventData_t data);
@@ -43,13 +45,19 @@ public:
 	void	Engine_Shutdown() override;
 
 private:
+	// TODO: TEMP
+	void	CreateSceneGeometry();
+
+private:
 	EngineConfig_t	m_engineConfig;
 	DynamicAllocator* m_EngineHeap{ nullptr };
 	LinearAllocator* m_SystemsAllocator{ nullptr };
+	LinearAllocator* m_FrameAllocator{ nullptr };
 
 public:
 	// TODO: TEMP
 	Texture* testTexture{ nullptr };
+	StaticMesh* m_TestGeometry{ nullptr };
 	// TODO: END TEMP
 };
 
@@ -138,6 +146,12 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 
 	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
 
+	// TEMP Geometry
+	CreateSceneGeometry();
+
+	// Initialize the frame allocator
+	m_FrameAllocator = new LinearAllocator(MEBIBYTES(1));
+
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
@@ -149,13 +163,18 @@ bool CEngine::Engine_Run()
 		Platform::ProcessMessages();
 		if (!g_sApplicationSuspended)
 		{
+			// Clear the frame allocator
+			m_FrameAllocator->free();
 			if (!m_engineConfig.isHeadless)
 			{
 				gpInputSystem->Update();
 
 				Platform::Update();
 
-				if (!gpRenderer->Update())
+				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->allocate(sizeof(RenderPacket_t)));
+				frameRenderData->geometries.PushBack(m_TestGeometry);
+
+				if (!gpRenderer->Update(frameRenderData))
 				{
 					LOG_FATAL("Renderer update failed!");
 					return false;
@@ -205,7 +224,11 @@ void CEngine::Engine_Shutdown()
 
 	IEventSystem::EventSystem_Shutdown(gpEngineEvents, false);
 
-	// Destroy the subsystem allocator
+	// Destroy allocators
+	m_FrameAllocator->free(false);
+	delete m_FrameAllocator;
+	m_FrameAllocator = nullptr;
+
 	m_SystemsAllocator->free(false);
 	delete m_SystemsAllocator;
 	m_SystemsAllocator = nullptr;
@@ -266,6 +289,69 @@ bool Event_KeyReleased(EventData_t data)
 	}
 
 	return true;
+}
+
+void CEngine::CreateSceneGeometry()
+{
+	m_TestGeometry = reinterpret_cast<StaticMesh*>(gpMemorySystem->MemAllocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
+
+	CVector<Vertex3D> vertices(36);
+	/*vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.0f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.0f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.0f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));*/
+
+	CVector<uint16_t> indices((size_t)0);
+	/*indices.PushBack(0);
+	indices.PushBack(1);
+	indices.PushBack(3);
+	indices.PushBack(1);
+	indices.PushBack(2);
+	indices.PushBack(3);*/
+
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
+
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
+	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
+
+	gpRenderer->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/plasterwall024b.png", "TestGeometry");
 }
 
 bool Event_MouseButtonPressed(EventData_t data)

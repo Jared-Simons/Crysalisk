@@ -297,7 +297,7 @@ public:
 	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
 
 	// TODO: Handle offsets and other data here
-	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data);
+	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data, size_t offset);
 	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, unsigned int width, unsigned int height, VulkanImage* pImage);
 
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
@@ -451,7 +451,7 @@ public:
 
 	bool		RendererBackend_Initialize() override;
 	void		RendererBackend_Shutdown() override;
-	bool		RendererBackend_Update() override;
+	bool		RendererBackend_Update(struct RenderPacket_t* pRenderData) override;
 
 private:
 	bool		CreateVulkanInstance();
@@ -463,6 +463,10 @@ private:
 
 	bool		CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
 	void		DestroyTextureResources(Texture& pTexture) override;
+
+	bool		CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices) override;
+	void		DestroyGeometryResources(StaticMesh& pMesh) override;
+	void		DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex);
 
 public:
 	// Instance
@@ -498,6 +502,9 @@ public:
 	// Buffers
 	VulkanBuffer m_VertexBuffer;
 	VulkanBuffer m_IndexBuffer;
+
+	size_t		m_VertexBufferOffset{ 0 };
+	size_t		m_IndexBufferOffset{ 0 };
 
 	// Shaders
 	VulkanShader		m_StandardShader;

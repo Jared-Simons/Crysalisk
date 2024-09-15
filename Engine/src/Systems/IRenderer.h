@@ -9,6 +9,11 @@
 // Forward Declarations
 class LinearAllocator;
 class Texture;
+class StaticMesh;
+class Vertex3D;
+struct RenderPacket_t;
+
+template <typename T> class CVector;
 
 class IRenderer
 {
@@ -18,10 +23,13 @@ public:
 
 	virtual bool	Initialize() = 0;
 	virtual void	Shutdown() = 0;
-	virtual bool	Update() = 0;
+	virtual bool	Update(struct RenderPacket_t* pRenderData) = 0;
 
 	virtual bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) = 0;
 	virtual void	DestroyTextureResources(Texture& pTexture) = 0;
+
+	virtual bool	CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices, const char* szTextureName, const char* szGeometryName) = 0;
+	virtual void	DestroyGeometryResources(StaticMesh& pMesh) = 0;
 };
 
 extern IRenderer* gpRenderer;

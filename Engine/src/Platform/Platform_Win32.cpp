@@ -561,7 +561,7 @@ namespace Platform {
 
 	void* MemorySet(void* memory, int value, size_t size)
 	{
-		if (memory && size)
+		if (memory)
 			return memset(memory, value, size);
 
 		LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");

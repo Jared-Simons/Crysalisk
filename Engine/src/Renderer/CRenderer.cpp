@@ -8,7 +8,10 @@
 
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
+#include "Resources/ResourceTypes.h"
 #include "Vulkan/VulkanBackend.h"
+
+#include "Systems/TextureSystem.h"
 
 #include <Memory/LinearAllocator.h>
 
@@ -38,10 +41,13 @@ public:
 
 	virtual bool	Initialize() override;
 	virtual void	Shutdown() override;
-	virtual bool	Update() override;
+	virtual bool	Update(struct RenderPacket_t* pRenderData) override;
 
 	bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
 	void	DestroyTextureResources(Texture& pTexture) override;
+
+	bool	CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices, const char* szTextureName, const char* szGeometryName) override;
+	void	DestroyGeometryResources(StaticMesh& pMesh) override;
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
@@ -124,9 +130,9 @@ void CRenderer::Shutdown()
 	m_RendererBackend = nullptr;
 }
 
-bool CRenderer::Update()
+bool CRenderer::Update(RenderPacket_t* pRenderData)
 {
-	if (!m_RendererBackend->RendererBackend_Update())
+	if (!m_RendererBackend->RendererBackend_Update(pRenderData))
 	{
 		return false;
 	}
@@ -148,4 +154,18 @@ bool CRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelD
 void CRenderer::DestroyTextureResources(Texture& pTexture)
 {
 	m_RendererBackend->DestroyTextureResources(pTexture);
+}
+
+bool CRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices, const char* szTextureName, const char* szGeometryName)
+{
+	// Acquire necessary textures
+	pMesh.m_pTexture = gpTextureSystem->AcquireTexture(szTextureName);
+	pMesh.m_szGeometryName = szGeometryName;
+
+	return m_RendererBackend->CreateGeometryResources(pMesh, vertices, indices);
+}
+
+void CRenderer::DestroyGeometryResources(StaticMesh& pMesh)
+{
+	m_RendererBackend->DestroyGeometryResources(pMesh);
 }

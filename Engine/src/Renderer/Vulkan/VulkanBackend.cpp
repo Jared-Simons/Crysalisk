@@ -149,78 +149,14 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	}
 
 	// Buffers
-
-	// TODO: Temp rendering data
-	
-	CVector<Vertex3D> vertices(36);
-	/*vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.0f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.0f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.0f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));*/
-
-	CVector<uint16_t> indices((size_t)6);
-	indices.PushBack(0);
-	indices.PushBack(1);
-	indices.PushBack(3);
-	indices.PushBack(1);
-	indices.PushBack(2);
-	indices.PushBack(3);
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	
-	
-	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.capacity();
-	VkDeviceSize indexBufferSize = sizeof(indices[0]) * indices.capacity();
+	VkDeviceSize vertexBufferSize = sizeof(Vertex3D) * 1024;
+	VkDeviceSize indexBufferSize = sizeof(uint16_t) * 1024;
 
 	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
 		return false;
 	
 	if (!VulkanBuffer::CreateBuffer(this, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_IndexBuffer))
 		return false;
-
-	// Upload the data to the GPU
-	m_VertexBuffer.UploadDataToBuffer(this, vertexBufferSize, vertices.data());
-	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
 
 	// Fences
 	// one per frame
@@ -291,7 +227,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, Event_FramebufferResized);
 }
 
-bool CVulkanRenderer::RendererBackend_Update()
+bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 {
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
@@ -354,23 +290,10 @@ bool CVulkanRenderer::RendererBackend_Update()
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
-		m_StandardShader.Bind(this, &commandBuffer.m_Handle, imageIndex);
-
-		VkDeviceSize offset[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
-
-		// If we are able to draw with indices, do so.
-		/*if (!m_IndexBuffer.m_Handle)
+		for (int i = 0; i < pRenderData->geometries.size(); i++)
 		{
-			vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
+			DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
 		}
-		else
-		{
-			vkCmdBindIndexBuffer(commandBuffer.m_Handle, m_IndexBuffer.m_Handle, 0, VK_INDEX_TYPE_UINT16);
-			vkCmdDrawIndexed(commandBuffer.m_Handle, 6, 1, 0, 0, 0);
-		}*/
-
-		vkCmdDraw(commandBuffer.m_Handle, 36, 1, 0, 0);
 
 		m_MainRenderpass.End(this, &commandBuffer);
 
@@ -629,6 +552,58 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 		if (pTextureData)
 			VulkanImage::DestroyImage(this, pTextureData);
+	}
+}
+
+bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices)
+{
+	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize indexDataSize = sizeof(indices[0]) * indices.size();
+
+	// Store off our offsets for access later.
+	pMesh.m_VertexDataOffset = m_VertexBufferOffset;
+	pMesh.m_IndexDataOffset = m_IndexBufferOffset;
+
+	pMesh.m_VertexDataSize = vertexDataSize;
+	pMesh.m_IndexDataSize = indexDataSize;
+
+	// Upload the data to the buffers
+	m_VertexBuffer.UploadDataToBuffer(this, vertexDataSize, vertices.data(), m_VertexBufferOffset);
+	m_VertexBufferOffset += vertexDataSize;
+
+	m_IndexBuffer.UploadDataToBuffer(this, indexDataSize, indices.data(), m_IndexBufferOffset);
+	m_IndexBufferOffset += indexDataSize;
+
+	return true;
+}
+
+void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
+{
+	// TODO: Implement with freelist
+}
+
+void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex)
+{
+	// TODO: Material-specific shaders
+	m_StandardShader.Bind(this, &pCommandBuffer.m_Handle, imageIndex);
+
+	VkDeviceSize vertexOffset = pMesh.m_VertexDataOffset;
+	VkDeviceSize indexOffset = pMesh.m_IndexDataOffset;
+
+	size_t numVertices = pMesh.m_VertexDataSize / sizeof(Vertex3D);
+	size_t numIndices = pMesh.m_IndexDataSize / sizeof(uint16_t);
+
+	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
+
+	// If we are able to draw with indices, do so.
+	if (pMesh.m_IndexDataSize != 0)
+	{
+		vkCmdBindIndexBuffer(pCommandBuffer.m_Handle, pIndexBuffer.m_Handle, indexOffset, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(pCommandBuffer.m_Handle, numIndices, 1, 0, 0, 0);
+	}
+	else
+	{
+		vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
 	}
 }
 

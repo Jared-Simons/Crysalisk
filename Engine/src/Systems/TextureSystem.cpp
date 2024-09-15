@@ -96,8 +96,8 @@ Texture* TextureSystem::AcquireTexture(const char* pTexturePath)
 	Texture* pTexture = &m_RegisteredTextures[pTexturePath];
 	if (!pTexture->m_InternalData)
 	{
-		// TODO: Load the texture if it hasn't yet been loaded
-		LOG_WARN("AcquireTexture does not yet load textures... IMPLEMENT!");
+		// Load the texture if it hasn't yet been loaded
+		LoadTexture(pTexturePath);
 	}
 
 	// TODO: Handle reference counting
