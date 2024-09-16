@@ -557,15 +557,18 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices)
 {
+	pMesh.m_pInternalData = gpMemorySystem->MemAllocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
+
 	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();
 	VkDeviceSize indexDataSize = sizeof(indices[0]) * indices.size();
 
 	// Store off our offsets for access later.
-	pMesh.m_VertexDataOffset = m_VertexBufferOffset;
-	pMesh.m_IndexDataOffset = m_IndexBufferOffset;
+	internalData->m_VertexDataOffset = m_VertexBufferOffset;
+	internalData->m_IndexDataOffset = m_IndexBufferOffset;
 
-	pMesh.m_VertexDataSize = vertexDataSize;
-	pMesh.m_IndexDataSize = indexDataSize;
+	internalData->m_VertexDataSize = vertexDataSize;
+	internalData->m_IndexDataSize = indexDataSize;
 
 	// Upload the data to the buffers
 	m_VertexBuffer.UploadDataToBuffer(this, vertexDataSize, vertices.data(), m_VertexBufferOffset);
@@ -580,6 +583,9 @@ bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3
 void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 {
 	// TODO: Implement with freelist
+
+	gpMemorySystem->MemFree(pMesh.m_pInternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	pMesh.m_pInternalData = nullptr;
 }
 
 void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex)
@@ -587,16 +593,18 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 	// TODO: Material-specific shaders
 	m_StandardShader.Bind(this, &pCommandBuffer.m_Handle, imageIndex);
 
-	VkDeviceSize vertexOffset = pMesh.m_VertexDataOffset;
-	VkDeviceSize indexOffset = pMesh.m_IndexDataOffset;
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
 
-	size_t numVertices = pMesh.m_VertexDataSize / sizeof(Vertex3D);
-	size_t numIndices = pMesh.m_IndexDataSize / sizeof(uint16_t);
+	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;
+	VkDeviceSize indexOffset = internalData->m_IndexDataOffset;
+
+	size_t numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
+	size_t numIndices = internalData->m_IndexDataSize / sizeof(uint16_t);
 
 	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
 
 	// If we are able to draw with indices, do so.
-	if (pMesh.m_IndexDataSize != 0)
+	if (internalData->m_IndexDataSize != 0)
 	{
 		vkCmdBindIndexBuffer(pCommandBuffer.m_Handle, pIndexBuffer.m_Handle, indexOffset, VK_INDEX_TYPE_UINT16);
 		vkCmdDrawIndexed(pCommandBuffer.m_Handle, numIndices, 1, 0, 0, 0);

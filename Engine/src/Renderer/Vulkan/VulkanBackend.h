@@ -438,6 +438,20 @@ struct Camera
 };
 // TODO END TEMP
 
+//=================================
+// 
+// Vulkan Resource Data
+// 
+//=================================
+struct VulkanGeometryData_t
+{
+	size_t m_VertexDataOffset{ 0 };
+	size_t m_VertexDataSize{ 0 };
+
+	size_t m_IndexDataOffset{ 0 };
+	size_t m_IndexDataSize{ 0 };
+};
+
 
 //=================================
 // 

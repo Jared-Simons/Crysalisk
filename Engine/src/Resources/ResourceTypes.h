@@ -29,12 +29,6 @@ public:
 	const char* m_szGeometryName;
 
 	void* m_pInternalData;
-	// TODO: Move these to the renderer backend
-	size_t m_VertexDataOffset;
-	size_t m_VertexDataSize;
-
-	size_t m_IndexDataOffset;
-	size_t m_IndexDataSize;
 };
 
 struct RenderPacket_t

@@ -195,6 +195,7 @@ void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	gpRenderer->DestroyGeometryResources(*m_TestGeometry);
 	gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
