@@ -304,7 +304,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 	// Present the framebuffer
 	m_Swapchain.Present(this, imageIndex);
-	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+	commandBuffer.m_State = eVulkanCommandBufferState::INVALID;
 
 	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return true;

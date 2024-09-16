@@ -191,15 +191,15 @@ public:
 enum class eVulkanCommandBufferState
 {
 	/* The command buffer has just been allocated or has been reset to the initial state. Can only be set to record or freed. */
-	COMMAND_BUFFER_STATE_INITIAL,
+	INITIAL,
 	/* The command buffer can be written to with vkCmd calls. */
-	COMMAND_BUFFER_STATE_RECORDING,
+	RECORDING,
 	/* The command buffer has been written to and can be freed or submitted for execution. */
-	COMMAND_BUFFER_EXECUTABLE,
+	EXECUTABLE,
 	/* The command buffer has been submitted for queue submission and CANNOT be modified at this point. */
-	COMMAND_BUFFER_STATE_PENDING,
+	PENDING,
 	/* The command buffer has been invalidated through an operation that modified it's resources, can be freed or rest. */
-	COMMAND_BUFFER_STATE_INVALID
+	INVALID
 };
 
 class VulkanCommandPool
@@ -229,7 +229,7 @@ public:
 
 public:
 	VkCommandBuffer				m_Handle{ VK_NULL_HANDLE };
-	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL };
+	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::INITIAL };
 
 	// Is this a primary or secondary level command buffer?
 	bool						m_bIsPrimary{ false };

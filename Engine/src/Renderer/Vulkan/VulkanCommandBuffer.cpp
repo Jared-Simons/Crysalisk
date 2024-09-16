@@ -59,7 +59,7 @@ bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer* pRenderingContext
 		LOG_ERROR("Failed to create command buffer");
 		return false;
 	}
-	pOutCommandBuffer->m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL;
+	pOutCommandBuffer->m_State = eVulkanCommandBufferState::INITIAL;
 
 	return true;
 }
@@ -80,7 +80,7 @@ bool VulkanCommandBuffer::Begin()
 		return false;
 	}
 
-	if (m_State != eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL)
+	if (m_State != eVulkanCommandBufferState::INITIAL)
 	{
 		LOG_ERROR("VulkanCommandBuffer::Begin() -> Command buffer was not in initial state, thus could not begin recording commands.");
 		return false;
@@ -94,13 +94,13 @@ bool VulkanCommandBuffer::Begin()
 		return false;
 	}
 
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING;
+	m_State = eVulkanCommandBufferState::RECORDING;
 	return true;
 }
 
 void VulkanCommandBuffer::End()
 {
-	if (m_Handle && m_State == eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING)
+	if (m_Handle && m_State == eVulkanCommandBufferState::RECORDING)
 	{
 		if (!VK_CHECK(vkEndCommandBuffer(m_Handle)))
 		{
@@ -108,7 +108,7 @@ void VulkanCommandBuffer::End()
 			return;
 		}
 
-		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE;
+		m_State = eVulkanCommandBufferState::EXECUTABLE;
 	}
 	else
 	{
@@ -122,7 +122,7 @@ void VulkanCommandBuffer::Reset()
 	if (m_Handle)
 	{
 		vkResetCommandBuffer(m_Handle, 0);
-		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INITIAL;
+		m_State = eVulkanCommandBufferState::INITIAL;
 	}
 	else
 	{
@@ -135,11 +135,11 @@ bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
 	if (!m_Handle)
 	{
 		LOG_ERROR("VulkanCommandBuffer::Submit() -> Requires a pointer to a valid command buffer object.");
-		m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+		m_State = eVulkanCommandBufferState::INVALID;
 		return false;
 	}
 
-	if (m_State != eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE)
+	if (m_State != eVulkanCommandBufferState::EXECUTABLE)
 	{
 		LOG_ERROR("VulkanCommandBuffer::Submit() -> Command buffer is in an invalid state and cannot be submitted.");
 		return false;
@@ -160,7 +160,7 @@ bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
 		LOG_ERROR("Failed to submit command buffer");
 		return false;
 	}
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+	m_State = eVulkanCommandBufferState::PENDING;
 
 	return true;
 }
@@ -178,7 +178,7 @@ bool VulkanCommandBuffer::BeginSingleUse(CVulkanRenderer* pRenderingContext, VkC
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
 	m_bIsPrimary = true;
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_RECORDING;
+	m_State = eVulkanCommandBufferState::RECORDING;
 
 	vkBeginCommandBuffer(m_Handle, &beginInfo);
 	return true;
@@ -187,17 +187,17 @@ bool VulkanCommandBuffer::BeginSingleUse(CVulkanRenderer* pRenderingContext, VkC
 void VulkanCommandBuffer::EndSingleUse(CVulkanRenderer* pRenderingContext, VkCommandPool* pCommandPool)
 {
 	vkEndCommandBuffer(m_Handle);
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_EXECUTABLE;
+	m_State = eVulkanCommandBufferState::EXECUTABLE;
 
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_Handle;
 
 	vkQueueSubmit(pRenderingContext->m_Device.m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_PENDING;
+	m_State = eVulkanCommandBufferState::PENDING;
 
 	vkQueueWaitIdle(pRenderingContext->m_Device.m_GraphicsQueue);
 
 	vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, *pCommandPool, 1, &m_Handle);
-	m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+	m_State = eVulkanCommandBufferState::INVALID;
 }
