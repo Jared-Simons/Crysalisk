@@ -232,7 +232,7 @@ namespace Platform {
 	{
 		HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 		// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
-		static char levelColor[6] = { 8, 3, 5, 6, 4, 64 };	// Borrowed from Kohi
+		static char levelColor[6] = { 64, 4, 6, 5, 3, 8 };
 		SetConsoleTextAttribute(outputHandle, levelColor[level]);
 		size_t length = strlen(message);
 		WriteConsoleA(outputHandle, message, (DWORD)length, 0, 0);

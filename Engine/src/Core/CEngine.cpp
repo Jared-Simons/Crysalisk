@@ -69,7 +69,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
 
 	// Logging Utilities
-	Logging_Initialize();
+	LogSystem::Init(6); // Log all messages
 
 	// Memory System
 	if (!gpMemorySystem->MemorySystem_Initialize(*m_EngineHeap))
@@ -242,7 +242,7 @@ void CEngine::Engine_Shutdown()
 	delete m_EngineHeap;
 	Platform::MemoryFree(pEngineMemoryBlock);
 
-	Logging_Shutdown();
+	LogSystem::Shutdown();
 }
 
 static CEngine g_Engine;
