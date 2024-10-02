@@ -4,11 +4,12 @@
 // 
 // Purpose: Implements the Core Input System.
 //=============================================================================
-#include "Systems/IInput.h"
+#include "Core/Input.h"
 
 #include "Core/Logging.h"
+#include "Core/Event.h"
 #include "Systems/IMemory.h"
-#include "Systems/IEvent.h"
+#include "Systems/IEngine.h"
 
 
 class CInputSystem : public IInputSystem
@@ -35,11 +36,11 @@ public:
 	// If the creation of this system fails, the engine will shutdown regardless.
 	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
 
-	bool		Initialize() override;
+	bool		Initialize(IEventSystem* pEventSystem) override;
 	void		Shutdown() override;
 	void		Update() override;
 
-	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
+	void		ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr) override;
 	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
 
 	bool		IsKeyPressed(const int key) const override;
@@ -51,6 +52,10 @@ private:
 	MouseState_t m_MouseState;
 
 	bool		m_KeyStateDirty;
+
+private:
+	// Hold a pointer to the engine's event system so we can fire off events.
+	IEventSystem*	m_pEventSystem{ nullptr };
 };
 
 static CInputSystem* sInputSystem{ nullptr };
@@ -59,27 +64,27 @@ IInputSystem* gpInputSystem = sInputSystem;
 //-----------------------------------------------------------------------------
 // Factory method to initialize an event system.
 //-----------------------------------------------------------------------------
-bool IInputSystem::InputSystem_Initialize(IInputSystem* statePtr, LinearAllocator* pAllocator)
+IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator, IEventSystem* pEventSystem)
 {
-	if (statePtr)
+	if (pAllocator)
 	{
-		LOG_ERROR("InputSystem_Create() -> An active input system already exists at this location. Aborting!");
-		return false;
-	}
+		CInputSystem* inputSystem = new (pAllocator) CInputSystem();
 
-	// Setup the engine's input system
-	if (statePtr == gpInputSystem)
-	{
-		sInputSystem = new (pAllocator) CInputSystem();
-
-		if (!sInputSystem->Initialize())
+		if (!inputSystem->Initialize(pEventSystem))
 		{
-			return false;
+			return nullptr;
 		}
+
+		// HACK: This exposes the engine input system through a global accessor.
+		// This is hacky and should be cleaned up down the line...
+		sInputSystem = inputSystem;
 		gpInputSystem = sInputSystem;
+
+		return inputSystem;
 	}
 
-	return true;
+	LOG_ERROR("Engine subsystem initialization requires a memory allocator!");
+	return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -99,8 +104,10 @@ void IInputSystem::InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory
 	}
 }
 
-bool CInputSystem::Initialize()
+bool CInputSystem::Initialize(IEventSystem* pEventSystem)
 {
+	// TODO: Logging for event system.
+
 	// setup m_KeysState table
 	for (char i = 0; i < MAX_INPUT_KEYS; i++)
 	{
@@ -118,6 +125,8 @@ bool CInputSystem::Initialize()
 	{
 		m_MouseState.m_MouseButtons[i] = false;
 	}
+
+	m_pEventSystem = pEventSystem;
 
 	LOG_INFO("Input System Initialized!");
 
@@ -138,7 +147,7 @@ void CInputSystem::Update()
 	}
 }
 
-void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
+void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr)
 {
 	if (processedKeyInput != 0)
 	{
@@ -148,12 +157,12 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 		{
 			eventData.c[0] = processedKeyInput;
 			m_KeysState[processedKeyInput].m_Pressed = true;
-			gpEngineEvents->EventFire(eEventCategory::INPUT_KEY_PRESSED, eventData);
+			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_PRESSED, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_Pressed = false;
-			gpEngineEvents->EventFire(eEventCategory::INPUT_KEY_RELEASED, eventData);
+			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_RELEASED, eventData);
 		}
 	}
 	else

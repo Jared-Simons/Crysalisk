@@ -4,14 +4,14 @@
 #include "Platform/VulkanPlatform.h"
 
 #include "Core/Logging.h"
-#include "Systems/IEvent.h"
+#include "Core/Event.h"
 
 #include <Math/VertexTypes.h>
 
 #include <String_Utils.h>
 #include <Resources/ResourceTypes.h>
 
-#include "Systems/IInput.h"
+#include "Core/Input.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

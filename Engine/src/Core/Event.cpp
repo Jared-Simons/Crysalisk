@@ -1,4 +1,4 @@
-#include "Systems/IEvent.h"
+#include "Event.h"
 
 #include "Core/Logging.h"
 
@@ -59,27 +59,28 @@ IEventSystem* gpEngineEvents = sEngineEvents;
 //-----------------------------------------------------------------------------
 // Factory method to initialize an event system.
 //-----------------------------------------------------------------------------
-bool IEventSystem::EventSystem_Create(IEventSystem* statePtr, LinearAllocator* pAllocator)
+
+IEventSystem* IEventSystem::EventSystem_Create(LinearAllocator* pAllocator)
 {
-	if (statePtr)
+	if (pAllocator)
 	{
-		LOG_ERROR("EventSystem_Create() -> An active event system already exists at this location. Aborting!");
-		return false;
-	}
+		CEventSystem* eventSystem = new (pAllocator) CEventSystem();
 
-	// Setup the engine's event handler
-	if (statePtr == gpEngineEvents)
-	{
-		sEngineEvents = new (pAllocator) CEventSystem();
-
-		if (!sEngineEvents->Initialize())
+		if (!eventSystem->Initialize())
 		{
-			return false;
+			return nullptr;
 		}
+
+		// HACK: This exposes the engine event system through a global accessor.
+		// This is hacky and should be cleaned up down the line...
+		sEngineEvents = eventSystem;
 		gpEngineEvents = sEngineEvents;
+
+		return eventSystem;
 	}
 
-	return true;
+	LOG_ERROR("Engine subsystem initialization requires a memory allocator!");
+	return false;
 }
 
 //-----------------------------------------------------------------------------

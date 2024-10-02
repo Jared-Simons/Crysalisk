@@ -8,9 +8,9 @@
 #include "Systems/IEngine.h"
 
 #include "Core/Logging.h"
+#include "Core/Event.h"
+#include "Core/Input.h"
 #include "Systems/IMemory.h"
-#include "Systems/IEvent.h"
-#include "Systems/IInput.h"
 #include "Platform/Platform.h"
 #include "Systems/IRenderer.h"
 #include "Systems/TextureSystem.h"
@@ -44,6 +44,11 @@ public:
 
 	void	Engine_Shutdown() override;
 
+	// Event handling
+	bool	EventRegister(eEventCategory eEventCategory, Event_Callback PFN_Callback) { return m_EngineEvents->EventRegister(eEventCategory, PFN_Callback); }
+	bool	EventUnregister(eEventCategory eEventCategory, Event_Callback PFN_Callback) { return m_EngineEvents->EventUnregister(eEventCategory, PFN_Callback); }
+	bool	EventFire(eEventCategory eEventCategory, EventData_t data) { return m_EngineEvents->EventFire(eEventCategory, data); }
+
 private:
 	// TODO: TEMP
 	void	CreateSceneGeometry();
@@ -53,6 +58,9 @@ private:
 	DynamicAllocator* m_EngineHeap{ nullptr };
 	LinearAllocator* m_SystemsAllocator{ nullptr };
 	LinearAllocator* m_FrameAllocator{ nullptr };
+
+	IEventSystem*	m_EngineEvents{ nullptr };
+	IInputSystem*	m_InputSystem{ nullptr };
 
 public:
 	// TODO: TEMP
@@ -85,25 +93,29 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	LOG_INFO("Systems Allocator created with %u B", m_SystemsAllocator->GetAllocatorSize());
 
 	// Event System
-	if (!IEventSystem::EventSystem_Create(gpEngineEvents, m_SystemsAllocator))
+	//if (!IEventSystem::EventSystem_Create(m_EngineEvents, m_SystemsAllocator))
+	m_EngineEvents = IEventSystem::EventSystem_Create(m_SystemsAllocator);
+	if (m_EngineEvents == nullptr)
 	{
 		LOG_FATAL("Event System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
 	// Register for engine-level events
-	gpEngineEvents->EventRegister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
-	gpEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
-	gpEngineEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
-	gpEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
-	gpEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
-	gpEngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
-	gpEngineEvents->EventRegister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
-	gpEngineEvents->EventRegister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
+	m_EngineEvents->EventRegister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
+	m_EngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
+	m_EngineEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
+	m_EngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
+	m_EngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
+	m_EngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
+	m_EngineEvents->EventRegister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
+	m_EngineEvents->EventRegister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
 
 
 	// Input System
-	if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))
+	/*if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))*/
+	m_InputSystem = IInputSystem::InputSystem_Initialize(m_SystemsAllocator, m_EngineEvents);
+	if (m_InputSystem == nullptr)
 	{
 		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
 		return false;
@@ -112,7 +124,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// Platform Layer
 	if (!m_engineConfig.isHeadless)
 	{
-		if (!Platform::Initialize(m_SystemsAllocator))
+		if (!Platform::Initialize(m_SystemsAllocator, this))
 		{
 			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
 			return false;
@@ -214,16 +226,16 @@ void CEngine::Engine_Shutdown()
 	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);
 
 	// Unregister from engine-level events
-	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
-	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
-	gpEngineEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
-	gpEngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
-	gpEngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
-	gpEngineEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
-	gpEngineEvents->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
-	gpEngineEvents->EventUnregister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
+	m_EngineEvents->EventUnregister(eEventCategory::WINDOW_END_RESIZE, Event_WindowResizedUnpause);
+	m_EngineEvents->EventUnregister(eEventCategory::WINDOW_START_RESIZE, Event_WindowResizedPause);
+	m_EngineEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, Event_WindowResized);
+	m_EngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, Event_MouseButtonReleased);
+	m_EngineEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, Event_MouseButtonPressed);
+	m_EngineEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, Event_KeyReleased);
+	m_EngineEvents->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, Event_KeyPressed);
+	m_EngineEvents->EventUnregister(eEventCategory::APPLICATION_QUIT, Event_ApplicationQuit);
 
-	IEventSystem::EventSystem_Shutdown(gpEngineEvents, false);
+	IEventSystem::EventSystem_Shutdown(m_EngineEvents, false);
 
 	// Destroy allocators
 	m_FrameAllocator->free(false);

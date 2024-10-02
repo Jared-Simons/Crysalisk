@@ -10,6 +10,7 @@
 
 // Forward Declarations
 class LinearAllocator;
+class IEventSystem;
 
 enum eKeyTable
 {
@@ -134,14 +135,14 @@ struct MouseState_t
 class IInputSystem
 {
 public:
-	static bool		InputSystem_Initialize(IInputSystem* statePtr, LinearAllocator* pAllocator);
-	static void		InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory = false);
+	static IInputSystem*		InputSystem_Initialize(LinearAllocator* pAllocator, IEventSystem* pEventSystem);
+	static void					InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory = false);
 
-	virtual bool	Initialize() = 0;
+	virtual bool	Initialize(IEventSystem* pEventSystem) = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
-	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed) = 0;
+	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr) = 0;
 	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) = 0;
 
 	virtual bool	IsKeyPressed(const int key) const = 0;

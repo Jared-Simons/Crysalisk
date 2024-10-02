@@ -52,8 +52,8 @@ typedef bool (*Event_Callback)(EventData_t data);
 class IEventSystem
 {
 public:
-	static bool		EventSystem_Create(IEventSystem* statePtr, LinearAllocator* pAllocator);
-	static void		EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemeory = false);
+	static IEventSystem*		EventSystem_Create(LinearAllocator* pAllocator);
+	static void					EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemeory = false);
 
 	virtual bool	Initialize() = 0;
 	virtual void	Shutdown() = 0;

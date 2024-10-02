@@ -11,8 +11,9 @@
 #include "Platform.h"
 
 #include "Core/Logging.h"
-#include "Systems/IEvent.h"
-#include "Systems/IInput.h"
+#include "Core/Event.h"
+#include "Core/Input.h"
+#include "Systems/IEngine.h"
 
 #include <Memory/LinearAllocator.h>
 
@@ -39,6 +40,9 @@ struct Platform_Win32_InternalData
 
 static Platform_Win32_InternalData* win32PlatformData{ nullptr };
 
+// An internal pointer to the engine context.
+static IEngine* s_EnginePtr{ nullptr };
+
 namespace Platform {
 
 	// Windows Procedure
@@ -51,13 +55,15 @@ namespace Platform {
 	static int ProcessWin32Input_MouseButton(UINT uMsg);
 	static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
-	bool Initialize(LinearAllocator* pAllocator)
+	bool Initialize(LinearAllocator* pAllocator, IEngine* pEngine)
 	{
 		if (win32PlatformData != nullptr)
 		{
 			LOG_ERROR("PlatformInitialize() - Platform State Already Exists!\n");
 			return true;
 		}
+
+		s_EnginePtr = pEngine;
 
 		if (!CreateWin32Window(pAllocator))
 		{
@@ -69,6 +75,12 @@ namespace Platform {
 		if (!CreateWin32Clock())
 		{
 			LOG_FATAL("CreateWin32Clock failed! - Aborting application!");
+			return false;
+		}
+
+		if (s_EnginePtr == nullptr)
+		{
+			LOG_ERROR("Platform::Initialize() REQUIRES a valid pointer to the calling engine context!");
 			return false;
 		}
 
@@ -286,7 +298,7 @@ namespace Platform {
 				int processedKeyCode = ProcessWin32Input_Key(wParam);
 
 				// Send to the input system.
-				gpInputSystem->ProcessKeyInput(processedKeyCode, true);
+				gpInputSystem->ProcessKeyInput(processedKeyCode, true, s_EnginePtr);
 			}
 			break;
 
@@ -297,7 +309,7 @@ namespace Platform {
 			int processedKeyCode = ProcessWin32Input_Key(wParam);
 
 			// Send to the input system.
-			gpInputSystem->ProcessKeyInput(processedKeyCode, false);
+			gpInputSystem->ProcessKeyInput(processedKeyCode, false, s_EnginePtr);
 		}
 		break;
 
