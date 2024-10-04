@@ -157,12 +157,12 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, IE
 		{
 			eventData.c[0] = processedKeyInput;
 			m_KeysState[processedKeyInput].m_Pressed = true;
-			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_PRESSED, eventData);
+			EventSystem::EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_Pressed = false;
-			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_RELEASED, eventData);
+			EventSystem::EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
 		}
 	}
 	else
@@ -207,7 +207,7 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEngineEvents->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, eventData);
+		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && !pressed)
@@ -234,7 +234,7 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEngineEvents->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, eventData);
+		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
 }
 

@@ -4,103 +4,13 @@
 
 #include <string>
 
-const int MAX_EVENTS_PER_CATEGORY = 32;
-#define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::MAX_EVENTS)
+// Event System Static variables
 
-class Event
-{
-	friend class CEventSystem;
+// TODO: Make this a pointer or something so we can control lifetime.
+Event EventSystem::m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
+int	EventSystem::m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
 
-	Event_Callback m_PFNEventCallback;
-	int m_EventID;
-	eEventCategory m_EventCategory;
-};
-
-class CEventSystem : public IEventSystem
-{
-public:
-	CEventSystem() : m_numRegisteredEvents{ 0 } {}
-
-	void*	operator new(size_t size, LinearAllocator *pAllocator)
-	{	
-		void* block = pAllocator->allocate(size);
-		if (block)
-		{
-			return block;
-		}
-		else
-		{
-			LOG_FATAL("Systems Allocator failed to allocate memory for the event system!");
-			return nullptr;
-		}
-	}
-
-	// NOTE: This does nothing and just exists to clear a compiler warning, 
-	// the memory was allocated and will be freed when the linear allocator gets cleared.
-	// If the creation of this system fails, the engine will shutdown regardless.
-	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
-
-	bool	Initialize() override;
-	void	Shutdown() override;
-
-	bool	EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
-	bool	EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback) override;
-	bool	EventFire(eEventCategory eventCategory, EventData_t data) override;
-
-private:
-	Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-	int	m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
-};
-
-static CEventSystem* sEngineEvents{ nullptr };
-IEventSystem* gpEngineEvents = sEngineEvents;
-
-
-//-----------------------------------------------------------------------------
-// Factory method to initialize an event system.
-//-----------------------------------------------------------------------------
-
-IEventSystem* IEventSystem::EventSystem_Create(LinearAllocator* pAllocator)
-{
-	if (pAllocator)
-	{
-		CEventSystem* eventSystem = new (pAllocator) CEventSystem();
-
-		if (!eventSystem->Initialize())
-		{
-			return nullptr;
-		}
-
-		// HACK: This exposes the engine event system through a global accessor.
-		// This is hacky and should be cleaned up down the line...
-		sEngineEvents = eventSystem;
-		gpEngineEvents = sEngineEvents;
-
-		return eventSystem;
-	}
-
-	LOG_ERROR("Engine subsystem initialization requires a memory allocator!");
-	return false;
-}
-
-//-----------------------------------------------------------------------------
-// Factory method to shutdown an event system.
-//-----------------------------------------------------------------------------
-void IEventSystem::EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemory)
-{
-	if (statePtr)
-	{
-		statePtr->Shutdown();
-
-		if (bOwnsMemory)
-		{
-			delete statePtr;
-			statePtr = nullptr;
-		}
-	}
-}
-
-bool CEventSystem::Initialize()
+bool EventSystem::Initialize()
 {
 	// Loop through and invalidate event entries.
 	for (int i = 0; i < NUM_EVENT_CATEGORIES; i++)
@@ -119,7 +29,7 @@ bool CEventSystem::Initialize()
 	return true;
 }
 
-void CEventSystem::Shutdown()
+void EventSystem::Shutdown()
 {
 	LOG_INFO("Event System Shutting Down");
 
@@ -135,7 +45,7 @@ void CEventSystem::Shutdown()
 	}
 }
 
-bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback)
+bool EventSystem::EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback)
 {
 	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
 	{
@@ -176,7 +86,7 @@ bool CEventSystem::EventRegister(eEventCategory eventCategory, Event_Callback PF
 	return false;
 }
 
-bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback)
+bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback)
 {
 	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
 	{
@@ -207,7 +117,7 @@ bool CEventSystem::EventUnregister(eEventCategory eventCategory, Event_Callback 
 	return false;
 }
 
-bool CEventSystem::EventFire(eEventCategory eventCategory, EventData_t data)
+bool EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
 {
 	int intEventCategory = static_cast<int>(eventCategory);
 	Event* curEvent = m_RegisteredEvents[intEventCategory];

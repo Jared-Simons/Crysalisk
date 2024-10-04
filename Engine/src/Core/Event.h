@@ -11,6 +11,9 @@
 // Forward Declarations
 class LinearAllocator;
 
+const int MAX_EVENTS_PER_CATEGORY = 32;
+#define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::MAX_EVENTS)
+
 enum class eEventCategory
 {
 	UNKNOWN = -1,
@@ -49,19 +52,25 @@ union EventData_t
 
 typedef bool (*Event_Callback)(EventData_t data);
 
-class IEventSystem
+struct Event
 {
-public:
-	static IEventSystem*		EventSystem_Create(LinearAllocator* pAllocator);
-	static void					EventSystem_Shutdown(IEventSystem* statePtr, bool bOwnsMemeory = false);
-
-	virtual bool	Initialize() = 0;
-	virtual void	Shutdown() = 0;
-
-	virtual bool	EventRegister(eEventCategory eventCategory, Event_Callback PFN_Callback) = 0;
-	virtual bool	EventUnregister(eEventCategory eventCategory, Event_Callback PFN_Callback) = 0;
-	virtual bool	EventFire(eEventCategory eventCategory, EventData_t data) = 0;
+	Event_Callback m_PFNEventCallback;
+	int m_EventID;
+	eEventCategory m_EventCategory;
 };
 
-extern IEventSystem* gpEngineEvents;
+class EventSystem
+{
+public:
+	static bool		Initialize();
+	static void		Shutdown();
+
+	static bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback);
+	static bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback);
+	static bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data);
+
+private:
+	static Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
+	static int m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+};
 

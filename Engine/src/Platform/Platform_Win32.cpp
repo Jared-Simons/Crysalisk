@@ -279,7 +279,7 @@ namespace Platform {
 		{
 		case WM_DESTROY:
 			// TODO: Change this to only affect the main window if and when we have multiple windows going.
-			gpEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, EventData_t());
+			EventSystem::EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t());
 			return 0;
 			break;
 
@@ -289,7 +289,7 @@ namespace Platform {
 			{
 				// Escape pressed... exit application TODO!!! MOVE ELSEWHERE
 				EventData_t data{};
-				gpEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, data);
+				EventSystem::EventFire(eEventCategory::APPLICATION_QUIT, nullptr, data);
 				break;
 			}
 			else
@@ -344,19 +344,19 @@ namespace Platform {
 			data.u16[0] = width;
 			data.u16[1] = height;
 
-			gpEngineEvents->EventFire(eEventCategory::WINDOW_RESIZE, data);
+			EventSystem::EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
 			break;
 		}
 
 		case WM_ENTERSIZEMOVE:
 		{
-			gpEngineEvents->EventFire(eEventCategory::WINDOW_START_RESIZE, EventData_t{});
+			EventSystem::EventFire(eEventCategory::WINDOW_START_RESIZE, nullptr, EventData_t{});
 			break;
 		}
 
 		case WM_EXITSIZEMOVE:
 		{
-			gpEngineEvents->EventFire(eEventCategory::WINDOW_END_RESIZE, EventData_t{});
+			EventSystem::EventFire(eEventCategory::WINDOW_END_RESIZE, nullptr, EventData_t{});
 			break;
 		}
 
