@@ -232,6 +232,8 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
 
+	VulkanCommandBuffer& commandBuffer = m_CommandBuffers[m_CurrentFrame];
+
 	// TEMP
 	// Update camera position
 
@@ -252,12 +254,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		return true;
 	}
 
-	// Update Uniform Buffer
-	m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
-
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
-
-	VulkanCommandBuffer& commandBuffer = m_CommandBuffers[m_CurrentFrame];
 
 	if (!commandBuffer.m_Handle)
 	{
@@ -267,6 +264,9 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 	commandBuffer.Reset();
 	commandBuffer.Begin();
+
+		// Update Uniform Buffer
+		m_StandardShader.UpdateUniforms(this, &commandBuffer.m_Handle, imageIndex, s_Camera, deltaTime);
 
 		if (!m_MainRenderpass.Begin(this, &commandBuffer, imageIndex))
 		{
@@ -292,6 +292,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 		for (int i = 0; i < pRenderData->geometries.size(); i++)
 		{
+			m_StandardShader.ApplyInstance(this, &commandBuffer.m_Handle, imageIndex, pRenderData->geometries[i]->m_pTexture);
 			DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
 		}
 
@@ -527,15 +528,44 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
 {
 	VulkanImage pOldTextureData = m_StandardShader.m_TextureImage;
+	pTexture.m_InternalData = gpMemorySystem->MemAllocate(sizeof(VulkanTextureData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+	VulkanTextureData_t* pInternalTextureData = reinterpret_cast<VulkanTextureData_t*>(pTexture.m_InternalData);
 
-	if (!m_StandardShader.AcquireTextureResources(this, pTexture, pPixelData))
+	/*if (!m_StandardShader.AcquireTextureResources(this, pTexture, pPixelData))
 	{
 		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
 		return false;
-	}
+	}*/
 
-	VulkanImage::DestroyImage(this, &pOldTextureData);
-	m_StandardShader.UpdateDescriptorSets(this);
+	//VulkanImage::DestroyImage(this, &pOldTextureData);
+	//m_StandardShader.UpdateDescriptorSets(this);
+
+	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * pTexture.m_ChannelCount;
+
+	VulkanBuffer imageBuffer;
+	VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
+
+	void* data;
+	vkMapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
+		memcpy(data, pPixelData, static_cast<size_t>(imageSize));
+	vkUnmapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory);
+
+	// Create Vulkan Resources for the image
+	VulkanImage::CreateImage(this, pTexture.m_Width, pTexture.m_Height, pTexture.m_ChannelCount, nullptr, true, &pInternalTextureData->m_Image);
+
+	// Upload texture data to the image.
+	pInternalTextureData->m_Image.TransitionImageLayout(this, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		imageBuffer.CopyBufferToImage(this, pTexture.m_Width, pTexture.m_Height, &pInternalTextureData->m_Image);
+	pInternalTextureData->m_Image.TransitionImageLayout(this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	VulkanBuffer::DestroyBuffer(this, &imageBuffer);
+
+	// Acquire descriptor resources.
+	if (!m_StandardShader.AcquireInstanceResources(this, pInternalTextureData))
+	{
+		// TODO: Destroy already allocated texture resources.
+		return false;
+	}
 
 	return true;
 }

@@ -226,6 +226,7 @@ public:
 	}
 
 	void SetResizeFactor(unsigned int resizeFactor) { m_ResizeFactor = resizeFactor; }
+	void SetStride(unsigned int stride) { m_Stride = stride; }
 	
 	size_t			size() const { return m_Count; }
 	size_t			capacity() const { return m_Capacity; }

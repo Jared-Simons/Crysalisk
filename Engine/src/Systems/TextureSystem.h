@@ -27,9 +27,13 @@ public:
 	void	UnloadTexture(Texture& pTexture);
 
 	Texture*	AcquireTexture(const char* pTexturePath);
+
+	Texture* GetDefaultTexture() { return &m_DefaultTexture; }
 private:
 	CHashmap<const char*, Texture>	m_RegisteredTextures;
 	size_t							m_NumRegisteredTextures;
+
+	Texture m_DefaultTexture;
 };
 
 ENGINE_API extern TextureSystem* gpTextureSystem;

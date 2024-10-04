@@ -37,6 +37,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 			return false;
 		}
 
+		pOutShader->m_TextureImage = (reinterpret_cast<VulkanTextureData_t*>(dummyTexture.m_InternalData)->m_Image);
 	}
 
 	// TODO: This will need to handled elsewhere once we have multiple textures/meshes.
@@ -104,12 +105,16 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 
-	// Release unnecessary resources
-	gpMemorySystem->MemFree(fragShaderBytecode, sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	gpFileSystem->CloseFile(&fragShaderFile);
+	// Create global uniform buffer
+	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-	gpMemorySystem->MemFree(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	gpFileSystem->CloseFile(&vertShaderFile);
+	VulkanBuffer::CreateBuffer(pRenderingContext, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &pOutShader->m_GlobalUBO);
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, pOutShader->m_GlobalUBO.m_Memory, 0, bufferSize, 0, &pOutShader->m_UniformBufferMappedMemory);
+
+	// Create instance uniform buffer
+	VkDeviceSize instanceUniformBufferSize = sizeof(UniformBufferObject) * MAX_VULKAN_INSTANCE_COUNT;
+	VulkanBuffer::CreateBuffer(pRenderingContext, instanceUniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &pOutShader->m_InstanceUniformBuffer);
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, pOutShader->m_InstanceUniformBuffer.m_Memory, 0, instanceUniformBufferSize, 0, &pOutShader->m_InstanceUniformBufferMappedMemory);
 
 	if (!pOutShader->CreateDescriptorResources(pRenderingContext))
 	{
@@ -124,6 +129,13 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 
+	// Release unnecessary resources
+	gpMemorySystem->MemFree(fragShaderBytecode, sizeof(char)* fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	gpFileSystem->CloseFile(&fragShaderFile);
+
+	gpMemorySystem->MemFree(vertShaderBytecode, sizeof(char)* vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	gpFileSystem->CloseFile(&vertShaderFile);
+
 	// Release unnecessary shader modules
 	vkDestroyShaderModule(pRenderingContext->m_Device.m_LogicalDevice, pOutShader->m_FragModule, pRenderingContext->m_Allocator);
 	vkDestroyShaderModule(pRenderingContext->m_Device.m_LogicalDevice, pOutShader->m_VertModule, pRenderingContext->m_Allocator);
@@ -135,13 +147,17 @@ void VulkanShader::DestroyVulkanShader(CVulkanRenderer* pRenderingContext, Vulka
 {
 	if (pShader)
 	{
+		vkDestroyDescriptorPool(pRenderingContext->m_Device.m_LogicalDevice,pShader->m_InstanceDescriptorPool, pRenderingContext->m_Allocator);
+
+		vkDestroyDescriptorSetLayout(pRenderingContext->m_Device.m_LogicalDevice, pShader->m_InstanceDescriptorSetLayout, pRenderingContext->m_Allocator);
+
 		//VulkanImage::DestroyImage(pRenderingContext, &pShader->m_TextureImage);
 
 		vkDestroyDescriptorPool(pRenderingContext->m_Device.m_LogicalDevice, pShader->m_DescriptorPool, pRenderingContext->m_Allocator);
 
 		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
-			VulkanBuffer::DestroyBuffer(pRenderingContext, &pShader->m_UniformBuffers[i]);
+			VulkanBuffer::DestroyBuffer(pRenderingContext, &pShader->m_GlobalUBO);
 		}
 
 		vkDestroyDescriptorSetLayout(pRenderingContext->m_Device.m_LogicalDevice, pShader->m_DescriptorSetLayout, pRenderingContext->m_Allocator);
@@ -162,7 +178,6 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	shaderStageInfos[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
 	shaderStageInfos[0].pName = "main";
 	shaderStageInfos[0].module = pOutShader->m_VertModule;
-
 
 	shaderStageInfos[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shaderStageInfos[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -273,8 +288,9 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 
 	// Pipeline Layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &pOutShader->m_DescriptorSetLayout;
+	VkDescriptorSetLayout descriptorLayouts[2] = { pOutShader->m_DescriptorSetLayout, pOutShader->m_InstanceDescriptorSetLayout };
+	pipelineLayoutInfo.setLayoutCount = 2;
+	pipelineLayoutInfo.pSetLayouts = descriptorLayouts;
 	if (vkCreatePipelineLayout(pRenderingContext->m_Device.m_LogicalDevice, &pipelineLayoutInfo, pRenderingContext->m_Allocator, &pOutShader->m_PipelineLayout) != VK_SUCCESS)
 	{
 		LOG_ERROR("Failed to create Vulkan Pipeline Layout");
@@ -308,14 +324,67 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 
 bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const
 {
-	vkCmdBindDescriptorSets(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
 	vkCmdBindPipeline(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
 
 	return true;
 }
 
-void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime)
+void VulkanShader::ApplyInstance(CVulkanRenderer* pRenderingContext,VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, Texture* pTexture)
 {
+	VulkanTextureData_t* internalTextureData = reinterpret_cast<VulkanTextureData_t*>(pTexture->m_InternalData);
+	size_t descriptorID = internalTextureData->m_descriptorIndex;
+
+	// Update the descriptor set if necessary
+	if (m_InstanceDescriptors[descriptorID].generation == INVALID_ID_U8)
+	{
+		LOG_DEBUG("UPDATING DESCRIPTOR SETS");
+
+		for (int i = 0; i < 3; i++)
+		{
+			VkWriteDescriptorSet descriptorWrites[2];
+
+			VkDescriptorBufferInfo bufferInfo;
+			bufferInfo.buffer = m_InstanceUniformBuffer.m_Handle;
+			bufferInfo.offset = descriptorID * sizeof(UniformBufferObject);
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[0].dstSet = m_InstanceDescriptors[descriptorID].descriptorSets[i];
+			descriptorWrites[0].descriptorCount = 1;
+			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[0].dstBinding = 0;
+			descriptorWrites[0].dstArrayElement = 0;
+			descriptorWrites[0].pNext = nullptr;
+			descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+			VkDescriptorImageInfo imageInfo;
+			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			imageInfo.imageView = internalTextureData->m_Image.m_ImageView;
+			//imageInfo.imageView = VK_NULL_HANDLE;
+			imageInfo.sampler = internalTextureData->m_Image.m_ImageSampler;
+
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = m_InstanceDescriptors[descriptorID].descriptorSets[i];
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].pNext = nullptr;
+			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			vkUpdateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, 2, descriptorWrites, 0, nullptr);
+		}
+	}
+
+	m_InstanceDescriptors[descriptorID].generation = 0;
+
+	vkCmdBindDescriptorSets(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 1, 1, &m_InstanceDescriptors[descriptorID].descriptorSets[imageIndex], 0, nullptr);
+}
+
+void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, struct Camera s_Camera, float deltaTime)
+{
+	vkCmdBindDescriptorSets(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
+
 	static double startTime = Platform::GetAbsoluteTime();
 	double currentTime = Platform::GetAbsoluteTime();
 
@@ -331,23 +400,11 @@ void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t i
 	ubo.projection = Matrix4x4::Perspective(M_DEG2RAD(45.0f), pRenderingContext->m_Swapchain.m_SwapchainExtent.width / (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
 	ubo.projection.data[1][1] *= -1; // Flip the Y coordinate
 
-	memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
+	memcpy(m_UniformBufferMappedMemory, &ubo, sizeof(ubo));
 }
 
 bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData) // TODO: MAKE CONFIGURABLE!!!
 {
-	// Uniform buffer
-	VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-	m_UniformBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	m_UniformBuffersMappedMemory.Resize(MAX_FRAMES_IN_FLIGHT);
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		VulkanBuffer::CreateBuffer(pRenderingContext, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &m_UniformBuffers[i]);
-		vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
-	}
-
 	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * 4;
 	
 	VulkanBuffer imageBuffer;
@@ -398,6 +455,35 @@ bool VulkanShader::AcquireTextureResources(CVulkanRenderer* pRenderingContext, T
 	return true;
 }
 
+bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, VulkanTextureData_t* pInternalTextureData)
+{
+	VkDescriptorSetLayout descriptorLayouts[3] = { m_InstanceDescriptorSetLayout, m_InstanceDescriptorSetLayout, m_InstanceDescriptorSetLayout };
+
+	for (int i = 0; i < 3; i++)
+	{
+		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		descriptorSetAllocInfo.descriptorPool = m_InstanceDescriptorPool;
+		descriptorSetAllocInfo.descriptorSetCount = 1;
+		descriptorSetAllocInfo.pSetLayouts = descriptorLayouts;
+
+		if (!VK_CHECK(vkAllocateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, &descriptorSetAllocInfo, &m_InstanceDescriptors[m_InstanceDescriptorIndex].descriptorSets[i])))
+		{
+			LOG_ERROR("Shader failed to acquire instance descriptor resources.");
+			return false;
+		}
+	}
+
+	// Bump up the next descriptor set index.
+	pInternalTextureData->m_descriptorIndex = m_InstanceDescriptorIndex;
+	m_InstanceDescriptorIndex++;
+
+	m_InstanceDescriptors[pInternalTextureData->m_descriptorIndex].generation = INVALID_ID_U8;
+
+	LOG_DEBUG("Descriptor set allocated at index %d", pInternalTextureData->m_descriptorIndex);
+
+	return true;
+}
+
 bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 {
 	// Descriptor set layouts
@@ -431,10 +517,10 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 	// Descriptor Pool
 	VkDescriptorPoolSize poolSizes[2];
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
+	poolSizes[0].descriptorCount = MAX_VULKAN_INSTANCE_COUNT;
 
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
+	poolSizes[1].descriptorCount = MAX_VULKAN_INSTANCE_COUNT; // * MAX_INSTANCE_COUNT
 
 	VkDescriptorPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	poolCreateInfo.poolSizeCount = 2;
@@ -469,7 +555,7 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
+		bufferInfo.buffer = m_GlobalUBO.m_Handle;
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -497,8 +583,55 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 
 		VkWriteDescriptorSet descriptorWriteArray[2] = { descriptorWrites[0], descriptorWrites[1] };
 
+		// HACK: For now, only updating the Global UBO, not global textures
 		vkUpdateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
 	}
+
+	// Create instance level descriptor resources
+	// Descriptor set layout
+	VkDescriptorSetLayoutBinding instanceBindings[2];
+	instanceBindings[0].binding = 0;
+	instanceBindings[0].descriptorCount = 1;
+	instanceBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	instanceBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	instanceBindings[0].pImmutableSamplers = nullptr;
+
+	instanceBindings[1].binding = 1;
+	instanceBindings[1].descriptorCount = 1;
+	instanceBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	instanceBindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+	instanceBindings[1].pImmutableSamplers = nullptr;
+
+	VkDescriptorSetLayoutCreateInfo instanceDescriptorSetLayout{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	instanceDescriptorSetLayout.bindingCount = 2;
+	instanceDescriptorSetLayout.pBindings = instanceBindings;
+
+	if (!VK_CHECK(vkCreateDescriptorSetLayout(pRenderingContext->m_Device.m_LogicalDevice, &instanceDescriptorSetLayout, pRenderingContext->m_Allocator, &m_InstanceDescriptorSetLayout)))
+	{
+		LOG_ERROR("Shader failed to create instance level descriptor set layout.");
+		return false;
+	}
+
+	// Descriptor pool
+	VkDescriptorPoolSize instancePoolSizes[2];
+	instancePoolSizes[0].descriptorCount = MAX_VULKAN_INSTANCE_COUNT;
+	instancePoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+	instancePoolSizes[1].descriptorCount = MAX_VULKAN_INSTANCE_COUNT; // * SAMPLER_COUNT
+	instancePoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+	VkDescriptorPoolCreateInfo instancePoolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	instancePoolCreateInfo.maxSets = MAX_VULKAN_INSTANCE_COUNT;
+	instancePoolCreateInfo.poolSizeCount = 2;
+	instancePoolCreateInfo.pPoolSizes = instancePoolSizes;
+
+	if (!VK_CHECK(vkCreateDescriptorPool(pRenderingContext->m_Device.m_LogicalDevice, &instancePoolCreateInfo, pRenderingContext->m_Allocator, &m_InstanceDescriptorPool)))
+	{
+		LOG_ERROR("Shader failed to create instance level descriptor set layout.");
+		return false;
+	}
+
+	m_InstanceDescriptorIndex = 0;
 
 	return true;
 }
@@ -508,7 +641,7 @@ void VulkanShader::UpdateDescriptorSets(CVulkanRenderer* pRenderingContext)
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
+		bufferInfo.buffer = m_GlobalUBO.m_Handle;
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -538,4 +671,9 @@ void VulkanShader::UpdateDescriptorSets(CVulkanRenderer* pRenderingContext)
 
 		vkUpdateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
 	}
+}
+
+void VulkanShader::UpdateDescriptorInstanceSets(CVulkanRenderer* pRenderingContext, size_t descriptorID, VulkanTextureData_t* pTextureData)
+{
+
 }

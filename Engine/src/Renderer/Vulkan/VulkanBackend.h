@@ -33,6 +33,8 @@ class	VulkanImage;
 class	VulkanShader;
 class	CVulkanRenderer;
 
+struct VulkanTextureData_t;
+
 // Utility Macro for checking success with VkResult
 #define VK_CHECK(expr) expr == VK_SUCCESS
 
@@ -342,6 +344,13 @@ struct UniformBufferObject
 	Matrix4x4 projection;
 };
 
+const int MAX_VULKAN_INSTANCE_COUNT{ 1024 };
+
+struct VulkanDescriptorSetState
+{
+	VkDescriptorSet descriptorSets[3];
+	unsigned char generation;
+};
 
 //=================================
 // 
@@ -364,16 +373,18 @@ public:
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
-
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
-	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
-	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
-	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
 
-	void			UpdateDescriptorSets(CVulkanRenderer* pRenderingContext);
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
+	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 
-private:
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, VulkanTextureData_t* pInternalTextureData);
+
+	void			UpdateDescriptorSets(CVulkanRenderer* pRenderingContext);
+	void			UpdateDescriptorInstanceSets(CVulkanRenderer* pRenderingContext, size_t descriptorID, VulkanTextureData_t* pTextureData);
+	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, Texture* pTexture);
 
 public:
 	VkShaderModule		m_VertModule;
@@ -386,9 +397,17 @@ public:
 	VkDescriptorPool			m_DescriptorPool;
 	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of double and triple buffering
 
-	// TODO: Instance level resources!
-	CVector<VulkanBuffer>		m_UniformBuffers;
-	CVector<void*>				m_UniformBuffersMappedMemory;
+	size_t						m_CurrentlyBoundInstance;
+	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout;
+	VkDescriptorPool			m_InstanceDescriptorPool;
+	VulkanDescriptorSetState	m_InstanceDescriptors[MAX_VULKAN_INSTANCE_COUNT];
+	unsigned int				m_InstanceDescriptorIndex;
+
+	VulkanBuffer				m_InstanceUniformBuffer;
+	void*						m_InstanceUniformBufferMappedMemory;
+
+	VulkanBuffer				m_GlobalUBO;
+	void*						m_UniformBufferMappedMemory;
 
 	VulkanImage m_TextureImage;
 	bool descriptorUpdateNeeded{ false };
@@ -443,6 +462,12 @@ struct Camera
 // Vulkan Resource Data
 // 
 //=================================
+struct VulkanTextureData_t
+{
+	VulkanImage m_Image;
+	unsigned int m_descriptorIndex;
+};
+
 struct VulkanGeometryData_t
 {
 	size_t m_VertexDataOffset{ 0 };
