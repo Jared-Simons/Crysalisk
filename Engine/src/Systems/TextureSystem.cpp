@@ -27,30 +27,6 @@ bool TextureSystem::Initialize(void* pSystemConfig)
 
 	m_RegisteredTextures = CHashmap<const char*, Texture>(typedConfig->maxTextureCount);
 
-	// Default texture
-	{
-		unsigned char* pixels = (unsigned char*)gpMemorySystem->MemAllocate(256 * 256 * 4, eMemAllocCategories::MEM_CATEGORY_ARRAY);
-		memset(pixels, 0xFF, 256 * 256 * 4); // Set the whole texture to white.
-
-		for (int row = 0; row < 256; ++row)
-		{
-			for (int col = 0; col < 256; ++col)
-			{
-				if ((row % 2) == 0 && (col % 2) != 0)
-				{
-
-				}
-			}
-		}
-
-		m_DefaultTexture.m_TextureName = "default";
-		m_DefaultTexture.m_Width = m_DefaultTexture.m_Height = 256;
-		m_DefaultTexture.m_ChannelCount = 4;
-		
-		//gpRenderer->CreateTextureResources(m_DefaultTexture, pixels);
-	}
-
-
 	LOG_INFO("Texture system initialized (MAX TEXTURES: %d)", typedConfig->maxTextureCount);
 
 	return true;
@@ -58,9 +34,6 @@ bool TextureSystem::Initialize(void* pSystemConfig)
 
 void TextureSystem::Shutdown()
 {
-	// Destory default textures
-	gpRenderer->DestroyTextureResources(m_DefaultTexture);
-
 	if (m_NumRegisteredTextures > 0)
 	{
 		LOG_WARN("Texture System shutting down with textures still registered!");

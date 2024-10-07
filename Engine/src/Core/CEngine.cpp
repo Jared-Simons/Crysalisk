@@ -146,9 +146,9 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	}
 
 	// TEMP: Load up a texture
-	//gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
 
-	//testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
+	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
 
 	// TEMP Geometry
 	CreateSceneGeometry();
@@ -176,10 +176,8 @@ bool CEngine::Engine_Run()
 				Platform::Update();
 
 				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->allocate(sizeof(RenderPacket_t)));
-				// TODO: This is stupid hacky
-				frameRenderData->geometries.SetStride(sizeof(StaticMesh*));
 				frameRenderData->geometries.PushBack(m_TestGeometry);
-				
+
 				if (!gpRenderer->Update(frameRenderData))
 				{
 					LOG_FATAL("Renderer update failed!");
@@ -201,8 +199,8 @@ void CEngine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	//gpRenderer->DestroyGeometryResources(*m_TestGeometry);
-	//gpTextureSystem->UnloadTexture(*testTexture);
+	gpRenderer->DestroyGeometryResources(*m_TestGeometry);
+	gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
 	gpTextureSystem->Shutdown();

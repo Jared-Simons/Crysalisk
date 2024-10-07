@@ -42,7 +42,6 @@
 
 // Invalid IDs
 #define INVALID_ID_U8	255
-#define INVALID_ID_U32	4294967295U
 
 // Utility Functions
 

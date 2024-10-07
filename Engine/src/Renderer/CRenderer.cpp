@@ -102,6 +102,7 @@ void IRenderer::Renderer_Shutdown(IRenderer* statePtr, bool bOwnsMemory)
 
 bool CRenderer::Initialize()
 {
+	// TODO: This currently only supports Vulkan...
 	m_RendererBackend = GetVulkanBackend();
 
 	if (m_RendererBackend != nullptr)
@@ -166,7 +167,5 @@ bool CRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& ve
 
 void CRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 {
-	// TODO: Release texture reference instead of destroying texture.
-	//gpTextureSystem->UnloadTexture(*pMesh.m_pTexture);
 	m_RendererBackend->DestroyGeometryResources(pMesh);
 }
