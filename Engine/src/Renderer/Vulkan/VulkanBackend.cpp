@@ -264,9 +264,6 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 	commandBuffer.Reset();
 	commandBuffer.Begin();
-		
-		// TODO: Material-specific shaders
-		m_StandardShader.Bind(this, &commandBuffer.m_Handle, imageIndex);
 
 		// Update Uniform Buffer
 		m_StandardShader.UpdateUniforms(this, &commandBuffer.m_Handle, imageIndex, s_Camera, deltaTime);
@@ -623,6 +620,9 @@ void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 
 void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex)
 {
+	// TODO: Material-specific shaders
+	m_StandardShader.Bind(this, &pCommandBuffer.m_Handle, imageIndex);
+
 	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
 
 	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;

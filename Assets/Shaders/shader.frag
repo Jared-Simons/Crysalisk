@@ -7,12 +7,8 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) out vec4 outColor;
 
-// Instance texture uniforms
-const int SAMP_DIFFUSE = 0;
-layout(set = 1, binding = 1) uniform sampler2D samplers[1];
-
 void main() 
 {
     //outColor = vec4(fragTexCoord, 0.0, 1.0);
-    outColor = texture(samplers[SAMP_DIFFUSE], fragTexCoord);
+    outColor = texture(texSampler, fragTexCoord);
 }
