@@ -16,6 +16,7 @@ class DynamicAllocator;
 class LinearAllocator;
 class Memory;
 class IInputSystem;
+class Renderer;
 
 struct EngineConfig_t
 {
@@ -42,6 +43,8 @@ private:
 
 	Memory* m_MemorySystem{ nullptr };
 	IInputSystem* m_InputSystem{ nullptr };
+
+	Renderer* m_RenderSystem{ nullptr };
 
 public:
 	// TODO: TEMP

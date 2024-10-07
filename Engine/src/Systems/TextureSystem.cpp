@@ -7,7 +7,7 @@
 #include "TextureSystem.h"
 
 #include "Core/Logging.h"
-#include "Systems/IRenderer.h"
+#include "Systems/Renderer.h"
 
 #include <String_Utils.h>
 
@@ -15,13 +15,14 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <Vendor/stb_image.h>
 
-bool TextureSystem::Initialize(void* pSystemConfig)
+bool TextureSystem::Initialize(void* pSystemConfig, Renderer* pRenderSystem)
 {
-	if (!pSystemConfig)
+	if (!pSystemConfig || !pRenderSystem)
 	{
-		LOG_ERROR("Texture System requires a valid pointer to a Texture System Configuration! Texture System creation failed");
+		LOG_ERROR("Texture System requires a valid pointer to a Texture System Configuration and Renderer! Texture System creation failed");
 		return false;
 	}
+	m_RenderSystem = pRenderSystem;
 
 	TextureSystemConfiguration* typedConfig = static_cast<TextureSystemConfiguration*>(pSystemConfig);
 
@@ -61,7 +62,7 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	newTexture->m_TextureName = StringDuplicate(pTexturePath); // TODO: Strip texture name down to just the file name...
 
 	// Obtain GPU Texture resources
-	gpRenderer->CreateTextureResources(*newTexture, pixelData);
+	m_RenderSystem->CreateTextureResources(*newTexture, pixelData);
 
 	// Free resources that are no longer needed.
 	stbi_image_free(pixelData);
@@ -76,7 +77,7 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 void TextureSystem::UnloadTexture(Texture& pTexture)
 {
 	// Release GPU Texture resources
-	gpRenderer->DestroyTextureResources(pTexture);
+	m_RenderSystem->DestroyTextureResources(pTexture);
 
 	pTexture.m_Width = pTexture.m_Height = pTexture.m_ChannelCount = 0;
 	pTexture.m_TextureName = nullptr;

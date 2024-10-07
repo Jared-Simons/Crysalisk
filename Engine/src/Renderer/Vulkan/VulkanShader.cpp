@@ -9,7 +9,7 @@
 
 #include "Core/Logging.h"
 #include "Core/Memory.h"
-#include "Systems/IFileSystem.h"
+#include "Platform/FileSystem.h"
 #include "Resources/ResourceTypes.h"
 
 #include <Math/VertexTypes.h>
@@ -50,17 +50,17 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 
 	// Vertex shader module
 	FileHandle_t vertShaderFile;
-	if (!gpFileSystem->OpenFile("Assets/Shaders/vert.spv", FILEMODE_READ, true, &vertShaderFile))
+	if (!FileSystem::OpenFile("Assets/Shaders/vert.spv", FILEMODE_READ, true, &vertShaderFile))
 	{
 		LOG_ERROR("Failed to read vertex shader file");
 		return false;
 	}
 
-	size_t vertShaderFileSize = gpFileSystem->FileSize(&vertShaderFile);
+	size_t vertShaderFileSize = FileSystem::FileSize(&vertShaderFile);
 	char* vertShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 	
 	size_t vertShaderCodeSize;
-	if (!gpFileSystem->ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderFile))
+	if (!FileSystem::ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderFile))
 	{
 		LOG_ERROR("Failed to read shader file: '%s'", vertShaderFile.path);
 		return false;
@@ -78,17 +78,17 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 
 	// Fragment shader module
 	FileHandle_t fragShaderFile;
-	if (!gpFileSystem->OpenFile("Assets/Shaders/frag.spv", FILEMODE_READ, true, &fragShaderFile))
+	if (!FileSystem::OpenFile("Assets/Shaders/frag.spv", FILEMODE_READ, true, &fragShaderFile))
 	{
 		LOG_ERROR("Failed to read fragment shader file");
 		return false;
 	}
 
-	size_t fragShaderFileSize = gpFileSystem->FileSize(&fragShaderFile);
+	size_t fragShaderFileSize = FileSystem::FileSize(&fragShaderFile);
 	char* fragShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	size_t fragShaderCodeSize;
-	if (!gpFileSystem->ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderFile))
+	if (!FileSystem::ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderFile))
 	{
 		LOG_ERROR("Failed to read shader file: '%s'", fragShaderFile.path);
 		return false;
@@ -106,10 +106,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 
 	// Release unnecessary resources
 	Memory::Free(fragShaderBytecode, sizeof(char) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	gpFileSystem->CloseFile(&fragShaderFile);
+	FileSystem::CloseFile(&fragShaderFile);
 
 	Memory::Free(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	gpFileSystem->CloseFile(&vertShaderFile);
+	FileSystem::CloseFile(&vertShaderFile);
 
 	if (!pOutShader->CreateDescriptorResources(pRenderingContext))
 	{

@@ -12,7 +12,7 @@
 #include "Core/Input.h"
 #include "Core/Memory.h"
 #include "Platform/Platform.h"
-#include "Systems/IRenderer.h"
+#include "Systems/Renderer.h"
 #include "Systems/TextureSystem.h"
 
 #include <Memory/LinearAllocator.h>
@@ -35,6 +35,8 @@ static bool Event_WindowResizedUnpause(EventData_t data);
 // TODO: Stick this in the engine class.
 static bool g_sApplicationSuspended{ false };
 
+Engine* s_EnginePtr = nullptr;
+
 bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 {
 	if (!pEngineState)
@@ -44,6 +46,7 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	}
 
 	Engine* typedState = reinterpret_cast<Engine*>(pEngineState);
+	s_EnginePtr = typedState;
 
 	typedState->m_engineConfig = engineConfig;
 
@@ -106,7 +109,8 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	// Renderer
 	if (!typedState->m_engineConfig.isHeadless)
 	{
-		if (!IRenderer::Renderer_Create(gpRenderer, typedState->m_SystemsAllocator))
+		typedState->m_RenderSystem = reinterpret_cast<Renderer*>(typedState->m_SystemsAllocator->allocate(sizeof(Renderer)));
+		if (!typedState->m_RenderSystem->Initialize())
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 			return false;
@@ -119,7 +123,7 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	gpTextureSystem = (TextureSystem*)typedState->m_SystemsAllocator->allocate(sizeof(TextureSystem));
 
 	TextureSystemConfiguration textureSysConfig = { 1024 };
-	if (!gpTextureSystem->Initialize(&textureSysConfig))
+	if (!gpTextureSystem->Initialize(&textureSysConfig, typedState->m_RenderSystem))
 	{
 		LOG_FATAL("Texture system failed to initialize! Application cannot continue.");
 		return false;
@@ -158,7 +162,7 @@ bool Engine::Engine_Run()
 				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->allocate(sizeof(RenderPacket_t)));
 				frameRenderData->geometries.PushBack(m_TestGeometry);
 
-				if (!gpRenderer->Update(frameRenderData))
+				if (!s_EnginePtr->m_RenderSystem->Update(frameRenderData))
 				{
 					LOG_FATAL("Renderer update failed!");
 					return false;
@@ -179,7 +183,7 @@ void Engine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	gpRenderer->DestroyGeometryResources(*m_TestGeometry);
+	s_EnginePtr->m_RenderSystem->DestroyGeometryResources(*m_TestGeometry);
 	gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
@@ -187,7 +191,7 @@ void Engine::Engine_Shutdown()
 
 	if (!m_engineConfig.isHeadless)
 	{
-		IRenderer::Renderer_Shutdown(gpRenderer, false);
+		Renderer::Renderer_Shutdown(s_EnginePtr->m_RenderSystem, false);
 	}
 
 	if (!m_engineConfig.isHeadless)
@@ -332,7 +336,7 @@ void Engine::CreateSceneGeometry()
 	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
 	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
 
-	gpRenderer->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/plasterwall024b.png", "TestGeometry");
+	s_EnginePtr->m_RenderSystem->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/plasterwall024b.png", "TestGeometry");
 }
 
 bool Event_MouseButtonPressed(EventData_t data)

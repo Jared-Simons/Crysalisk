@@ -11,6 +11,9 @@
 
 #include <Containers/CHashmap.h>
 
+// Forward declarations
+class Renderer;
+
 struct TextureSystemConfiguration
 {
 	size_t maxTextureCount;
@@ -19,7 +22,7 @@ struct TextureSystemConfiguration
 class TextureSystem
 {
 public:
-	bool	Initialize(void* pSystemConfig);
+	bool	Initialize(void* pSystemConfig, Renderer* pRenderSystem);
 	void	Shutdown();
 
 	// TODO: Texture destruction!
@@ -30,6 +33,8 @@ public:
 private:
 	CHashmap<const char*, Texture>	m_RegisteredTextures;
 	size_t							m_NumRegisteredTextures;
+
+	Renderer*						m_RenderSystem;
 };
 
 ENGINE_API extern TextureSystem* gpTextureSystem;

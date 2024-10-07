@@ -4,7 +4,7 @@
 // 
 // Purpose: The Interface for Filesystems.
 //=============================================================================
-#include "Systems/IFileSystem.h"
+#include "FileSystem.h"
 
 #include "Core/Logging.h"
 
@@ -13,30 +13,7 @@
 #include <stdio.h>	// Needed for FILE type
 #include <string>
 
-
-class CFileSystem : public IFileSystem
-{
-public:
-	bool			OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle) override;
-	bool			CloseFile(FileHandle_t* fileHandle) override;
-	size_t			FileSize(FileHandle_t* fileHandle) override;
-
-	bool 			ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
-	bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
-
-	bool			ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file) override;
-	/*
-	size_t			FileSize(const char* filePath) override;
-
-
-	size_t			ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file) override;
-	size_t			ReadWholeBinaryFile(char* buffer, size_t bufferSize, const char* filePath) override;
-
-	bool			WriteLine(FileHandle_t* fileHandle, char* text) override;
-	*/
-};
-
-bool CFileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle)
+bool FileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle)
 {
 	char* modeString;
 
@@ -83,7 +60,7 @@ bool CFileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBin
 	return true;
 }
 
-bool CFileSystem::CloseFile(FileHandle_t* fileHandle)
+bool FileSystem::CloseFile(FileHandle_t* fileHandle)
 {
 	if (!fileHandle)
 	{
@@ -102,7 +79,7 @@ bool CFileSystem::CloseFile(FileHandle_t* fileHandle)
 	return true;
 }
 
-size_t CFileSystem::FileSize(FileHandle_t* fileHandle)
+size_t FileSystem::FileSize(FileHandle_t* fileHandle)
 {
 	if (!fileHandle || !fileHandle->isValid)
 	{
@@ -120,7 +97,7 @@ size_t CFileSystem::FileSize(FileHandle_t* fileHandle)
 	return fileSize;
 }
 
-bool CFileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -141,7 +118,7 @@ bool CFileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead,
 	return true;
 }
 
-bool CFileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -158,7 +135,7 @@ bool CFileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBy
 	return true;
 }
 
-bool CFileSystem::ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -170,9 +147,3 @@ bool CFileSystem::ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* 
 
 	return true;
 }
-
-
-
-static CFileSystem sFileSystem;
-IFileSystem* gpFileSystem = &sFileSystem;
-
