@@ -10,11 +10,11 @@
 
 // Forward Declarations
 class LinearAllocator;
-class IEngine;
+class Engine;
 
 namespace Platform {
 
-	bool	Initialize(LinearAllocator* pAllocator, IEngine* pEngine);
+	bool	Initialize(LinearAllocator* pAllocator, Engine* pEngine);
 	bool	Update();
 	void	Shutdown();
 

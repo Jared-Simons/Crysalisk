@@ -142,7 +142,7 @@ public:
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
-	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr) = 0;
+	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) = 0;
 	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) = 0;
 
 	virtual bool	IsKeyPressed(const int key) const = 0;

@@ -5,7 +5,7 @@
 // Purpose: Implements the core engine loop.
 //=============================================================================
 
-#include "Systems/IEngine.h"
+#include "Engine.h"
 
 #include "Core/Logging.h"
 #include "Core/Event.h"
@@ -35,57 +35,36 @@ static bool Event_WindowResizedUnpause(EventData_t data);
 // TODO: Stick this in the engine class.
 static bool g_sApplicationSuspended{ false };
 
-class CEngine : public IEngine
+bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 {
-public:
-	bool	Engine_Initialize(EngineConfig_t engineConfig) override;
+	if (!pEngineState)
+	{
+		LOG_ERROR("Engine->Initialize() called without a pointer to an engine state. Application cannot continue.");
+		return false;
+	}
 
-	bool	Engine_Run() override;
+	Engine* typedState = reinterpret_cast<Engine*>(pEngineState);
 
-	void	Engine_Shutdown() override;
-
-private:
-	// TODO: TEMP
-	void	CreateSceneGeometry();
-
-private:
-	EngineConfig_t	m_engineConfig;
-	DynamicAllocator* m_EngineHeap{ nullptr };
-	LinearAllocator* m_SystemsAllocator{ nullptr };
-	LinearAllocator* m_FrameAllocator{ nullptr };
-
-	Memory*			m_MemorySystem{ nullptr };
-	IInputSystem*	m_InputSystem{ nullptr };
-
-public:
-	// TODO: TEMP
-	Texture* testTexture{ nullptr };
-	StaticMesh* m_TestGeometry{ nullptr };
-	// TODO: END TEMP
-};
-
-bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
-{
-	m_engineConfig = engineConfig;
+	typedState->m_engineConfig = engineConfig;
 
 	void* engineMemoryBlock = Platform::MemoryAllocate(MEBIBYTES(20));
-	m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
+	typedState->m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
 
 	// Logging Utilities
 	LogSystem::Init(6); // Log all messages
 
 	// Memory System
-	if (!Memory::Initialize(m_EngineHeap, m_MemorySystem))
+	if (!Memory::Initialize(typedState->m_EngineHeap, typedState->m_MemorySystem))
 	{
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
-	ConnectUtilityLib(m_EngineHeap, "Engine.dll");
+	ConnectUtilityLib(typedState->m_EngineHeap, "Engine.dll");
 
 	// Initialize the subsystem memory allocator
-	m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
-	LOG_INFO("Systems Allocator created with %u B", m_SystemsAllocator->GetAllocatorSize());
+	typedState->m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
+	LOG_INFO("Systems Allocator created with %u B", typedState->m_SystemsAllocator->GetAllocatorSize());
 
 	// Event System
 	if (!EventSystem::Initialize())
@@ -107,17 +86,17 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 
 	// Input System
 	/*if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))*/
-	m_InputSystem = IInputSystem::InputSystem_Initialize(m_SystemsAllocator, nullptr);
-	if (m_InputSystem == nullptr)
+	typedState->m_InputSystem = IInputSystem::InputSystem_Initialize(typedState->m_SystemsAllocator, nullptr);
+	if (typedState->m_InputSystem == nullptr)
 	{
 		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
 	// Platform Layer
-	if (!m_engineConfig.isHeadless)
+	if (!typedState->m_engineConfig.isHeadless)
 	{
-		if (!Platform::Initialize(m_SystemsAllocator, this))
+		if (!Platform::Initialize(typedState->m_SystemsAllocator, typedState))
 		{
 			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
 			return false;
@@ -125,9 +104,9 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Renderer
-	if (!m_engineConfig.isHeadless)
+	if (!typedState->m_engineConfig.isHeadless)
 	{
-		if (!IRenderer::Renderer_Create(gpRenderer, m_SystemsAllocator))
+		if (!IRenderer::Renderer_Create(gpRenderer, typedState->m_SystemsAllocator))
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 			return false;
@@ -137,7 +116,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// Texture System
 
 	// TODO: Overloaded new operator?
-	gpTextureSystem = (TextureSystem*)m_SystemsAllocator->allocate(sizeof(TextureSystem));
+	gpTextureSystem = (TextureSystem*)typedState->m_SystemsAllocator->allocate(sizeof(TextureSystem));
 
 	TextureSystemConfiguration textureSysConfig = { 1024 };
 	if (!gpTextureSystem->Initialize(&textureSysConfig))
@@ -149,19 +128,19 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	// TEMP: Load up a texture
 	gpTextureSystem->LoadTexture("Assets/Textures/plasterwall024b.png");
 
-	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
+	typedState->testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
 
 	// TEMP Geometry
-	CreateSceneGeometry();
+	typedState->CreateSceneGeometry();
 
 	// Initialize the frame allocator
-	m_FrameAllocator = new LinearAllocator(MEBIBYTES(1));
+	typedState->m_FrameAllocator = new LinearAllocator(MEBIBYTES(1));
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
 
-bool CEngine::Engine_Run()
+bool Engine::Engine_Run()
 {
 	while (!s_bApplicationQuitCalled)
 	{
@@ -196,7 +175,7 @@ bool CEngine::Engine_Run()
 	return false;
 }
 
-void CEngine::Engine_Shutdown()
+void Engine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
@@ -250,10 +229,6 @@ void CEngine::Engine_Shutdown()
 	LogSystem::Shutdown();
 }
 
-static CEngine g_Engine;
-IEngine* Engine = &g_Engine;
-
-
 bool Event_ApplicationQuit(EventData_t data)
 {
 	LOG_VERBOSE("Application_Quit() called");
@@ -297,7 +272,7 @@ bool Event_KeyReleased(EventData_t data)
 	return true;
 }
 
-void CEngine::CreateSceneGeometry()
+void Engine::CreateSceneGeometry()
 {
 	m_TestGeometry = reinterpret_cast<StaticMesh*>(Memory::Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
 

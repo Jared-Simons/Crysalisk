@@ -4,7 +4,7 @@
 // 
 // Purpose: Entry Point for the unit testing module
 //=============================================================================
-#include <Systems/IEngine.h>
+#include <Core/Engine.h>
 #include <Core/Logging.h>
 #include <Core/Memory.h>
 #include <Clock.h>
@@ -26,8 +26,9 @@ int main()
 	// Running unit tests in headless mode as we do not require rendering or input.
 	EngineConfig_t engineConfig{};
 	engineConfig.isHeadless = true;
+	Engine pEngineState;
 
-	if (!Engine->Engine_Initialize(engineConfig))
+	if (!Engine::Engine_Initialize(engineConfig, &pEngineState))
 		return -1;
 
 	LOG_VERBOSE("\n\n\n\n\n");
@@ -36,8 +37,6 @@ int main()
 
 	//gpMemorySystem->PrintMemoryStats();
 	LOG_VERBOSE("\n\n\n\n\n");
-
-	Engine->Engine_Shutdown();
 
 	return 0;
 }

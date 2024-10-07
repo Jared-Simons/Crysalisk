@@ -9,7 +9,7 @@
 #include "Core/Logging.h"
 #include "Core/Event.h"
 #include "Core/Memory.h"
-#include "Systems/IEngine.h"
+#include "Core/Engine.h"
 
 
 class CInputSystem : public IInputSystem
@@ -40,7 +40,7 @@ public:
 	void		Shutdown() override;
 	void		Update() override;
 
-	void		ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr) override;
+	void		ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) override;
 	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
 
 	bool		IsKeyPressed(const int key) const override;
@@ -147,7 +147,7 @@ void CInputSystem::Update()
 	}
 }
 
-void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, IEngine* enginePtr)
+void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr)
 {
 	if (processedKeyInput != 0)
 	{

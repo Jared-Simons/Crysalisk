@@ -13,7 +13,7 @@
 #include "Core/Logging.h"
 #include "Core/Event.h"
 #include "Core/Input.h"
-#include "Systems/IEngine.h"
+#include "Core/Engine.h"
 
 #include <Memory/LinearAllocator.h>
 
@@ -41,7 +41,7 @@ struct Platform_Win32_InternalData
 static Platform_Win32_InternalData* win32PlatformData{ nullptr };
 
 // An internal pointer to the engine context.
-static IEngine* s_EnginePtr{ nullptr };
+static Engine* s_EnginePtr{ nullptr };
 
 namespace Platform {
 
@@ -55,7 +55,7 @@ namespace Platform {
 	static int ProcessWin32Input_MouseButton(UINT uMsg);
 	static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
-	bool Initialize(LinearAllocator* pAllocator, IEngine* pEngine)
+	bool Initialize(LinearAllocator* pAllocator, Engine* pEngine)
 	{
 		if (win32PlatformData != nullptr)
 		{
