@@ -136,7 +136,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	}
 
 	// Main shader
-	if (!VulkanShader::CreateVulkanShader(this, &m_MainRenderpass, &m_StandardShader))
+	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
 		return false;
 
 	// Framebuffers
@@ -264,15 +264,12 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 	commandBuffer.Reset();
 	commandBuffer.Begin();
-
-		// Bind our shader.
-		m_StandardShader.Use(this, commandBuffer.m_Handle, imageIndex);
-
-		// Apply globals for this frame.
-		m_StandardShader.ApplyGlobals(this, commandBuffer.m_Handle, imageIndex);
+		
+		// TODO: Material-specific shaders
+		m_StandardShader.Bind(this, &commandBuffer.m_Handle, imageIndex);
 
 		// Update Uniform Buffer
-		//m_StandardShader.UpdateUniforms(this, &commandBuffer.m_Handle, imageIndex, s_Camera, deltaTime);
+		m_StandardShader.UpdateUniforms(this, &commandBuffer.m_Handle, imageIndex, s_Camera, deltaTime);
 
 		if (!m_MainRenderpass.Begin(this, &commandBuffer, imageIndex))
 		{
@@ -282,7 +279,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 
 		// Handle all draw calls here
 
-		/*VkViewport viewport{};
+		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
 		viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
@@ -294,12 +291,11 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
-		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);*/
+		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
 		for (int i = 0; i < pRenderData->geometries.size(); i++)
 		{
-			m_StandardShader.BindInstance((reinterpret_cast<VulkanTextureData_t*>(pRenderData->geometries[i]->m_pTexture->m_InternalData))->m_descriptorIndex);
-			m_StandardShader.ApplyInstance(this, commandBuffer.m_Handle, imageIndex, (reinterpret_cast<VulkanTextureData_t*>(pRenderData->geometries[i]->m_pTexture->m_InternalData)));
+			m_StandardShader.ApplyInstance(this, &commandBuffer.m_Handle, imageIndex, pRenderData->geometries[i]->m_pTexture);
 			DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
 		}
 
@@ -538,6 +534,15 @@ bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* p
 	pTexture.m_InternalData = gpMemorySystem->MemAllocate(sizeof(VulkanTextureData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
 	VulkanTextureData_t* pInternalTextureData = reinterpret_cast<VulkanTextureData_t*>(pTexture.m_InternalData);
 
+	/*if (!m_StandardShader.AcquireTextureResources(this, pTexture, pPixelData))
+	{
+		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
+		return false;
+	}*/
+
+	//VulkanImage::DestroyImage(this, &pOldTextureData);
+	//m_StandardShader.UpdateDescriptorSets(this);
+
 	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * pTexture.m_ChannelCount;
 
 	VulkanBuffer imageBuffer;
@@ -559,7 +564,7 @@ bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* p
 	VulkanBuffer::DestroyBuffer(this, &imageBuffer);
 
 	// Acquire descriptor resources.
-	if (!m_StandardShader.AcquireInstanceResources(this, &pInternalTextureData->m_descriptorIndex))
+	if (!m_StandardShader.AcquireInstanceResources(this, pInternalTextureData))
 	{
 		// TODO: Destroy already allocated texture resources.
 		return false;

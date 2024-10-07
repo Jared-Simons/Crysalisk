@@ -365,21 +365,26 @@ public:
 		, m_FragModule{ VK_NULL_HANDLE }
 		, m_Pipeline{ VK_NULL_HANDLE }
 		, m_PipelineLayout{ VK_NULL_HANDLE }
-		, m_GlobalDescriptorPool{ VK_NULL_HANDLE }
-		, m_GlobalDescriptorSetLayout{ VK_NULL_HANDLE }
-		, m_GlobalDescriptorSets{ VK_NULL_HANDLE } {}
+		, m_DescriptorPool{ VK_NULL_HANDLE }
+		, m_DescriptorSetLayout{ VK_NULL_HANDLE }
+		, m_DescriptorSets{ VK_NULL_HANDLE } {}
 
-	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass, VulkanShader* pOutShader);
+	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
 
-	void			Use(CVulkanRenderer* pRenderingContext, VkCommandBuffer pCommandBuffer, uint32_t imageIndex);
-	void			BindInstance(size_t instanceID);
-	void			ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuffer pCommandBuffer, uint32_t imageIndex);
-	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer pCommandBuffer, uint32_t imageIndex, VulkanTextureData_t* pTextureData);
-	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, unsigned int* pOutDescriptorIndex);
-
+	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
-	bool			CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass, bool bIsWireframe);
+
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
+	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
+
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, VulkanTextureData_t* pInternalTextureData);
+
+	void			UpdateDescriptorSets(CVulkanRenderer* pRenderingContext);
+	void			UpdateDescriptorInstanceSets(CVulkanRenderer* pRenderingContext, size_t descriptorID, VulkanTextureData_t* pTextureData);
+	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex, Texture* pTexture);
 
 public:
 	VkShaderModule		m_VertModule;
@@ -388,9 +393,9 @@ public:
 	VkPipeline			m_Pipeline;
 	VkPipelineLayout	m_PipelineLayout;
 
-	VkDescriptorSetLayout		m_GlobalDescriptorSetLayout;
-	VkDescriptorPool			m_GlobalDescriptorPool;
-	VulkanDescriptorSetState	m_GlobalDescriptorSets;
+	VkDescriptorSetLayout		m_DescriptorSetLayout;
+	VkDescriptorPool			m_DescriptorPool;
+	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of double and triple buffering
 
 	size_t						m_CurrentlyBoundInstance;
 	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout;
