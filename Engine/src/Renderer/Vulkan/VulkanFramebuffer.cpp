@@ -2,13 +2,13 @@
 // Author: Jared Simons
 // Date Created: 6/26/2024
 // 
-// Purpose: Interface and utilties for Vulkan Framebuffers
+// Purpose: interface and utilties for Vulkan Framebuffers
 //=============================================================================
 #include "VulkanBackend.h"
 
 #include "Core/Logging.h"
 
-bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, unsigned int framebufferIndex)
+bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, u32 framebufferIndex)
 {
 	if (!pOutFramebuffer)
 	{

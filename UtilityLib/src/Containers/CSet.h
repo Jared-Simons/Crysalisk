@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
 
 // CSets are essentially CSets with extra checks for repetitive entries.
 // Much of this is similar to CSet's layout

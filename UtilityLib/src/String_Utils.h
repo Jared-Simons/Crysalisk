@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 // TODO: Does this need to be included here? Would much rather have this in the .cpp file...
 #include <stdarg.h>
 

@@ -2,10 +2,11 @@
 // Author: Jared Simons
 // Date Created: 5/12/2024
 // 
-// Purpose: The Interface for Filesystems.
+// Purpose: The interface for Filesystems.
 //=============================================================================
 #pragma once
 
+#include "Defines.h"
 
 enum eFileMode
 {
@@ -29,15 +30,15 @@ class FileSystem
 public:
 	static bool			OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle);
 	static bool			CloseFile(FileHandle_t* fileHandle);
-	static size_t		FileSize(FileHandle_t* fileHandle);
+	static u64			FileSize(FileHandle_t* fileHandle);
 
-	static bool 		ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* file);
-	static bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file);
-	static bool			ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* file);
+	static bool 		ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* file);
+	static bool			ReadWholeFile(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* file);
+	static bool			ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* file);
 	/*
-	static size_t			FileSize(const char* filePath) = 0;
+	static u64			FileSize(const char* filePath) = 0;
 
-	static size_t			ReadWholeFile(char* buffer, size_t bufferSize, FileHandle_t* file) = 0;
+	static u64			ReadWholeFile(char* buffer, u64 bufferSize, FileHandle_t* file) = 0;
 
 	static bool			WriteLine(FileHandle_t* fileHandle, char* text) = 0;
 	*/

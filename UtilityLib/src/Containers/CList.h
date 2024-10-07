@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
 #include <Core/Logging.h>
 
 // Forward Declarations

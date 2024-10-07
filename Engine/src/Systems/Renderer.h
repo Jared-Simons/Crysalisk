@@ -2,9 +2,11 @@
 // Author: Jared Simons
 // Date Created: 5/7/2024
 // 
-// Purpose: The Rendering Front-end Interface
+// Purpose: The Rendering Front-end interface
 //=============================================================================
 #pragma once
+
+#include "Defines.h"
 
 // Forward Declarations
 class IRendererBackend;
@@ -27,10 +29,10 @@ public:
 	void	Shutdown();
 	bool	Update(struct RenderPacket_t* pRenderData);
 
-	bool	CreateTextureResources(Texture& pTexture, unsigned char* pPixelData);
+	bool	CreateTextureResources(Texture& pTexture, byte* pPixelData);
 	void	DestroyTextureResources(Texture& pTexture);
 
-	bool	CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices, const char* szTextureName, const char* szGeometryName);
+	bool	CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices, const char* szTextureName, const char* szGeometryName);
 	void	DestroyGeometryResources(StaticMesh& pMesh);
 
 private:

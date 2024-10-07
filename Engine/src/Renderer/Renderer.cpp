@@ -49,7 +49,6 @@ void Renderer::Renderer_Shutdown(Renderer* statePtr, bool bOwnsMemory)
 
 bool Renderer::Initialize()
 {
-	// TODO: This currently only supports Vulkan...
 	m_RendererBackend = GetVulkanBackend();
 
 	if (m_RendererBackend != nullptr)
@@ -87,7 +86,7 @@ bool Renderer::Update(RenderPacket_t* pRenderData)
 	return true;
 }
 
-bool Renderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
+bool Renderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
 {
 	if (!pPixelData)
 	{
@@ -103,7 +102,7 @@ void Renderer::DestroyTextureResources(Texture& pTexture)
 	m_RendererBackend->DestroyTextureResources(pTexture);
 }
 
-bool Renderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices, const char* szTextureName, const char* szGeometryName)
+bool Renderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices, const char* szTextureName, const char* szGeometryName)
 {
 	// Acquire necessary textures
 	pMesh.m_pTexture = gpTextureSystem->AcquireTexture(szTextureName);

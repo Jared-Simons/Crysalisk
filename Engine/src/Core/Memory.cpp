@@ -1,8 +1,8 @@
+#include "Defines.h"
 #include "Core/Memory.h"
 
 #include "Core/Logging.h"
-#include "Platform/Platform.h"
-#include "EngineGlobals.h"
+#include "Platform/Platform.h""
 
 #include <Memory/DynamicAllocator.h>
 #include <String_Utils.h>
@@ -26,29 +26,29 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"TEXTURE		"
 };
 
-bool Memory::Initialize(DynamicAllocator* pInternalAllocator, void* pState)
+bool Memory::Initialize(DynamicAllocator* pinternalAllocator, void* pState)
 {
-	if (!pInternalAllocator)
+	if (!pinternalAllocator)
 	{
-		LOG_ERROR("Memory System REQUIRES a valid pointer to pInternalAllocator.");
+		LOG_ERROR("Memory System REQUIRES a valid pointer to pinternalAllocator.");
 		return false;
 	}
-	pState = pInternalAllocator->Allocate(sizeof(Memory));
+	pState = pinternalAllocator->Allocate(sizeof(Memory));
 	s_MemorySystem = reinterpret_cast<Memory*>(pState);
 
 	s_MemorySystem->m_iNumAllocations = 1; // We just made one allocation.
 	s_MemorySystem->m_iNumBytesAllocated = sizeof(Memory);
 
-	for (int index = 0; index < static_cast<int>(eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES); index++)
+	for (int index = 0; index < MAX_MEM_CATEGORIES; index++)
 	{
 		s_MemorySystem->m_iTaggedAllocations[index] = 0;
 	}
 
 	s_MemorySystem->m_iTaggedAllocations[static_cast<int>(eMemAllocCategories::MEM_CATEGORY_ENGINE)] += sizeof(Memory);
 
-	s_MemorySystem->m_pInternalAllocator = pInternalAllocator;
+	s_MemorySystem->m_pinternalAllocator = pinternalAllocator;
 
-	LOG_INFO("Runtime memory system initialized with %d bytes of system memory.", s_MemorySystem->m_pInternalAllocator->GetAllocatorSize());
+	LOG_INFO("Runtime memory system initialized with %d bytes of system memory.", s_MemorySystem->m_pinternalAllocator->GetAllocatorSize());
 	return true;
 }
 
@@ -61,7 +61,7 @@ void Memory::Shutdown(void* pState)
 		pMemorySystem->m_iNumAllocations -= 1;
 		pMemorySystem->m_iNumBytesAllocated -= sizeof(Memory);
 
-		pMemorySystem->m_pInternalAllocator->Free(pState);
+		pMemorySystem->m_pinternalAllocator->Free(pState);
 
 		LOG_INFO("Memory System Shutdown");
 	}
@@ -69,7 +69,7 @@ void Memory::Shutdown(void* pState)
 	s_MemorySystem = nullptr;
 }
 
-void* Memory::Allocate(size_t iNumBytes, eMemAllocCategories eAllocCategory)
+void* Memory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
 {
 	if (eAllocCategory == eMemAllocCategories::MEM_CATEGORY_UNKNOWN)
 	{
@@ -79,13 +79,13 @@ void* Memory::Allocate(size_t iNumBytes, eMemAllocCategories eAllocCategory)
 	// TODO: Memory alignment
 	void* pBlock = nullptr;
 
-	pBlock = s_MemorySystem->m_pInternalAllocator->Allocate(iNumBytes);
+	pBlock = s_MemorySystem->m_pinternalAllocator->Allocate(iNumBytes);
 
 	if (pBlock != nullptr)
 	{
 		s_MemorySystem->m_iNumAllocations++;
 		s_MemorySystem->m_iNumBytesAllocated += iNumBytes;
-		s_MemorySystem->m_iTaggedAllocations[static_cast<size_t>(eAllocCategory)] += iNumBytes;
+		s_MemorySystem->m_iTaggedAllocations[static_cast<u64>(eAllocCategory)] += iNumBytes;
 
 		return pBlock;
 	}
@@ -94,20 +94,20 @@ void* Memory::Allocate(size_t iNumBytes, eMemAllocCategories eAllocCategory)
 	return nullptr;
 }
 
-void Memory::Free(void* pBlock, size_t iNumBytes, eMemAllocCategories eAllocCategory)
+void Memory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory)
 {
 	// TODO: Memory alignment
 
 	s_MemorySystem->m_iNumAllocations--;
 	s_MemorySystem->m_iNumBytesAllocated -= iNumBytes;
-	s_MemorySystem->m_iTaggedAllocations[static_cast<size_t>(eAllocCategory)] -= iNumBytes;
+	s_MemorySystem->m_iTaggedAllocations[static_cast<u64>(eAllocCategory)] -= iNumBytes;
 	
 	// There is nothing wrong with calling free() on a nullptr,
 	// so no need to check.
-	s_MemorySystem->m_pInternalAllocator->Free(pBlock);
+	s_MemorySystem->m_pinternalAllocator->Free(pBlock);
 }
 
-void* Memory::Reallocate(void* pBlock, size_t iNewSize)
+void* Memory::Reallocate(void* pBlock, u64 iNewSize)
 {
 	// TODO: Memory alignment
 	void* pNewBlock = nullptr;
@@ -120,12 +120,11 @@ void* Memory::Reallocate(void* pBlock, size_t iNewSize)
 	if (pNewBlock != nullptr)
 		return pNewBlock;
 
-	// TODO: Handle these failures properly.
 	LOG_ERROR("Memory->Reallocate could not allocate memory, returning nullptr.");
 	return nullptr;
 }
 
-void* Memory::MemCopy(void* pDest, const void* pSource, size_t iSize)
+void* Memory::MemCopy(void* pDest, const void* pSource, u64 iSize)
 {
 	if (pDest && pSource && iSize)
 		return Platform::MemoryCopy(pDest, pSource, iSize);
@@ -134,7 +133,7 @@ void* Memory::MemCopy(void* pDest, const void* pSource, size_t iSize)
 	return nullptr;
 }
 
-void* Memory::MemSet(void* pBlock, int iValue, size_t iSize)
+void* Memory::MemSet(void* pBlock, int iValue, u64 iSize)
 {
 	if (pBlock)
 		return Platform::MemorySet(pBlock, iValue, iSize);
@@ -147,7 +146,7 @@ void Memory::PrintMemoryStats()
 {
 	char memStatsString[10000] = "Memory Stats:\n";
 
-	for (size_t i = 0; i < MAX_MEM_CATEGORIES; i++)
+	for (u64 i = 0; i < MAX_MEM_CATEGORIES; i++)
 	{
 		char categoryString[256]{ 0 };
 
@@ -156,9 +155,9 @@ void Memory::PrintMemoryStats()
 	}
 
 	char totalMemUsageString[256]{ 0 };
-	size_t totalMemoryUsed = s_MemorySystem->m_pInternalAllocator->GetAllocatorSize() - s_MemorySystem->m_pInternalAllocator->GetFreeSpace();
-	float totalMemoryUsedPercentage = (float)totalMemoryUsed / s_MemorySystem->m_pInternalAllocator->GetAllocatorSize();
-	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, s_MemorySystem->m_pInternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
+	u64 totalMemoryUsed = s_MemorySystem->m_pinternalAllocator->GetAllocatorSize() - s_MemorySystem->m_pinternalAllocator->GetFreeSpace();
+	f32 totalMemoryUsedPercentage = static_cast<float>(totalMemoryUsed) / s_MemorySystem->m_pinternalAllocator->GetAllocatorSize();
+	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, s_MemorySystem->m_pinternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
 	StringConcat(memStatsString, totalMemUsageString);
 
 	char totalAllocationString[256]{ 0 };

@@ -6,7 +6,7 @@
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 #include "Resources/ResourceTypes.h"
 
 #include <Containers/CHashmap.h>
@@ -16,7 +16,7 @@ class Renderer;
 
 struct TextureSystemConfiguration
 {
-	size_t maxTextureCount;
+	u64 maxTextureCount;
 };
 
 class TextureSystem
@@ -31,8 +31,10 @@ public:
 
 	Texture*	AcquireTexture(const char* pTexturePath);
 private:
+	TextureSystemConfiguration		m_Configuration;
+
 	CHashmap<const char*, Texture>	m_RegisteredTextures;
-	size_t							m_NumRegisteredTextures;
+	u64								m_NumRegisteredTextures;
 
 	Renderer*						m_RenderSystem;
 };

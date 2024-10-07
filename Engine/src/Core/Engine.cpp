@@ -48,26 +48,26 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	Engine* typedState = reinterpret_cast<Engine*>(pEngineState);
 	s_EnginePtr = typedState;
 
-	typedState->m_engineConfig = engineConfig;
+	s_EnginePtr->m_engineConfig = engineConfig;
 
 	void* engineMemoryBlock = Platform::MemoryAllocate(MEBIBYTES(20));
-	typedState->m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
+	s_EnginePtr->m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
 
 	// Logging Utilities
 	LogSystem::Init(6); // Log all messages
 
 	// Memory System
-	if (!Memory::Initialize(typedState->m_EngineHeap, typedState->m_MemorySystem))
+	if (!Memory::Initialize(s_EnginePtr->m_EngineHeap, s_EnginePtr->m_MemorySystem))
 	{
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
-	ConnectUtilityLib(typedState->m_EngineHeap, "Engine.dll");
+	ConnectUtilityLib(s_EnginePtr->m_EngineHeap, "Engine.dll");
 
 	// Initialize the subsystem memory allocator
-	typedState->m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
-	LOG_INFO("Systems Allocator created with %u B", typedState->m_SystemsAllocator->GetAllocatorSize());
+	s_EnginePtr->m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
+	LOG_INFO("Systems Allocator created with %u B", s_EnginePtr->m_SystemsAllocator->GetAllocatorSize());
 
 	// Event System
 	if (!EventSystem::Initialize())
@@ -89,17 +89,17 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 
 	// Input System
 	/*if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))*/
-	typedState->m_InputSystem = IInputSystem::InputSystem_Initialize(typedState->m_SystemsAllocator, nullptr);
-	if (typedState->m_InputSystem == nullptr)
+	s_EnginePtr->m_InputSystem = IInputSystem::InputSystem_Initialize(s_EnginePtr->m_SystemsAllocator, nullptr);
+	if (s_EnginePtr->m_InputSystem == nullptr)
 	{
 		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
 	// Platform Layer
-	if (!typedState->m_engineConfig.isHeadless)
+	if (!s_EnginePtr->m_engineConfig.isHeadless)
 	{
-		if (!Platform::Initialize(typedState->m_SystemsAllocator, typedState))
+		if (!Platform::Initialize(s_EnginePtr->m_SystemsAllocator, s_EnginePtr))
 		{
 			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
 			return false;
@@ -107,10 +107,10 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	}
 
 	// Renderer
-	if (!typedState->m_engineConfig.isHeadless)
+	if (!s_EnginePtr->m_engineConfig.isHeadless)
 	{
-		typedState->m_RenderSystem = reinterpret_cast<Renderer*>(typedState->m_SystemsAllocator->allocate(sizeof(Renderer)));
-		if (!typedState->m_RenderSystem->Initialize())
+		s_EnginePtr->m_RenderSystem = reinterpret_cast<Renderer*>(s_EnginePtr->m_SystemsAllocator->allocate(sizeof(Renderer)));
+		if (!s_EnginePtr->m_RenderSystem->Initialize())
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 			return false;
@@ -120,10 +120,10 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	// Texture System
 
 	// TODO: Overloaded new operator?
-	gpTextureSystem = (TextureSystem*)typedState->m_SystemsAllocator->allocate(sizeof(TextureSystem));
+	gpTextureSystem = (TextureSystem*)s_EnginePtr->m_SystemsAllocator->allocate(sizeof(TextureSystem));
 
 	TextureSystemConfiguration textureSysConfig = { 1024 };
-	if (!gpTextureSystem->Initialize(&textureSysConfig, typedState->m_RenderSystem))
+	if (!gpTextureSystem->Initialize(&textureSysConfig, s_EnginePtr->m_RenderSystem))
 	{
 		LOG_FATAL("Texture system failed to initialize! Application cannot continue.");
 		return false;
@@ -160,7 +160,7 @@ bool Engine::Engine_Run()
 				Platform::Update();
 
 				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->allocate(sizeof(RenderPacket_t)));
-				frameRenderData->geometries.PushBack(m_TestGeometry);
+				frameRenderData->geometries[0] = m_TestGeometry;
 
 				if (!s_EnginePtr->m_RenderSystem->Update(frameRenderData))
 				{
@@ -281,18 +281,8 @@ void Engine::CreateSceneGeometry()
 	m_TestGeometry = reinterpret_cast<StaticMesh*>(Memory::Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	CVector<Vertex3D> vertices(36);
-	/*vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.0f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.0f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.0f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));*/
 
-	CVector<uint16_t> indices((size_t)0);
-	/*indices.PushBack(0);
-	indices.PushBack(1);
-	indices.PushBack(3);
-	indices.PushBack(1);
-	indices.PushBack(2);
-	indices.PushBack(3);*/
+	CVector<u16> indices((u16)0);
 
 	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
 	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
@@ -341,14 +331,14 @@ void Engine::CreateSceneGeometry()
 
 bool Event_MouseButtonPressed(EventData_t data)
 {
-	unsigned int mouseButtonFlags = *data.u16;
+	u32 mouseButtonFlags = *data.u16;
 	//LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 
 bool Event_MouseButtonReleased(EventData_t data)
 {
-	unsigned int mouseButtonFlags = *data.u16;
+	u32 mouseButtonFlags = *data.u16;
 	//LOG_DEBUG("%s Mouse Button Released", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
@@ -356,7 +346,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 
 static bool Event_WindowResized(EventData_t data)
 {
-	unsigned int width, height;
+	u32 width, height;
 	width = data.u16[0];
 	height = data.u16[1];
 

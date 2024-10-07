@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 #include "CVector.h"
 #include "../String_Utils.h"
 #include "../Math/MathLib.h"

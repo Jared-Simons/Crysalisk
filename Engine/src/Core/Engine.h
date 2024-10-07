@@ -2,11 +2,11 @@
 // Author: Jared Simons
 // Date Created: 4/25/2024
 // 
-// Purpose: Provides the Engine Interface to be used throughout the codebase.
+// Purpose: Provides the Engine interface to be used throughout the codebase.
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 
 // Forward declarations
 // TODO: These should not be here.

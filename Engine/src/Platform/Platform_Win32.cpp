@@ -5,7 +5,7 @@
 // Purpose: The Windows implementation of the platform layer.
 //=============================================================================
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 #ifdef PLAT_WINDOWS
 
 #include "Platform.h"
@@ -189,7 +189,7 @@ namespace Platform {
 		return true;
 	}
 
-	void GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
+	void GetWindowSize(u32* pOutWidth, u32* pOutHeight)
 	{
 		RECT rect;
 		if (GetClientRect(win32PlatformData->hWnd, &rect))
@@ -240,7 +240,7 @@ namespace Platform {
 	#define WHITE			15
 	*/
 
-	void LogMessage(int level, const char* message)
+	void LogMessage(u8 level, const char* message)
 	{
 		HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 		// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).

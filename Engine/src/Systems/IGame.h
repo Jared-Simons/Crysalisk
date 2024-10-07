@@ -2,11 +2,11 @@
 // Author: Jared Simons
 // Date Created: 5/4/2024
 // 
-// Purpose: Provides the Game Interface to be used throughout the codebase.
+// Purpose: Provides the Game interface to be used throughout the codebase.
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 
 class IGame
 {

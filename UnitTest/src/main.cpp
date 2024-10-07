@@ -4,6 +4,8 @@
 // 
 // Purpose: Entry Point for the unit testing module
 //=============================================================================
+#include <Defines.h>
+
 #include <Core/Engine.h>
 #include <Core/Logging.h>
 #include <Core/Memory.h>

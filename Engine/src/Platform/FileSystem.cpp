@@ -2,11 +2,12 @@
 // Author: Jared Simons
 // Date Created: 5/12/2024
 // 
-// Purpose: The Interface for Filesystems.
+// Purpose: The interface for Filesystems.
 //=============================================================================
 #include "FileSystem.h"
 
 #include "Core/Logging.h"
+#include "Core/Memory.h"
 
 #include "String_Utils.h"
 
@@ -43,7 +44,7 @@ bool FileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBina
 		return false;
 	}
 
-	FILE* tempHandle = (FILE*)pOutFileHandle->internalData;
+	FILE* tempHandle = reinterpret_cast<FILE*>(pOutFileHandle->internalData);
 
 	if (fopen_s(&tempHandle, filePath, modeString) != 0)
 	{
@@ -68,7 +69,7 @@ bool FileSystem::CloseFile(FileHandle_t* fileHandle)
 		return false;
 	}
 
-	if (fclose((FILE*)fileHandle->internalData) != 0)
+	if (fclose(reinterpret_cast<FILE*>(fileHandle->internalData)) != 0)
 	{
 		LOG_ERROR("FileSystem->CloseFile() failed to close file '%s'", fileHandle->path);
 		return false;
@@ -86,18 +87,19 @@ size_t FileSystem::FileSize(FileHandle_t* fileHandle)
 		LOG_ERROR("FileSystem->FileSize(fileHandle_t*) Requires a pointer to a valid file handle. Returning 0.");
 		return 0;
 	}
+	FILE* pinternalData = reinterpret_cast<FILE*>(fileHandle->internalData);
 
-	fseek((FILE*)fileHandle->internalData, 0, SEEK_END);
+	fseek(pinternalData, 0, SEEK_END);
 
 	size_t fileSize = ftell((FILE*)fileHandle->internalData);
 
 	// Return the file pointer back to the top of the file... else all further file reads will fail
-	rewind((FILE*)fileHandle->internalData);
+	rewind(pinternalData);
 
 	return fileSize;
 }
 
-bool FileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -106,10 +108,10 @@ bool FileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, 
 	}
 
 	// Zero out the buffer
-	memset(pBuffer, 0, bufferSize);
+	Memory::MemSet(pBuffer, 0, bufferSize);
 
 	// Read the contents of the line into the buffer
-	if (fgets(pBuffer, bufferSize, (FILE*)pFileHandle->internalData) == 0)
+	if (fgets(pBuffer, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData)) == 0)
 	{
 		LOG_ERROR("FileSystem->ReadLine() Failed to read line to buffer");
 		return false;
@@ -127,15 +129,15 @@ bool FileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutByt
 	}
 
 	// Zero out the buffer
-	memset(pBuffer, 0, bufferSize);
+	Memory::MemSet(pBuffer, 0, bufferSize);
 
 	// Read the contents into the buffer
-	*pOutBytesRead = fread(pBuffer, bufferSize, 1, (FILE*)pFileHandle->internalData);
+	*pOutBytesRead = fread(pBuffer, bufferSize, 1, reinterpret_cast<FILE*>(pFileHandle->internalData));
 
 	return true;
 }
 
-bool FileSystem::ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -143,7 +145,7 @@ bool FileSystem::ReadWholeBinaryFile(char* pBuffer, size_t bufferSize, size_t* p
 		return false;
 	}
 
-	*pOutBytesRead = fread_s(pBuffer, bufferSize, 1, bufferSize, (FILE*)pFileHandle->internalData);
+	*pOutBytesRead = fread_s(pBuffer, bufferSize, 1, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData));
 
 	return true;
 }

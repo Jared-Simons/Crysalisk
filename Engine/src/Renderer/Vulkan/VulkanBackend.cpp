@@ -24,13 +24,13 @@ bool Event_FramebufferResized(EventData_t data);
 
 // TEMP: Camera
 Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+f32 deltaTime = 0.0f;
+f32 lastFrame = 0.0f;
 
-void UpdateCameraPosition(float deltaTime)
+void UpdateCameraPosition(f32 deltaTime)
 {
-	float cameraSpeed = static_cast<float>(2.5f * deltaTime);
-	const float cameraRotationSpeedMultiplier = 20.0f;
+	f32 cameraSpeed = static_cast<f32>(2.5f * deltaTime);
+	const f32 cameraRotationSpeedMultiplier = 20.0f;
 
 	if (gpInputSystem->IsKeyPressed(KEY_W))
 		s_Camera.Position = s_Camera.Position + (s_Camera.Front * cameraSpeed);
@@ -150,7 +150,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Buffers
 	VkDeviceSize vertexBufferSize = sizeof(Vertex3D) * 1024;
-	VkDeviceSize indexBufferSize = sizeof(uint16_t) * 1024;
+	VkDeviceSize indexBufferSize = sizeof(u16) * 1024;
 
 	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
 		return false;
@@ -235,14 +235,14 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	// TEMP
 	// Update camera position
 
-	float currentTime = static_cast<float>(m_RendererClock.GetElapsedTime());
+	f32 currentTime = static_cast<f32>(m_RendererClock.GetElapsedTime());
 	deltaTime = currentTime - lastFrame;
 	lastFrame = currentTime;
 
 	UpdateCameraPosition(deltaTime);
 	// END TEMP
 
-	unsigned int imageIndex;
+	u32 imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -290,9 +290,10 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
-		for (int i = 0; i < pRenderData->geometries.size(); i++)
+		for (int i = 0; i < 10; i++)
 		{
-			DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
+			if (pRenderData->geometries[i] && pRenderData->geometries[i]->m_pinternalData)
+				DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
 		}
 
 		m_MainRenderpass.End(this, &commandBuffer);
@@ -388,15 +389,15 @@ bool CVulkanRenderer::CreateVulkanInstance()
 
 bool CVulkanRenderer::QueryInstanceExtensionSupport(CVector<const char*>& requiredExtensions)
 {
-	unsigned int extensionCount = 0;
+	u32 extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	CVector<VkExtensionProperties> instanceExtensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, instanceExtensions.data());
 
-	for (unsigned int i = 0; i < requiredExtensions.size(); i++)
+	for (u32 i = 0; i < requiredExtensions.size(); i++)
 	{
 		bool bFound = false;
-		for (unsigned int j = 0; j < extensionCount; j++)
+		for (u32 j = 0; j < extensionCount; j++)
 		{
 			if (StringCompare(requiredExtensions[i], instanceExtensions[j].extensionName))
 			{
@@ -417,16 +418,16 @@ bool CVulkanRenderer::QueryInstanceExtensionSupport(CVector<const char*>& requir
 
 bool CVulkanRenderer::QueryValidationLayerSupport(CVector<const char*>& requiredValidationLayers)
 {
-	unsigned int layerCount = 0;
+	u32 layerCount = 0;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 	CVector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
 
-	for (unsigned int i = 0; i < requiredValidationLayers.size(); i++)
+	for (u32 i = 0; i < requiredValidationLayers.size(); i++)
 	{
 		bool bFound = false;
-		for (unsigned int j = 0; j < layerCount; j++)
+		for (u32 j = 0; j < layerCount; j++)
 		{
 			const char* currentValidationLayer = requiredValidationLayers[i];
 			if (StringCompare(currentValidationLayer, availableLayers[j].layerName))
@@ -524,7 +525,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	return VK_FALSE;
 }
 
-bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, unsigned char* pPixelData)
+bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
 {
 	VulkanImage pOldTextureData = m_StandardShader.m_TextureImage;
 
@@ -546,9 +547,9 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 	// TODO: Is this the most efficient way of doing this?
 	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
 	
-	if (pTexture.m_InternalData)
+	if (pTexture.m_internalData)
 	{
-		VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_InternalData);
+		VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_internalData);
 
 		if (pTextureData)
 			VulkanImage::DestroyImage(this, pTextureData);
@@ -557,8 +558,8 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices)
 {
-	pMesh.m_pInternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
+	pMesh.m_pinternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
 
 	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();
 	VkDeviceSize indexDataSize = sizeof(indices[0]) * indices.size();
@@ -584,22 +585,22 @@ void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 {
 	// TODO: Implement with freelist
 
-	//gpMemorySystem->MemFree(pMesh.m_pInternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	pMesh.m_pInternalData = nullptr;
+	//gpMemorySystem->MemFree(pMesh.m_pinternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	pMesh.m_pinternalData = nullptr;
 }
 
-void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex)
+void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, u32 imageIndex)
 {
 	// TODO: Material-specific shaders
 	m_StandardShader.Bind(this, &pCommandBuffer.m_Handle, imageIndex);
 
-	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
 
 	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;
 	VkDeviceSize indexOffset = internalData->m_IndexDataOffset;
 
-	size_t numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
-	size_t numIndices = internalData->m_IndexDataSize / sizeof(uint16_t);
+	u64 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
+	u64 numIndices = internalData->m_IndexDataSize / sizeof(u16);
 
 	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
 
@@ -632,7 +633,7 @@ IRendererBackend* GetVulkanBackend()
 
 bool Event_FramebufferResized(EventData_t data)
 {
-	unsigned int width, height;
+	u32 width, height;
 	width = data.u16[0];
 	height = data.u16[1];
 

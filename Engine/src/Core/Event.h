@@ -2,17 +2,15 @@
 // Author: Jared Simons
 // Date Created: 5/6/2024
 // 
-// Purpose: The Interface for Event Systems.
+// Purpose: The interface for Event Systems.
 //=============================================================================
 #pragma once
 
+#include "Defines.h"
 #include <Memory/LinearAllocator.h>
 
 // Forward Declarations
 class LinearAllocator;
-
-const int MAX_EVENTS_PER_CATEGORY = 32;
-#define NUM_EVENT_CATEGORIES static_cast<int>(eEventCategory::MAX_EVENTS)
 
 enum class eEventCategory
 {
@@ -26,28 +24,30 @@ enum class eEventCategory
 	INPUT_MOUSE_BPRESSED,
 	INPUT_MOUSE_BRELEASED,
 	INPUT_MOUSE_MOVED,
-	
+
 	MAX_EVENTS
 };
 
+const int MAX_EVENTS_PER_CATEGORY = 32;
+const int NUM_EVENT_CATEGORIES = static_cast<int>(eEventCategory::MAX_EVENTS);
 
 union EventData_t
 {
-	unsigned long long	u64[2];
-	signed	 long long	i64[2];
-	double				f64[2];
+	u64		u64[2];
+	i64		i64[2];
+	f64		f64[2];
 
-	unsigned long		u32[4];
-	signed	 long		i32[4];
-	float				f32[4];
+	u32		u32[4];
+	int		i32[4];
+	f32		f32[4];
 
-	unsigned short		u16[8];
-	signed   short		i16[8];
+	u16		u16[8];
+	i8		i16[8];
 
-	unsigned char		u8[16];
-	signed   char		i8[16];
+	u8		u8[16];
+	i8		i8[16];
 
-	char				c[16];
+	char	c[16];
 };
 
 typedef bool (*Event_Callback)(EventData_t data);

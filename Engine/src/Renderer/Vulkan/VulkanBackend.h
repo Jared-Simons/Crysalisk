@@ -6,8 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include "Defines.h"
 #include "Renderer/IRendererBackend.h"
-#include "EngineGlobals.h"
 
 #include <Clock.h>
 #include <Containers/CVector.h>
@@ -33,15 +33,15 @@ class	VulkanImage;
 class	VulkanShader;
 class	CVulkanRenderer;
 
-// Utility Macro for checking success with VkResult
+// Utility macro for checking success with VkResult
 #define VK_CHECK(expr) expr == VK_SUCCESS
 
 // Maximum frames that can be worked with at once
-const char MAX_FRAMES_IN_FLIGHT{ 3 };
+const u8 MAX_FRAMES_IN_FLIGHT{ 3 };
 
 // TODO: These should be temporary
-static unsigned int g_NewWidth{ 0 };
-static unsigned int g_NewHeight{ 0 };
+static u32 g_NewWidth{ 0 };
+static u32 g_NewHeight{ 0 };
 static bool g_FramebufferResized{ false };
 
 //=================================
@@ -51,10 +51,10 @@ static bool g_FramebufferResized{ false };
 //=================================
 struct DeviceQueueFamilyInfo_t
 {
-	unsigned char GraphicsQueueIndex{ INVALID_ID_U8 };
-	unsigned char ComputeQueueIndex{ INVALID_ID_U8 };
-	unsigned char TransferQueueIndex{ INVALID_ID_U8 };
-	unsigned char PresentQueueIndex{ INVALID_ID_U8 };
+	u8 GraphicsQueueIndex{ INVALID_ID_U8 };
+	u8 ComputeQueueIndex{ INVALID_ID_U8 };
+	u8 TransferQueueIndex{ INVALID_ID_U8 };
+	u8 PresentQueueIndex{ INVALID_ID_U8 };
 
 	bool IsComplete()
 	{
@@ -69,16 +69,16 @@ struct DeviceQueueFamilyInfo_t
 		}
 	}
 
-	bool IsConceptOccupied(unsigned char* queueIndex) { return *queueIndex != INVALID_ID_U8; }
-	bool IsIndexOccupied(unsigned char index) const
+	bool IsConceptOccupied(u8* queueIndex) { return *queueIndex != INVALID_ID_U8; }
+	bool IsIndexOccupied(u8 index) const
 	{
 		return (GraphicsQueueIndex == index) || (ComputeQueueIndex == index) || 
 			(TransferQueueIndex == index) || (PresentQueueIndex == index);
 	}
 
-	size_t GetNumberOfValidQueues()
+	u64 GetNumberOfValidQueues()
 	{
-		size_t numQueues{ 0 };
+		u64 numQueues{ 0 };
 
 		if (IsConceptOccupied(&GraphicsQueueIndex))
 			numQueues++;
@@ -96,13 +96,18 @@ struct DeviceQueueFamilyInfo_t
 	}
 };
 
+//=================================
+// 
+// Vulkan Device
+// 
+//=================================
 class VulkanDevice
 {
 public:
 	static bool CreateDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pOutDevice);
 	static void DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevice* pDevice);
 
-	unsigned int	FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties) const;
+	u32			FindMemoryType(u32 typeFilter, VkMemoryPropertyFlags& properties) const;
 	
 	void		QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingContext, SwapchainSupportDetails* pOutDetails) const;
 
@@ -148,8 +153,8 @@ public:
 	static bool CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain);
 	static void DestroySwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain);
 
-	bool		RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight);
-	bool		Present(CVulkanRenderer* pRenderingContext, unsigned int imageIndex);
+	bool		RecreateSwapchain(CVulkanRenderer* pRenderingContext, u32 newWidth, u32 newHeight);
+	bool		Present(CVulkanRenderer* pRenderingContext, u32 imageIndex);
 
 	bool		GetSwapchainImages(CVulkanRenderer* pRenderingContext);
 	bool		CreateImageViews(CVulkanRenderer* pRenderingContext);
@@ -177,7 +182,7 @@ public:
 	static bool		CreateRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pOutRenderpass);
 	static void		DestroyRenderpass(CVulkanRenderer* pRenderingContext, VulkanRenderpass* pRenderpass);
 
-	bool			Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, unsigned int imageIndex);
+	bool			Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, u32 imageIndex);
 	void			End(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer);
 
 	VkRenderPass m_Handle{ VK_NULL_HANDLE };
@@ -244,7 +249,7 @@ public:
 class VulkanFramebuffer
 {
 public:
-	static bool		CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, unsigned int framebufferIndex);
+	static bool		CreateFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pOutFramebuffer, u32 framebufferIndex);
 	static void		DestroyFramebuffer(CVulkanRenderer* pRenderingContext, VulkanFramebuffer* pFramebuffer);
 
 public:
@@ -297,8 +302,8 @@ public:
 	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
 
 	// TODO: Handle offsets and other data here
-	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data, size_t offset);
-	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, unsigned int width, unsigned int height, VulkanImage* pImage);
+	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset);
+	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, u32 width, u32 height, VulkanImage* pImage);
 
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
@@ -365,8 +370,8 @@ public:
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const;
-	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime);
+	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, u32 imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, u32 imageIndex, struct Camera s_Camera, f32 deltaTime);
 	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
@@ -403,12 +408,12 @@ struct Camera
 	Vector3D Right;
 	Vector3D WorldUp;
 
-	float Yaw;
-	float Pitch;
+	f32 Yaw;
+	f32 Pitch;
 
-	float MovementSpeed;
+	f32 MovementSpeed;
 
-	Camera(Vector3D inPosition, Vector3D inUp, float inYaw, float inPitch)
+	Camera(Vector3D inPosition, Vector3D inUp, f32 inYaw, f32 inPitch)
 		: Front(Vector3D(0.0f, 0.0f, -1.0f))
 		, MovementSpeed(1.0f)
 	{
@@ -424,7 +429,7 @@ struct Camera
 	void UpdateCameraVectors()
 	{
 		Vector3D front;
-		front.x = static_cast<float>(M_COS(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch)));
+		front.x = static_cast<f32>(M_COS(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch)));
 		front.y = M_SIN(M_DEG2RAD(Pitch));
 		front.z = M_SIN(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch));
 		Front = front.Normalize();
@@ -445,11 +450,11 @@ struct Camera
 //=================================
 struct VulkanGeometryData_t
 {
-	size_t m_VertexDataOffset{ 0 };
-	size_t m_VertexDataSize{ 0 };
+	u64 m_VertexDataOffset{ 0 };
+	u64 m_VertexDataSize{ 0 };
 
-	size_t m_IndexDataOffset{ 0 };
-	size_t m_IndexDataSize{ 0 };
+	u64 m_IndexDataOffset{ 0 };
+	u64 m_IndexDataSize{ 0 };
 };
 
 
@@ -475,12 +480,12 @@ private:
 	bool		CreateDebugMessenger();
 	void		DestroyDebugMessenger();
 
-	bool		CreateTextureResources(Texture& pTexture, unsigned char* pPixelData) override;
+	bool		CreateTextureResources(Texture& pTexture, byte* pPixelData) override;
 	void		DestroyTextureResources(Texture& pTexture) override;
 
-	bool		CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices) override;
+	bool		CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices) override;
 	void		DestroyGeometryResources(StaticMesh& pMesh) override;
-	void		DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, uint32_t imageIndex);
+	void		DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, u32 imageIndex);
 
 public:
 	// Instance
@@ -534,10 +539,10 @@ public:
 #endif
 	}
 
-	unsigned int m_CurrentFrame{ 0 };
+	u32 m_CurrentFrame{ 0 };
 
-	unsigned int m_FramebufferWidth{ 0 };
-	unsigned int m_FramebufferHeight{ 0 };
+	u32 m_FramebufferWidth{ 0 };
+	u32 m_FramebufferHeight{ 0 };
 
 	Clock m_RendererClock;
 };

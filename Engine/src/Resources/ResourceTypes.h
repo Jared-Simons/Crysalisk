@@ -6,10 +6,7 @@
 //=============================================================================
 #pragma once
 
-#include <Containers/CVector.h>
-
-// Forward declarations
-template <typename T> class CVector;
+#include "Defines.h"
 
 class Texture
 {
@@ -19,7 +16,7 @@ public:
 	int m_ChannelCount;
 	const char* m_TextureName;
 
-	void* m_InternalData;
+	void* m_internalData;
 };
 
 class StaticMesh
@@ -28,10 +25,10 @@ public:
 	Texture* m_pTexture;
 	const char* m_szGeometryName;
 
-	void* m_pInternalData;
+	void* m_pinternalData;
 };
 
 struct RenderPacket_t
 {
-	CVector<StaticMesh*> geometries;
+	StaticMesh* geometries[10];
 };

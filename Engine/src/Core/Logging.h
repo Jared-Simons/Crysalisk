@@ -6,7 +6,7 @@
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 #include "Platform/Platform.h"
 
 enum class eLogLevel

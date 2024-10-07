@@ -7,6 +7,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 #include <Core/Logging.h>
 #include <Core/Memory.h>
 
@@ -64,23 +66,12 @@ public:
 
 	void free(bool allocateNewMemory = true)
 	{
+		// Just zero out our memory.
 		if (m_pData)
 		{
-			Memory::Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			Memory::MemSet(m_pData, 0, m_AllocatorSize);
 		}
-
 		m_BytesAllocated = 0;
-
-		if (allocateNewMemory)
-		{
-			Memory::Allocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
-			m_pCurrentAlloc = m_pData;
-		}
-		else
-		{
-			m_pData = nullptr;
-			m_pCurrentAlloc = nullptr;
-		}
 	}
 
 	size_t GetAllocatorSize() const { return m_AllocatorSize; }

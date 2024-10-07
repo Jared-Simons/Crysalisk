@@ -2,7 +2,7 @@
 // Author: Jared Simons
 // Date Created: 5/8/2024
 // 
-// Purpose: Interface for Vulkan Devices
+// Purpose: interface for Vulkan Devices
 //=============================================================================
 #include "VulkanBackend.h"
 
@@ -43,7 +43,7 @@ void VulkanDevice::DestroyDevice(CVulkanRenderer* pRenderingContext, VulkanDevic
 
 bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 {
-	unsigned int deviceCount{ 0 };
+	u32 deviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, nullptr);
 	VkPhysicalDevice physicalDeviceCandidates[32];
 	VkResult result = vkEnumeratePhysicalDevices(pRenderingContext->m_Instance, &deviceCount, physicalDeviceCandidates);
@@ -51,7 +51,7 @@ bool VulkanDevice::SelectPhysicalDevice(CVulkanRenderer* pRenderingContext)
 	VkPhysicalDevice* pDevice = nullptr;
 
 	// Select the first device that is a discrete GPU
-	for (unsigned int i = 0; i < deviceCount; i++)
+	for (u32 i = 0; i < deviceCount; i++)
 	{
 		VkPhysicalDevice* currDevice = &physicalDeviceCandidates[i];
 		VkPhysicalDeviceProperties properties;
@@ -97,12 +97,12 @@ bool VulkanDevice::QueryDeviceQueueFamilyProperties(CVulkanRenderer* pRenderingC
 		return false;
 	}
 
-	unsigned int queueFamilyPropertyCount{ 0 };
+	u32 queueFamilyPropertyCount{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, nullptr);
 	VkQueueFamilyProperties queueFamilyProperties[32];
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyPropertyCount, queueFamilyProperties);
 
-	for (unsigned int i = 0; i < queueFamilyPropertyCount; i++)
+	for (u32 i = 0; i < queueFamilyPropertyCount; i++)
 	{
 		// Look for a graphics queue.
 		if ((queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
@@ -146,8 +146,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 {
 	// Check for required device extensions.
 	// Currently we are only looking for the swapchain extension.
-
-	unsigned int deviceExtensionCount{ 0 };
+	u32 deviceExtensionCount{ 0 };
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, nullptr);
 	CVector<VkExtensionProperties> availableDeviceExtensions(deviceExtensionCount);
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &deviceExtensionCount, availableDeviceExtensions.data());
@@ -155,9 +154,9 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 	CVector<const char*> requiredExtensions = *m_DeviceExtensions;
 
 	int extensionsToQuery = static_cast<int>(requiredExtensions.size());
-	for (int i = 0; i < requiredExtensions.size(); i++)
+	for (u32 i = 0; i < requiredExtensions.size(); i++)
 	{
-		for (unsigned int j = 0; j < deviceExtensionCount; j++)
+		for (u32 j = 0; j < deviceExtensionCount; j++)
 		{
 			if (StringCompare(availableDeviceExtensions[j].extensionName, requiredExtensions[i]) == true)
 			{
@@ -184,7 +183,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 {
-	const float queuePriority{ 1.0f };
+	const f32 queuePriority{ 1.0f };
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
 	CSet<int> uniqueQueueFamilies{ m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex };
@@ -227,24 +226,24 @@ void VulkanDevice::QuerySwapchainSupportDetails(CVulkanRenderer* pRenderingConte
 {
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &pOutDetails->surfaceCapabilities);
 
-	unsigned int numFormats{ 0 };
+	u32 numFormats{ 0 };
 	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, nullptr);
 	pOutDetails->formats.Resize(numFormats);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numFormats, pOutDetails->formats.data());
 
-	unsigned int numPresentModes{ 0 };
+	u32 numPresentModes{ 0 };
 	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, nullptr);
 	pOutDetails->presentModes.Resize(numPresentModes);
 	vkGetPhysicalDeviceSurfacePresentModesKHR(m_PhysicalDevice, pRenderingContext->m_Surface, &numPresentModes, pOutDetails->presentModes.data());
 
 }
 
-unsigned int VulkanDevice::FindMemoryType(unsigned int typeFilter, VkMemoryPropertyFlags& properties) const
+u32 VulkanDevice::FindMemoryType(u32 typeFilter, VkMemoryPropertyFlags& properties) const
 {
 	VkPhysicalDeviceMemoryProperties deviceMemProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_PhysicalDevice, &deviceMemProperties);
 
-	for (unsigned int i = 0; i < deviceMemProperties.memoryTypeCount; i++)
+	for (u32 i = 0; i < deviceMemProperties.memoryTypeCount; i++)
 	{
 		if ((typeFilter & (1 << i)) && (deviceMemProperties.memoryTypes[i].propertyFlags & properties) == properties)
 		{

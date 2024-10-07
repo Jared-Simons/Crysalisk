@@ -120,16 +120,16 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerIn
 bool EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
 {
 	int intEventCategory = static_cast<int>(eventCategory);
-	Event* curEvent = m_RegisteredEvents[intEventCategory];
+	Event* currEvent = m_RegisteredEvents[intEventCategory];
 
 	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
 	{
 		// TODO: Implement some kind of sorting system, so that we don't have to loop through the ENTIRE array to fire messages.
 		// Perhaps we should periodically move events back as far as possible in the array so that all valid events are contiguous,
 		// therefore, once an invalid eventid is encountered (-1), we can break out of the loop.
-		if (curEvent[i].m_EventID != -1)
+		if (currEvent[i].m_EventID != -1)
 		{
-			curEvent[i].m_PFNEventCallback(data);
+			currEvent[i].m_PFNEventCallback(data);
 		}
 	}
 

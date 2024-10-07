@@ -6,7 +6,7 @@
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 
 // Forward Declarations
 class LinearAllocator;
@@ -20,11 +20,11 @@ namespace Platform {
 
 	bool	ProcessMessages();
 
-	void	LogMessage(int level, const char* message);
+	void	LogMessage(u8 level, const char* message);
 
-	void GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight);
+	void	GetWindowSize(u32* pOutWidth, u32* pOutHeight);
 
-	double	GetAbsoluteTime();
+	f64		GetAbsoluteTime();
 
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
@@ -32,9 +32,9 @@ namespace Platform {
 	// Do NOT call these directly, instead call through the memory system
 	// TODO: Setup memory allocation hooks for external libs.
 	//-----------------------------------------------------------------------------
-	void* MemoryAllocate(size_t size);
+	void* MemoryAllocate(u64 size);
 	void	MemoryFree(void* memory);
-	void* MemoryReallocate(void* memory, size_t newSize);
-	void* MemoryCopy(void* dest, const void* source, size_t size);
-	void* MemorySet(void* memory, int value, size_t size);
+	void* MemoryReallocate(void* memory, u64 newSize);
+	void* MemoryCopy(void* dest, const void* source, u64 size);
+	void* MemorySet(void* memory, int value, u64 size);
 }

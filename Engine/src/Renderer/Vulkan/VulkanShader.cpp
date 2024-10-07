@@ -27,8 +27,8 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	// This will need to be reworked
 	{
 		Texture dummyTexture;
-		unsigned char* tempTexturePixels[16 * 16 * 4];
-		memset(tempTexturePixels, 255, 16 * 16 * 4);
+		byte* tempTexturePixels[16 * 16 * 4];
+		Memory::MemSet(tempTexturePixels, 255, 16 * 16 * 4);
 		dummyTexture.m_Width = dummyTexture.m_Height = 16;
 		dummyTexture.m_ChannelCount = 4;
 		if (!pOutShader->AcquireInstanceResources(pRenderingContext, dummyTexture, tempTexturePixels))
@@ -38,13 +38,6 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		}
 
 	}
-
-	// TODO: This will need to handled elsewhere once we have multiple textures/meshes.
-	/*if (!pOutShader->AcquireInstanceResources(pRenderingContext))
-	{
-		LOG_ERROR("Failed to acquire instance resources for Vulkan Shader.");
-		return false;
-	}*/
 
 	// Create shader modules
 
@@ -56,10 +49,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 
-	size_t vertShaderFileSize = FileSystem::FileSize(&vertShaderFile);
-	char* vertShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	u64 vertShaderFileSize = FileSystem::FileSize(&vertShaderFile);
+	byte* vertShaderBytecode = reinterpret_cast<byte*>(Memory::Allocate(sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 	
-	size_t vertShaderCodeSize;
+	u64 vertShaderCodeSize;
 	if (!FileSystem::ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderFile))
 	{
 		LOG_ERROR("Failed to read shader file: '%s'", vertShaderFile.path);
@@ -68,7 +61,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 
 	VkShaderModuleCreateInfo vertShaderCreateInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	vertShaderCreateInfo.codeSize = vertShaderCodeSize;
-	vertShaderCreateInfo.pCode = (unsigned int*)vertShaderBytecode;
+	vertShaderCreateInfo.pCode = reinterpret_cast<u32*>(vertShaderBytecode);
 
 	if (!VK_CHECK(vkCreateShaderModule(pRenderingContext->m_Device.m_LogicalDevice, &vertShaderCreateInfo, pRenderingContext->m_Allocator, &pOutShader->m_VertModule)))
 	{
@@ -84,10 +77,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 		return false;
 	}
 
-	size_t fragShaderFileSize = FileSystem::FileSize(&fragShaderFile);
-	char* fragShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	u64 fragShaderFileSize = FileSystem::FileSize(&fragShaderFile);
+	byte* fragShaderBytecode = reinterpret_cast<byte*>(Memory::Allocate(sizeof(byte) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
-	size_t fragShaderCodeSize;
+	u64 fragShaderCodeSize;
 	if (!FileSystem::ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderFile))
 	{
 		LOG_ERROR("Failed to read shader file: '%s'", fragShaderFile.path);
@@ -96,7 +89,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 
 	VkShaderModuleCreateInfo fragShaderCreateInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	fragShaderCreateInfo.codeSize = fragShaderCodeSize;
-	fragShaderCreateInfo.pCode = (unsigned int*)fragShaderBytecode;
+	fragShaderCreateInfo.pCode = reinterpret_cast<u32*>(fragShaderBytecode);
 
 	if (!VK_CHECK(vkCreateShaderModule(pRenderingContext->m_Device.m_LogicalDevice, &fragShaderCreateInfo, pRenderingContext->m_Allocator, &pOutShader->m_FragModule)))
 	{
@@ -105,10 +98,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	// Release unnecessary resources
-	Memory::Free(fragShaderBytecode, sizeof(char) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	Memory::Free(fragShaderBytecode, sizeof(byte) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	FileSystem::CloseFile(&fragShaderFile);
 
-	Memory::Free(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	Memory::Free(vertShaderBytecode, sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	FileSystem::CloseFile(&vertShaderFile);
 
 	if (!pOutShader->CreateDescriptorResources(pRenderingContext))
@@ -187,17 +180,17 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	attributeDescriptions[0].binding = 0;
 	attributeDescriptions[0].location = 0;
 	attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[0].offset = 0;
+	attributeDescriptions[0].offset = offsetof(Vertex3D, Pos);
 
 	attributeDescriptions[1].binding = 0;
 	attributeDescriptions[1].location = 1;
 	attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	attributeDescriptions[1].offset = sizeof(Vector3D);
+	attributeDescriptions[1].offset = offsetof(Vertex3D, Color);
 	
 	attributeDescriptions[2].binding = 0;
 	attributeDescriptions[2].location = 2;
 	attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-	attributeDescriptions[2].offset = sizeof(Vector3D) + sizeof(Vector3D);
+	attributeDescriptions[2].offset = offsetof(Vertex3D, TexCoord);
 
 	vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 3;
 	vertexInputStateCreateInfo.pVertexAttributeDescriptions = attributeDescriptions;
@@ -210,8 +203,8 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	VkViewport viewport{};
 	viewport.x = 0;
 	viewport.y = 0;
-	viewport.width = (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.width;
-	viewport.height = (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.height;
+	viewport.width = static_cast<f32>(pRenderingContext->m_Swapchain.m_SwapchainExtent.width);
+	viewport.height = static_cast<f32>(pRenderingContext->m_Swapchain.m_SwapchainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -306,7 +299,7 @@ bool VulkanShader::CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShad
 	return true;
 }
 
-bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, uint32_t imageIndex) const
+bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, u32 imageIndex) const
 {
 	vkCmdBindDescriptorSets(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
 	vkCmdBindPipeline(*pCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline);
@@ -314,12 +307,12 @@ bool VulkanShader::Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCo
 	return true;
 }
 
-void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t imageIndex, struct Camera s_Camera, float deltaTime)
+void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, u32 imageIndex, struct Camera s_Camera, f32 deltaTime)
 {
-	static double startTime = Platform::GetAbsoluteTime();
-	double currentTime = Platform::GetAbsoluteTime();
+	static f64 startTime = Platform::GetAbsoluteTime();
+	f64 currentTime = Platform::GetAbsoluteTime();
 
-	double time = currentTime - startTime;
+	f64 time = currentTime - startTime;
 
 	UniformBufferObject ubo{};
 	ubo.model = Matrix4x4(1.0f);
@@ -328,7 +321,7 @@ void VulkanShader::UpdateUniforms(CVulkanRenderer* pRenderingContext, uint32_t i
 	ubo.view = s_Camera.GetViewMatrix();
 	//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
 
-	ubo.projection = Matrix4x4::Perspective(M_DEG2RAD(45.0f), pRenderingContext->m_Swapchain.m_SwapchainExtent.width / (float)pRenderingContext->m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
+	ubo.projection = Matrix4x4::Perspective(M_DEG2RAD(45.0f), pRenderingContext->m_Swapchain.m_SwapchainExtent.width / (f32)pRenderingContext->m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
 	ubo.projection.data[1][1] *= -1; // Flip the Y coordinate
 
 	memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
@@ -355,19 +348,19 @@ bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, 
 
 	void* data;
 	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
-	memcpy(data, pPixelData, (size_t)imageSize);
+		Memory::MemCopy(data, pPixelData, static_cast<size_t>(imageSize));
 	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory);
 
 	// Create Vulkan Resources for image
 	VulkanImage::CreateImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, 4, pPixelData, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
 
 	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
+		imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
 	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	VulkanBuffer::DestroyBuffer(pRenderingContext, &imageBuffer);
 
-	pTexture.m_InternalData = &m_TextureImage;
+	pTexture.m_internalData = &m_TextureImage;
 
 	return true;
 }
@@ -381,19 +374,19 @@ bool VulkanShader::AcquireTextureResources(CVulkanRenderer* pRenderingContext, T
 
 	void* data;
 	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
-	memcpy(data, pPixelData, (size_t)imageSize);
+		Memory::MemCopy(data, pPixelData, static_cast<size_t>(imageSize));
 	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, imageBuffer.m_Memory);
 
 	// Create Vulkan Resources for image
 	VulkanImage::CreateImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, 4, pPixelData, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
 
 	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
+		imageBuffer.CopyBufferToImage(pRenderingContext, pTexture.m_Width, pTexture.m_Height, &m_TextureImage);
 	m_TextureImage.TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	VulkanBuffer::DestroyBuffer(pRenderingContext, &imageBuffer);
 
-	pTexture.m_InternalData = &m_TextureImage;
+	pTexture.m_internalData = &m_TextureImage;
 
 	return true;
 }

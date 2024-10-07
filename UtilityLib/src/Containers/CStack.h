@@ -6,8 +6,9 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
 #include <Core/Logging.h>
-#include <Systems/IMemory.h>
+#include <Core/Memory.h>
 
 template<typename T>
 class CStack

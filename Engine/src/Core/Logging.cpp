@@ -55,7 +55,7 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 
 	// Prepend channel string to the message
 	char outMessage2[4092];
-	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
+	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[static_cast<int>(level)], outMessage);
 
 	Platform::LogMessage(static_cast<int>(level), outMessage2);
 }

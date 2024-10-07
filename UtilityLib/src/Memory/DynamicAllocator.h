@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 

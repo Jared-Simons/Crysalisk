@@ -26,6 +26,13 @@ bool TextureSystem::Initialize(void* pSystemConfig, Renderer* pRenderSystem)
 
 	TextureSystemConfiguration* typedConfig = static_cast<TextureSystemConfiguration*>(pSystemConfig);
 
+	if (typedConfig->maxTextureCount < 1)
+	{
+		LOG_ERROR("Texture System requires that config.maxTextureCount be > 0.");
+		return false;
+	}
+	m_Configuration = *typedConfig;
+
 	m_RegisteredTextures = CHashmap<const char*, Texture>(typedConfig->maxTextureCount);
 
 	LOG_INFO("Texture system initialized (MAX TEXTURES: %d)", typedConfig->maxTextureCount);
@@ -51,7 +58,7 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 
 	Texture* newTexture = &m_RegisteredTextures[pTexturePath];
 
-	unsigned char* pixelData = stbi_load(pTexturePath, &newTexture->m_Width, &newTexture->m_Height, &newTexture->m_ChannelCount, 4); // NOTE: For now requiring 4 channels
+	byte* pixelData = stbi_load(pTexturePath, &newTexture->m_Width, &newTexture->m_Height, &newTexture->m_ChannelCount, 4); // NOTE: For now requiring 4 channels
 
 	if (!pixelData)
 	{
@@ -81,7 +88,7 @@ void TextureSystem::UnloadTexture(Texture& pTexture)
 
 	pTexture.m_Width = pTexture.m_Height = pTexture.m_ChannelCount = 0;
 	pTexture.m_TextureName = nullptr;
-	pTexture.m_InternalData = nullptr;
+	pTexture.m_internalData = nullptr;
 
 	m_NumRegisteredTextures--;
 }
@@ -95,7 +102,7 @@ Texture* TextureSystem::AcquireTexture(const char* pTexturePath)
 	}
 
 	Texture* pTexture = &m_RegisteredTextures[pTexturePath];
-	if (!pTexture->m_InternalData)
+	if (!pTexture->m_internalData)
 	{
 		// Load the texture if it hasn't yet been loaded
 		LoadTexture(pTexturePath);

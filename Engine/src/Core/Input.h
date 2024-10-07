@@ -2,10 +2,11 @@
 // Author: Jared Simons
 // Date Created: 5/6/2024
 // 
-// Purpose: Provides the Input System Interface to be used throughout the codebase.
+// Purpose: Provides the Input System interface to be used throughout the codebase.
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
 #include <Memory/LinearAllocator.h>
 
 // Forward Declarations
@@ -127,8 +128,8 @@ struct KeyState_T
 
 struct MouseState_t
 {
-	float m_XPos;
-	float m_YPos;
+	f32 m_XPos;
+	f32 m_YPos;
 	bool m_MouseButtons[MAX_MOUSE_BUTTONS / 2];	// Divide by 2 to account for button up/down	TODO: Maybe pack these into an 8 bit integer? CURRENT IMPLEMENTATION WILL EVENTUALLY CAUSE AN ERROR!!!
 };
 
@@ -143,7 +144,7 @@ public:
 	virtual void	Update() = 0;
 
 	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) = 0;
-	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) = 0;
+	virtual void	ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) = 0;
 
 	virtual bool	IsKeyPressed(const int key) const = 0;
 };

@@ -41,7 +41,7 @@ public:
 	void		Update() override;
 
 	void		ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) override;
-	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
+	void		ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) override;
 
 	bool		IsKeyPressed(const int key) const override;
 
@@ -109,7 +109,7 @@ bool CInputSystem::Initialize(IEventSystem* pEventSystem)
 	// TODO: Logging for event system.
 
 	// setup m_KeysState table
-	for (char i = 0; i < MAX_INPUT_KEYS; i++)
+	for (u8 i = 0; i < MAX_INPUT_KEYS; i++)
 	{
 		m_KeysState[i].m_Char = i + 65;	// +65 so that array 0 lines up with 'A'
 		m_KeysState[i].m_Pressed = false;
@@ -121,7 +121,7 @@ bool CInputSystem::Initialize(IEventSystem* pEventSystem)
 	// setup m_MouseState table
 	m_MouseState.m_XPos = 0.0f;
 	m_MouseState.m_YPos = 0.0f;
-	for (int i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
+	for (u8 i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
 	{
 		m_MouseState.m_MouseButtons[i] = false;
 	}
@@ -173,7 +173,7 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, En
 	m_KeyStateDirty = true;
 }
 
-void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed)
+void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed)
 {
 	if (mouseXPos != 0 && mouseYPos != 0)
 	{

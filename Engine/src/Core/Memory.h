@@ -6,13 +6,13 @@
 //=============================================================================
 #pragma once
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 
 // Foward Declarations
 class DynamicAllocator;
 
 // NOTE: Any block of memory allocated directly from the platform layer (thus bypassing the core memory system), will be tagged with this magic number
-const unsigned int magicMemPlatformNumber = 0xbadea; 
+const u32 magicMemPlatformNumber = 0xbadea; 
 
 enum class eMemAllocCategories
 {
@@ -38,20 +38,20 @@ const int MAX_MEM_CATEGORIES = static_cast<int>(eMemAllocCategories::MEM_CATEGOR
 class Memory
 {
 public:
-	static bool		Initialize(DynamicAllocator* pInternalAllocator, void* pState);
+	static bool		Initialize(DynamicAllocator* pinternalAllocator, void* pState);
 	static void		Shutdown(void* pState);
 
-	static void*	Allocate(size_t iNumBytes, eMemAllocCategories eAllocCategory);
-	static void		Free(void* pBlock, size_t iNumBytes, eMemAllocCategories eAllocCategory);
-	static void*	Reallocate(void* pBlock, size_t iNewSize);
-	static void*	MemCopy(void* pDest, const void* pSource, size_t iSize);
-	static void*	MemSet(void* pBlock, int iValue, size_t iSize);
+	static void*	Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory);
+	static void		Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory);
+	static void*	Reallocate(void* pBlock, u64 iNewSize);
+	static void*	MemCopy(void* pDest, const void* pSource, u64 iSize);
+	static void*	MemSet(void* pBlock, int iValue, u64 iSize);
 
-	static void			PrintMemoryStats();
+	static void		PrintMemoryStats();
 
 private:
-	unsigned long long	m_iNumAllocations;
-	size_t				m_iNumBytesAllocated;
-	size_t				m_iTaggedAllocations[MAX_MEM_CATEGORIES];
-	DynamicAllocator*	m_pInternalAllocator;
+	u64					m_iNumAllocations;
+	u64					m_iNumBytesAllocated;
+	u64					m_iTaggedAllocations[MAX_MEM_CATEGORIES];
+	DynamicAllocator*	m_pinternalAllocator;
 };

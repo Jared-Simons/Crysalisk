@@ -2,7 +2,7 @@
 // Author: Jared Simons
 // Date Created: 6/25/2024
 // 
-// Purpose: Interface/Utitlies for Vulkan Command Buffers
+// Purpose: interface/Utitlies for Vulkan Command Buffers
 //=============================================================================
 
 #include "VulkanBackend.h"

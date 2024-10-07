@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 #include "MathLib.h"
 #include "VectorTypes.h"
 

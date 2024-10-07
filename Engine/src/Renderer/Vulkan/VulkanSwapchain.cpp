@@ -2,14 +2,14 @@
 // Author: Jared Simons
 // Date Created: 5/8/2024
 // 
-// Purpose: Interface for a Vulkan Swapchain
+// Purpose: interface for a Vulkan Swapchain
 //=============================================================================
 #include "VulkanBackend.h"
 
 #include "Core/Logging.h"
 #include "Core/Assertions.h"
 #include "Platform/Platform.h"
-#include "EngineGlobals.h"
+#include "Defines.h"
 
 bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pOutSwapchain)
 {
@@ -133,7 +133,7 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsi
 	return true;
 }
 
-bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, unsigned int imageIndex)
+bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, u32 imageIndex)
 {
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.waitSemaphoreCount = 1;
