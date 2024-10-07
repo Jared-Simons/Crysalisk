@@ -11,7 +11,7 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <Systems/IMemory.h>
+#include <Core/Memory.h>
 #include <Core/Logging.h>
 
 template<typename T>
@@ -36,7 +36,7 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		
 		if (m_pData)
 			memset(m_pData, 0, sizeof(T) * capacity);
@@ -48,7 +48,7 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		
 		if (m_pData != nullptr)
 		{
@@ -78,15 +78,15 @@ public:
 		, m_Stride{ otherVector.m_Stride }
 		, m_ResizeFactor{ otherVector.m_ResizeFactor }
 	{
-		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		if (m_pData != nullptr)
 			memcpy(m_pData, otherVector.m_pData, m_Capacity * m_Stride);
 	}
 
 	virtual ~CVector()
 	{
-		if(m_pData)
-			gpMemorySystem->MemFree(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+		if (m_pData)
+			Memory::Free(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 
 		m_pData = nullptr;
 	}
@@ -101,18 +101,18 @@ public:
 		if (m_pData != nullptr)
 		{
 			T* oldData = m_pData;
-			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 
 			if (m_pData != nullptr)
 			{
-				memcpy(m_pData, oldData, m_Stride * newCapacity);
+				Memory::MemCopy(m_pData, oldData, m_Stride * m_Capacity);
 			}
 
-			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			Memory::Free(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		}
 
 
@@ -126,18 +126,18 @@ public:
 		{
 			T* oldData = m_pData;
 
-			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 			
 			if (m_pData != nullptr)
 			{
 				memcpy(m_pData, oldData, m_Stride * newCapacity);
 			}
 
-			gpMemorySystem->MemFree(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			Memory::Free(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
 		}
 		else
 		{
-			m_pData = (T*)gpMemorySystem->MemAllocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		}
 
 		if (newCapacity < (int)m_Capacity)

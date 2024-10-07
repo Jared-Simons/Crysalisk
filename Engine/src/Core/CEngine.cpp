@@ -10,7 +10,7 @@
 #include "Core/Logging.h"
 #include "Core/Event.h"
 #include "Core/Input.h"
-#include "Systems/IMemory.h"
+#include "Core/Memory.h"
 #include "Platform/Platform.h"
 #include "Systems/IRenderer.h"
 #include "Systems/TextureSystem.h"
@@ -54,6 +54,7 @@ private:
 	LinearAllocator* m_SystemsAllocator{ nullptr };
 	LinearAllocator* m_FrameAllocator{ nullptr };
 
+	Memory*			m_MemorySystem{ nullptr };
 	IInputSystem*	m_InputSystem{ nullptr };
 
 public:
@@ -74,7 +75,7 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	LogSystem::Init(6); // Log all messages
 
 	// Memory System
-	if (!gpMemorySystem->MemorySystem_Initialize(*m_EngineHeap))
+	if (!Memory::Initialize(m_EngineHeap, m_MemorySystem))
 	{
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
@@ -146,9 +147,9 @@ bool CEngine::Engine_Initialize(EngineConfig_t engineConfig)
 	}
 
 	// TEMP: Load up a texture
-	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+	gpTextureSystem->LoadTexture("Assets/Textures/plasterwall024b.png");
 
-	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
+	testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
 
 	// TEMP Geometry
 	CreateSceneGeometry();
@@ -240,7 +241,7 @@ void CEngine::Engine_Shutdown()
 
 	DisconnectUtilityLib();
 
-	gpMemorySystem->MemorySystem_Shutdown();
+	Memory::Shutdown(m_MemorySystem);
 
 	void* pEngineMemoryBlock = m_EngineHeap->GetMemoryBlock();
 	delete m_EngineHeap;
@@ -274,7 +275,7 @@ bool Event_KeyReleased(EventData_t data)
 
 	if (keycode == 'M')
 	{
-		gpMemorySystem->PrintMemoryStats();
+		Memory::PrintMemoryStats();
 	}
 	
 	if (keycode == 'T')
@@ -298,7 +299,7 @@ bool Event_KeyReleased(EventData_t data)
 
 void CEngine::CreateSceneGeometry()
 {
-	m_TestGeometry = reinterpret_cast<StaticMesh*>(gpMemorySystem->MemAllocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	m_TestGeometry = reinterpret_cast<StaticMesh*>(Memory::Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	CVector<Vertex3D> vertices(36);
 	/*vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));

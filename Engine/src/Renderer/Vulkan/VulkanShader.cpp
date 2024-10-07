@@ -8,7 +8,7 @@
 #include "VulkanBackend.h"
 
 #include "Core/Logging.h"
-#include "Systems/IMemory.h"
+#include "Core/Memory.h"
 #include "Systems/IFileSystem.h"
 #include "Resources/ResourceTypes.h"
 
@@ -57,7 +57,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	size_t vertShaderFileSize = gpFileSystem->FileSize(&vertShaderFile);
-	char* vertShaderBytecode = (char*)gpMemorySystem->MemAllocate(sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	char* vertShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 	
 	size_t vertShaderCodeSize;
 	if (!gpFileSystem->ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderFile))
@@ -85,7 +85,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	size_t fragShaderFileSize = gpFileSystem->FileSize(&fragShaderFile);
-	char* fragShaderBytecode = (char*)gpMemorySystem->MemAllocate(sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	char* fragShaderBytecode = reinterpret_cast<char*>(Memory::Allocate(sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	size_t fragShaderCodeSize;
 	if (!gpFileSystem->ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderFile))
@@ -105,10 +105,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	// Release unnecessary resources
-	gpMemorySystem->MemFree(fragShaderBytecode, sizeof(char) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	Memory::Free(fragShaderBytecode, sizeof(char) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	gpFileSystem->CloseFile(&fragShaderFile);
 
-	gpMemorySystem->MemFree(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	Memory::Free(vertShaderBytecode, sizeof(char) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	gpFileSystem->CloseFile(&vertShaderFile);
 
 	if (!pOutShader->CreateDescriptorResources(pRenderingContext))

@@ -33,20 +33,25 @@ enum class eMemAllocCategories
 	MEM_CATEGORY_MAX_CATEGORIES
 };
 
-class IMemorySystem
+const int MAX_MEM_CATEGORIES = static_cast<int>(eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES);
+
+class Memory
 {
 public:
-	virtual bool	MemorySystem_Initialize(DynamicAllocator& internalAllocator) = 0;
-	virtual void	MemorySystem_Shutdown() = 0;
+	static bool		Initialize(DynamicAllocator* pInternalAllocator, void* pState);
+	static void		Shutdown(void* pState);
 
-	inline virtual void*	MemAllocate(size_t numBytes, eMemAllocCategories eAllocCategory = eMemAllocCategories::MEM_CATEGORY_UNKNOWN) = 0;
-	inline virtual void	MemFree(void* block, size_t size, eMemAllocCategories eAllocCategory) = 0;
-	inline virtual void*	MemReallocate(void* memory, size_t newSize) = 0;
-	inline virtual void*	MemCopy(void* dest, const void* source, size_t size) = 0;
-	inline virtual void*	MemSet(void* memory, int value, size_t size) = 0;
+	static void*	Allocate(size_t iNumBytes, eMemAllocCategories eAllocCategory);
+	static void		Free(void* pBlock, size_t iNumBytes, eMemAllocCategories eAllocCategory);
+	static void*	Reallocate(void* pBlock, size_t iNewSize);
+	static void*	MemCopy(void* pDest, const void* pSource, size_t iSize);
+	static void*	MemSet(void* pBlock, int iValue, size_t iSize);
 
-	virtual void	PrintMemoryStats() = 0;
+	static void			PrintMemoryStats();
+
+private:
+	unsigned long long	m_iNumAllocations;
+	size_t				m_iNumBytesAllocated;
+	size_t				m_iTaggedAllocations[MAX_MEM_CATEGORIES];
+	DynamicAllocator*	m_pInternalAllocator;
 };
-
-ENGINE_API extern IMemorySystem* gpMemorySystem;
-

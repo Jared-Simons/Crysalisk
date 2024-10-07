@@ -5,8 +5,8 @@
 // Purpose: Entry Point for the unit testing module
 //=============================================================================
 #include <Systems/IEngine.h>
-#include <Systems/IMemory.h>
 #include <Core/Logging.h>
+#include <Core/Memory.h>
 #include <Clock.h>
 
 #include "Math/MathLib.h"

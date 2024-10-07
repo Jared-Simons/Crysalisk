@@ -557,7 +557,7 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices)
 {
-	pMesh.m_pInternalData = gpMemorySystem->MemAllocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	pMesh.m_pInternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pInternalData);
 
 	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();
@@ -584,7 +584,7 @@ void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 {
 	// TODO: Implement with freelist
 
-	gpMemorySystem->MemFree(pMesh.m_pInternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	//gpMemorySystem->MemFree(pMesh.m_pInternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	pMesh.m_pInternalData = nullptr;
 }
 

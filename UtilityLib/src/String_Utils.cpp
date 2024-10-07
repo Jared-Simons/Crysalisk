@@ -6,7 +6,7 @@
 //=============================================================================
 #include "String_Utils.h"
 
-#include <Systems/IMemory.h> // TODO: TEMP
+#include "Core/Memory.h"// TODO: TEMP
 
 #include <stdio.h>
 #include <string>
@@ -43,7 +43,7 @@ bool StringCompare(const char* str1, const char* str2)
 char* StringDuplicate(const char* pStrToCopy)
 {
 	size_t strLength = StringLength(pStrToCopy);
-	char* stringCopy = (char*)gpMemorySystem->MemAllocate(strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
+	char* stringCopy = reinterpret_cast<char*>(Memory::Allocate(strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING)); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
 	memcpy(stringCopy, pStrToCopy, strLength + 1);
 
 	// NOTE: The caller is responsible for freeing this memory.

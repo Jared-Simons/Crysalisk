@@ -8,7 +8,7 @@
 #pragma once
 
 #include <Core/Logging.h>
-#include <Systems/IMemory.h>
+#include <Core/Memory.h>
 
 #include <cstring>
 
@@ -23,7 +23,7 @@ public:
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr }
 	{
-		m_pData = gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+		m_pData = Memory::Allocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 		m_pCurrentAlloc = m_pData;
 	}
 
@@ -33,7 +33,7 @@ public:
 			free();
 
 		if (m_pData)
-			gpMemorySystem->MemFree(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			Memory::Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 
 		m_AllocatorSize = 0;
 
@@ -66,14 +66,14 @@ public:
 	{
 		if (m_pData)
 		{
-			gpMemorySystem->MemFree(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			Memory::Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 		}
 
 		m_BytesAllocated = 0;
 
 		if (allocateNewMemory)
 		{
-			m_pData = gpMemorySystem->MemAllocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			Memory::Allocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 			m_pCurrentAlloc = m_pData;
 		}
 		else

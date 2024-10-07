@@ -8,7 +8,7 @@
 
 #include "Core/Logging.h"
 #include "Core/Event.h"
-#include "Systems/IMemory.h"
+#include "Core/Memory.h"
 #include "Systems/IEngine.h"
 
 
@@ -142,7 +142,7 @@ void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
-		gpMemorySystem->MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		Memory::MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
 		m_KeyStateDirty = false;
 	}
 }
