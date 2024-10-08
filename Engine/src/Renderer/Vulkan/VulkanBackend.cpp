@@ -568,8 +568,8 @@ bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3
 	internalData->m_VertexDataOffset = m_VertexBufferOffset;
 	internalData->m_IndexDataOffset = m_IndexBufferOffset;
 
-	internalData->m_VertexDataSize = vertexDataSize;
-	internalData->m_IndexDataSize = indexDataSize;
+	internalData->m_VertexDataSize = static_cast<VkDeviceSize>(vertexDataSize);
+	internalData->m_IndexDataSize = static_cast<VkDeviceSize>(indexDataSize);
 
 	// Upload the data to the buffers
 	m_VertexBuffer.UploadDataToBuffer(this, vertexDataSize, vertices.data(), m_VertexBufferOffset);
@@ -599,8 +599,8 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;
 	VkDeviceSize indexOffset = internalData->m_IndexDataOffset;
 
-	u64 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
-	u64 numIndices = internalData->m_IndexDataSize / sizeof(u16);
+	u32 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
+	u32 numIndices = internalData->m_IndexDataSize / sizeof(u16);
 
 	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
 

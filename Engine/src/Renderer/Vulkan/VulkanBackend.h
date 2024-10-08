@@ -451,10 +451,10 @@ struct Camera
 struct VulkanGeometryData_t
 {
 	u64 m_VertexDataOffset{ 0 };
-	u64 m_VertexDataSize{ 0 };
+	u32 m_VertexDataSize{ 0 };
 
 	u64 m_IndexDataOffset{ 0 };
-	u64 m_IndexDataSize{ 0 };
+	u32 m_IndexDataSize{ 0 };
 };
 
 
