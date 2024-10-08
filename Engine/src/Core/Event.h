@@ -28,8 +28,8 @@ enum class eEventCategory
 	MAX_EVENTS
 };
 
-const int MAX_EVENTS_PER_CATEGORY = 32;
-const int NUM_EVENT_CATEGORIES = static_cast<int>(eEventCategory::MAX_EVENTS);
+const i32 MAX_EVENTS_PER_CATEGORY = 32;
+const i32 NUM_EVENT_CATEGORIES = static_cast<i32>(eEventCategory::MAX_EVENTS);
 
 union EventData_t
 {
@@ -38,7 +38,7 @@ union EventData_t
 	f64		f64[2];
 
 	u32		u32[4];
-	int		i32[4];
+	i32		i32[4];
 	f32		f32[4];
 
 	u16		u16[8];
@@ -55,7 +55,7 @@ typedef bool (*Event_Callback)(EventData_t data);
 struct Event
 {
 	Event_Callback m_PFNEventCallback;
-	int m_EventID;
+	i32 m_EventID;
 	eEventCategory m_EventCategory;
 };
 
@@ -71,6 +71,6 @@ public:
 
 private:
 	static Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-	static int m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+	static i32 m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
 };
 

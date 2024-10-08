@@ -39,12 +39,12 @@ bool Memory::Initialize(DynamicAllocator* pinternalAllocator, void* pState)
 	s_MemorySystem->m_iNumAllocations = 1; // We just made one allocation.
 	s_MemorySystem->m_iNumBytesAllocated = sizeof(Memory);
 
-	for (int index = 0; index < MAX_MEM_CATEGORIES; index++)
+	for (i32 index = 0; index < MAX_MEM_CATEGORIES; index++)
 	{
 		s_MemorySystem->m_iTaggedAllocations[index] = 0;
 	}
 
-	s_MemorySystem->m_iTaggedAllocations[static_cast<int>(eMemAllocCategories::MEM_CATEGORY_ENGINE)] += sizeof(Memory);
+	s_MemorySystem->m_iTaggedAllocations[static_cast<i32>(eMemAllocCategories::MEM_CATEGORY_ENGINE)] += sizeof(Memory);
 
 	s_MemorySystem->m_pinternalAllocator = pinternalAllocator;
 
@@ -133,7 +133,7 @@ void* Memory::MemCopy(void* pDest, const void* pSource, u64 iSize)
 	return nullptr;
 }
 
-void* Memory::MemSet(void* pBlock, int iValue, u64 iSize)
+void* Memory::MemSet(void* pBlock, i32 iValue, u64 iSize)
 {
 	if (pBlock)
 		return Platform::MemorySet(pBlock, iValue, iSize);
@@ -156,7 +156,7 @@ void Memory::PrintMemoryStats()
 
 	char totalMemUsageString[256]{ 0 };
 	u64 totalMemoryUsed = s_MemorySystem->m_pinternalAllocator->GetAllocatorSize() - s_MemorySystem->m_pinternalAllocator->GetFreeSpace();
-	f32 totalMemoryUsedPercentage = static_cast<float>(totalMemoryUsed) / s_MemorySystem->m_pinternalAllocator->GetAllocatorSize();
+	f32 totalMemoryUsedPercentage = static_cast<f32>(totalMemoryUsed) / s_MemorySystem->m_pinternalAllocator->GetAllocatorSize();
 	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, s_MemorySystem->m_pinternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
 	StringConcat(memStatsString, totalMemUsageString);
 

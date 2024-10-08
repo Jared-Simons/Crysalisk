@@ -8,14 +8,14 @@
 
 // TODO: Make this a pointer or something so we can control lifetime.
 Event EventSystem::m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-int	EventSystem::m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+i32	EventSystem::m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
 
 bool EventSystem::Initialize()
 {
 	// Loop through and invalidate event entries.
-	for (int i = 0; i < NUM_EVENT_CATEGORIES; i++)
+	for (i32 i = 0; i < NUM_EVENT_CATEGORIES; i++)
 	{
-		for (int j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
+		for (i32 j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
 		{
 			m_RegisteredEvents[i][j].m_EventCategory = eEventCategory::UNKNOWN;
 			m_RegisteredEvents[i][j].m_EventID = -1;
@@ -33,9 +33,9 @@ void EventSystem::Shutdown()
 {
 	LOG_INFO("Event System Shutting Down");
 
-	for (int i = 0; i < NUM_EVENT_CATEGORIES; i++)
+	for (i32 i = 0; i < NUM_EVENT_CATEGORIES; i++)
 	{
-		for (int j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
+		for (i32 j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
 		{
 			if (m_RegisteredEvents[i][j].m_EventID != -1)
 			{
@@ -53,11 +53,11 @@ bool EventSystem::EventRegister(eEventCategory eventCategory, void* listenerInst
 		return false;
 	}
 
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* newEvent = &m_RegisteredEvents[intEventCategory][0];
 
 	// Iterate through the registered events (of the same category) until a free slot is found
-	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY;i++)
+	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY;i++)
 	{
 		// If the event has the same type and callback as another registered event, boot out and log a message
 		// We do not want multiple copies of the same event
@@ -94,10 +94,10 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerIn
 		return false;
 	}
 
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* eventToBeFreed = &m_RegisteredEvents[intEventCategory][0];
 
-	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
+	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
 	{
 		if (eventToBeFreed[i].m_EventCategory == eventCategory && eventToBeFreed[i].m_PFNEventCallback == PFN_Callback)
 		{
@@ -119,10 +119,10 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerIn
 
 bool EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
 {
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* currEvent = m_RegisteredEvents[intEventCategory];
 
-	for (int i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
+	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
 	{
 		// TODO: Implement some kind of sorting system, so that we don't have to loop through the ENTIRE array to fire messages.
 		// Perhaps we should periodically move events back as far as possible in the array so that all valid events are contiguous,

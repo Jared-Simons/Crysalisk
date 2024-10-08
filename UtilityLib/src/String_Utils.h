@@ -24,5 +24,5 @@ bool StringCompare(const char* str1, const char* str2);
 // Appends str2 to string 1.
 void StringConcat(char* str1, const char* str2);
 
-int String_ATOI(const char c);
+i32 String_ATOI(const char c);
 

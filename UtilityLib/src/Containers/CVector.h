@@ -65,7 +65,7 @@ public:
 		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		if (m_pData != nullptr)
 		{
-			for (int i = 0; i < capacity; i++)
+			for (i32 i = 0; i < capacity; i++)
 			{
 				m_pData[i] = initialValue;
 			}
@@ -91,7 +91,7 @@ public:
 		m_pData = nullptr;
 	}
 
-	T& operator[] (int index)
+	T& operator[] (i32 index)
 	{
 		return m_pData[index];
 	}
@@ -140,13 +140,13 @@ public:
 			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
 		}
 
-		if (newCapacity < (int)m_Capacity)
+		if (newCapacity < (i32)m_Capacity)
 			m_Count = newCapacity;
 
 		m_Capacity = newCapacity;
-		int newIndex = static_cast<int>(newCapacity - m_Count);
+		i32 newIndex = static_cast<i32>(newCapacity - m_Count);
 
-		for (int i = (int)m_Capacity - newIndex; i < newCapacity; i++)
+		for (i32 i = (i32)m_Capacity - newIndex; i < newCapacity; i++)
 		{
 			if (m_pData != nullptr)
 			{
@@ -181,7 +181,7 @@ public:
 		m_ResizeFactor = 2;
 	}
 
-	T& index(int index)
+	T& index(i32 index)
 	{
 		return m_pData[index];
 	}
@@ -225,12 +225,12 @@ public:
 		}
 	}
 
-	void SetResizeFactor(unsigned int resizeFactor) { m_ResizeFactor = resizeFactor; }
+	void SetResizeFactor(u32 resizeFactor) { m_ResizeFactor = resizeFactor; }
 	
 	size_t			size() const { return m_Count; }
 	size_t			capacity() const { return m_Capacity; }
 	size_t			stride() const { return m_Stride; }
-	unsigned int	GetResizeFactor() const { retur m_ResizeFactor; }
+	u32	GetResizeFactor() const { retur m_ResizeFactor; }
 	T*				data() { return m_pData; }
 
 private:
@@ -244,7 +244,7 @@ private:
 	size_t m_Stride;
 
 	/* The multiplier to be used when the vector resizes to make more room. */
-	unsigned int m_ResizeFactor;
+	u32 m_ResizeFactor;
 
 	/* The data included in the array, can be accessed with the [] operators */
 	T* m_pData;

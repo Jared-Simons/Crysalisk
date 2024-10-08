@@ -39,7 +39,7 @@ static_assert(sizeof(u64) == 8, "Expected u8 to be 8 bytes.");
 
 static_assert(sizeof(i8) == 1, "Expected i8 to be 1 byte.");
 static_assert(sizeof(i16) == 2, "Expected i16 to be 2 bytes.");
-static_assert(sizeof(int) == 4, "Expected int to be 4 bytes.");
+static_assert(sizeof(i32) == 4, "Expected int to be 4 bytes.");
 static_assert(sizeof(i64) == 8, "Expected i64 to be 8 bytes.");
 
 static_assert(sizeof(f32) == 4, "Expected f32 to be 4 bytes.");
@@ -86,7 +86,7 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 
 static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
 
-static void intClamp(int* val, int* min, int* max)
+static void intClamp(i32* val, i32* min, i32* max)
 {
 	if (val < min)
 	{

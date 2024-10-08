@@ -14,14 +14,14 @@
 class Matrix2x2
 {
 public:
-	float r1[2];
-	float r2[2];
+	f32 r1[2];
+	f32 r2[2];
 
 	Matrix2x2()
 		: r1{ 0 }
 		, r2{ 0 } {}
 
-	Matrix2x2(const float r00, const float r01, const float r10, const float r11)
+	Matrix2x2(const f32 r00, const f32 r01, const f32 r10, const f32 r11)
 	{
 		r1[0] = r00;
 		r1[1] = r01;
@@ -49,7 +49,7 @@ public:
 		return outMatrix;
 	}
 
-	Matrix2x2 operator*(const float scalar)
+	Matrix2x2 operator*(const f32 scalar)
 	{
 		Matrix2x2 outMatrix;
 		outMatrix.r1[0] = r1[0] * scalar;
@@ -76,7 +76,7 @@ public:
 class Matrix4x4
 {
 public:
-	float data[4][4];
+	f32 data[4][4];
 
 	Matrix4x4()
 	{
@@ -101,7 +101,7 @@ public:
 		data[3][3] = 0;
 	}
 
-	Matrix4x4(float initalValue)
+	Matrix4x4(f32 initalValue)
 	{
 		data[0][0] = initalValue;
 		data[0][1] = 0;
@@ -134,7 +134,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Scale(Matrix4x4& inMatrix, int valueToScaleBy)
+	static Matrix4x4& Scale(Matrix4x4& inMatrix, i32 valueToScaleBy)
 	{
 		inMatrix.data[0][0] *= valueToScaleBy;
 		inMatrix.data[1][1] *= valueToScaleBy;
@@ -155,7 +155,7 @@ public:
 	}
 
 	// TODO: Implement a quaternion type!
-	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D& axis)
+	static Matrix4x4& Rotate(Matrix4x4& inMatrix, f32 angle, Vector3D& axis)
 	{
 		inMatrix.data[0][0] = M_COS(angle) + (axis.x * axis.x) * (1 - M_COS(angle));
 		inMatrix.data[0][1] = (axis.y * axis.x) * (1 - M_COS(angle)) + (axis.z * M_SIN(angle));
@@ -218,10 +218,10 @@ public:
 		return newMatrix;
 	}
 
-	static Matrix4x4 Perspective(float fov, float aspectRatio, float nearClippingPlane, float farClippingPlane)
+	static Matrix4x4 Perspective(f32 fov, f32 aspectRatio, f32 nearClippingPlane, f32 farClippingPlane)
 	{
 		Matrix4x4 newMatrix(0.0f);
-		float halfTanFOV = M_TAN(fov * 0.5f);
+		f32 halfTanFOV = M_TAN(fov * 0.5f);
 
 		newMatrix.data[0][0] = 1.0f / (aspectRatio * halfTanFOV);
 		newMatrix.data[1][1] = 1.0f / halfTanFOV;

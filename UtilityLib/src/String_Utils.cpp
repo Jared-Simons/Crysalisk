@@ -36,7 +36,7 @@ void StringFormat_V(const char* format, const char* str1, char* outString, ...)
 
 bool StringCompare(const char* str1, const char* str2)
 {
-	int result = strcmp(str1, str2);
+	i32 result = strcmp(str1, str2);
 	return result == 0;
 }
 
@@ -56,9 +56,9 @@ void StringConcat(char* str1, const char* str2)
 	strcat_s(str1, len + 1, str2);
 }
 
-int String_ATOI(const char c)
+i32 String_ATOI(const char c)
 {
-	int x;
+	i32 x;
 	x = c;
 	return x;
 }

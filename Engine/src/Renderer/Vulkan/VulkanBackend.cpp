@@ -129,7 +129,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Command Buffers
 	// one per frame
 	m_CommandBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_CommandBuffers.size(); i++)
+	for (i32 i = 0; i < m_CommandBuffers.size(); i++)
 	{
 		if (!VulkanCommandBuffer::CreateCommandBuffer(this, true, &m_CommandBuffers[i]))
 			return false;
@@ -142,7 +142,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Framebuffers
 	// one per frame
 	m_Swapchain.m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 	{
 		if (!VulkanFramebuffer::CreateFramebuffer(this, &m_Swapchain.m_Framebuffers[i], i))
 			return false;
@@ -161,7 +161,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Fences
 	// one per frame
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
 	{
 		if (!VulkanFence::CreateFence(this, true, &m_FrameInFlightFences[i]))
 			return false;
@@ -171,7 +171,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// one per frame
 	m_ImageAvailableSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
 	m_RenderFinishedSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]))
 			return false;
@@ -191,22 +191,22 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
 
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]);
 	}
 
-	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
 		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
 
 	VulkanBuffer::DestroyBuffer(this, &m_IndexBuffer);
 	VulkanBuffer::DestroyBuffer(this, &m_VertexBuffer);
 
-	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 		VulkanFramebuffer::DestroyFramebuffer(this, &m_Swapchain.m_Framebuffers[i]);
 
-	for (int i = 0; i < m_CommandBuffers.size(); i++)
+	for (i32 i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
 	VulkanCommandPool::DestroyCommandPool(this, &m_GraphicsCommandPool);
@@ -279,8 +279,8 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
-		viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
+		viewport.width = static_cast<f32>(m_Swapchain.m_SwapchainExtent.width);
+		viewport.height = static_cast<f32>(m_Swapchain.m_SwapchainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer.m_Handle, 0, 1, &viewport);
@@ -290,7 +290,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
-		for (int i = 0; i < 10; i++)
+		for (i32 i = 0; i < 10; i++)
 		{
 			if (pRenderData->geometries[i] && pRenderData->geometries[i]->m_pinternalData)
 				DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
@@ -339,7 +339,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		return false;
 	}
 
-	instanceInfo.enabledExtensionCount = static_cast<unsigned int>(requiredExtensions.size());
+	instanceInfo.enabledExtensionCount = static_cast<u32>(requiredExtensions.size());
 	instanceInfo.ppEnabledExtensionNames = static_cast<const char**>(requiredExtensions.data());
 
 	// Validation Layers
@@ -354,7 +354,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 			return false;
 		}
 
-		instanceInfo.enabledLayerCount = static_cast<unsigned int>(m_ValidationLayers->size());
+		instanceInfo.enabledLayerCount = static_cast<u32>(m_ValidationLayers->size());
 		instanceInfo.ppEnabledLayerNames = static_cast<const char**>(m_ValidationLayers->data());
 	}
 	else
@@ -370,14 +370,14 @@ bool CVulkanRenderer::CreateVulkanInstance()
 	if (EnableValidationLayers())
 	{
 		LOG_INFO("Enabled Vulkan Extensions:");
-		for (int i = 0; i < requiredExtensions.size(); i++)
+		for (i32 i = 0; i < requiredExtensions.size(); i++)
 		{
 			LOG_DEBUG("%s", requiredExtensions[i]);
 		}
 
 		LOG_INFO("Enabled Validation Layers:");
 		
-		for (int i = 0; i < m_ValidationLayers->size(); i++)
+		for (i32 i = 0; i < m_ValidationLayers->size(); i++)
 		{
 			LOG_DEBUG("%s", m_ValidationLayers->data()[i]);
 		}
@@ -556,7 +556,7 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 	}
 }
 
-bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<unsigned short>& indices)
+bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices)
 {
 	pMesh.m_pinternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);

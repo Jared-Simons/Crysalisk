@@ -33,7 +33,7 @@ enum class eMemAllocCategories
 	MEM_CATEGORY_MAX_CATEGORIES
 };
 
-const int MAX_MEM_CATEGORIES = static_cast<int>(eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES);
+const i32 MAX_MEM_CATEGORIES = static_cast<i32>(eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES);
 
 class Memory
 {
@@ -45,7 +45,7 @@ public:
 	static void		Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory);
 	static void*	Reallocate(void* pBlock, u64 iNewSize);
 	static void*	MemCopy(void* pDest, const void* pSource, u64 iSize);
-	static void*	MemSet(void* pBlock, int iValue, u64 iSize);
+	static void*	MemSet(void* pBlock, i32 iValue, u64 iSize);
 
 	static void		PrintMemoryStats();
 

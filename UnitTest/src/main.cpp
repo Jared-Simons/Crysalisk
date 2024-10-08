@@ -23,7 +23,7 @@ bool PerformUnitTests()
 	return true;
 }
 
-int main()
+i32 main()
 {
 	// Running unit tests in headless mode as we do not require rendering or input.
 	EngineConfig_t engineConfig{};

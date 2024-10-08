@@ -19,7 +19,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, Vulkan
 	VkSwapchainCreateInfoKHR swapchainCreateInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 
 	// Select image format
-	for (unsigned int i = 0; i < swapchainSupport->formats.size(); i++)
+	for (u32 i = 0; i < swapchainSupport->formats.size(); i++)
 	{
 		if ((swapchainSupport->formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) && (swapchainSupport->formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
 		{
@@ -38,7 +38,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	// Select present mode
-	for (unsigned int i = 0; i < swapchainSupport->presentModes.size(); i++)
+	for (u32 i = 0; i < swapchainSupport->presentModes.size(); i++)
 	{
 		if (swapchainSupport->presentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
@@ -97,7 +97,7 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 {
 	if (pRenderingContext && pSwapchain && pSwapchain->m_SwapchainHandle)
 	{
-		for (int i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
+		for (i32 i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
 		{
 			vkDestroyImageView(pRenderingContext->m_Device.m_LogicalDevice, pSwapchain->m_SwapchainImageViews[i], pRenderingContext->m_Allocator);
 		}
@@ -106,7 +106,7 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 	}
 }
 
-bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsigned int newWidth, unsigned int newHeight)
+bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, u32 newWidth, u32 newHeight)
 {
 	pRenderingContext->m_FramebufferWidth = newWidth;
 	pRenderingContext->m_FramebufferHeight = newHeight;
@@ -121,10 +121,10 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, unsi
 
 	CreateSwapchain(pRenderingContext, this);
 
-	for (int i = 0; i < m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Framebuffers.size(); i++)
 		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Swapchain.m_Framebuffers[i]);
 
-	for (int i = 0; i < m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Framebuffers.size(); i++)
 	{
 		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &m_Framebuffers[i], i))
 			return false;
@@ -157,7 +157,7 @@ bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, u32 imageIndex
 
 bool VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* pRenderingContext)
 {
-	unsigned int imageCount{ 0 };
+	u32 imageCount{ 0 };
 	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, nullptr);
 	m_SwapchainImages.Resize(imageCount);
 	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, m_SwapchainImages.data());
@@ -170,7 +170,7 @@ bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* pRenderingContext)
 {
 	m_SwapchainImageViews.Resize(m_SwapchainImages.size());
 
-	for (int i = 0; i < m_SwapchainImages.size(); i++)
+	for (i32 i = 0; i < m_SwapchainImages.size(); i++)
 	{
 		VkImageViewCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		createInfo.image = m_SwapchainImages[i];

@@ -143,10 +143,10 @@ public:
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
-	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) = 0;
+	virtual void	ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr) = 0;
 	virtual void	ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) = 0;
 
-	virtual bool	IsKeyPressed(const int key) const = 0;
+	virtual bool	IsKeyPressed(const i32 key) const = 0;
 };
 
 extern IInputSystem* gpInputSystem;

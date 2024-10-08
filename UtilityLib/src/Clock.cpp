@@ -25,12 +25,12 @@ void Clock::Update()
 {
 	if (m_IsActive)
 	{
-		double currentTime = Platform::GetAbsoluteTime();
+		f64 currentTime = Platform::GetAbsoluteTime();
 		m_ElapsedTime = currentTime - m_StartTime;
 	}
 }
 
-double Clock::GetElapsedTime()
+f64 Clock::GetElapsedTime()
 {
 	if (!m_IsActive)
 	{

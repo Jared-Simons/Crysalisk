@@ -230,8 +230,8 @@ void DynamicAllocator::Free(void* pMemBlock)
 
 void DynamicAllocator::ReportMemoryFragmentation()
 {
-	int numberOfFreeMemoryNodes = 0;
-	int numberOfContiguousNodes = 0;
+	i32 numberOfFreeMemoryNodes = 0;
+	i32 numberOfContiguousNodes = 0;
 	FreeListNode_t* pCurrentNode = m_pHeadNode;
 
 	while (pCurrentNode != nullptr)

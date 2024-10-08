@@ -36,5 +36,5 @@ namespace Platform {
 	void	MemoryFree(void* memory);
 	void* MemoryReallocate(void* memory, u64 newSize);
 	void* MemoryCopy(void* dest, const void* source, u64 size);
-	void* MemorySet(void* memory, int value, u64 size);
+	void* MemorySet(void* memory, i32 value, u64 size);
 }

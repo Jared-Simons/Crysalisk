@@ -153,7 +153,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 	CVector<const char*> requiredExtensions = *m_DeviceExtensions;
 
-	int extensionsToQuery = static_cast<int>(requiredExtensions.size());
+	i32 extensionsToQuery = static_cast<i32>(requiredExtensions.size());
 	for (u32 i = 0; i < requiredExtensions.size(); i++)
 	{
 		for (u32 j = 0; j < deviceExtensionCount; j++)
@@ -172,7 +172,7 @@ bool VulkanDevice::QueryDeviceExtensionSupport(VkPhysicalDevice& physicalDevice)
 
 #if _DEBUG
 	LOG_VERBOSE("Enabled Vulkan Device Extensions:");
-	for (int i = 0; i < requiredExtensions.size(); i++)
+	for (i32 i = 0; i < requiredExtensions.size(); i++)
 	{
 		LOG_VERBOSE("%s", requiredExtensions[i]);
 	}
@@ -186,9 +186,9 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 	const f32 queuePriority{ 1.0f };
 
 	CVector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	CSet<int> uniqueQueueFamilies{ m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex };
+	CSet<i32> uniqueQueueFamilies{ m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex, m_PhysicalDeviceQueueFamilyInfo.PresentQueueIndex, m_PhysicalDeviceQueueFamilyInfo.TransferQueueIndex, m_PhysicalDeviceQueueFamilyInfo.ComputeQueueIndex };
 
-	for (int i = 0; i < uniqueQueueFamilies.GetSize(); i++)
+	for (i32 i = 0; i < uniqueQueueFamilies.GetSize(); i++)
 	{
 		VkDeviceQueueCreateInfo queueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
 		queueCreateInfo.queueFamilyIndex = uniqueQueueFamilies[i];
@@ -198,9 +198,9 @@ bool VulkanDevice::CreateLogicalDevice(CVulkanRenderer* pRenderingContext)
 	}
 
 	VkDeviceCreateInfo deviceCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-	deviceCreateInfo.queueCreateInfoCount = static_cast<unsigned int>(queueCreateInfos.size());
+	deviceCreateInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-	deviceCreateInfo.enabledExtensionCount = static_cast<unsigned int>(m_DeviceExtensions->size());
+	deviceCreateInfo.enabledExtensionCount = static_cast<u32>(m_DeviceExtensions->size());
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensions->data();
 	deviceCreateInfo.enabledLayerCount = 0;
 	deviceCreateInfo.ppEnabledLayerNames = nullptr;

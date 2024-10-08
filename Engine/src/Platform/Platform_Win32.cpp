@@ -34,7 +34,7 @@ struct Platform_Win32_InternalData
 	HWND hWnd = 0;
 	HINSTANCE hInstance = 0;
 
-	inline static double m_ClockFreq = -1;
+	inline static f64 m_ClockFreq = -1;
 	inline static LARGE_INTEGER m_ClockStartTime;
 };
 
@@ -51,9 +51,9 @@ namespace Platform {
 
 	static bool	CreateWin32Window(LinearAllocator* pAllocator);
 	static bool CreateWin32Clock();
-	static int ProcessWin32Input_Key(WPARAM wParam);
-	static int ProcessWin32Input_MouseButton(UINT uMsg);
-	static int ProcessWin32Input_MouseMove(LPARAM lParam);
+	static i32 ProcessWin32Input_Key(WPARAM wParam);
+	static i32 ProcessWin32Input_MouseButton(UINT uMsg);
+	static i32 ProcessWin32Input_MouseMove(LPARAM lParam);
 
 	bool Initialize(LinearAllocator* pAllocator, Engine* pEngine)
 	{
@@ -98,14 +98,14 @@ namespace Platform {
 
 		win32PlatformData->hInstance = GetModuleHandle(NULL);
 
-		unsigned int windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
-		unsigned int windowExStyle = WS_EX_APPWINDOW;
+		u32 windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
+		u32 windowExStyle = WS_EX_APPWINDOW;
 
 		// Do some fixup on the window dimensions to account for the window border.
-		int windowX = 100;
-		int windowY = 100;
-		int windowWidth = 1080;
-		int windowHeight = 720;
+		i32 windowX = 100;
+		i32 windowY = 100;
+		i32 windowWidth = 1080;
+		i32 windowHeight = 720;
 
 		RECT borderRect = { 0 };
 		AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
@@ -194,15 +194,15 @@ namespace Platform {
 		RECT rect;
 		if (GetClientRect(win32PlatformData->hWnd, &rect))
 		{
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
+			i32 width = rect.right - rect.left;
+			i32 height = rect.bottom - rect.top;
 
 			*pOutWidth = width;
 			*pOutHeight = height;
 		}
 	}
 
-	double GetAbsoluteTime()
+	f64 GetAbsoluteTime()
 	{
 		// If the clock has not yet been initialized (possibly due to headless mode)
 		// initialize it here
@@ -216,7 +216,7 @@ namespace Platform {
 		LARGE_INTEGER currentTime;
 		QueryPerformanceCounter(&currentTime);
 
-		double elapsedTime = (double)currentTime.QuadPart * win32PlatformData->m_ClockFreq;
+		f64 elapsedTime = (f64)currentTime.QuadPart * win32PlatformData->m_ClockFreq;
 		return elapsedTime;
 	}
 
@@ -295,7 +295,7 @@ namespace Platform {
 			else
 			{
 				// Prepare message data for input processing
-				int processedKeyCode = ProcessWin32Input_Key(wParam);
+				i32 processedKeyCode = ProcessWin32Input_Key(wParam);
 
 				// Send to the input system.
 				gpInputSystem->ProcessKeyInput(processedKeyCode, true, s_EnginePtr);
@@ -306,7 +306,7 @@ namespace Platform {
 		case WM_SYSKEYUP:
 		{
 			// Prepare message data for input processing
-			int processedKeyCode = ProcessWin32Input_Key(wParam);
+			i32 processedKeyCode = ProcessWin32Input_Key(wParam);
 
 			// Send to the input system.
 			gpInputSystem->ProcessKeyInput(processedKeyCode, false, s_EnginePtr);
@@ -317,7 +317,7 @@ namespace Platform {
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
 		{
-			int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+			i32 processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 			gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, false);
 			break;
 		}
@@ -326,7 +326,7 @@ namespace Platform {
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 		{
-			int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+			i32 processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 			gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, true);
 			break;
 		}
@@ -337,8 +337,8 @@ namespace Platform {
 
 		case WM_SIZE:
 		{
-			int width = LOWORD(lParam);
-			int height = HIWORD(lParam);
+			i32 width = LOWORD(lParam);
+			i32 height = HIWORD(lParam);
 
 			EventData_t data;
 			data.u16[0] = width;
@@ -371,7 +371,7 @@ namespace Platform {
 	// ============================================================================
 	//  WIN32 Input Processing
 	// ============================================================================
-	int ProcessWin32Input_Key(WPARAM wParam)
+	i32 ProcessWin32Input_Key(WPARAM wParam)
 	{
 		switch (wParam)
 		{
@@ -480,7 +480,7 @@ namespace Platform {
 		}
 	}
 
-	int ProcessWin32Input_MouseButton(UINT uMsg)
+	i32 ProcessWin32Input_MouseButton(UINT uMsg)
 	{
 		switch (uMsg)
 		{
@@ -508,10 +508,10 @@ namespace Platform {
 		}
 	}
 
-	int ProcessWin32Input_MouseMove(LPARAM lParam)
+	i32 ProcessWin32Input_MouseMove(LPARAM lParam)
 	{
-		float mouseXPos = 0;
-		float mouseYPos = 0;
+		f32 mouseXPos = 0;
+		f32 mouseYPos = 0;
 
 		if (lParam)
 		{
@@ -531,19 +531,19 @@ namespace Platform {
 	//-----------------------------------------------------------------------------
 	void* MemoryAllocate(size_t size)
 	{
-		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, sizeof(unsigned int) + size); // memory block + header for tagging platform allocations
+		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, sizeof(u32) + size); // memory block + header for tagging platform allocations
 		
-		unsigned int* blockHeader = static_cast<unsigned int*>(pMemBlock);
+		u32* blockHeader = static_cast<u32*>(pMemBlock);
 
 		if (blockHeader)
 			*blockHeader = magicMemPlatformNumber;
 
-		return static_cast<unsigned int*>(pMemBlock) + 1;
+		return static_cast<u32*>(pMemBlock) + 1;
 	}
 
 	void MemoryFree(void* memory)
 	{
-		unsigned int* blockHeader = static_cast<unsigned int*>(memory) - 1;
+		u32* blockHeader = static_cast<u32*>(memory) - 1;
 
 		if (*blockHeader != magicMemPlatformNumber)
 		{
@@ -571,7 +571,7 @@ namespace Platform {
 		return nullptr;
 	}
 
-	void* MemorySet(void* memory, int value, size_t size)
+	void* MemorySet(void* memory, i32 value, size_t size)
 	{
 		if (memory)
 			return memset(memory, value, size);

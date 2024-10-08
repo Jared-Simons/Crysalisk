@@ -39,7 +39,7 @@ public:
 		m_pData = nullptr;
 	}
 
-	T& operator[] (int index)
+	T& operator[] (i32 index)
 	{
 		return m_pData[index];
 	}
@@ -140,7 +140,7 @@ public:
 	size_t			capacity() const { return m_Capacity; }
 	size_t			stride() const { return m_Stride; }
 
-	unsigned int	GetResizeFactor() const { return m_ResizeFactor; }
+	u32	GetResizeFactor() const { return m_ResizeFactor; }
 	void			SetResizeFactor(size_t newResizeFactor) { m_ResizeFactor = newResizeFactor; }
 
 	T* data() { return m_pData; }
@@ -156,7 +156,7 @@ private:
 	size_t m_Stride;
 
 	/* The multiplier to be used when the stack resizes to make more room. */
-	unsigned int m_ResizeFactor;
+	u32 m_ResizeFactor;
 
 	/* The data included in the stack, can be accessed with the [] operators */
 	T* m_pData;

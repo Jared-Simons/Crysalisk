@@ -11,19 +11,19 @@
 class Vector2D
 {
 public:
-	float x;
-	float y;
+	f32 x;
+	f32 y;
 
 public:
 	Vector2D()
 		: x{ 0 }
 		, y{ 0 } {}
 
-	Vector2D(float x_, float y_)
+	Vector2D(f32 x_, f32 y_)
 		: x{ x_ }
 		, y{ y_ } {}
 
-	Vector2D operator+(const float scalar)
+	Vector2D operator+(const f32 scalar)
 	{
 		Vector2D outVector{ x, y };
 		outVector.x = x + scalar;
@@ -31,7 +31,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator-(const float scalar)
+	Vector2D operator-(const f32 scalar)
 	{
 		Vector2D outVector{ x, y };
 		outVector.x = x - scalar;
@@ -39,7 +39,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator*(const float scalar)
+	Vector2D operator*(const f32 scalar)
 	{
 		Vector2D outVector{ x, y };
 		outVector.x = x * scalar;
@@ -47,7 +47,7 @@ public:
 		return outVector;
 	}
 
-	Vector2D operator/(const float scalar)
+	Vector2D operator/(const f32 scalar)
 	{
 		Vector2D outVector{ x, y };
 		outVector.x = x / scalar;
@@ -101,7 +101,7 @@ public:
 		y = -y;
 	}
 
-	float Length() const
+	f32 Length() const
 	{
 		return M_SQRT((x * x) + (y * y));
 	}
@@ -109,7 +109,7 @@ public:
 	Vector2D Normalize() const
 	{
 		Vector2D outVector{};
-		float length = Length();
+		f32 length = Length();
 
 		outVector.x = x / length;
 		outVector.y = y / length;
@@ -119,13 +119,13 @@ public:
 
 	void NormalizeInPlace()
 	{
-		float length = Length();
+		f32 length = Length();
 
 		x = x / length;
 		y = y / length;
 	}
 
-	static float DotProduct(const Vector2D& vecA, const Vector2D& vecB)
+	static f32 DotProduct(const Vector2D& vecA, const Vector2D& vecB)
 	{
 		return (vecA.x * vecB.x) + (vecA.y * vecB.y);
 	}
@@ -135,21 +135,21 @@ public:
 class Vector3D
 {
 public:
-	float x;
-	float y;
-	float z;
+	f32 x;
+	f32 y;
+	f32 z;
 
 	Vector3D()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 } {}
 
-	Vector3D(float x_, float y_, float z_)
+	Vector3D(f32 x_, f32 y_, f32 z_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ } {}
 
-	Vector3D operator+(const float scalar)
+	Vector3D operator+(const f32 scalar)
 	{
 		x = x + scalar;
 		y = y + scalar;
@@ -158,7 +158,7 @@ public:
 		return *this;
 	}
 
-	Vector3D operator-(const float scalar)
+	Vector3D operator-(const f32 scalar)
 	{
 		x = x - scalar;
 		y = y - scalar;
@@ -167,7 +167,7 @@ public:
 		return *this;
 	}
 
-	Vector3D operator*(const float scalar)
+	Vector3D operator*(const f32 scalar)
 	{
 		Vector3D outVector;
 		outVector.x = x * scalar;
@@ -177,7 +177,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator/(const float scalar)
+	Vector3D operator/(const f32 scalar)
 	{
 		x = x / scalar;
 		y = y / scalar;
@@ -247,7 +247,7 @@ public:
 		z = -z;
 	}
 
-	float Length() const
+	f32 Length() const
 	{
 		return sqrt((x * x) + (y * y) + (z * z));
 	}
@@ -256,8 +256,8 @@ public:
 	{
 		Vector3D outVector{x, y, z};
 
-		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
-		float invSqrt = 1 / M_SQRT(flDot);
+		f32 flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		f32 invSqrt = 1 / M_SQRT(flDot);
 
 		return outVector * invSqrt;
 	}
@@ -266,13 +266,13 @@ public:
 	{
 		Vector3D outVector{ x, y, z };
 
-		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
-		float invSqrt = 1 / M_SQRT(flDot);
+		f32 flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		f32 invSqrt = 1 / M_SQRT(flDot);
 
 		*this * invSqrt;
 	}
 
-	static float DotProduct(Vector3D& vecA, Vector3D& vecB)
+	static f32 DotProduct(Vector3D& vecA, Vector3D& vecB)
 	{
 		Vector3D tempVec(vecA * vecB);
 		return tempVec.x + tempVec.y + tempVec.z;
@@ -292,23 +292,23 @@ public:
 class Vector4D
 {
 public:
-	float x;
-	float y;
-	float z;
-	float w;
+	f32 x;
+	f32 y;
+	f32 z;
+	f32 w;
 	Vector4D()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 } 
 		, w{ 0 } {}
 
-	Vector4D(float x_, float y_, float z_, float w_)
+	Vector4D(f32 x_, f32 y_, f32 z_, f32 w_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ }
 		, w{ w_ } {}
 
-	void operator+(const float scalar)
+	void operator+(const f32 scalar)
 	{
 		x = x + scalar;
 		y = y + scalar;
@@ -316,7 +316,7 @@ public:
 		w = w + scalar;
 	}
 
-	void operator-(const float scalar)
+	void operator-(const f32 scalar)
 	{
 		x = x - scalar;
 		y = y - scalar;
@@ -324,7 +324,7 @@ public:
 		w = w - scalar;
 	}
 
-	void operator*(const float scalar)
+	void operator*(const f32 scalar)
 	{
 		x = x * scalar;
 		y = y * scalar;
@@ -332,7 +332,7 @@ public:
 		w = w * scalar;
 	}
 
-	void operator/(const float scalar)
+	void operator/(const f32 scalar)
 	{
 		x = x / scalar;
 		y = y / scalar;
@@ -398,7 +398,7 @@ public:
 		w = -w;
 	}
 
-	float Length() const
+	f32 Length() const
 	{
 		return sqrt((x * x) + (y * y) + (z * z) + (w * w));
 	}
@@ -406,7 +406,7 @@ public:
 	Vector4D Normalize() const
 	{
 		Vector4D outVector{};
-		float length = Length();
+		f32 length = Length();
 
 		outVector.x = x / length;
 		outVector.y = y / length;
@@ -418,7 +418,7 @@ public:
 
 	void NormalizeInPlace()
 	{
-		float length = Length();
+		f32 length = Length();
 
 		x = x / length;
 		y = y / length;
@@ -426,7 +426,7 @@ public:
 		w = w / length;
 	}
 
-	static float DotProduct(const Vector4D& vecA, const Vector4D& vecB)
+	static f32 DotProduct(const Vector4D& vecA, const Vector4D& vecB)
 	{
 		return (vecA.x * vecB.x) + (vecA.y * vecB.y) + (vecA.z * vecB.z) + (vecA.w * vecB.w);
 	}

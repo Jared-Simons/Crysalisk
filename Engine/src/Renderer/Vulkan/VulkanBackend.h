@@ -318,7 +318,7 @@ public:
 class VulkanImage
 {
 public:
-	static bool		CreateImage(CVulkanRenderer* pRenderingContext, int width, int height, int numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
+	static bool		CreateImage(CVulkanRenderer* pRenderingContext, i32 width, i32 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
 	static void		DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* pImage);
 
 	bool			TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -389,7 +389,7 @@ public:
 
 	VkDescriptorSetLayout		m_DescriptorSetLayout;
 	VkDescriptorPool			m_DescriptorPool;
-	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of double and triple buffering
+	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of f64 and triple buffering
 
 	// TODO: Instance level resources!
 	CVector<VulkanBuffer>		m_UniformBuffers;

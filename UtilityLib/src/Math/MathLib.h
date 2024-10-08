@@ -11,22 +11,22 @@
 
 #define M_PI 3.14159265359
 
-inline double M_SQRT(double x) { return sqrt(x); }
-inline float M_SQRT(float x) { return sqrt(x); }
+inline f64 M_SQRT(f64 x) { return sqrt(x); }
+inline f32 M_SQRT(f32 x) { return sqrt(x); }
 
-inline double M_SIN(double x) { return sin(x); }
-inline float M_SIN(float x) { return sin(x); }
+inline f64 M_SIN(f64 x) { return sin(x); }
+inline f32 M_SIN(f32 x) { return sin(x); }
 
-inline double M_COS(double x) { return cos(x); }
-inline float M_COS(float x) { return cos(x); }
+inline f64 M_COS(f64 x) { return cos(x); }
+inline f32 M_COS(f32 x) { return cos(x); }
 
-inline double M_TAN(double x) { return tan(x); }
-inline float M_TAN(float x) { return tan(x); }
+inline f64 M_TAN(f64 x) { return tan(x); }
+inline f32 M_TAN(f32 x) { return tan(x); }
 
-inline double M_RAD2DEG(double angleInRadians) { return angleInRadians * (180.0 / M_PI); }
-inline float M_RAD2DEG(float angleInRadians) { return angleInRadians * (180.0f / static_cast<float>(M_PI)); }
+inline f64 M_RAD2DEG(f64 angleInRadians) { return angleInRadians * (180.0 / M_PI); }
+inline f32 M_RAD2DEG(f32 angleInRadians) { return angleInRadians * (180.0f / static_cast<f32>(M_PI)); }
 
-inline double M_DEG2RAD(double angleInDegrees) { return angleInDegrees * (M_PI / 180.0); }
-inline float M_DEG2RAD(float angleInDegrees) { return angleInDegrees * (static_cast<float>(M_PI)) / 180.0f; }
+inline f64 M_DEG2RAD(f64 angleInDegrees) { return angleInDegrees * (M_PI / 180.0); }
+inline f32 M_DEG2RAD(f32 angleInDegrees) { return angleInDegrees * (static_cast<f32>(M_PI)) / 180.0f; }
 
-inline double M_ABS(double x) { return abs(x); }
+inline f64 M_ABS(f64 x) { return abs(x); }

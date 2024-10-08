@@ -22,13 +22,13 @@ enum class eLogLevel
 class ENGINE_API LogSystem
 {
 public:
-	static bool	Init(int iLogVerbosity);
+	static bool	Init(i32 iLogVerbosity);
 	static void	Shutdown();
 
 	static void LogMessage(eLogLevel level, const char* message, ...);
 
 private:
-	static int	m_LogVerbosity;
+	static i32	m_LogVerbosity;
 };
 
 // General-purpose logging macros

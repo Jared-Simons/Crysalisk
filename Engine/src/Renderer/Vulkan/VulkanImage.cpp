@@ -8,7 +8,7 @@
 
 #include "Core/Logging.h"
 
-bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, int width, int height, int numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage)
+bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, i32 width, i32 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage)
 {
 	VkImageCreateInfo imageCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D; // TODO: make configurable

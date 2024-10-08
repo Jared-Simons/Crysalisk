@@ -261,7 +261,7 @@ bool Event_KeyReleased(EventData_t data)
 	{
 		// TODO: THIS CAUSES A MEMORY LEAK! TEXTURES ARE NOT BEING DESTROYED
 		// Once this is properly implemented, we need to make sure this is no longer leaking resources.
-		static int TextureChoice = 0;
+		static i32 TextureChoice = 0;
 		const char* textureNames[] =
 		{
 			"Assets/Textures/container.jpg",

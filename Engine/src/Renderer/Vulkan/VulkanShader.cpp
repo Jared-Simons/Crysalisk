@@ -132,7 +132,7 @@ void VulkanShader::DestroyVulkanShader(CVulkanRenderer* pRenderingContext, Vulka
 
 		vkDestroyDescriptorPool(pRenderingContext->m_Device.m_LogicalDevice, pShader->m_DescriptorPool, pRenderingContext->m_Allocator);
 
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 		{
 			VulkanBuffer::DestroyBuffer(pRenderingContext, &pShader->m_UniformBuffers[i]);
 		}
@@ -335,7 +335,7 @@ bool VulkanShader::AcquireInstanceResources(CVulkanRenderer* pRenderingContext, 
 	m_UniformBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
 	m_UniformBuffersMappedMemory.Resize(MAX_FRAMES_IN_FLIGHT);
 
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VulkanBuffer::CreateBuffer(pRenderingContext, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &m_UniformBuffers[i]);
 		vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
@@ -443,7 +443,7 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 	// Descriptor Sets
 	// TODO: Read in from shader config
 	CVector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < layouts.capacity(); i++)
+	for (i32 i = 0; i < layouts.capacity(); i++)
 	{
 		layouts[i] = m_DescriptorSetLayout;
 	}
@@ -459,7 +459,7 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 		return false;
 	}
 
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
@@ -498,7 +498,7 @@ bool VulkanShader::CreateDescriptorResources(CVulkanRenderer* pRenderingContext)
 
 void VulkanShader::UpdateDescriptorSets(CVulkanRenderer* pRenderingContext)
 {
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = m_UniformBuffers[i].m_Handle;

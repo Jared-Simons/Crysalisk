@@ -11,9 +11,9 @@
 class Texture
 {
 public:
-	int m_Width;
-	int m_Height;
-	int m_ChannelCount;
+	i32 m_Width;
+	i32 m_Height;
+	i32 m_ChannelCount;
 	const char* m_TextureName;
 
 	void* m_internalData;

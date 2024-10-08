@@ -89,10 +89,10 @@ TValue& CHashmap<TKey, TValue>::operator[](TKey pKey)
 template <typename TKey, typename TValue>
 size_t CHashmap<TKey, TValue>::GetHashFromKey(const char* pString)
 {
-	int sum = 0, mul = 1;
+	i32 sum = 0, mul = 1;
 	size_t len = StringLength(pString);
 
-	for (int index = 0; index < len; index++)
+	for (i32 index = 0; index < len; index++)
 	{
 		mul = (index % 4 == 0) ? 1 : mul * 256;
 		sum += pString[index] * mul;

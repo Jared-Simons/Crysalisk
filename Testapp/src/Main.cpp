@@ -1,7 +1,7 @@
 #include <Defines.h>
 #include <Core/Engine.h>
 
-int main()
+i32 main()
 {
 	EngineConfig_t engineConfig{};
 	engineConfig.isHeadless = false;

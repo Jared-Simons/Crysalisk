@@ -40,10 +40,10 @@ public:
 	void		Shutdown() override;
 	void		Update() override;
 
-	void		ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr) override;
+	void		ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr) override;
 	void		ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) override;
 
-	bool		IsKeyPressed(const int key) const override;
+	bool		IsKeyPressed(const i32 key) const override;
 
 private:
 	KeyState_T	m_KeysState[256];
@@ -147,7 +147,7 @@ void CInputSystem::Update()
 	}
 }
 
-void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed, Engine* enginePtr)
+void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr)
 {
 	if (processedKeyInput != 0)
 	{
@@ -238,7 +238,7 @@ void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u
 	}
 }
 
-bool CInputSystem::IsKeyPressed(const int key) const
+bool CInputSystem::IsKeyPressed(const i32 key) const
 {
 	if (m_KeysState[key].m_Pressed)
 		return true;

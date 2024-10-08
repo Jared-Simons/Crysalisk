@@ -22,9 +22,9 @@ const char* logLevelStrings[6] =
 	"[VERBOSE]",
 };
 
-int LogSystem::m_LogVerbosity = 6;
+i32 LogSystem::m_LogVerbosity = 6;
 
-bool LogSystem::Init(int iLogVerbosity)
+bool LogSystem::Init(i32 iLogVerbosity)
 {
 	m_LogVerbosity = iLogVerbosity;
 
@@ -37,7 +37,7 @@ void LogSystem::Shutdown()
 
 void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 {
-	if (static_cast<int>(level) > LogSystem::m_LogVerbosity)
+	if (static_cast<i32>(level) > LogSystem::m_LogVerbosity)
 	{
 		// Logging for these messages is disabled, just return.
 		return;
@@ -55,7 +55,7 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 
 	// Prepend channel string to the message
 	char outMessage2[4092];
-	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[static_cast<int>(level)], outMessage);
+	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[static_cast<i32>(level)], outMessage);
 
-	Platform::LogMessage(static_cast<int>(level), outMessage2);
+	Platform::LogMessage(static_cast<i32>(level), outMessage2);
 }
