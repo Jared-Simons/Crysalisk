@@ -4,11 +4,12 @@
 // 
 // Purpose: Implements the Core Input System.
 //=============================================================================
-#include "Systems/IInput.h"
+#include "Core/Input.h"
 
 #include "Core/Logging.h"
-#include "Systems/IMemory.h"
-#include "Systems/IEvent.h"
+#include "Core/Event.h"
+#include "Core/Memory.h"
+#include "Core/Engine.h"
 
 
 class CInputSystem : public IInputSystem
@@ -35,14 +36,14 @@ public:
 	// If the creation of this system fails, the engine will shutdown regardless.
 	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
 
-	bool		Initialize() override;
+	bool		Initialize(IEventSystem* pEventSystem) override;
 	void		Shutdown() override;
 	void		Update() override;
 
-	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
-	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed) override;
+	void		ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr) override;
+	void		ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) override;
 
-	bool		IsKeyPressed(const int key) const override;
+	bool		IsKeyPressed(const i32 key) const override;
 
 private:
 	KeyState_T	m_KeysState[256];
@@ -51,6 +52,10 @@ private:
 	MouseState_t m_MouseState;
 
 	bool		m_KeyStateDirty;
+
+private:
+	// Hold a pointer to the engine's event system so we can fire off events.
+	IEventSystem*	m_pEventSystem{ nullptr };
 };
 
 static CInputSystem* sInputSystem{ nullptr };
@@ -59,27 +64,27 @@ IInputSystem* gpInputSystem = sInputSystem;
 //-----------------------------------------------------------------------------
 // Factory method to initialize an event system.
 //-----------------------------------------------------------------------------
-bool IInputSystem::InputSystem_Initialize(IInputSystem* statePtr, LinearAllocator* pAllocator)
+IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator, IEventSystem* pEventSystem)
 {
-	if (statePtr)
+	if (pAllocator)
 	{
-		LOG_ERROR("InputSystem_Create() -> An active input system already exists at this location. Aborting!");
-		return false;
-	}
+		CInputSystem* inputSystem = new (pAllocator) CInputSystem();
 
-	// Setup the engine's input system
-	if (statePtr == gpInputSystem)
-	{
-		sInputSystem = new (pAllocator) CInputSystem();
-
-		if (!sInputSystem->Initialize())
+		if (!inputSystem->Initialize(pEventSystem))
 		{
-			return false;
+			return nullptr;
 		}
+
+		// HACK: This exposes the engine input system through a global accessor.
+		// This is hacky and should be cleaned up down the line...
+		sInputSystem = inputSystem;
 		gpInputSystem = sInputSystem;
+
+		return inputSystem;
 	}
 
-	return true;
+	LOG_ERROR("Engine subsystem initialization requires a memory allocator!");
+	return false;
 }
 
 //-----------------------------------------------------------------------------
@@ -99,10 +104,12 @@ void IInputSystem::InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory
 	}
 }
 
-bool CInputSystem::Initialize()
+bool CInputSystem::Initialize(IEventSystem* pEventSystem)
 {
+	// TODO: Logging for event system.
+
 	// setup m_KeysState table
-	for (char i = 0; i < MAX_INPUT_KEYS; i++)
+	for (u8 i = 0; i < MAX_INPUT_KEYS; i++)
 	{
 		m_KeysState[i].m_Char = i + 65;	// +65 so that array 0 lines up with 'A'
 		m_KeysState[i].m_Pressed = false;
@@ -114,10 +121,12 @@ bool CInputSystem::Initialize()
 	// setup m_MouseState table
 	m_MouseState.m_XPos = 0.0f;
 	m_MouseState.m_YPos = 0.0f;
-	for (int i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
+	for (u8 i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
 	{
 		m_MouseState.m_MouseButtons[i] = false;
 	}
+
+	m_pEventSystem = pEventSystem;
 
 	LOG_INFO("Input System Initialized!");
 
@@ -133,12 +142,12 @@ void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
-		gpMemorySystem->MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		Memory::MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
 		m_KeyStateDirty = false;
 	}
 }
 
-void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
+void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr)
 {
 	if (processedKeyInput != 0)
 	{
@@ -148,12 +157,12 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 		{
 			eventData.c[0] = processedKeyInput;
 			m_KeysState[processedKeyInput].m_Pressed = true;
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_PRESSED, eventData);
+			EventSystem::EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_Pressed = false;
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_KEY_RELEASED, eventData);
+			EventSystem::EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
 		}
 	}
 	else
@@ -164,7 +173,7 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 	m_KeyStateDirty = true;
 }
 
-void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags, bool pressed)
+void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed)
 {
 	if (mouseXPos != 0 && mouseYPos != 0)
 	{
@@ -198,7 +207,7 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BPRESSED, eventData);
+		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && !pressed)
@@ -225,11 +234,11 @@ void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPo
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_INPUT_MOUSE_BRELEASED, eventData);
+		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
 }
 
-bool CInputSystem::IsKeyPressed(const int key) const
+bool CInputSystem::IsKeyPressed(const i32 key) const
 {
 	if (m_KeysState[key].m_Pressed)
 		return true;

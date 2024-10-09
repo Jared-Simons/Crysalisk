@@ -2,7 +2,7 @@
 // Author: Jared Simons
 // Date Created: 6/26/2024
 // 
-// Purpose: Interface and utilties for Vulkan Semaphore
+// Purpose: interface and utilties for Vulkan Semaphore
 //=============================================================================
 #include "VulkanBackend.h"
 

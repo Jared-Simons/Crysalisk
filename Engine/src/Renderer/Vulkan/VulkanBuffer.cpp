@@ -59,7 +59,7 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer* pRenderContext, VulkanBuffer* 
 	}
 }
 
-void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t dataSize, void* data)
+void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset)
 {
 	if (!data || dataSize <= 0)
 	{
@@ -68,12 +68,12 @@ void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, size_t
 	}
 
 	void* bufferData;
-	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, 0, dataSize, 0, &bufferData);
+	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, offset, dataSize, 0, &bufferData);
 		memcpy(bufferData, data, dataSize);
 	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory);
 }
 
-bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, unsigned int width, unsigned int height, VulkanImage* pImage)
+bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u32 width, u32 height, VulkanImage* pImage)
 {
 	VulkanCommandBuffer commandBuffer;
 	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);

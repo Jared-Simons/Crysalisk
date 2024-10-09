@@ -5,14 +5,15 @@
 // Purpose: The Windows implementation of the platform layer.
 //=============================================================================
 
-#include "EngineGlobals.h"
+#include "Defines.h"
 #ifdef PLAT_WINDOWS
 
 #include "Platform.h"
 
 #include "Core/Logging.h"
-#include "Systems/IEvent.h"
-#include "Systems/IInput.h"
+#include "Core/Event.h"
+#include "Core/Input.h"
+#include "Core/Engine.h"
 
 #include <Memory/LinearAllocator.h>
 
@@ -33,11 +34,14 @@ struct Platform_Win32_InternalData
 	HWND hWnd = 0;
 	HINSTANCE hInstance = 0;
 
-	inline static double m_ClockFreq = -1;
+	inline static f64 m_ClockFreq = -1;
 	inline static LARGE_INTEGER m_ClockStartTime;
 };
 
 static Platform_Win32_InternalData* win32PlatformData{ nullptr };
+
+// An internal pointer to the engine context.
+static Engine* s_EnginePtr{ nullptr };
 
 namespace Platform {
 
@@ -47,17 +51,19 @@ namespace Platform {
 
 	static bool	CreateWin32Window(LinearAllocator* pAllocator);
 	static bool CreateWin32Clock();
-	static int ProcessWin32Input_Key(WPARAM wParam);
-	static int ProcessWin32Input_MouseButton(UINT uMsg);
-	static int ProcessWin32Input_MouseMove(LPARAM lParam);
+	static i32 ProcessWin32Input_Key(WPARAM wParam);
+	static i32 ProcessWin32Input_MouseButton(UINT uMsg);
+	static i32 ProcessWin32Input_MouseMove(LPARAM lParam);
 
-	bool Initialize(LinearAllocator* pAllocator)
+	bool Initialize(LinearAllocator* pAllocator, Engine* pEngine)
 	{
 		if (win32PlatformData != nullptr)
 		{
 			LOG_ERROR("PlatformInitialize() - Platform State Already Exists!\n");
 			return true;
 		}
+
+		s_EnginePtr = pEngine;
 
 		if (!CreateWin32Window(pAllocator))
 		{
@@ -69,6 +75,12 @@ namespace Platform {
 		if (!CreateWin32Clock())
 		{
 			LOG_FATAL("CreateWin32Clock failed! - Aborting application!");
+			return false;
+		}
+
+		if (s_EnginePtr == nullptr)
+		{
+			LOG_ERROR("Platform::Initialize() REQUIRES a valid pointer to the calling engine context!");
 			return false;
 		}
 
@@ -86,14 +98,14 @@ namespace Platform {
 
 		win32PlatformData->hInstance = GetModuleHandle(NULL);
 
-		unsigned int windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
-		unsigned int windowExStyle = WS_EX_APPWINDOW;
+		u32 windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
+		u32 windowExStyle = WS_EX_APPWINDOW;
 
 		// Do some fixup on the window dimensions to account for the window border.
-		int windowX = 100;
-		int windowY = 100;
-		int windowWidth = 1080;
-		int windowHeight = 720;
+		i32 windowX = 100;
+		i32 windowY = 100;
+		i32 windowWidth = 1080;
+		i32 windowHeight = 720;
 
 		RECT borderRect = { 0 };
 		AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
@@ -177,20 +189,20 @@ namespace Platform {
 		return true;
 	}
 
-	void GetWindowSize(unsigned int* pOutWidth, unsigned int* pOutHeight)
+	void GetWindowSize(u32* pOutWidth, u32* pOutHeight)
 	{
 		RECT rect;
 		if (GetClientRect(win32PlatformData->hWnd, &rect))
 		{
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
+			i32 width = rect.right - rect.left;
+			i32 height = rect.bottom - rect.top;
 
 			*pOutWidth = width;
 			*pOutHeight = height;
 		}
 	}
 
-	double GetAbsoluteTime()
+	f64 GetAbsoluteTime()
 	{
 		// If the clock has not yet been initialized (possibly due to headless mode)
 		// initialize it here
@@ -204,7 +216,7 @@ namespace Platform {
 		LARGE_INTEGER currentTime;
 		QueryPerformanceCounter(&currentTime);
 
-		double elapsedTime = (double)currentTime.QuadPart * win32PlatformData->m_ClockFreq;
+		f64 elapsedTime = (f64)currentTime.QuadPart * win32PlatformData->m_ClockFreq;
 		return elapsedTime;
 	}
 
@@ -228,11 +240,11 @@ namespace Platform {
 	#define WHITE			15
 	*/
 
-	void LogMessage(int level, const char* message)
+	void LogMessage(u8 level, const char* message)
 	{
 		HANDLE outputHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 		// TODO: make these colors selectable per log channel (this will probably turn into a larger array/move elsewhere in the future).
-		static char levelColor[6] = { 8, 3, 5, 6, 4, 64 };	// Borrowed from Kohi
+		static char levelColor[6] = { 64, 4, 6, 5, 3, 8 };
 		SetConsoleTextAttribute(outputHandle, levelColor[level]);
 		size_t length = strlen(message);
 		WriteConsoleA(outputHandle, message, (DWORD)length, 0, 0);
@@ -267,7 +279,7 @@ namespace Platform {
 		{
 		case WM_DESTROY:
 			// TODO: Change this to only affect the main window if and when we have multiple windows going.
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, EventData_t());
+			EventSystem::EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t());
 			return 0;
 			break;
 
@@ -277,16 +289,16 @@ namespace Platform {
 			{
 				// Escape pressed... exit application TODO!!! MOVE ELSEWHERE
 				EventData_t data{};
-				gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_APPLICATION_QUIT, data);
+				EventSystem::EventFire(eEventCategory::APPLICATION_QUIT, nullptr, data);
 				break;
 			}
 			else
 			{
 				// Prepare message data for input processing
-				int processedKeyCode = ProcessWin32Input_Key(wParam);
+				i32 processedKeyCode = ProcessWin32Input_Key(wParam);
 
 				// Send to the input system.
-				gpInputSystem->ProcessKeyInput(processedKeyCode, true);
+				gpInputSystem->ProcessKeyInput(processedKeyCode, true, s_EnginePtr);
 			}
 			break;
 
@@ -294,10 +306,10 @@ namespace Platform {
 		case WM_SYSKEYUP:
 		{
 			// Prepare message data for input processing
-			int processedKeyCode = ProcessWin32Input_Key(wParam);
+			i32 processedKeyCode = ProcessWin32Input_Key(wParam);
 
 			// Send to the input system.
-			gpInputSystem->ProcessKeyInput(processedKeyCode, false);
+			gpInputSystem->ProcessKeyInput(processedKeyCode, false, s_EnginePtr);
 		}
 		break;
 
@@ -305,7 +317,7 @@ namespace Platform {
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
 		{
-			int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+			i32 processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 			gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, false);
 			break;
 		}
@@ -314,7 +326,7 @@ namespace Platform {
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 		{
-			int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+			i32 processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 			gpInputSystem->ProcessMouseInput(NULL, NULL, processedMouseCode, true);
 			break;
 		}
@@ -325,26 +337,26 @@ namespace Platform {
 
 		case WM_SIZE:
 		{
-			int width = LOWORD(lParam);
-			int height = HIWORD(lParam);
+			i32 width = LOWORD(lParam);
+			i32 height = HIWORD(lParam);
 
 			EventData_t data;
 			data.u16[0] = width;
 			data.u16[1] = height;
 
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, data);
+			EventSystem::EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
 			break;
 		}
 
 		case WM_ENTERSIZEMOVE:
 		{
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_START_RESIZE, EventData_t{});
+			EventSystem::EventFire(eEventCategory::WINDOW_START_RESIZE, nullptr, EventData_t{});
 			break;
 		}
 
 		case WM_EXITSIZEMOVE:
 		{
-			gpEngineEvents->EventFire(eEventCategory::EVENT_TYPE_WINDOW_END_RESIZE, EventData_t{});
+			EventSystem::EventFire(eEventCategory::WINDOW_END_RESIZE, nullptr, EventData_t{});
 			break;
 		}
 
@@ -359,7 +371,7 @@ namespace Platform {
 	// ============================================================================
 	//  WIN32 Input Processing
 	// ============================================================================
-	int ProcessWin32Input_Key(WPARAM wParam)
+	i32 ProcessWin32Input_Key(WPARAM wParam)
 	{
 		switch (wParam)
 		{
@@ -371,8 +383,14 @@ namespace Platform {
 			return KEY_SPACE;
 			break;
 
+		case 0x25:
+			return KEY_LEFT;
+			break;
 		case 0x26:
 			return KEY_UP;
+			break;
+		case 0x27:
+			return KEY_RIGHT;
 			break;
 		case 0x28:
 			return KEY_DOWN;
@@ -462,7 +480,7 @@ namespace Platform {
 		}
 	}
 
-	int ProcessWin32Input_MouseButton(UINT uMsg)
+	i32 ProcessWin32Input_MouseButton(UINT uMsg)
 	{
 		switch (uMsg)
 		{
@@ -490,10 +508,10 @@ namespace Platform {
 		}
 	}
 
-	int ProcessWin32Input_MouseMove(LPARAM lParam)
+	i32 ProcessWin32Input_MouseMove(LPARAM lParam)
 	{
-		float mouseXPos = 0;
-		float mouseYPos = 0;
+		f32 mouseXPos = 0;
+		f32 mouseYPos = 0;
 
 		if (lParam)
 		{
@@ -513,12 +531,26 @@ namespace Platform {
 	//-----------------------------------------------------------------------------
 	void* MemoryAllocate(size_t size)
 	{
-		return malloc(size);
+		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, sizeof(u32) + size); // memory block + header for tagging platform allocations
+		
+		u32* blockHeader = static_cast<u32*>(pMemBlock);
+
+		if (blockHeader)
+			*blockHeader = magicMemPlatformNumber;
+
+		return static_cast<u32*>(pMemBlock) + 1;
 	}
 
 	void MemoryFree(void* memory)
 	{
-		free(memory);
+		u32* blockHeader = static_cast<u32*>(memory) - 1;
+
+		if (*blockHeader != magicMemPlatformNumber)
+		{
+			LOG_WARN("Freeing memory at the platform level that was not properly tagged!");
+		}
+
+		HeapFree(GetProcessHeap(), 0, blockHeader);
 	}
 
 	void* MemoryReallocate(void* memory, size_t newSize)
@@ -539,9 +571,9 @@ namespace Platform {
 		return nullptr;
 	}
 
-	void* MemorySet(void* memory, int value, size_t size)
+	void* MemorySet(void* memory, i32 value, size_t size)
 	{
-		if (memory && size)
+		if (memory)
 			return memset(memory, value, size);
 
 		LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");

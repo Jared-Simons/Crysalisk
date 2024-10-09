@@ -6,9 +6,7 @@ The Logging system is not very flexible yet - it relies on ALWAYS having at leas
 
 The custom containers are dynamicially allocating from malloc, this should be switched to our own memory system.
 
-FileSystem:
-
-Filesystem currently only opens files in either read OR write mode... can't do both.
+Need a custom window type for the platform layer.
 
 CVector:
 
@@ -16,6 +14,8 @@ Trying to pass a CVector by value to create a copy will result in heap-corruptio
 	Need to nail down pass-by-value vs pass-by-reference with CVector.
 	
 Passing CVector to a function with 'const' does not work yet - this should be prioritized going forward.
+
+CVector will allocate from the engine's heap, even if it was allocated elsewhere.
 
 
 CSet:

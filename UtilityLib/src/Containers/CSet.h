@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
 
 // CSets are essentially CSets with extra checks for repetitive entries.
 // Much of this is similar to CSet's layout
@@ -140,7 +141,7 @@ public:
 private:
 	void BuildListFromVariableConstructor(size_t numOfElements, T values[])
 	{
-		for (int i = 0; i < numOfElements; i++)
+		for (i32 i = 0; i < numOfElements; i++)
 		{
 			PushBack(values[i]);
 		}
@@ -148,10 +149,10 @@ private:
 
 public:
 
-	T& operator[](int index)
+	T& operator[](i32 index)
 	{
 		CSetNode<T>* currentNode = m_pHead;
-		for (int i = 0; i < index; i++)
+		for (i32 i = 0; i < index; i++)
 			currentNode = currentNode->m_pNext;
 
 		return currentNode->m_pData;

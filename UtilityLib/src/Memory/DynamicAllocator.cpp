@@ -7,13 +7,17 @@
 
 #include "DynamicAllocator.h"
 
-DynamicAllocator::DynamicAllocator(size_t sizeInBytes)
+DynamicAllocator::DynamicAllocator(size_t sizeInBytes, void* pMemBlock)
 	: m_Size{ sizeInBytes }
 	, m_Allocated{ 0 }
-	, m_pData{ nullptr }
+	, m_pData{ pMemBlock }
 	, m_pHeadNode{ nullptr }
 {
-	m_pData = Platform::MemoryAllocate(sizeInBytes);
+	if (!pMemBlock)
+	{
+		LOG_ERROR("Dynamic Allocator REQUIRES a pointer to an allocated block of memory. Creation failed.");
+		return;
+	}
 
 	FreeListNode_t* pFirstNode = static_cast<FreeListNode_t*>(m_pData);
 	pFirstNode->blockSize = sizeInBytes;
@@ -28,9 +32,6 @@ DynamicAllocator::DynamicAllocator(size_t sizeInBytes)
 DynamicAllocator::~DynamicAllocator()
 {
 	//LOG_INFO("Destroying Allocator with %d bytes.", m_Size);
-
-	Platform::MemorySet(m_pData, 0, m_Size);
-	Platform::MemoryFree(m_pData);
 	m_pData = nullptr;
 }
 
@@ -122,7 +123,9 @@ void* DynamicAllocator::Allocate(size_t size, size_t alignment)
 	void* pMemBlock = static_cast<char*>((void*)pCurrentNode) + ALLOC_HEADER_SIZE;
 	Platform::MemorySet(pMemBlock, 0, size);
 
-	LOG_VERBOSE("Memory Allocation -> size %d bytes, at address 0x%p.", pCurrentNode->blockSize, pMemBlock);
+#ifdef CRYS_DEBUG
+	//LOG_VERBOSE("Memory Allocation -> size %d bytes, at address 0x%p.", pCurrentNode->blockSize, pMemBlock);
+#endif
 
 	return pMemBlock;
 }
@@ -216,7 +219,9 @@ void DynamicAllocator::Free(void* pMemBlock)
 
 	m_Allocated -= pNodeToReturn->blockSize + ALLOC_HEADER_SIZE;
 
-	LOG_VERBOSE("Memory Freed -> size %d bytes, at address 0x%p.", pNodeToReturn->blockSize, pMemBlock);
+#ifdef CRYS_DEBUG
+	//LOG_VERBOSE("Memory Freed -> size %d bytes, at address 0x%p.", pNodeToReturn->blockSize, pMemBlock);
+#endif
 
 	//ReportMemoryFragmentation();
 
@@ -225,8 +230,8 @@ void DynamicAllocator::Free(void* pMemBlock)
 
 void DynamicAllocator::ReportMemoryFragmentation()
 {
-	int numberOfFreeMemoryNodes = 0;
-	int numberOfContiguousNodes = 0;
+	i32 numberOfFreeMemoryNodes = 0;
+	i32 numberOfContiguousNodes = 0;
 	FreeListNode_t* pCurrentNode = m_pHeadNode;
 
 	while (pCurrentNode != nullptr)
@@ -258,7 +263,9 @@ void DynamicAllocator::CleanupMemoryFragmentation()
 		{
 			if ((pCurrentNode->offset + ALLOC_HEADER_SIZE + pCurrentNode->blockSize) == pCurrentNode->pNext->offset)
 			{
-				LOG_VERBOSE("Cleaning up memory fragmentation");
+#ifdef CRYS_DEBUG
+				//LOG_VERBOSE("Cleaning up memory fragmentation");
+#endif
 
 				pCurrentNode->blockSize = pCurrentNode->blockSize + ALLOC_HEADER_SIZE + pCurrentNode->pNext->blockSize;
 				pCurrentNode->pNext = pCurrentNode->pNext->pNext;

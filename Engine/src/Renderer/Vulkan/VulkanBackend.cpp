@@ -4,17 +4,14 @@
 #include "Platform/VulkanPlatform.h"
 
 #include "Core/Logging.h"
-#include "Systems/IEvent.h"
+#include "Core/Event.h"
 
 #include <Math/VertexTypes.h>
 
 #include <String_Utils.h>
+#include <Resources/ResourceTypes.h>
 
-
-// TODO: Move to texture manager or resource loader
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
-#include "Systems/IInput.h"
+#include "Core/Input.h"
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -26,56 +23,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 bool Event_FramebufferResized(EventData_t data);
 
 // TEMP: Camera
-struct Camera
-{
-	Vector3D Position;
-	Vector3D Front;
-	Vector3D Up;
-	Vector3D Right;
-	Vector3D WorldUp;
-
-	float Yaw;
-	float Pitch;
-
-	float MovementSpeed;
-
-	Camera(Vector3D inPosition, Vector3D inUp, float inYaw, float inPitch)
-		: Front(Vector3D(0.0f, 0.0f, -1.0f))
-		, MovementSpeed(1.0f)
-	{
-		Position = inPosition;
-		WorldUp = inUp;
-		Pitch = inPitch;
-		Yaw = inYaw;
-		UpdateCameraVectors();
-	}
-
-	Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(Position, Position + Front, Up); }
-
-	void UpdateCameraVectors()
-	{
-		Vector3D front;
-		front.x = M_COS(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		front.y = M_SIN(M_DEG_TO_RAD(Pitch));
-		front.z = M_SIN(M_DEG_TO_RAD(Yaw)) * M_COS(M_DEG_TO_RAD(Pitch));
-		Front = front.Normalize();
-
-		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
-		Right = newRight.Normalize();
-
-		Vector3D newUp = Vector3D::CrossProduct(Right, Front);
-		Up = newUp.Normalize();
-	}
-};
-
 Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+f32 deltaTime = 0.0f;
+f32 lastFrame = 0.0f;
 
-void UpdateCameraPosition(float deltaTime)
+void UpdateCameraPosition(f32 deltaTime)
 {
-	float cameraSpeed = static_cast<float>(2.5f * deltaTime);
-	const float cameraRotationSpeedMultiplier = 20.0f;
+	f32 cameraSpeed = static_cast<f32>(2.5f * deltaTime);
+	const f32 cameraRotationSpeedMultiplier = 20.0f;
 
 	if (gpInputSystem->IsKeyPressed(KEY_W))
 		s_Camera.Position = s_Camera.Position + (s_Camera.Front * cameraSpeed);
@@ -93,44 +48,50 @@ void UpdateCameraPosition(float deltaTime)
 	}
 
 	if (gpInputSystem->IsKeyPressed(KEY_SPACE))
-		s_Camera.Position = s_Camera.Position - (s_Camera.Up * cameraSpeed);
-
-	if (gpInputSystem->IsKeyPressed(KEY_CTRL))
 		s_Camera.Position = s_Camera.Position + (s_Camera.Up * cameraSpeed);
 
-	if (gpInputSystem->IsKeyPressed(KEY_E))
+	if (gpInputSystem->IsKeyPressed(KEY_CTRL))
+		s_Camera.Position = s_Camera.Position - (s_Camera.Up * cameraSpeed);
+
+	if (gpInputSystem->IsKeyPressed(KEY_RIGHT))
 	{
 		s_Camera.Yaw += cameraSpeed * cameraRotationSpeedMultiplier;
 		s_Camera.UpdateCameraVectors();
-
-		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
 	}
 
-	if (gpInputSystem->IsKeyPressed(KEY_Q))
+	if (gpInputSystem->IsKeyPressed(KEY_LEFT))
 	{
 		s_Camera.Yaw -= cameraSpeed * cameraRotationSpeedMultiplier;
 		s_Camera.UpdateCameraVectors();
-
-		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
 	}
 
 	if (gpInputSystem->IsKeyPressed(KEY_UP))
 	{
-		s_Camera.Pitch -= cameraSpeed * cameraRotationSpeedMultiplier;
-		s_Camera.UpdateCameraVectors();
+		s_Camera.Pitch += cameraSpeed * cameraRotationSpeedMultiplier;
 
-		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+		if (s_Camera.Pitch > 89.0f)
+			s_Camera.Pitch = 89.0f;
+
+		s_Camera.UpdateCameraVectors();
 	}
 
 	if (gpInputSystem->IsKeyPressed(KEY_DOWN))
 	{
-		s_Camera.Pitch += cameraSpeed * cameraRotationSpeedMultiplier;
-		s_Camera.UpdateCameraVectors();
+		if (s_Camera.Pitch < -89.0f)
+			s_Camera.Pitch = -89.0f;
 
-		LOG_DEBUG("%.2f, %.2f", s_Camera.Pitch, s_Camera.Yaw);
+		s_Camera.Pitch -= cameraSpeed * cameraRotationSpeedMultiplier;
+		s_Camera.UpdateCameraVectors();
+	}
+
+	if (gpInputSystem->IsKeyPressed(KEY_P))
+	{
+		LOG_DEBUG("%.2f, %.2f, %.2f", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
 	}
 
 }
+
+
 // END TEMP: Camera
 
 bool CVulkanRenderer::RendererBackend_Initialize()
@@ -140,7 +101,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	Platform::GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
 
 	// Register for window resize events
-	gpEngineEvents->EventRegister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
+	EventSystem::EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
 
 	// Instance
 	if (!CreateVulkanInstance())
@@ -166,40 +127,6 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanRenderpass::CreateRenderpass(this, &m_MainRenderpass))
 		return false;
 
-	// Descriptor set layouts
-	// TODO: Re-locate this (to the shader class?)
-	{
-		VkDescriptorSetLayoutBinding uboLayoutBinding{};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding.pImmutableSamplers = nullptr;
-
-		VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-		samplerLayoutBinding.binding = 1;
-		samplerLayoutBinding.descriptorCount = 1;
-		samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		samplerLayoutBinding.pImmutableSamplers = nullptr;
-
-		VkDescriptorSetLayoutBinding bindings[2] = { uboLayoutBinding, samplerLayoutBinding };
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		layoutInfo.bindingCount = 2;
-		layoutInfo.pBindings = bindings;
-
-		if (!VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_LogicalDevice, &layoutInfo, m_Allocator, &m_DescriptorSetLayout)))
-		{
-			LOG_ERROR("Failed to create descriptor set layout!");
-			return false;
-		}
-	}
-
-	// Main shader
-	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
-		return false;
-
 	// Command Pool
 	if (!VulkanCommandPool::CreateCommandPool(this, &m_GraphicsCommandPool))
 		return false;
@@ -207,42 +134,28 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// Command Buffers
 	// one per frame
 	m_CommandBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_CommandBuffers.size(); i++)
+	for (i32 i = 0; i < m_CommandBuffers.size(); i++)
 	{
 		if (!VulkanCommandBuffer::CreateCommandBuffer(this, true, &m_CommandBuffers[i]))
 			return false;
 	}
 
+	// Main shader
+	if (!VulkanShader::CreateVulkanShader(this, &m_StandardShader))
+		return false;
+
 	// Framebuffers
 	// one per frame
 	m_Swapchain.m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 	{
 		if (!VulkanFramebuffer::CreateFramebuffer(this, &m_Swapchain.m_Framebuffers[i], i))
 			return false;
 	}
 
 	// Buffers
-
-	// TODO: Temp rendering data
-	
-	CVector<Vertex3D> vertices(4);
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.0f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.0f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.0f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.0f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-
-	CVector<uint16_t> indices((size_t)6);
-	indices.PushBack(0);
-	indices.PushBack(1);
-	indices.PushBack(3);
-	indices.PushBack(1);
-	indices.PushBack(2);
-	indices.PushBack(3);
-	
-	
-	VkDeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.capacity();
-	VkDeviceSize indexBufferSize = sizeof(indices[0]) * indices.capacity();
+	VkDeviceSize vertexBufferSize = sizeof(Vertex3D) * 1024;
+	VkDeviceSize indexBufferSize = sizeof(u16) * 1024;
 
 	if (!VulkanBuffer::CreateBuffer(this, vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_VertexBuffer))
 		return false;
@@ -250,140 +163,10 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	if (!VulkanBuffer::CreateBuffer(this, indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_IndexBuffer))
 		return false;
 
-	// Upload the data to the GPU
-	m_VertexBuffer.UploadDataToBuffer(this, vertexBufferSize, vertices.data());
-	m_IndexBuffer.UploadDataToBuffer(this, indexBufferSize, indices.data());
-
-	// Uniform Buffer
-	{
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-		m_UniformBuffers.Resize(MAX_FRAMES_IN_FLIGHT);
-		m_UniformBuffersMappedMemory.Resize(MAX_FRAMES_IN_FLIGHT);
-
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			VulkanBuffer::CreateBuffer(this, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &m_UniformBuffers[i]);
-			vkMapMemory(m_Device.m_LogicalDevice, m_UniformBuffers[i].m_Memory, 0, bufferSize, 0, &m_UniformBuffersMappedMemory[i]);
-		}
-	}
-
-	// Image data
-	int texWidth, texHeight, texChannels;
-	char* filePath = "Assets/Textures/container.jpg";
-	unsigned char* pixels = stbi_load(filePath, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-	VkDeviceSize imageSize = (size_t)texWidth * (size_t)texHeight * 4;
-
-	if (!pixels)
-	{
-		LOG_ERROR("Failed to load image '%s'.", filePath);
-	}
-	else
-	{
-		VulkanBuffer imageBuffer;
-		VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &imageBuffer);
-
-		void* data;
-		vkMapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory, 0, imageSize, 0, &data);
-			memcpy(data, pixels, (size_t)imageSize);
-		vkUnmapMemory(m_Device.m_LogicalDevice, imageBuffer.m_Memory);
-
-		// Create Vulkan Resources for image
-		VulkanImage::CreateImage(this, texWidth, texHeight, 4, pixels, true, &m_TextureImage);	// NOTE: We require 4 channels for now, even if there's no alpha channel
-
-		m_TextureImage.TransitionImageLayout(this, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		imageBuffer.CopyBufferToImage(this, texWidth, texHeight, &m_TextureImage);
-		m_TextureImage.TransitionImageLayout(this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		VulkanBuffer::DestroyBuffer(this, &imageBuffer);
-	}
-
-	stbi_image_free(pixels);
-
-	// TODO: END TEMP
-
-	// Descriptor pool
-	{
-		VkDescriptorPoolSize poolSizes[2];
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = MAX_FRAMES_IN_FLIGHT;
-
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = MAX_FRAMES_IN_FLIGHT;
-
-		VkDescriptorPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolCreateInfo.poolSizeCount = 2;
-		poolCreateInfo.pPoolSizes = poolSizes;
-		poolCreateInfo.maxSets = MAX_FRAMES_IN_FLIGHT;
-
-		if (!VK_CHECK(vkCreateDescriptorPool(m_Device.m_LogicalDevice, &poolCreateInfo, m_Allocator, &m_DescriptorPool)))
-		{
-			LOG_ERROR("Failed to create Vulkan Descriptor Pool");
-			return false;
-		}
-	}
-
-	// Descriptor Sets
-	// TODO: Move to shader?
-	{
-		CVector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT);
-		for (int i = 0; i < layouts.capacity(); i++)
-		{
-			layouts[i] = m_DescriptorSetLayout;
-		}
-
-		VkDescriptorSetAllocateInfo descriptorSetAllocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		descriptorSetAllocInfo.descriptorPool = m_DescriptorPool;
-		descriptorSetAllocInfo.descriptorSetCount = MAX_FRAMES_IN_FLIGHT;
-		descriptorSetAllocInfo.pSetLayouts = layouts.data();
-
-		if (!VK_CHECK(vkAllocateDescriptorSets(m_Device.m_LogicalDevice, &descriptorSetAllocInfo, m_DescriptorSets)))
-		{
-			LOG_ERROR("Failed to allocate descriptor sets!");
-			return false;
-		}
-
-		for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-		{
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_UniformBuffers[i].m_Handle;
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = m_TextureImage.m_ImageView;
-			imageInfo.sampler = m_TextureImage.m_ImageSampler;
-
-			// Note: Why wont the C-style array work here?
-			CVector<VkWriteDescriptorSet> descriptorWrites(2);
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = m_DescriptorSets[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = m_DescriptorSets[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			// TODO: This is ugly, again, a C array would be nice here
-			VkWriteDescriptorSet descriptorWriteArray[2] = { descriptorWrites[0], descriptorWrites[1] };
-			
-			vkUpdateDescriptorSets(m_Device.m_LogicalDevice, 2, descriptorWriteArray, 0, nullptr);
-		}
-	}
-
 	// Fences
 	// one per frame
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
 	{
 		if (!VulkanFence::CreateFence(this, true, &m_FrameInFlightFences[i]))
 			return false;
@@ -393,7 +176,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	// one per frame
 	m_ImageAvailableSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
 	m_RenderFinishedSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]))
 			return false;
@@ -402,7 +185,6 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 			return false;
 	}
 
-	LOG_DEBUG("%.2f %.2f %.2f ", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
 	m_RendererClock.Start();
 
 	return true;
@@ -414,33 +196,22 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	VulkanSwapchain::DestroySwapchain(this, &m_Swapchain);
 
-	VulkanImage::DestroyImage(this, &m_TextureImage);
-
-	vkDestroyDescriptorPool(m_Device.m_LogicalDevice, m_DescriptorPool, m_Allocator);
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-	{
-		VulkanBuffer::DestroyBuffer(this, &m_UniformBuffers[i]);
-	}
-
-	vkDestroyDescriptorSetLayout(m_Device.m_LogicalDevice, m_DescriptorSetLayout, m_Allocator);
-
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
 		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]);
 	}
 
-	for (int i = 0; i < m_FrameInFlightFences.size(); i++)
+	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
 		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
 
 	VulkanBuffer::DestroyBuffer(this, &m_IndexBuffer);
 	VulkanBuffer::DestroyBuffer(this, &m_VertexBuffer);
 
-	for (int i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
+	for (i32 i = 0; i < m_Swapchain.m_Framebuffers.size(); i++)
 		VulkanFramebuffer::DestroyFramebuffer(this, &m_Swapchain.m_Framebuffers[i]);
 
-	for (int i = 0; i < m_CommandBuffers.size(); i++)
+	for (i32 i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
 	VulkanCommandPool::DestroyCommandPool(this, &m_GraphicsCommandPool);
@@ -458,10 +229,10 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	vkDestroyInstance(m_Instance, m_Allocator);
 
-	gpEngineEvents->EventUnregister(eEventCategory::EVENT_TYPE_WINDOW_RESIZE, Event_FramebufferResized);
+	EventSystem::EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
 }
 
-bool CVulkanRenderer::RendererBackend_Update()
+bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 {
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
@@ -469,14 +240,14 @@ bool CVulkanRenderer::RendererBackend_Update()
 	// TEMP
 	// Update camera position
 
-	float currentTime = static_cast<float>(m_RendererClock.GetElapsedTime());
+	f32 currentTime = static_cast<f32>(m_RendererClock.GetElapsedTime());
 	deltaTime = currentTime - lastFrame;
 	lastFrame = currentTime;
 
 	UpdateCameraPosition(deltaTime);
 	// END TEMP
 
-	unsigned int imageIndex;
+	u32 imageIndex;
 	VkResult result = vkAcquireNextImageKHR(m_Device.m_LogicalDevice, m_Swapchain.m_SwapchainHandle, UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -487,24 +258,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 	}
 
 	// Update Uniform Buffer
-	{
-		static double startTime = Platform::GetAbsoluteTime();
-		double currentTime = Platform::GetAbsoluteTime();
-
-		double time = currentTime - startTime;
-		
-		UniformBufferObject ubo{};
-		ubo.model = Matrix4x4(1.0f);
-		ubo.model = Matrix4x4::Translate(ubo.model, Vector3D(0.0f, 0.0f, 0.0f));
-		//ubo.model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG_TO_RAD(90.0f), Vector3D(0.0f, 0.0f, 1.0f));
-		ubo.view = s_Camera.GetViewMatrix();
-		//ubo.view = Matrix4x4::LookAt(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 0.0f, 0.0f), Vector3D(0.0f, 1.0f, 0.0f));
-
-		ubo.projection = Matrix4x4::Perspective(M_DEG_TO_RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 100.0f);
-		//ubo.projection.data[1][1] *= -1;
-
-		memcpy(m_UniformBuffersMappedMemory[imageIndex], &ubo, sizeof(ubo));
-	}
+	//m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
 
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
@@ -525,13 +279,24 @@ bool CVulkanRenderer::RendererBackend_Update()
 			return false;
 		}
 
+		m_StandardShader.Use(this, &commandBuffer.m_Handle, imageIndex);
+
+		// Apply globals
+		m_StandardShader.BindGlobals(commandBuffer.m_Handle, imageIndex);
+
+		Matrix4x4 view = s_Camera.GetViewMatrix();
+		Matrix4x4 proj = Matrix4x4::Perspective(M_DEG2RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / static_cast<f32>(m_Swapchain.m_SwapchainExtent.height), 0.1f, 100.0f);
+		proj.data[5] *= -1; // Flip the Y coordinate
+
+		m_StandardShader.ApplyGlobals(this, commandBuffer.m_Handle, imageIndex, proj, view);
+
 		// Handle all draw calls here
 
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
-		viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
+		viewport.width = static_cast<f32>(m_Swapchain.m_SwapchainExtent.width);
+		viewport.height = static_cast<f32>(m_Swapchain.m_SwapchainExtent.height);
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(commandBuffer.m_Handle, 0, 1, &viewport);
@@ -541,25 +306,11 @@ bool CVulkanRenderer::RendererBackend_Update()
 		scissor.extent = m_Swapchain.m_SwapchainExtent;
 		vkCmdSetScissor(commandBuffer.m_Handle, 0, 1, &scissor);
 
-		m_StandardShader.Bind(this, &commandBuffer.m_Handle);
-
-		VkDeviceSize offset[] = { 0 };
-		vkCmdBindVertexBuffers(commandBuffer.m_Handle, 0, 1, &m_VertexBuffer.m_Handle, offset);
-
-		vkCmdBindDescriptorSets(commandBuffer.m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, m_StandardShader.m_PipelineLayout, 0, 1, &m_DescriptorSets[imageIndex], 0, nullptr);
-
-		// If we are able to draw with indices, do so.
-		if (!m_IndexBuffer.m_Handle)
+		for (i32 i = 0; i < 10; i++)
 		{
-			vkCmdDraw(commandBuffer.m_Handle, 3, 1, 0, 0);
+			if (pRenderData->geometries[i] && pRenderData->geometries[i]->m_pinternalData)
+				DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
 		}
-		else
-		{
-			vkCmdBindIndexBuffer(commandBuffer.m_Handle, m_IndexBuffer.m_Handle, 0, VK_INDEX_TYPE_UINT16);
-			vkCmdDrawIndexed(commandBuffer.m_Handle, 6, 1, 0, 0, 0);
-		}
-
-		//vkCmdDraw(commandBuffer.m_Handle, 6, 1, 0, 0);
 
 		m_MainRenderpass.End(this, &commandBuffer);
 
@@ -570,7 +321,7 @@ bool CVulkanRenderer::RendererBackend_Update()
 
 	// Present the framebuffer
 	m_Swapchain.Present(this, imageIndex);
-	commandBuffer.m_State = eVulkanCommandBufferState::COMMAND_BUFFER_STATE_INVALID;
+	commandBuffer.m_State = eVulkanCommandBufferState::INVALID;
 
 	m_CurrentFrame = (m_CurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	return true;
@@ -604,7 +355,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 		return false;
 	}
 
-	instanceInfo.enabledExtensionCount = static_cast<unsigned int>(requiredExtensions.size());
+	instanceInfo.enabledExtensionCount = static_cast<u32>(requiredExtensions.size());
 	instanceInfo.ppEnabledExtensionNames = static_cast<const char**>(requiredExtensions.data());
 
 	// Validation Layers
@@ -619,7 +370,7 @@ bool CVulkanRenderer::CreateVulkanInstance()
 			return false;
 		}
 
-		instanceInfo.enabledLayerCount = static_cast<unsigned int>(m_ValidationLayers->size());
+		instanceInfo.enabledLayerCount = static_cast<u32>(m_ValidationLayers->size());
 		instanceInfo.ppEnabledLayerNames = static_cast<const char**>(m_ValidationLayers->data());
 	}
 	else
@@ -635,14 +386,14 @@ bool CVulkanRenderer::CreateVulkanInstance()
 	if (EnableValidationLayers())
 	{
 		LOG_INFO("Enabled Vulkan Extensions:");
-		for (int i = 0; i < requiredExtensions.size(); i++)
+		for (i32 i = 0; i < requiredExtensions.size(); i++)
 		{
 			LOG_DEBUG("%s", requiredExtensions[i]);
 		}
 
 		LOG_INFO("Enabled Validation Layers:");
 		
-		for (int i = 0; i < m_ValidationLayers->size(); i++)
+		for (i32 i = 0; i < m_ValidationLayers->size(); i++)
 		{
 			LOG_DEBUG("%s", m_ValidationLayers->data()[i]);
 		}
@@ -654,15 +405,15 @@ bool CVulkanRenderer::CreateVulkanInstance()
 
 bool CVulkanRenderer::QueryInstanceExtensionSupport(CVector<const char*>& requiredExtensions)
 {
-	unsigned int extensionCount = 0;
+	u32 extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	CVector<VkExtensionProperties> instanceExtensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, instanceExtensions.data());
 
-	for (unsigned int i = 0; i < requiredExtensions.size(); i++)
+	for (u32 i = 0; i < requiredExtensions.size(); i++)
 	{
 		bool bFound = false;
-		for (unsigned int j = 0; j < extensionCount; j++)
+		for (u32 j = 0; j < extensionCount; j++)
 		{
 			if (StringCompare(requiredExtensions[i], instanceExtensions[j].extensionName))
 			{
@@ -683,16 +434,16 @@ bool CVulkanRenderer::QueryInstanceExtensionSupport(CVector<const char*>& requir
 
 bool CVulkanRenderer::QueryValidationLayerSupport(CVector<const char*>& requiredValidationLayers)
 {
-	unsigned int layerCount = 0;
+	u32 layerCount = 0;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 	CVector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
 
-	for (unsigned int i = 0; i < requiredValidationLayers.size(); i++)
+	for (u32 i = 0; i < requiredValidationLayers.size(); i++)
 	{
 		bool bFound = false;
-		for (unsigned int j = 0; j < layerCount; j++)
+		for (u32 j = 0; j < layerCount; j++)
 		{
 			const char* currentValidationLayer = requiredValidationLayers[i];
 			if (StringCompare(currentValidationLayer, availableLayers[j].layerName))
@@ -790,6 +541,132 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	return VK_FALSE;
 }
 
+bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
+{
+	// Load the pixel data into a staging buffer.
+	VulkanBuffer stagingBuffer;
+	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * 4;
+	VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer);
+
+	void* pImageData;
+	vkMapMemory(m_Device.m_LogicalDevice, stagingBuffer.m_Memory, 0, imageSize, 0, &pImageData);
+		Memory::MemCopy(pImageData, pPixelData, static_cast<u64>(imageSize));
+	vkUnmapMemory(m_Device.m_LogicalDevice, stagingBuffer.m_Memory);
+
+	pTexture.m_internalData = Memory::Allocate(sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+	VulkanImageData_t* pInternalData = reinterpret_cast<VulkanImageData_t*>(pTexture.m_internalData);
+	VulkanImage* pInternalImage = &pInternalData->internalImage;
+
+	VulkanImage::CreateImage(this, pTexture.m_Width, pTexture.m_Height, 4, nullptr, true, pInternalImage);
+
+	pInternalImage->TransitionImageLayout(this, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		stagingBuffer.CopyBufferToImage(this, pTexture.m_Width, pTexture.m_Height, pInternalImage);
+	pInternalImage->TransitionImageLayout(this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	// Release the staging buffer.
+	VulkanBuffer::DestroyBuffer(this, &stagingBuffer);
+
+	// Acquire shader resources.
+	if (!m_StandardShader.AcquireInstanceResources(this, pTexture))
+	{
+		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
+		return false;
+	}
+
+	return true;
+}
+
+void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
+{
+	// Make sure this resource is not being used!
+	// TODO: Is this the most efficient way of doing this?
+	vkDeviceWaitIdle(m_Device.m_LogicalDevice);
+	
+	if (pTexture.m_internalData)
+	{
+		VulkanImage* pTextureData = reinterpret_cast<VulkanImage*>(pTexture.m_internalData);
+
+		if (pTextureData)
+			VulkanImage::DestroyImage(this, pTextureData);
+
+		// TODO: Release internal shader instance resources as well
+	}
+}
+
+bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices)
+{
+	pMesh.m_pinternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
+
+	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();
+	VkDeviceSize indexDataSize = sizeof(indices[0]) * indices.size();
+
+	// Store off our offsets for access later.
+	internalData->m_VertexDataOffset = m_VertexBufferOffset;
+	internalData->m_IndexDataOffset = m_IndexBufferOffset;
+
+	internalData->m_VertexDataSize = static_cast<VkDeviceSize>(vertexDataSize);
+	internalData->m_IndexDataSize = static_cast<VkDeviceSize>(indexDataSize);
+
+	// Upload the data to the buffers
+	m_VertexBuffer.UploadDataToBuffer(this, vertexDataSize, vertices.data(), m_VertexBufferOffset);
+	m_VertexBufferOffset += vertexDataSize;
+
+	m_IndexBuffer.UploadDataToBuffer(this, indexDataSize, indices.data(), m_IndexBufferOffset);
+	m_IndexBufferOffset += indexDataSize;
+
+	return true;
+}
+
+void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
+{
+	// TODO: Implement with freelist
+
+	//gpMemorySystem->MemFree(pMesh.m_pinternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	//pMesh.m_pinternalData = nullptr;
+}
+
+void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, u32 imageIndex)
+{
+	// TODO: Material-specific shaders
+	m_StandardShader.BindInstance(pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+	m_StandardShader.ApplyInstance(this, pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+
+	// Apply model matrix
+	Matrix4x4 model = Matrix4x4::Translate(Matrix4x4(1.0f), Vector3D(0.0f, 0.0f, 0.0f));
+	static f64 startTime = Platform::GetAbsoluteTime();
+	f64 currentTime = Platform::GetAbsoluteTime();
+
+	f64 time = currentTime - startTime;
+	//model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG2RAD(45.0f), Vector3D(0.0f, 1.0f, 0.0f));
+
+	m_StandardShader.ApplyModel(pCommandBuffer.m_Handle, model);
+
+	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
+
+	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;
+	VkDeviceSize indexOffset = internalData->m_IndexDataOffset;
+
+	u32 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
+	u32 numIndices = internalData->m_IndexDataSize / sizeof(u16);
+
+	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
+
+	// TODO: Implement
+	// If we are able to draw with indices, do so.
+	/*if (internalData->m_IndexDataSize != 0)
+	{
+		vkCmdBindIndexBuffer(pCommandBuffer.m_Handle, pIndexBuffer.m_Handle, indexOffset, VK_INDEX_TYPE_UINT16);
+		vkCmdDrawIndexed(pCommandBuffer.m_Handle, numIndices, 1, 0, 0, 0);
+	}
+	else
+	{
+		vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
+	}*/
+
+	vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
+}
+
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };
 
 IRendererBackend* GetVulkanBackend()
@@ -807,7 +684,7 @@ IRendererBackend* GetVulkanBackend()
 
 bool Event_FramebufferResized(EventData_t data)
 {
-	unsigned int width, height;
+	u32 width, height;
 	width = data.u16[0];
 	height = data.u16[1];
 

@@ -1,4 +1,4 @@
-#include "EngineGlobals.h"
+#include "Defines.h"
 #ifdef PLAT_WINDOWS
 #include "VulkanPlatform.h"
 #include "../VulkanBackend.h"

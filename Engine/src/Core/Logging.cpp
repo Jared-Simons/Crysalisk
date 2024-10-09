@@ -14,38 +14,35 @@
 // NOTE: This MUST stay aligned with the eLogLevel enum
 const char* logLevelStrings[6] =
 {
-	"[VERBOSE]",
+	"[FATAL]\t ",
+	"[ERROR]\t ",
+	"[WARN]\t ",
 	"[INFO]\t ",
 	"[DEBUG]\t ",
-	"[WARN]\t ",
-	"[ERROR]\t ",
-	"[FATAL]\t "
+	"[VERBOSE]",
 };
 
-bool Logging_Initialize()
+i32 LogSystem::m_LogVerbosity = 6;
+
+bool LogSystem::Init(i32 iLogVerbosity)
 {
-	g_Logger->InitLoggingSystems();
+	m_LogVerbosity = iLogVerbosity;
 
 	return true;
 }
 
-void Logging_Shutdown()
+void LogSystem::Shutdown()
 {
-	g_Logger->ShutdownLoggingSystems();
-	g_Logger = nullptr;
 }
 
-Logger::Logger(const char* name)
-	: m_loggerName(name)
+void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 {
-	m_loggerIndex = g_Logger->RegisterLogger(*this);
+	if (static_cast<i32>(level) > LogSystem::m_LogVerbosity)
+	{
+		// Logging for these messages is disabled, just return.
+		return;
+	}
 
-	if (m_loggerIndex == -1)
-		printf("Logger '%s' could not be registered!\n", m_loggerName);
-}
-
-void Logger::LogMessage(eLogLevel level, const char* message, ...)
-{
 	char messageBuffer[4092];
 	char outMessage[4092];
 
@@ -56,67 +53,9 @@ void Logger::LogMessage(eLogLevel level, const char* message, ...)
 	vsprintf_s(outMessage, messageBuffer, va_args);
 	va_end(va_args);
 
-	// Append channel string to the message
+	// Prepend channel string to the message
 	char outMessage2[4092];
-	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[(int)level], outMessage);
+	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[static_cast<i32>(level)], outMessage);
 
-	Platform::LogMessage((int)level, outMessage2);
+	Platform::LogMessage(static_cast<i32>(level), outMessage2);
 }
-
-bool LogSystem::InitLoggingSystems()
-{
-	for (int i = 0; i < MAX_LOGGERS; i++)
-	{
-		m_RegiseredLoggers[i] = nullptr;
-	}
-
-	// Create a general use logger.
-	// Index 0 will always be a general purpose logger.
-	m_RegiseredLoggers[0] = new Logger("General");
-
-	return true;
-}
-
-void LogSystem::ShutdownLoggingSystems()
-{
-	delete m_RegiseredLoggers[0];
-}
-
-int LogSystem::RegisterLogger(Logger& logger)
-{
-	int loggerIndex = -1;
-
-	for (int i = 0; i < MAX_LOGGERS; i++)
-	{
-		if (m_RegiseredLoggers[i] == nullptr)
-		{
-			loggerIndex = i;
-			m_RegiseredLoggers[i] = &logger;
-			break;
-		}
-	}
-
-	return loggerIndex;
-}
-
-Logger* LogSystem::GetLoggerByIndex(int index) const
-{
-	// TODO: If this returns nullptr, still print the message, but also error.
-	if (m_RegiseredLoggers)
-	{
-		if (m_RegiseredLoggers[index] != nullptr)
-		{
-			return m_RegiseredLoggers[index];
-		}
-		else
-		{
-			LOG_ERROR("LOGGING ERROR: Invalid Logger Index at %d\n", index);
-			return nullptr;
-		}
-	}
-	return nullptr;
-}
-
-// Global logging interface
-static LogSystem s_Logger;
-LogSystem* g_Logger = &s_Logger;

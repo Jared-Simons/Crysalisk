@@ -7,21 +7,12 @@ Features to be developed:
 - Create an engine subsystem base class? (And add systems to a systems manager?)
    - Also investigate subsystem creation, possibly cleanup system factory functions.
 
-- Experiment with build system, just to learn something (is Premake really the best for us now?)
-
 Chores:
-- Finish collection of custom containers (including reviewing/revamping existing ones)
 - Revamp Math Library
-- Completely rewrite the freelist/dynamic allocator implementation
-	- Once this is done, make the engine's memory system allocate from it
-- Check up on the linear allocator and make sure it's working fine.
-
-- Completely rewrite the Unit Test systems to be less bad (needs less logging for the logs that do happen to be better formatted)
-
-- Make UtilityLib into it's own standalone library
-	- This mainly means that it should hold pointers to appropriate allocation/free functions that get setup during initialization.
-	- Will allow the library to be easily used across projects and not just linked to the engine.
 	
 - Completely overhaul the logging system, it needs to be consolidated for simplified for the time being.
 
 - Need a way to log messages without the 'log level' label placed before the message (Possibly expose here?)
+
+- Vulkan texture data needs to be exposed to the front end
+- Unloading textures in use causes validation errors, but we may need to swap out textures, find a fix.

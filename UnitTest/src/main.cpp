@@ -4,31 +4,33 @@
 // 
 // Purpose: Entry Point for the unit testing module
 //=============================================================================
-#include <Systems/IEngine.h>
-#include <Systems/IMemory.h>
+#include <Defines.h>
+
+#include <Core/Engine.h>
 #include <Core/Logging.h>
+#include <Core/Memory.h>
 #include <Clock.h>
 
-#include <Containers/LinkedListTests.h>
-#include <Memory/LinearAllocatorTests.h>
-#include <Memory/DynamicAllocatorTests.h>
+#include "Math/MathLib.h"
+#include "Math/VectorTypes.h"
+#include "Math/MatrixTypes.h"
 
 bool PerformUnitTests()
 {
-	//g_LinearAllocatorTests->PerformTests();
-	//g_LinkedListTests->PerformTests();
-	g_DynamicAllocatorTests->PerformTests();
+	Vector2D vector{ 4.7f, -6.0f };
+	Vector2D vector2 = vector / 2;
 	
 	return true;
 }
 
-int main()
+i32 main()
 {
 	// Running unit tests in headless mode as we do not require rendering or input.
 	EngineConfig_t engineConfig{};
 	engineConfig.isHeadless = true;
+	Engine pEngineState;
 
-	if (!Engine->Engine_Initialize(engineConfig))
+	if (!Engine::Engine_Initialize(engineConfig, &pEngineState))
 		return -1;
 
 	LOG_VERBOSE("\n\n\n\n\n");
@@ -37,8 +39,6 @@ int main()
 
 	//gpMemorySystem->PrintMemoryStats();
 	LOG_VERBOSE("\n\n\n\n\n");
-
-	Engine->Engine_Shutdown();
 
 	return 0;
 }

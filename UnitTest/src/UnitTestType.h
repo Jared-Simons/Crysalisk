@@ -6,11 +6,13 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 #include <Containers/CVector.h>
 #include <Clock.h>
 #include <Core/Logging.h>
 
-typedef int (*PFN_UnitTestFunc)();
+typedef i32 (*PFN_UnitTestFunc)();
 
 // Use these macros to state if your test passed or failed
 #define FAIL 0
@@ -28,7 +30,7 @@ public:
 	{
 		m_TestClock.Start();
 
-		for (int i = 0; i < m_RegisteredTests.size(); i++)
+		for (i32 i = 0; i < m_RegisteredTests.size(); i++)
 		{
 			Clock singleClock;
 			singleClock.Start();
@@ -64,9 +66,9 @@ private:
 	Clock m_TestClock;
 
 	const char*	 m_debugTestName = nullptr;
-	unsigned int m_NumTests = 0;
-	unsigned int m_TestsPassed = 0;
-	unsigned int m_TestsFailed = 0;
-	unsigned int m_TestsSkipped = 0;
+	u32 m_NumTests = 0;
+	u32 m_TestsPassed = 0;
+	u32 m_TestsFailed = 0;
+	u32 m_TestsSkipped = 0;
 };
 

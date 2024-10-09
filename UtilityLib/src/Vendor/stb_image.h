@@ -1,3 +1,8 @@
+// JS - We need to suppress these warnings to get clean compilation
+#pragma warning(push, 0)
+#pragma warning(disable : 26819)
+#pragma warning(disable : 6262)
+
 /* stb_image - v2.28 - public domain image loader - http://nothings.org/stb
                                   no warranty implied; use at your own risk
 
@@ -8097,3 +8102,5 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+
+#pragma warning(pop) // JS - End Warning Suppression

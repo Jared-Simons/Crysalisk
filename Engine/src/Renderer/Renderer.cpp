@@ -4,70 +4,26 @@
 // 
 // Purpose: Implements the Renderer Front-end
 //=============================================================================
-#include "Systems/IRenderer.h"
+#include "Systems/Renderer.h"
 
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
+#include "Resources/ResourceTypes.h"
 #include "Vulkan/VulkanBackend.h"
 
+#include "Systems/TextureSystem.h"
+
 #include <Memory/LinearAllocator.h>
-
-class CRenderer : public IRenderer
-{
-public:
-	CRenderer() {}
-
-	void* operator new(size_t size, LinearAllocator* pAllocator)
-	{
-		void* block = pAllocator->allocate(size);
-		if (block)
-		{
-			return block;
-		}
-		else
-		{
-			LOG_FATAL("Systems Allocator failed to allocate memory for the renderer system!");
-			return nullptr;
-		}
-	}
-
-	// NOTE: This does nothing and just exists to clear a compiler warning, 
-	// the memory was allocated and will be freed when the linear allocator gets cleared.
-	// If the creation of this system fails, the engine will shutdown regardless.
-	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
-
-	virtual bool	Initialize() override;
-	virtual void	Shutdown() override;
-	virtual bool	Update() override;
-
-private:
-	IRendererBackend* m_RendererBackend{ nullptr };
-};
-
-static CRenderer* s_RendererFrontend{ nullptr };
-IRenderer* gpRenderer = s_RendererFrontend;
 
 //-----------------------------------------------------------------------------
 // Factory method to initialize a renderer.
 //-----------------------------------------------------------------------------
-bool IRenderer::Renderer_Create(IRenderer* statePtr, LinearAllocator* pAllocator)
+bool Renderer::Renderer_Create(Renderer* statePtr, LinearAllocator* pAllocator)
 {
 	if (statePtr)
 	{
 		LOG_ERROR("Renderer_Create() -> An active Renderer already exists at this location. Aborting!");
 		return false;
-	}
-
-	// Setup the engine's renderer
-	if (statePtr == gpRenderer)
-	{
-		s_RendererFrontend = new (pAllocator) CRenderer();
-
-		if (!s_RendererFrontend->Initialize())
-		{
-			return false;
-		}
-		gpRenderer = s_RendererFrontend;
 	}
 
 	return true;
@@ -76,7 +32,7 @@ bool IRenderer::Renderer_Create(IRenderer* statePtr, LinearAllocator* pAllocator
 //-----------------------------------------------------------------------------
 // Factory method to shutdown a renderer.
 //-----------------------------------------------------------------------------
-void IRenderer::Renderer_Shutdown(IRenderer* statePtr, bool bOwnsMemory)
+void Renderer::Renderer_Shutdown(Renderer* statePtr, bool bOwnsMemory)
 {
 	if (statePtr)
 	{
@@ -91,9 +47,8 @@ void IRenderer::Renderer_Shutdown(IRenderer* statePtr, bool bOwnsMemory)
 }
 
 
-bool CRenderer::Initialize()
+bool Renderer::Initialize()
 {
-	// TODO: This currently only supports Vulkan...
 	m_RendererBackend = GetVulkanBackend();
 
 	if (m_RendererBackend != nullptr)
@@ -113,7 +68,7 @@ bool CRenderer::Initialize()
 	return true;
 }
 
-void CRenderer::Shutdown()
+void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
 	m_RendererBackend->RendererBackend_Shutdown();
@@ -121,12 +76,43 @@ void CRenderer::Shutdown()
 	m_RendererBackend = nullptr;
 }
 
-bool CRenderer::Update()
+bool Renderer::Update(RenderPacket_t* pRenderData)
 {
-	if (!m_RendererBackend->RendererBackend_Update())
+	if (!m_RendererBackend->RendererBackend_Update(pRenderData))
 	{
 		return false;
 	}
 
 	return true;
+}
+
+bool Renderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
+{
+	if (!pPixelData)
+	{
+		LOG_ERROR("CreateTextureResources requires a valid pointer to pixel data. Texture creation failed.");
+		return false;
+	}
+
+	return m_RendererBackend->CreateTextureResources(pTexture, pPixelData);
+}
+
+void Renderer::DestroyTextureResources(Texture& pTexture)
+{
+	m_RendererBackend->DestroyTextureResources(pTexture);
+}
+
+bool Renderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices, const char* szTextureName, const char* szGeometryName)
+{
+	// Acquire necessary textures
+	pMesh.m_pTexture = gpTextureSystem->AcquireTexture(szTextureName);
+	pMesh.m_szGeometryName = szGeometryName;
+
+	return m_RendererBackend->CreateGeometryResources(pMesh, vertices, indices);
+}
+
+void Renderer::DestroyGeometryResources(StaticMesh& pMesh)
+{
+	m_RendererBackend->DestroyGeometryResources(pMesh);
+	m_RendererBackend->DestroyTextureResources(*pMesh.m_pTexture);
 }

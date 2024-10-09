@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 class Clock
 {
 public:
@@ -18,14 +20,14 @@ public:
 	void Stop();
 	void Update();
 
-	double GetElapsedTime();
-	double GetStartTime() { return m_StartTime; }
+	f64 GetElapsedTime();
+	f64 GetStartTime() { return m_StartTime; }
 
 	bool IsClockActive() { return m_IsActive; }
 
 private:
-	double	m_StartTime;
-	double	m_ElapsedTime;
+	f64	m_StartTime;
+	f64	m_ElapsedTime;
 	bool	m_IsActive;
 };
 

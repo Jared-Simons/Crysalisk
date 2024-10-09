@@ -2,7 +2,7 @@
 // Author: Jared Simons
 // Date Created: 5/12/2024
 // 
-// Purpose: Interface for a Vulkan Renderpass
+// Purpose: interface for a Vulkan Renderpass
 //=============================================================================
 #include "VulkanBackend.h"
 
@@ -65,7 +65,7 @@ void VulkanRenderpass::DestroyRenderpass(CVulkanRenderer* pRenderingContext, Vul
 	}
 }
 
-bool VulkanRenderpass::Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, unsigned int imageIndex)
+bool VulkanRenderpass::Begin(CVulkanRenderer* pRenderingContext, VulkanCommandBuffer* pCommandBuffer, u32 imageIndex)
 {
 	if (!m_Handle || !pCommandBuffer || !pCommandBuffer->m_Handle)
 	{

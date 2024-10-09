@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 // TODO: Does this need to be included here? Would much rather have this in the .cpp file...
 #include <stdarg.h>
 
@@ -15,10 +17,12 @@ void StringFormat(const char* format, const char* str1, const char* str2, char* 
 
 void StringFormat_V(const char* format, const char* str1, char* outString, ...);
 
+char* StringDuplicate(const char* pStringToCopy);
+
 bool StringCompare(const char* str1, const char* str2);
 
 // Appends str2 to string 1.
 void StringConcat(char* str1, const char* str2);
 
-int String_ATOI(const char c);
+i32 String_ATOI(const char c);
 

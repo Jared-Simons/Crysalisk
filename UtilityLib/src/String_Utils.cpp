@@ -6,6 +6,8 @@
 //=============================================================================
 #include "String_Utils.h"
 
+#include "Core/Memory.h"// TODO: TEMP
+
 #include <stdio.h>
 #include <string>
 
@@ -26,15 +28,26 @@ void StringFormat_V(const char* format, const char* str1, char* outString, ...)
 	char stringBuffer[10000];
 	va_list varArgs;
 	va_start(varArgs, outString);
-	vsprintf(stringBuffer, format, varArgs);
+	vsnprintf_s(stringBuffer, 10000, format, varArgs);
 	va_end(varArgs);
+	//strcpy_s(outString, 10000, stringBuffer);
 	strcpy(outString, stringBuffer);
 }
 
 bool StringCompare(const char* str1, const char* str2)
 {
-	int result = strcmp(str1, str2);
+	i32 result = strcmp(str1, str2);
 	return result == 0;
+}
+
+char* StringDuplicate(const char* pStrToCopy)
+{
+	size_t strLength = StringLength(pStrToCopy);
+	char* stringCopy = reinterpret_cast<char*>(Memory::Allocate(strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING)); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
+	memcpy(stringCopy, pStrToCopy, strLength + 1);
+
+	// NOTE: The caller is responsible for freeing this memory.
+	return stringCopy;
 }
 
 void StringConcat(char* str1, const char* str2)
@@ -43,9 +56,9 @@ void StringConcat(char* str1, const char* str2)
 	strcat_s(str1, len + 1, str2);
 }
 
-int String_ATOI(const char c)
+i32 String_ATOI(const char c)
 {
-	int x;
+	i32 x;
 	x = c;
 	return x;
 }
