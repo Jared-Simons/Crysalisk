@@ -155,6 +155,15 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkIm
 		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 	}
+	// Transition straight to shader read-only (TODO: Currently only used for place-holder textures)
+	else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+	{
+		imageBarrier.srcAccessMask = 0;
+		imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
 	else
 	{
 		LOG_ERROR("TransitionImageLayout()->Unsupported image layout transition provided - Nothing was done.");

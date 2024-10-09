@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Defines.h"
+#include <Math/MatrixTypes.h>
 
 // Forward Declarations
 class IRendererBackend;

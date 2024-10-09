@@ -84,6 +84,11 @@ void UpdateCameraPosition(f32 deltaTime)
 		s_Camera.UpdateCameraVectors();
 	}
 
+	if (gpInputSystem->IsKeyPressed(KEY_P))
+	{
+		LOG_DEBUG("%.2f, %.2f, %.2f", s_Camera.Position.x, s_Camera.Position.y, s_Camera.Position.z);
+	}
+
 }
 
 
@@ -253,7 +258,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	}
 
 	// Update Uniform Buffer
-	m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
+	//m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
 
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
@@ -273,6 +278,17 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 			LOG_ERROR("Failed to begin Vulkan Renderpass");
 			return false;
 		}
+
+		m_StandardShader.Use(this, &commandBuffer.m_Handle, imageIndex);
+
+		// Apply globals
+		m_StandardShader.BindGlobals(commandBuffer.m_Handle, imageIndex);
+
+		Matrix4x4 view = s_Camera.GetViewMatrix();
+		Matrix4x4 proj = Matrix4x4::Perspective(M_DEG2RAD(45.0f), m_Swapchain.m_SwapchainExtent.width / static_cast<f32>(m_Swapchain.m_SwapchainExtent.height), 0.1f, 100.0f);
+		proj.data[5] *= -1; // Flip the Y coordinate
+
+		m_StandardShader.ApplyGlobals(this, commandBuffer.m_Handle, imageIndex, proj, view);
 
 		// Handle all draw calls here
 
@@ -527,16 +543,35 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
 {
-	VulkanImage pOldTextureData = m_StandardShader.m_TextureImage;
+	// Load the pixel data into a staging buffer.
+	VulkanBuffer stagingBuffer;
+	VkDeviceSize imageSize = pTexture.m_Width * pTexture.m_Height * 4;
+	VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer);
 
-	if (!m_StandardShader.AcquireTextureResources(this, pTexture, pPixelData))
+	void* pImageData;
+	vkMapMemory(m_Device.m_LogicalDevice, stagingBuffer.m_Memory, 0, imageSize, 0, &pImageData);
+		Memory::MemCopy(pImageData, pPixelData, static_cast<u64>(imageSize));
+	vkUnmapMemory(m_Device.m_LogicalDevice, stagingBuffer.m_Memory);
+
+	pTexture.m_internalData = Memory::Allocate(sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+	VulkanImageData_t* pInternalData = reinterpret_cast<VulkanImageData_t*>(pTexture.m_internalData);
+	VulkanImage* pInternalImage = &pInternalData->internalImage;
+
+	VulkanImage::CreateImage(this, pTexture.m_Width, pTexture.m_Height, 4, nullptr, true, pInternalImage);
+
+	pInternalImage->TransitionImageLayout(this, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		stagingBuffer.CopyBufferToImage(this, pTexture.m_Width, pTexture.m_Height, pInternalImage);
+	pInternalImage->TransitionImageLayout(this, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	// Release the staging buffer.
+	VulkanBuffer::DestroyBuffer(this, &stagingBuffer);
+
+	// Acquire shader resources.
+	if (!m_StandardShader.AcquireInstanceResources(this, pTexture))
 	{
 		LOG_ERROR("Failed to acquire Vulkan resources for texture.");
 		return false;
 	}
-
-	VulkanImage::DestroyImage(this, &pOldTextureData);
-	m_StandardShader.UpdateDescriptorSets(this);
 
 	return true;
 }
@@ -553,6 +588,8 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 		if (pTextureData)
 			VulkanImage::DestroyImage(this, pTextureData);
+
+		// TODO: Release internal shader instance resources as well
 	}
 }
 
@@ -586,13 +623,24 @@ void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 	// TODO: Implement with freelist
 
 	//gpMemorySystem->MemFree(pMesh.m_pinternalData, sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
-	pMesh.m_pinternalData = nullptr;
+	//pMesh.m_pinternalData = nullptr;
 }
 
 void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, u32 imageIndex)
 {
 	// TODO: Material-specific shaders
-	m_StandardShader.Bind(this, &pCommandBuffer.m_Handle, imageIndex);
+	m_StandardShader.BindInstance(pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+	m_StandardShader.ApplyInstance(this, pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+
+	// Apply model matrix
+	Matrix4x4 model = Matrix4x4::Translate(Matrix4x4(1.0f), Vector3D(0.0f, 0.0f, 0.0f));
+	static f64 startTime = Platform::GetAbsoluteTime();
+	f64 currentTime = Platform::GetAbsoluteTime();
+
+	f64 time = currentTime - startTime;
+	//model = Matrix4x4::Rotate(Matrix4x4(1.0f), time * M_DEG2RAD(45.0f), Vector3D(0.0f, 1.0f, 0.0f));
+
+	m_StandardShader.ApplyModel(pCommandBuffer.m_Handle, model);
 
 	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
 
@@ -604,8 +652,9 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 
 	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
 
+	// TODO: Implement
 	// If we are able to draw with indices, do so.
-	if (internalData->m_IndexDataSize != 0)
+	/*if (internalData->m_IndexDataSize != 0)
 	{
 		vkCmdBindIndexBuffer(pCommandBuffer.m_Handle, pIndexBuffer.m_Handle, indexOffset, VK_INDEX_TYPE_UINT16);
 		vkCmdDrawIndexed(pCommandBuffer.m_Handle, numIndices, 1, 0, 0, 0);
@@ -613,7 +662,9 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 	else
 	{
 		vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
-	}
+	}*/
+
+	vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
 }
 
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };

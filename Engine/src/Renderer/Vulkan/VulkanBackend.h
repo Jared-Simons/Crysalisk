@@ -331,6 +331,9 @@ public:
 	VkFormat		m_ImageFormat{ VK_FORMAT_UNDEFINED };
 };
 
+const u32 VULKAN_MAX_GLOBAL_TEXTURES = 32;
+const u32 VULKAN_MAX_INSTANCE_COUNT = 1024;
+const u32 VULKAN_SHADER_SAMPLER_COUNT = 1;
 
 //=================================
 // 
@@ -347,6 +350,12 @@ struct UniformBufferObject
 	Matrix4x4 projection;
 };
 
+struct VulkanDescriptorSetState
+{
+	u8 generation[3];
+	VkDescriptorSet descriptorSets[3];
+};
+
 
 //=================================
 // 
@@ -361,22 +370,25 @@ public:
 		, m_FragModule{ VK_NULL_HANDLE }
 		, m_Pipeline{ VK_NULL_HANDLE }
 		, m_PipelineLayout{ VK_NULL_HANDLE }
-		, m_DescriptorPool{ VK_NULL_HANDLE }
-		, m_DescriptorSetLayout{ VK_NULL_HANDLE }
-		, m_DescriptorSets{ VK_NULL_HANDLE } {}
+		, m_GlobalDescriptorPool{ VK_NULL_HANDLE }
+		, m_GlobalDescriptorSetLayout{ VK_NULL_HANDLE } {}
 
 	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
 
 	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
-
-	bool			Bind(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, u32 imageIndex) const;
-	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, u32 imageIndex, struct Camera s_Camera, f32 deltaTime);
-	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
-	bool			AcquireTextureResources(CVulkanRenderer* pRenderingContext, Texture& pTexture, void* pPixelData);
 	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
 
-	void			UpdateDescriptorSets(CVulkanRenderer* pRenderingContext);
+	bool			Use(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, u32 imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, u32 imageIndex, struct Camera s_Camera, f32 deltaTime);
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, Texture& pTexture);
+
+	void			BindGlobals(VkCommandBuffer commandBuffer, u32 imageIndex);
+	void			ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuffer commandBuffer, u32 imageIndex, Matrix4x4 projection, Matrix4x4 view);
+
+	void			BindInstance(VkCommandBuffer commandBuffer, u32 imageIndex, Texture& pTexture);
+	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer commandBuffer, u32 imageIndex, Texture& pTexture);
+	void			ApplyModel(VkCommandBuffer commandBuffer, Matrix4x4 model);
 
 private:
 
@@ -387,16 +399,22 @@ public:
 	VkPipeline			m_Pipeline;
 	VkPipelineLayout	m_PipelineLayout;
 
-	VkDescriptorSetLayout		m_DescriptorSetLayout;
-	VkDescriptorPool			m_DescriptorPool;
-	VkDescriptorSet				m_DescriptorSets[MAX_FRAMES_IN_FLIGHT]; // NOTE: Will need to be dynamic to support hot-swapping of f64 and triple buffering
+	VkDescriptorPool			m_GlobalDescriptorPool;
+	VkDescriptorSetLayout		m_GlobalDescriptorSetLayout;
+	VulkanDescriptorSetState	m_GlobalDescriptorSets;
 
-	// TODO: Instance level resources!
-	CVector<VulkanBuffer>		m_UniformBuffers;
-	CVector<void*>				m_UniformBuffersMappedMemory;
+	VkDescriptorPool			m_InstanceDescriptorPool;
+	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout;
+	VulkanDescriptorSetState	m_InstanceDescriptorSets[VULKAN_MAX_INSTANCE_COUNT]; // * IMAGE_SAMPLER_COUNT?
 
-	VulkanImage m_TextureImage;
-	bool descriptorUpdateNeeded{ false };
+	VulkanBuffer				m_UniformBuffer;
+	void*						m_UniformBufferMappedMemory;
+
+	u32							m_InstanceDescriptorOffset;
+	u32							m_CurrentlyBoundInstance;
+
+	// NOTE: This only exists as a placeholder for now.
+	VulkanImage m_GlobalTexture;
 };
 
 // TODO TEMP
@@ -429,9 +447,9 @@ struct Camera
 	void UpdateCameraVectors()
 	{
 		Vector3D front;
-		front.x = static_cast<f32>(M_COS(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch)));
+		front.x = M_COS(Yaw * (M_PI / 180)) * M_COS(Pitch * (M_PI / 180));
 		front.y = M_SIN(M_DEG2RAD(Pitch));
-		front.z = M_SIN(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch));
+		front.z = M_SIN(Yaw * (M_PI / 180)) * M_COS(Pitch * (M_PI / 180));
 		Front = front.Normalize();
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
@@ -448,6 +466,12 @@ struct Camera
 // Vulkan Resource Data
 // 
 //=================================
+struct VulkanImageData_t
+{
+	VulkanImage internalImage;
+	u32 offset;
+};
+
 struct VulkanGeometryData_t
 {
 	u64 m_VertexDataOffset{ 0 };

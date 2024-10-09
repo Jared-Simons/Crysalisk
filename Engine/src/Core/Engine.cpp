@@ -130,9 +130,9 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	}
 
 	// TEMP: Load up a texture
-	gpTextureSystem->LoadTexture("Assets/Textures/plasterwall024b.png");
+	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
 
-	typedState->testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
+	//typedState->testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
 
 	// TEMP Geometry
 	typedState->CreateSceneGeometry();
@@ -184,7 +184,7 @@ void Engine::Engine_Shutdown()
 	LOG_INFO("EngineShutdown() called!");
 
 	s_EnginePtr->m_RenderSystem->DestroyGeometryResources(*m_TestGeometry);
-	gpTextureSystem->UnloadTexture(*testTexture);
+	//gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
 	gpTextureSystem->Shutdown();
@@ -326,7 +326,7 @@ void Engine::CreateSceneGeometry()
 	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
 	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
 
-	s_EnginePtr->m_RenderSystem->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/plasterwall024b.png", "TestGeometry");
+	s_EnginePtr->m_RenderSystem->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/container.jpg", "TestGeometry");
 }
 
 bool Event_MouseButtonPressed(EventData_t data)

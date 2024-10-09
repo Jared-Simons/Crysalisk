@@ -114,4 +114,5 @@ bool Renderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& ver
 void Renderer::DestroyGeometryResources(StaticMesh& pMesh)
 {
 	m_RendererBackend->DestroyGeometryResources(pMesh);
+	m_RendererBackend->DestroyTextureResources(*pMesh.m_pTexture);
 }
