@@ -48,10 +48,12 @@ public:
 	static void*	MemSet(void* pBlock, i32 iValue, u64 iSize);
 
 	static void		PrintMemoryStats();
+	static bool		IsInitialized();
 
 private:
 	u64					m_iNumAllocations;
 	u64					m_iNumBytesAllocated;
 	u64					m_iTaggedAllocations[MAX_MEM_CATEGORIES];
-	DynamicAllocator*	m_pinternalAllocator;
+	DynamicAllocator*	m_pInternalAllocator;
+	bool				m_bSystemInitialized;
 };

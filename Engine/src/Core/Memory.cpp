@@ -26,15 +26,16 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"TEXTURE		"
 };
 
-bool Memory::Initialize(DynamicAllocator* pinternalAllocator, void* pState)
+bool Memory::Initialize(DynamicAllocator* pInternalAllocator, void* pState)
 {
-	if (!pinternalAllocator)
+	if (!pInternalAllocator)
 	{
-		LOG_ERROR("Memory System REQUIRES a valid pointer to pinternalAllocator.");
+		LOG_ERROR("Memory System REQUIRES a valid pointer to pInternalAllocator.");
 		return false;
 	}
-	pState = pinternalAllocator->Allocate(sizeof(Memory));
+	pState = pInternalAllocator->Allocate(sizeof(Memory));
 	s_MemorySystem = reinterpret_cast<Memory*>(pState);
+	s_MemorySystem->m_bSystemInitialized = false;
 
 	s_MemorySystem->m_iNumAllocations = 1; // We just made one allocation.
 	s_MemorySystem->m_iNumBytesAllocated = sizeof(Memory);
@@ -46,9 +47,10 @@ bool Memory::Initialize(DynamicAllocator* pinternalAllocator, void* pState)
 
 	s_MemorySystem->m_iTaggedAllocations[static_cast<i32>(eMemAllocCategories::MEM_CATEGORY_ENGINE)] += sizeof(Memory);
 
-	s_MemorySystem->m_pinternalAllocator = pinternalAllocator;
+	s_MemorySystem->m_pInternalAllocator = pInternalAllocator;
 
-	LOG_INFO("Runtime memory system initialized with %d bytes of system memory.", s_MemorySystem->m_pinternalAllocator->GetAllocatorSize());
+	LOG_INFO("Runtime memory system initialized with %d bytes of system memory.", s_MemorySystem->m_pInternalAllocator->GetAllocatorSize());
+	s_MemorySystem->m_bSystemInitialized = true;
 	return true;
 }
 
@@ -57,11 +59,12 @@ void Memory::Shutdown(void* pState)
 	if (pState)
 	{
 		Memory* pMemorySystem = reinterpret_cast<Memory*>(pState);
+		pMemorySystem->m_bSystemInitialized = false;
 
 		pMemorySystem->m_iNumAllocations -= 1;
 		pMemorySystem->m_iNumBytesAllocated -= sizeof(Memory);
 
-		pMemorySystem->m_pinternalAllocator->Free(pState);
+		pMemorySystem->m_pInternalAllocator->Free(pState);
 
 		LOG_INFO("Memory System Shutdown");
 	}
@@ -79,7 +82,7 @@ void* Memory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
 	// TODO: Memory alignment
 	void* pBlock = nullptr;
 
-	pBlock = s_MemorySystem->m_pinternalAllocator->Allocate(iNumBytes);
+	pBlock = s_MemorySystem->m_pInternalAllocator->Allocate(iNumBytes);
 
 	if (pBlock != nullptr)
 	{
@@ -96,6 +99,9 @@ void* Memory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
 
 void Memory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory)
 {
+	if (!s_MemorySystem->m_bSystemInitialized)
+		return;
+
 	// TODO: Memory alignment
 
 	s_MemorySystem->m_iNumAllocations--;
@@ -104,7 +110,8 @@ void Memory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategor
 	
 	// There is nothing wrong with calling free() on a nullptr,
 	// so no need to check.
-	s_MemorySystem->m_pinternalAllocator->Free(pBlock);
+	s_MemorySystem->m_pInternalAllocator->Free(pBlock);
+	pBlock = nullptr;
 }
 
 void* Memory::Reallocate(void* pBlock, u64 iNewSize)
@@ -155,9 +162,9 @@ void Memory::PrintMemoryStats()
 	}
 
 	char totalMemUsageString[256]{ 0 };
-	u64 totalMemoryUsed = s_MemorySystem->m_pinternalAllocator->GetAllocatorSize() - s_MemorySystem->m_pinternalAllocator->GetFreeSpace();
-	f32 totalMemoryUsedPercentage = static_cast<f32>(totalMemoryUsed) / s_MemorySystem->m_pinternalAllocator->GetAllocatorSize();
-	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, s_MemorySystem->m_pinternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
+	u64 totalMemoryUsed = s_MemorySystem->m_pInternalAllocator->GetAllocatorSize() - s_MemorySystem->m_pInternalAllocator->GetFreeSpace();
+	f32 totalMemoryUsedPercentage = static_cast<f32>(totalMemoryUsed) / s_MemorySystem->m_pInternalAllocator->GetAllocatorSize();
+	StringFormat_V(" Overall Memory Usage: %d B of %d B (%.2f perc.)\n", nullptr, totalMemUsageString, totalMemoryUsed, s_MemorySystem->m_pInternalAllocator->GetAllocatorSize(), totalMemoryUsedPercentage);
 	StringConcat(memStatsString, totalMemUsageString);
 
 	char totalAllocationString[256]{ 0 };
@@ -167,3 +174,13 @@ void Memory::PrintMemoryStats()
 	LOG_INFO(memStatsString);
 }
 
+bool Memory::IsInitialized()
+{
+	if (!s_MemorySystem)
+		return false;
+
+	if (s_MemorySystem->m_bSystemInitialized)
+		return true;
+	else
+		return false;
+}

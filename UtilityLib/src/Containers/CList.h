@@ -7,7 +7,9 @@
 #pragma once
 
 #include <Defines.h>
+
 #include <Core/Logging.h>
+#include <Core/Memory.h>
 
 // Forward Declarations
 template<typename T>
@@ -19,6 +21,17 @@ template<typename T>
 class CListNode
 {
 public:
+	void* operator new(u64 size)
+	{
+		return Memory::Allocate(size, eMemAllocCategories::MEM_CATEGORY_LIST);
+	}
+
+	void operator delete(void* pBlock)
+	{
+		if (pBlock)
+			Memory::Free(pBlock, sizeof(CListNode) < T > , eMemAllocCategories::MEM_CATEGORY_LIST);
+	}
+
 	CListNode()
 		: m_pNext{ nullptr }
 		, m_pData{} {}
