@@ -59,7 +59,7 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer* pRenderContext, VulkanBuffer* 
 	}
 }
 
-void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset)
+void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset) const
 {
 	if (!data || dataSize <= 0)
 	{
@@ -73,7 +73,7 @@ void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 da
 	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory);
 }
 
-bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u32 width, u32 height, VulkanImage* pImage)
+bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, VulkanImage* pImage) const
 {
 	VulkanCommandBuffer commandBuffer;
 	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
@@ -87,7 +87,7 @@ bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u32 wid
 	copyRegion.imageSubresource.baseArrayLayer = 0;
 	copyRegion.imageSubresource.layerCount = 1;
 	copyRegion.imageOffset = { 0, 0, 0 };
-	copyRegion.imageExtent = { width, height, 1 };
+	copyRegion.imageExtent = { static_cast<u32>(width), static_cast<u32>(height), 1 };
 
 	vkCmdCopyBufferToImage(commandBuffer.m_Handle, m_Handle, pImage->m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 

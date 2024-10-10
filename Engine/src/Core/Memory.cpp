@@ -2,7 +2,7 @@
 #include "Core/Memory.h"
 
 #include "Core/Logging.h"
-#include "Platform/Platform.h""
+#include "Platform/Platform.h"
 
 #include <Memory/DynamicAllocator.h>
 #include <String_Utils.h>

@@ -302,8 +302,8 @@ public:
 	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
 
 	// TODO: Handle offsets and other data here
-	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset);
-	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, u32 width, u32 height, VulkanImage* pImage);
+	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset) const;
+	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, VulkanImage* pImage) const;
 
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
@@ -318,10 +318,10 @@ public:
 class VulkanImage
 {
 public:
-	static bool		CreateImage(CVulkanRenderer* pRenderingContext, i32 width, i32 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
+	static bool		CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
 	static void		DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* pImage);
 
-	bool			TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
+	bool			TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 
 	VkImage			m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_ImageMemory{ VK_NULL_HANDLE };
@@ -365,13 +365,7 @@ struct VulkanDescriptorSetState
 class VulkanShader
 {
 public:
-	VulkanShader()
-		: m_VertModule{ VK_NULL_HANDLE }
-		, m_FragModule{ VK_NULL_HANDLE }
-		, m_Pipeline{ VK_NULL_HANDLE }
-		, m_PipelineLayout{ VK_NULL_HANDLE }
-		, m_GlobalDescriptorPool{ VK_NULL_HANDLE }
-		, m_GlobalDescriptorSetLayout{ VK_NULL_HANDLE } {}
+	VulkanShader() {}
 
 	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
 	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
@@ -388,33 +382,33 @@ public:
 
 	void			BindInstance(VkCommandBuffer commandBuffer, u32 imageIndex, Texture& pTexture);
 	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer commandBuffer, u32 imageIndex, Texture& pTexture);
-	void			ApplyModel(VkCommandBuffer commandBuffer, Matrix4x4 model);
+	void			ApplyModel(VkCommandBuffer commandBuffer, Matrix4x4 model) const;
 
 private:
 
 public:
-	VkShaderModule		m_VertModule;
-	VkShaderModule		m_FragModule;
+	VkShaderModule		m_VertModule{ VK_NULL_HANDLE };
+	VkShaderModule		m_FragModule{ VK_NULL_HANDLE };
 
-	VkPipeline			m_Pipeline;
-	VkPipelineLayout	m_PipelineLayout;
+	VkPipeline			m_Pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout	m_PipelineLayout{ VK_NULL_HANDLE };
 
-	VkDescriptorPool			m_GlobalDescriptorPool;
-	VkDescriptorSetLayout		m_GlobalDescriptorSetLayout;
-	VulkanDescriptorSetState	m_GlobalDescriptorSets;
+	VkDescriptorPool			m_GlobalDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout		m_GlobalDescriptorSetLayout{ VK_NULL_HANDLE };
+	VulkanDescriptorSetState	m_GlobalDescriptorSets{};
 
-	VkDescriptorPool			m_InstanceDescriptorPool;
-	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout;
-	VulkanDescriptorSetState	m_InstanceDescriptorSets[VULKAN_MAX_INSTANCE_COUNT]; // * IMAGE_SAMPLER_COUNT?
+	VkDescriptorPool			m_InstanceDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout{ VK_NULL_HANDLE };
+	VulkanDescriptorSetState	m_InstanceDescriptorSets[VULKAN_MAX_INSTANCE_COUNT]{}; // * IMAGE_SAMPLER_COUNT?
 
-	VulkanBuffer				m_UniformBuffer;
-	void*						m_UniformBufferMappedMemory;
+	VulkanBuffer				m_UniformBuffer{};
+	void*						m_UniformBufferMappedMemory{};
 
-	u32							m_InstanceDescriptorOffset;
-	u32							m_CurrentlyBoundInstance;
+	u32							m_InstanceDescriptorOffset{ 0 };
+	u32							m_CurrentlyBoundInstance{ INVALID_ID_U8 };
 
 	// NOTE: This only exists as a placeholder for now.
-	VulkanImage m_GlobalTexture;
+	VulkanImage m_GlobalTexture{};
 };
 
 // TODO TEMP
@@ -447,9 +441,9 @@ struct Camera
 	void UpdateCameraVectors()
 	{
 		Vector3D front;
-		front.x = M_COS(Yaw * (M_PI / 180)) * M_COS(Pitch * (M_PI / 180));
+		front.x = M_COS(M_DEG2RAD(Yaw) * M_COS(M_DEG2RAD(Pitch)));
 		front.y = M_SIN(M_DEG2RAD(Pitch));
-		front.z = M_SIN(Yaw * (M_PI / 180)) * M_COS(Pitch * (M_PI / 180));
+		front.z = M_SIN(M_DEG2RAD(Yaw)) * M_COS(M_DEG2RAD(Pitch));
 		Front = front.Normalize();
 
 		Vector3D newRight = Vector3D::CrossProduct(Front, WorldUp);
@@ -475,10 +469,10 @@ struct VulkanImageData_t
 struct VulkanGeometryData_t
 {
 	u64 m_VertexDataOffset{ 0 };
-	u32 m_VertexDataSize{ 0 };
+	u64 m_VertexDataSize{ 0 };
 
 	u64 m_IndexDataOffset{ 0 };
-	u32 m_IndexDataSize{ 0 };
+	u64 m_IndexDataSize{ 0 };
 };
 
 

@@ -99,7 +99,7 @@ size_t FileSystem::FileSize(FileHandle_t* fileHandle)
 	return fileSize;
 }
 
-bool FileSystem::ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{

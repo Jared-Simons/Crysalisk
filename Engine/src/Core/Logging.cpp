@@ -37,7 +37,9 @@ void LogSystem::Shutdown()
 
 void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 {
-	if (static_cast<i32>(level) > LogSystem::m_LogVerbosity)
+	u8 logLevel = static_cast<u8>(level);
+
+	if (logLevel > LogSystem::m_LogVerbosity || logLevel < 0) // Just checking for an invalid index...
 	{
 		// Logging for these messages is disabled, just return.
 		return;
@@ -55,7 +57,7 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 
 	// Prepend channel string to the message
 	char outMessage2[4092];
-	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[static_cast<i32>(level)], outMessage);
+	sprintf_s(outMessage2, "%s%s\n", logLevelStrings[logLevel], outMessage);
 
 	Platform::LogMessage(static_cast<i32>(level), outMessage2);
 }

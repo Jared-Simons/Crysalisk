@@ -58,7 +58,15 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 
 	Texture* newTexture = &m_RegisteredTextures[pTexturePath];
 
-	byte* pixelData = stbi_load(pTexturePath, &newTexture->m_Width, &newTexture->m_Height, &newTexture->m_ChannelCount, 4); // NOTE: For now requiring 4 channels
+	// We use these local variables then cast to avoid a compiler warning.
+	i32 width, height, channelCount;
+
+	byte* pixelData = stbi_load(pTexturePath, &width, &height, &channelCount, 4); // NOTE: For now requiring 4 channels
+
+	// Assign the relevant texture data.
+	newTexture->m_Width = static_cast<i32>(width);
+	newTexture->m_Height = static_cast<i32>(height);
+	newTexture->m_ChannelCount = 4;
 
 	if (!pixelData)
 	{

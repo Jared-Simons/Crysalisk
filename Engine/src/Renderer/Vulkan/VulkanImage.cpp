@@ -8,12 +8,12 @@
 
 #include "Core/Logging.h"
 
-bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, i32 width, i32 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage)
+bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage)
 {
 	VkImageCreateInfo imageCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D; // TODO: make configurable
-	imageCreateInfo.extent.width = width;
-	imageCreateInfo.extent.height = height;
+	imageCreateInfo.extent.width = static_cast<u32>(width);
+	imageCreateInfo.extent.height = static_cast<u32>(height);
 	imageCreateInfo.extent.depth = 1;
 	imageCreateInfo.mipLevels = 1;
 	imageCreateInfo.arrayLayers = 1;
@@ -117,7 +117,7 @@ void VulkanImage::DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* 
 	}
 }
 
-bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout)
+bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {
 	VulkanCommandBuffer commandBuffer;
 	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);

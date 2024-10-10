@@ -647,8 +647,8 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 	VkDeviceSize vertexOffset = internalData->m_VertexDataOffset;
 	VkDeviceSize indexOffset = internalData->m_IndexDataOffset;
 
-	u32 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
-	u32 numIndices = internalData->m_IndexDataSize / sizeof(u16);
+	u64 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
+	u64 numIndices = internalData->m_IndexDataSize / sizeof(u16);
 
 	vkCmdBindVertexBuffers(pCommandBuffer.m_Handle, 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
 
@@ -664,7 +664,7 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 		vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
 	}*/
 
-	vkCmdDraw(pCommandBuffer.m_Handle, numVertices, 1, 0, 0);
+	vkCmdDraw(pCommandBuffer.m_Handle, static_cast<u32>(numVertices), 1, 0, 0);
 }
 
 static CVulkanRenderer* s_VulkanRenderer{ nullptr };

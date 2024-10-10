@@ -49,7 +49,7 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 #if defined ENGINE_DLL
 #define ENGINE_API __declspec(dllexport)
 #else
-#define ENGINE_API  __declspec(dllimport)
+#define ENGINE_API
 #endif
 
 #if defined GAME_DLL
