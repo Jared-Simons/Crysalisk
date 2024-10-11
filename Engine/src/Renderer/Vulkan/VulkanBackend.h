@@ -44,6 +44,26 @@ static u32 g_NewWidth{ 0 };
 static u32 g_NewHeight{ 0 };
 static bool g_FramebufferResized{ false };
 
+// TODO: TEMP METRICS
+struct RendererMetrics
+{
+	u64 numTriangles{ 0 };
+	u64 numVertices{ 0 };
+	u64 numMeshes{ 0 };
+	u64 numDrawCalls{ 0 };
+	f32 deltaTime{ 0 };
+
+	void ResetMetrics()
+	{
+		numTriangles = 0;
+		numVertices = 0;
+		numMeshes = 0;
+		numDrawCalls = 0;
+		deltaTime = 0.0f;
+	}
+};
+// TODO: END TEMP METRICS
+
 //=================================
 // 
 // Vulkan Device
@@ -563,6 +583,7 @@ public:
 	u32 m_FramebufferHeight{ 0 };
 
 	Clock m_RendererClock;
+	RendererMetrics m_Metrics;
 };
 
 IRendererBackend* GetVulkanBackend();

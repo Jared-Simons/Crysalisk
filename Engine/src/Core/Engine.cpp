@@ -272,7 +272,7 @@ bool Event_KeyReleased(EventData_t data)
 
 		TextureChoice = TextureChoice == 0 ? 1 : 0;
 
-		gpTextureSystem->LoadTexture(textureNames[TextureChoice]);
+		// Load up the new texture.
 		s_EnginePtr->m_TestGeometry->m_pTexture = gpTextureSystem->AcquireTexture(textureNames[TextureChoice]);
 
 		gpTextureSystem->UnloadTexture(*pOldTexture);

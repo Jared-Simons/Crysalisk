@@ -22,6 +22,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 // TODO: This event callback really should be a part of the renderer backend class
 bool Event_FramebufferResized(EventData_t data);
+bool RendererEvent_KeyReleased(EventData_t data);
 
 // TEMP: Camera
 Camera s_Camera(Vector3D(0.0f, 0.0f, 3.0f), Vector3D(0.0f, 1.0f, 0.0f), -90.0f, 0.0f);
@@ -103,6 +104,7 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 
 	// Register for window resize events
 	EventSystem::EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
+	EventSystem::EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
 
 	// Instance
 	if (!CreateVulkanInstance())
@@ -230,11 +232,15 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	vkDestroyInstance(m_Instance, m_Allocator);
 
+	EventSystem::EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
 	EventSystem::EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
 }
 
 bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 {
+	// Clear our metrics.
+	m_Metrics.ResetMetrics();
+
 	// Wait for the previous frame to finish it's work
 	vkWaitForFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
 
@@ -244,6 +250,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	f32 currentTime = static_cast<f32>(m_RendererClock.GetElapsedTime());
 	deltaTime = currentTime - lastFrame;
 	lastFrame = currentTime;
+	m_Metrics.deltaTime = deltaTime;
 
 	UpdateCameraPosition(deltaTime);
 	// END TEMP
@@ -257,9 +264,6 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		m_Swapchain.RecreateSwapchain(this, g_NewWidth, g_NewHeight);
 		return true;
 	}
-
-	// Update Uniform Buffer
-	//m_StandardShader.UpdateUniforms(this, imageIndex, s_Camera, deltaTime);
 
 	vkResetFences(m_Device.m_LogicalDevice, 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
 
@@ -310,7 +314,17 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		for (i32 i = 0; i < 10; i++)
 		{
 			if (pRenderData->geometries[i] && pRenderData->geometries[i]->m_pinternalData)
+			{
 				DrawGeometry(*pRenderData->geometries[i], m_VertexBuffer, m_IndexBuffer, commandBuffer, imageIndex);
+
+				// Update render metrics.
+				{
+					m_Metrics.numDrawCalls++;
+					m_Metrics.numMeshes++;
+					m_Metrics.numVertices = 36; // TODO: Hardcoded
+					m_Metrics.numTriangles = 12;
+				}
+			}
 		}
 
 		m_MainRenderpass.End(this, &commandBuffer);
@@ -703,5 +717,25 @@ bool Event_FramebufferResized(EventData_t data)
 	g_FramebufferResized = true;
 
 	return true;
+}
+
+bool RendererEvent_KeyReleased(EventData_t data)
+{
+	char keycode = *data.c;
+
+	if (keycode == KEY_R)
+	{
+		// Print out current rendering metrics.
+		char renderingMetricsBuffer[4096];
+		StringFormat_V("Rendering Metrics\nTriangles:\t%d\nVertices:\t%d\nMeshes:\t\t%d\nDraw Calls:\t%d", nullptr, renderingMetricsBuffer, 
+																										s_VulkanRenderer->m_Metrics.numTriangles, 
+																										s_VulkanRenderer->m_Metrics.numVertices, 
+																										s_VulkanRenderer->m_Metrics.numMeshes, 
+																										s_VulkanRenderer->m_Metrics.numDrawCalls);
+
+		LOG_DEBUG(renderingMetricsBuffer);
+	}
+
+	return false;
 }
 
