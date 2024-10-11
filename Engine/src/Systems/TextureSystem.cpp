@@ -33,6 +33,9 @@ bool TextureSystem::Initialize(void* pSystemConfig, Renderer* pRenderSystem)
 	}
 	m_Configuration = *typedConfig;
 
+	// Create default textures.
+	CreateDefaultTextures();
+
 	m_RegisteredTextures = CHashmap<const char*, Texture>(typedConfig->maxTextureCount);
 
 	LOG_INFO("Texture system initialized (MAX TEXTURES: %d)", typedConfig->maxTextureCount);
@@ -46,6 +49,9 @@ void TextureSystem::Shutdown()
 	{
 		LOG_WARN("Texture System shutting down with textures still registered!");
 	}
+
+	// Destroy default texture resources
+	m_RenderSystem->DestroyTextureResources(m_DefaultDiffuse);
 }
 
 bool TextureSystem::LoadTexture(const char* pTexturePath)
@@ -119,6 +125,25 @@ Texture* TextureSystem::AcquireTexture(const char* pTexturePath)
 	// TODO: Handle reference counting
 
 	return pTexture;
+}
+
+bool TextureSystem::CreateDefaultTextures()
+{
+	// Diffuse texture.
+
+	byte diffusePixels[16 * 16 * 4];
+	Memory::MemSet(diffusePixels, 255, sizeof(byte) * 16 * 16 * 4);
+
+	m_DefaultDiffuse.m_Height = m_DefaultDiffuse.m_Width = 16;
+	m_DefaultDiffuse.m_ChannelCount = 4;
+	m_DefaultDiffuse.m_TextureName = "DefaultDiffuse";
+	if (!m_RenderSystem->CreateTextureResources(m_DefaultDiffuse, diffusePixels))
+	{
+		LOG_ERROR("Failed to create default diffuse texture!");
+		return false;
+	}
+
+	return true;
 }
 
 static TextureSystem* s_TextureSystem = nullptr;

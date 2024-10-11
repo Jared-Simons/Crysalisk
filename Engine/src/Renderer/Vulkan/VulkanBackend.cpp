@@ -12,6 +12,7 @@
 #include <Resources/ResourceTypes.h>
 
 #include "Core/Input.h"
+#include "Systems/TextureSystem.h" // TODO: Remove this dependency.
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -629,8 +630,17 @@ void CVulkanRenderer::DestroyGeometryResources(StaticMesh& pMesh)
 void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffer, VulkanBuffer& pIndexBuffer, VulkanCommandBuffer& pCommandBuffer, u32 imageIndex)
 {
 	// TODO: Material-specific shaders
-	m_StandardShader.BindInstance(pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
-	m_StandardShader.ApplyInstance(this, pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+	// TODO: Clean up this texture check
+	if (!pMesh.m_pTexture->m_internalData)
+	{
+		m_StandardShader.BindInstance(pCommandBuffer.m_Handle, imageIndex, *gpTextureSystem->GetDefaultDiffuseTexture());
+		m_StandardShader.ApplyInstance(this, pCommandBuffer.m_Handle, imageIndex, *gpTextureSystem->GetDefaultDiffuseTexture());
+	}
+	else
+	{
+		m_StandardShader.BindInstance(pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+		m_StandardShader.ApplyInstance(this, pCommandBuffer.m_Handle, imageIndex, *pMesh.m_pTexture);
+	}
 
 	// Apply model matrix
 	Matrix4x4 model = Matrix4x4::Translate(Matrix4x4(1.0f), Vector3D(0.0f, 0.0f, 0.0f));

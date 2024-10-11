@@ -8,12 +8,14 @@
 #include "VulkanBackend.h"
 
 #include "Core/Logging.h"
+#include "Core/Assertions.h"
 #include "Core/Memory.h"
 #include "Platform/FileSystem.h"
 #include "Resources/ResourceTypes.h"
 #include "Renderer/RendererTypes.h"
 
 #include <Math/VertexTypes.h>
+#include <String_Utils.h>
 
 
 bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader)
@@ -590,10 +592,14 @@ void VulkanShader::ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBu
 
 		vkUpdateDescriptorSets(pRenderingContext->m_Device.m_LogicalDevice, 2, descriptorWrites, 0, nullptr);
 
-		if (m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex] == INVALID_ID_U8)
-			m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex] = 0;
-		else
-			m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex]++;
+		// TODO: This is slow!
+		if (!StringCompare(pTexture.m_TextureName, "DefaultDiffuse"))
+		{
+			if (m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex] == INVALID_ID_U8)
+				m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex] = 0;
+			else
+				m_InstanceDescriptorSets[pInternalTextureData->offset].generation[imageIndex]++;
+		}
 	}
 
 	// Set uniforms.

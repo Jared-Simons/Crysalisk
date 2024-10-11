@@ -259,6 +259,8 @@ bool Event_KeyReleased(EventData_t data)
 	
 	if (keycode == 'T')
 	{
+		Texture* pOldTexture = s_EnginePtr->m_TestGeometry->m_pTexture;
+
 		// TODO: THIS CAUSES A MEMORY LEAK! TEXTURES ARE NOT BEING DESTROYED
 		// Once this is properly implemented, we need to make sure this is no longer leaking resources.
 		static i32 TextureChoice = 0;
@@ -271,6 +273,9 @@ bool Event_KeyReleased(EventData_t data)
 		TextureChoice = TextureChoice == 0 ? 1 : 0;
 
 		gpTextureSystem->LoadTexture(textureNames[TextureChoice]);
+		s_EnginePtr->m_TestGeometry->m_pTexture = gpTextureSystem->AcquireTexture(textureNames[TextureChoice]);
+
+		gpTextureSystem->UnloadTexture(*pOldTexture);
 	}
 
 	return true;

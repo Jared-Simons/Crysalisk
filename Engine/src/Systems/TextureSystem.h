@@ -30,11 +30,19 @@ public:
 	void	UnloadTexture(Texture& pTexture);
 
 	Texture*	AcquireTexture(const char* pTexturePath);
+
+	Texture*	GetDefaultDiffuseTexture() { return &m_DefaultDiffuse; }
+
+private:
+	bool	CreateDefaultTextures();
+
 private:
 	TextureSystemConfiguration		m_Configuration;
 
 	CHashmap<const char*, Texture>	m_RegisteredTextures;
 	u64								m_NumRegisteredTextures;
+
+	Texture							m_DefaultDiffuse;
 
 	Renderer*						m_RenderSystem;
 };
