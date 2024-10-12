@@ -6,8 +6,11 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 // Forward declarations
 class DynamicAllocator;
+class IMemAllocator;
 
 class UtilLibMemory
 {
@@ -17,12 +20,15 @@ public:
 
 	UtilLibMemory(DynamicAllocator* pAllocator, const char* pConsumingLibraryName);
 
-	// The memory allocator that this instance of UtilLib will allocate from.
-	DynamicAllocator* m_pMemoryAllocator{ nullptr };
-	const char* m_szConsumingLibraryName{ nullptr };
-};
+	static void* Allocate(u64 sizeInBytes, u64 alignment);
+	static void Free(void* pBlock);
 
-extern UtilLibMemory* gpMemory;
+	static IMemAllocator* GetMemoryAllocator();
+
+	// The memory allocator that this instance of UtilLib will allocate from.
+	static DynamicAllocator* m_pMemoryAllocator;
+	static const char* m_szConsumingLibraryName;
+};
 
 // This must be called by EVERY consuming library that wishes to use these utilities.
 // Every function pointer MUST be assigned.

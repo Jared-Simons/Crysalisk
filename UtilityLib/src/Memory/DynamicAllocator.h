@@ -7,32 +7,33 @@
 #pragma once
 
 #include <Defines.h>
+#include "IMemAllocator.h"
 
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 
 struct FreeListNode_t
 {
-	size_t					blockSize;
-	size_t					offset;
-	size_t					alignment;
+	u64					blockSize;
+	u64					offset;
+	u64					alignment;
 	struct FreeListNode_t*	pNext;
 };
 
-const size_t ALLOC_HEADER_SIZE = sizeof(FreeListNode_t);
+const u64 ALLOC_HEADER_SIZE = sizeof(FreeListNode_t);
 
-class DynamicAllocator
+class DynamicAllocator : public IMemAllocator
 {
 public:
-	DynamicAllocator(size_t sizeInBytes, void* pMemBlock);
+	DynamicAllocator(u64 sizeInBytes, void* pMemBlock);
 	virtual ~DynamicAllocator();
 
-	void* Allocate(size_t size, size_t alignment = 2);
-	void Free(void* pMemBlock);
+	void* Allocate(u64 size, u64 alignment = 2) override;
+	void Free(void* pMemBlock) override;
 
-	size_t GetAllocatorSize() const { return m_Size; }
-	size_t GetBytesAllocated() const { return m_Allocated; }
-	size_t GetFreeSpace() const { return m_Size - m_Allocated; }
+	u64 GetAllocatorSize() const { return m_Size; }
+	u64 GetBytesAllocated() const { return m_Allocated; }
+	u64 GetFreeSpace() const { return m_Size - m_Allocated; }
 	void* GetMemoryBlock() const { return m_pData; }
 
 	void ReportMemoryFragmentation();
@@ -42,8 +43,8 @@ private:
 	DynamicAllocator() = delete;
 
 private:
-	size_t			m_Size;
-	size_t			m_Allocated;
+	u64			m_Size;
+	u64			m_Allocated;
 	void*			m_pData;
 	FreeListNode_t* m_pHeadNode;
 };

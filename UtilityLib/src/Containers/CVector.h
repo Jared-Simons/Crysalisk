@@ -13,6 +13,9 @@
 
 #include <Core/Memory.h>
 #include <Core/Logging.h>
+#include <Core/Assertions.h>
+#include "../UtilityLib_Core.h"
+#include "../Memory/IMemAllocator.h"
 
 template<typename T>
 class CVector
@@ -28,7 +31,11 @@ public:
 		, m_Capacity{ 0 }
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
-		, m_pData{ nullptr } {}
+		, m_pData{ nullptr } 
+	{
+		// Grab the Library's heap to make allocations from.
+		m_pAllocator = UtilLibMemory::GetMemoryAllocator();
+	}
 
 	CVector(size_t capacity) 
 		: m_Count{ 0 }
@@ -36,7 +43,10 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		// Grab the Library's heap to make allocations from.
+		m_pAllocator = UtilLibMemory::GetMemoryAllocator();
+
+		m_pData = static_cast<T*>(m_pAllocator->Allocate(sizeof(T) * m_Capacity, 2));
 		
 		if (m_pData)
 			memset(m_pData, 0, sizeof(T) * capacity);
@@ -48,7 +58,10 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		// Grab the Library's heap to make allocations from.
+		m_pAllocator = UtilLibMemory::GetMemoryAllocator();
+
+		m_pData = static_cast<T*>(m_pAllocator->Allocate(sizeof(T) * m_Capacity, 2));
 		
 		if (m_pData != nullptr)
 		{
@@ -62,7 +75,10 @@ public:
 		, m_Stride{ sizeof(T) }
 		, m_ResizeFactor{ 2 }
 	{
-		m_pData = static_cast<T*>(gpMemorySystem->MemAllocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		// Grab the Library's heap to make allocations from.
+		m_pAllocator = UtilLibMemory::GetMemoryAllocator();
+
+		m_pData = static_cast<T*>(m_pAllocator->Allocate(sizeof(T) * m_Capacity, 2));
 		if (m_pData != nullptr)
 		{
 			for (i32 i = 0; i < capacity; i++)
@@ -78,7 +94,10 @@ public:
 		, m_Stride{ otherVector.m_Stride }
 		, m_ResizeFactor{ otherVector.m_ResizeFactor }
 	{
-		m_pData = static_cast<T*>(Memory::Allocate(sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+		// Grab the Library's heap to make allocations from.
+		m_pAllocator = UtilLibMemory::GetMemoryAllocator();
+
+		m_pData = static_cast<T*>(m_pAllocator->Allocate(sizeof(T) * m_Capacity, 2));
 		if (m_pData != nullptr)
 			memcpy(m_pData, otherVector.m_pData, m_Capacity * m_Stride);
 	}
@@ -86,7 +105,7 @@ public:
 	virtual ~CVector()
 	{
 		if (m_pData)
-			Memory::Free(m_pData, sizeof(T) * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pAllocator->Free(m_pData);
 
 		m_pData = nullptr;
 	}
@@ -101,18 +120,18 @@ public:
 		if (m_pData != nullptr)
 		{
 			T* oldData = m_pData;
-			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+			m_pData = static_cast<T*>(m_pAllocator->Allocate(m_Stride * newCapacity, 2));
 
 			if (m_pData != nullptr)
 			{
 				Memory::MemCopy(m_pData, oldData, m_Stride * m_Capacity);
 			}
 
-			Memory::Free(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pAllocator->Free(oldData);
 		}
 		else
 		{
-			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+			m_pData = static_cast<T*>(m_pAllocator->Allocate(m_Stride * newCapacity, 2));
 		}
 
 
@@ -126,27 +145,27 @@ public:
 		{
 			T* oldData = m_pData;
 
-			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+			m_pData = static_cast<T*>(m_pAllocator->Allocate(m_Stride * newCapacity, 2));
 			
 			if (m_pData != nullptr)
 			{
 				memcpy(m_pData, oldData, m_Stride * newCapacity);
 			}
 
-			Memory::Free(oldData, m_Stride * m_Capacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+			m_pAllocator->Free(oldData);
 		}
 		else
 		{
-			m_pData = static_cast<T*>(Memory::Allocate(m_Stride * newCapacity, eMemAllocCategories::MEM_CATEGORY_CVECTOR));
+			m_pData = static_cast<T*>(m_pAllocator->Allocate(m_Stride * newCapacity, 2));
 		}
 
-		if (newCapacity < (i32)m_Capacity)
+		if (newCapacity < static_cast<i32>(m_Capacity))
 			m_Count = newCapacity;
 
 		m_Capacity = newCapacity;
 		i32 newIndex = static_cast<i32>(newCapacity - m_Count);
 
-		for (i32 i = (i32)m_Capacity - newIndex; i < newCapacity; i++)
+		for (i32 i = static_cast<i32>(m_Capacity - newIndex); i < newCapacity; i++)
 		{
 			if (m_pData != nullptr)
 			{
@@ -173,6 +192,7 @@ public:
 	void ClearAllElements()
 	{
 		gpMemorySystem->MemFree(m_pData, m_Capacity * m_Stride, eMemAllocCategories::MEM_CATEGORY_CVECTOR);
+		m_pAllocator->Free(m_pData);
 		m_pData = nullptr;
 
 		m_Capacity = 0;
@@ -226,6 +246,7 @@ public:
 	}
 
 	void SetResizeFactor(u32 resizeFactor) { m_ResizeFactor = resizeFactor; }
+	void SetMemoryAllocator(DynamicAllocator* pAllocator) { if m_Count > 0 CAssert(0) else m_pAllocator = pAllocator; }
 	
 	size_t			size() const { return m_Count; }
 	size_t			capacity() const { return m_Capacity; }
@@ -245,6 +266,9 @@ private:
 
 	/* The multiplier to be used when the vector resizes to make more room. */
 	u32 m_ResizeFactor;
+
+	/* An allocator to allocate memory from. By default, the UtilityLib heap allocator. */
+	IMemAllocator* m_pAllocator;
 
 	/* The data included in the array, can be accessed with the [] operators */
 	T* m_pData;

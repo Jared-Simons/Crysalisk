@@ -19,7 +19,7 @@ public:
 
 	void* operator new(size_t size, LinearAllocator* pAllocator)
 	{
-		void* block = pAllocator->allocate(size);
+		void* block = pAllocator->Allocate(size);
 		if (block)
 		{
 			return block;

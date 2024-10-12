@@ -109,7 +109,7 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	// Renderer
 	if (!s_EnginePtr->m_engineConfig.isHeadless)
 	{
-		s_EnginePtr->m_RenderSystem = reinterpret_cast<Renderer*>(s_EnginePtr->m_SystemsAllocator->allocate(sizeof(Renderer)));
+		s_EnginePtr->m_RenderSystem = reinterpret_cast<Renderer*>(s_EnginePtr->m_SystemsAllocator->Allocate(sizeof(Renderer)));
 		if (!s_EnginePtr->m_RenderSystem->Initialize())
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
@@ -120,7 +120,7 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	// Texture System
 
 	// TODO: Overloaded new operator?
-	gpTextureSystem = (TextureSystem*)s_EnginePtr->m_SystemsAllocator->allocate(sizeof(TextureSystem));
+	gpTextureSystem = (TextureSystem*)s_EnginePtr->m_SystemsAllocator->Allocate(sizeof(TextureSystem));
 
 	TextureSystemConfiguration textureSysConfig = { 1024 };
 	if (!gpTextureSystem->Initialize(&textureSysConfig, s_EnginePtr->m_RenderSystem))
@@ -152,14 +152,14 @@ bool Engine::Engine_Run()
 		if (!g_sApplicationSuspended)
 		{
 			// Clear the frame allocator
-			m_FrameAllocator->free();
+			m_FrameAllocator->Free();
 			if (!m_engineConfig.isHeadless)
 			{
 				gpInputSystem->Update();
 
 				Platform::Update();
 
-				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->allocate(sizeof(RenderPacket_t)));
+				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->Allocate(sizeof(RenderPacket_t)));
 				frameRenderData->geometries[0] = m_TestGeometry;
 
 				if (!s_EnginePtr->m_RenderSystem->Update(frameRenderData))
@@ -214,11 +214,11 @@ void Engine::Engine_Shutdown()
 	EventSystem::Shutdown();
 
 	// Destroy allocators
-	m_FrameAllocator->free(false);
+	m_FrameAllocator->Free(false);
 	delete m_FrameAllocator;
 	m_FrameAllocator = nullptr;
 
-	m_SystemsAllocator->free(false);
+	m_SystemsAllocator->Free(false);
 	delete m_SystemsAllocator;
 	m_SystemsAllocator = nullptr;
 
@@ -267,7 +267,8 @@ bool Event_KeyReleased(EventData_t data)
 		const char* textureNames[] =
 		{
 			"Assets/Textures/container.jpg",
-			"Assets/Textures/plasterwall024b.png",
+			"Assets/Textures/container2.png",
+			//"Assets/Textures/plasterwall024b.png",
 		};
 
 		TextureChoice = TextureChoice == 0 ? 1 : 0;

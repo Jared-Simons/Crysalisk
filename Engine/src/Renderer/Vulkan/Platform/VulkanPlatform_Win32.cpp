@@ -3,7 +3,6 @@
 #include "VulkanPlatform.h"
 #include "../VulkanBackend.h"
 #include "Core/Logging.h"
-#include "Core/Assertions.h"
 
 namespace Platform {
 

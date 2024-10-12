@@ -11,7 +11,9 @@
 #include <Core/Logging.h>
 
 static UtilLibMemory* s_UtilityLibMemCallbacks = nullptr;
-extern UtilLibMemory* gpMemory = s_UtilityLibMemCallbacks;
+
+DynamicAllocator* UtilLibMemory::m_pMemoryAllocator = nullptr;
+const char* UtilLibMemory::m_szConsumingLibraryName = nullptr;
 
 void* UtilLibMemory::operator new(size_t size, DynamicAllocator* pAllocator)
 {
@@ -51,19 +53,6 @@ void UtilLibMemory::operator delete(void* pMemory, DynamicAllocator* pAllocator)
 	}
 }
 
-UtilLibMemory::UtilLibMemory(DynamicAllocator* pAllocator, const char* pConsumingLibraryName)
-{
-	if (!pAllocator || !pConsumingLibraryName)
-	{
-		// TODO: LOGGING
-	}
-
-	m_pMemoryAllocator = pAllocator;
-	m_szConsumingLibraryName = pConsumingLibraryName;
-
-	LOG_DEBUG("%s->UtilityLib connected!", m_szConsumingLibraryName);
-}
-
 bool ConnectUtilityLib(DynamicAllocator* pMemAllocator, const char* pCallingLibraryName = "")
 {
 	// Make sure all function pointers are valid, and assign them
@@ -84,4 +73,43 @@ void DisconnectUtilityLib()
 {
 	s_UtilityLibMemCallbacks->operator delete(s_UtilityLibMemCallbacks, s_UtilityLibMemCallbacks->m_pMemoryAllocator);
 	s_UtilityLibMemCallbacks = nullptr;
+}
+
+UtilLibMemory::UtilLibMemory(DynamicAllocator* pAllocator, const char* pConsumingLibraryName)
+{
+	if (!pAllocator || !pConsumingLibraryName)
+	{
+		// TODO: LOGGING
+	}
+
+	m_pMemoryAllocator = pAllocator;
+	m_szConsumingLibraryName = pConsumingLibraryName;
+
+	LOG_DEBUG("%s->UtilityLib connected!", m_szConsumingLibraryName);
+}
+
+void* UtilLibMemory::Allocate(u64 sizeInBytes, u64 alignment = 2)
+{
+	if (!m_pMemoryAllocator)
+	{
+		// TODO: logging
+		return nullptr;
+	}
+
+	void* pBlock = m_pMemoryAllocator->Allocate(sizeInBytes, alignment);
+
+	return pBlock;
+}
+
+void UtilLibMemory::Free(void* pBlock)
+{
+	if (pBlock)
+	{
+		m_pMemoryAllocator->Free(pBlock);
+	}
+}
+
+IMemAllocator* UtilLibMemory::GetMemoryAllocator()
+{
+	return m_pMemoryAllocator;
 }

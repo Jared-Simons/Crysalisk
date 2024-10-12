@@ -8,18 +8,19 @@
 #pragma once
 
 #include <Defines.h>
+#include "IMemAllocator.h"
 
 #include <Core/Logging.h>
 #include <Core/Memory.h>
 
 #include <cstring>
 
-class LinearAllocator
+class LinearAllocator : public IMemAllocator
 {
 public:
 	LinearAllocator() = delete;
 
-	LinearAllocator(size_t bytesToAllocate)
+	LinearAllocator(u64 bytesToAllocate)
 		: m_AllocatorSize{ bytesToAllocate }
 		, m_BytesAllocated{ 0 }
 		, m_pData{ nullptr }
@@ -32,7 +33,7 @@ public:
 	~LinearAllocator()
 	{
 		if (m_BytesAllocated != 0)
-			free();
+			Free();
 
 		if (m_pData)
 			Memory::Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
@@ -42,7 +43,7 @@ public:
 		//LOG_DEBUG("Stack allocator destroyed");
 	}
 
-	void* allocate(size_t size)
+	void* Allocate(u64 size, u64 alignment = 2) override
 	{
 		if (m_AllocatorSize <= size + m_BytesAllocated)
 		{
@@ -64,7 +65,7 @@ public:
 		return newBlock;
 	}
 
-	void free(bool allocateNewMemory = true)
+	void Free(bool allocateNewMemory = true)
 	{
 		// Just zero out our memory.
 		if (m_pData)
@@ -74,14 +75,17 @@ public:
 		m_BytesAllocated = 0;
 	}
 
-	size_t GetAllocatorSize() const { return m_AllocatorSize; }
-	size_t GetBytesAllocated() const { return m_BytesAllocated; }
+	// We can't linearly free memory.
+	void Free(void* pMemBlock) override {};
+
+	u64 GetAllocatorSize() const { return m_AllocatorSize; }
+	u64 GetBytesAllocated() const { return m_BytesAllocated; }
 
 	void* GetMemory() const { return m_pData; }
 
 private:
-	size_t m_AllocatorSize;
-	size_t m_BytesAllocated;
+	u64 m_AllocatorSize;
+	u64 m_BytesAllocated;
 	void* m_pData;
 
 	void* m_pCurrentAlloc;

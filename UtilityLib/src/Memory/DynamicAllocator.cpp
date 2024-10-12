@@ -7,7 +7,7 @@
 
 #include "DynamicAllocator.h"
 
-DynamicAllocator::DynamicAllocator(size_t sizeInBytes, void* pMemBlock)
+DynamicAllocator::DynamicAllocator(u64 sizeInBytes, void* pMemBlock)
 	: m_Size{ sizeInBytes }
 	, m_Allocated{ 0 }
 	, m_pData{ pMemBlock }
@@ -35,7 +35,7 @@ DynamicAllocator::~DynamicAllocator()
 	m_pData = nullptr;
 }
 
-void* DynamicAllocator::Allocate(size_t size, size_t alignment)
+void* DynamicAllocator::Allocate(u64 size, u64 alignment)
 {
 	if (!IsNumberAPowerOfTwo(alignment))
 	{
@@ -240,8 +240,8 @@ void DynamicAllocator::ReportMemoryFragmentation()
 
 		if (pCurrentNode->pNext)
 		{
-			size_t size1 = ALLOC_HEADER_SIZE + pCurrentNode->offset + pCurrentNode->blockSize;
-			size_t size2 = pCurrentNode->pNext->offset;
+			u64 size1 = ALLOC_HEADER_SIZE + pCurrentNode->offset + pCurrentNode->blockSize;
+			u64 size2 = pCurrentNode->pNext->offset;
 
 			if ((ALLOC_HEADER_SIZE + pCurrentNode->offset + pCurrentNode->blockSize) == pCurrentNode->pNext->offset)
 				numberOfContiguousNodes += 2;
