@@ -101,6 +101,7 @@ void TextureSystem::UnloadTexture(Texture& pTexture)
 	m_RenderSystem->DestroyTextureResources(pTexture);
 
 	pTexture.m_Width = pTexture.m_Height = pTexture.m_ChannelCount = 0;
+	StringFree(const_cast<char*>(pTexture.m_TextureName)); // TODO: NO CONST CAST! This should be a char* not a const char*
 	pTexture.m_TextureName = nullptr;
 	pTexture.m_internalData = nullptr;
 

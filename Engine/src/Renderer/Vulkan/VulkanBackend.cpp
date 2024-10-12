@@ -605,6 +605,9 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 			VulkanImage::DestroyImage(this, pTextureData);
 
 		// TODO: Release internal shader instance resources as well
+
+		Memory::Free(pTexture.m_internalData, sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+		pTexture.m_internalData = nullptr;
 	}
 }
 

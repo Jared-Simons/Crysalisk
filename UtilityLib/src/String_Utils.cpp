@@ -42,12 +42,21 @@ bool StringCompare(const char* str1, const char* str2)
 
 char* StringDuplicate(const char* pStrToCopy)
 {
-	size_t strLength = StringLength(pStrToCopy);
+	u64 strLength = StringLength(pStrToCopy);
 	char* stringCopy = reinterpret_cast<char*>(Memory::Allocate(strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING)); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
 	memcpy(stringCopy, pStrToCopy, strLength + 1);
 
 	// NOTE: The caller is responsible for freeing this memory.
 	return stringCopy;
+}
+
+void StringFree(char* pString)
+{
+	if (pString)
+	{
+		u64 strLength = StringLength(pString);
+		Memory::Free(reinterpret_cast<void*>(pString), strLength + 1, eMemAllocCategories::MEM_CATEGORY_STRING); // TODO: REPLACE WITH MEMORY ALLOC HOOKS FOR UTILLIB
+	}
 }
 
 void StringConcat(char* str1, const char* str2)
