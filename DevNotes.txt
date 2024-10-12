@@ -8,8 +8,6 @@ The custom containers are dynamicially allocating from malloc, this should be sw
 
 Need a custom window type for the platform layer.
 
-Texture creation causes a memory leak with strings,
-
 CVector:
 
 Trying to pass a CVector by value to create a copy will result in heap-corruption, as the copy was not allocated (but taken by reference) - thus trying to free a non-existent allocation will wreak havoc.
