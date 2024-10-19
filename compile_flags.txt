@@ -1,0 +1,2 @@
+-Iengine/src/
+-DDLL_EXPORT

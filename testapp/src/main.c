@@ -1,0 +1,25 @@
+#include <defines.h>
+
+#include <core/engine.h>
+#include <test.h>
+
+#include <stdlib.h>
+
+i32 main(void) {
+    engine_state_t* engine_state = (struct engine_state_t*)malloc(sizeof(engine_state_t));
+    print_int(sizeof(engine_state_t));
+
+    engine_state->application_name = "Crysalisk Engine";
+    if (!engine_initialize(engine_state)) {
+    }
+
+    // while (true) {
+    //     engine_run(engine_state);
+    // }
+
+    engine_shutdown(engine_state);
+
+    free(engine_state);
+
+    return 0;
+}
