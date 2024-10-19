@@ -1,5 +1,6 @@
 #include "logging.h"
 
+#include <stdarg.h>
 #include <stdio.h> // TODO: temp
 
 b8 logging_initialize() {
@@ -12,5 +13,12 @@ void logging_shutdown() {
 }
 
 void log_message(log_level message_severity, const char* message, ...) {
-    printf("%s\n", message);
+    char message_buffer[32000];
+    va_list var_args;
+    va_start(var_args, message);
+    vsnprintf(message_buffer, 32000, message, var_args);
+    va_end(var_args);
+
+    // TODO: Platform-specific logging utilities.
+    printf("%s\n", message_buffer);
 }
