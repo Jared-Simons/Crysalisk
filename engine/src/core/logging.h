@@ -16,6 +16,8 @@ void logging_shutdown();
 
 void log_message(log_level message_severity, const char* message, ...);
 
+void log_assertion_failure(const char* message, const char* filename, i32 line);
+
 // Logs a fatal error message
 #define LOG_FATAL(message, ...) log_message(LOG_LEVEL_FATAL, message, __VA_ARGS__)
 
@@ -33,3 +35,19 @@ void log_message(log_level message_severity, const char* message, ...);
 
 // Logs a trace level message
 #define LOG_TRACE(message, ...) log_message(LOG_LEVEL_TRACE, message, __VA_ARGS__)
+
+// Will break the program in the debugger, should the expression evaluate to false.
+#define C_ASSERT(expr) {      \
+    if (!(expr)) {            \
+        __debugbreak();       \
+    }                         \
+}
+
+// Will break the program in the debugger, and/or log a message to the console,
+// should the expression evaluate to false.
+#define C_ASSERT_MSG(expr, msg) {                           \
+    if (!(expr)) {                                          \
+        log_assertion_failure(msg, __FILE__, __LINE__);     \
+        __debugbreak();                                     \
+    }                                                       \
+}

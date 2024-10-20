@@ -1,0 +1,20 @@
+{
+    "configurations": [
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/engine/src**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "DLL_EXPORT",
+                "_CRT_SECURE_NO_WARNINGS"
+            ],
+            "intelliSenseMode": "clang-x64",
+            "compilerPath": "D:/coding/LLVM/bin/clang.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}

@@ -22,3 +22,10 @@ void log_message(log_level message_severity, const char* message, ...) {
     // TODO: Platform-specific logging utilities.
     printf("%s\n", message_buffer);
 }
+
+void log_assertion_failure(const char* message, const char* filename, i32 line) {
+    char message_buffer[32000];
+    sprintf(message_buffer, "Assertion failure! '%s' (File: '%s', Line: %d)", message, filename, line);
+
+    LOG_ERROR(message_buffer);
+}

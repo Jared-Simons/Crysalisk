@@ -1,0 +1,13 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Build Everything (Debug)",
+            "windows": {
+                "command": "${workspaceFolder}/build-all.bat"
+            },
+            "group": "build",
+        }
+    ],
+    "version": "2.0.0"
+}

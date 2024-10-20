@@ -26,6 +26,8 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     LOG_DEBUG("DEBUG TEST, %d", 200);
     LOG_TRACE("TRACE TEST, %d", 150);
 
+    C_ASSERT_MSG(1 == 0, "One does not equal zero!");
+
     return true;
 }
 
