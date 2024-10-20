@@ -2,3 +2,6 @@ Features to be added:
 
 Logger:
 -[ ] Multiple Channels
+
+Platform:
+-[ ] Multiple windows can be created, but they will all use the same windproc callback (WIN32 only)
