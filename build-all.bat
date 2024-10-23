@@ -1,7 +1,7 @@
 @echo off
 
 REM Build Engine
-CALL make ASSEMBLY=engine EXTENSION=dll
+CALL make -f "makefile.engine.mak"
 
-REM Build Testapp
-CALL make ASSEMBLY=testapp EXTENSION=exe ADDL_INCLUDE_DIRS=-Iengine\src ADDL_LINKER_FLAGS=-lbin\engine.lib
+REM Build Testapp    
+CALL make -f "makefile.testapp.mak"
