@@ -1,5 +1,7 @@
 #include "logging.h"
 
+#include "platform/platform.h"
+
 #include <stdarg.h>
 #include <stdio.h> // TODO: temp
 
@@ -19,8 +21,8 @@ void log_message(log_level message_severity, const char* message, ...) {
     vsnprintf(message_buffer, 32000, message, var_args);
     va_end(var_args);
 
-    // TODO: Platform-specific logging utilities.
-    printf("%s\n", message_buffer);
+    // Send to the platform layer for output.
+    platform_log_message(message_severity, message_buffer);
 }
 
 void log_assertion_failure(const char* message, const char* filename, i32 line) {

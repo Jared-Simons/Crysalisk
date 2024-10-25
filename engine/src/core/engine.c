@@ -1,12 +1,11 @@
 #include "engine.h"
 
 #include "core/logging.h"
+#include "core/memory.h"
 #include "platform/platform.h"
 
-#include <stdlib.h> // TODO: TEMP
-
 // Engine state
-engine_state_t* state_ptr = 0;
+static engine_state_t* state_ptr = 0;
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -16,13 +15,18 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
 
     state_ptr = engine_state;
 
+    if (!memory_initialize()) {
+        LOG_ERROR("Memory system failed to initialize! Application cannot continue.");
+        return false;
+    }
+
     logging_initialize();
 
     // Platform layer.
     platform_state_config platform_config = {};
     platform_config.application_name = engine_state->application_name;
     platform_initialize(&engine_state->platform_memory_requirement, 0, platform_config);
-    engine_state->platform_state = malloc(engine_state->platform_memory_requirement);
+    engine_state->platform_state = memory_allocate(engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
     if (!platform_initialize(&engine_state->platform_memory_requirement, engine_state->platform_state, platform_config)) {
         LOG_ERROR("Failed to initialize platform layer! Application cannot continue.");
         return false;
@@ -55,5 +59,9 @@ b8 engine_run(struct engine_state_t* engine_state) {
 void engine_shutdown(struct engine_state_t* engine_state) {
     log_message(LOG_LEVEL_INFO, "Engine shutting down");
 
+    memory_free(engine_state->platform_state, engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
+
     logging_shutdown();
+
+    memory_shutdown();
 }

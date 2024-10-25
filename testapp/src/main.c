@@ -2,9 +2,9 @@
 
 #include <core/engine.h>
 
-#include <stdlib.h>
+#include <stdlib.h> // TODO: Temp
 
-i32 main(void) {
+i32 main() {
     engine_state_t* engine_state = (struct engine_state_t*)malloc(sizeof(engine_state_t));
 
     engine_state->application_name = "Crysalisk Engine";

@@ -3,7 +3,9 @@
 #ifdef PLAT_WIN32
 
 #include "core/logging.h"
-#include <stdlib.h> // TODO: temp
+#include "core/memory.h"
+
+#include <stdlib.h> // NOTE: For memory functions
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -74,6 +76,7 @@ b8 platform_create_window(const char* window_title, window* out_window) {
     RegisterClassA(&window_class);
 
     // Create the window.
+    out_window->internal_state = memory_allocate(sizeof(win32_window_state), MEMORY_TAG_CORE);
     out_window->internal_state = malloc(sizeof(win32_window_state));
     win32_window_state* win32_window = out_window->internal_state;
 
@@ -103,6 +106,29 @@ b8 platform_process_messages(window* window) {
         DispatchMessageA(&msg);
     }
     return true;
+}
+
+void platform_log_message(u8 log_level, const char* message) {
+    HANDLE output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    static u8 log_colors[6] = {64, 4, 6, 2, 1, 8};
+    SetConsoleTextAttribute(output_handle, log_colors[log_level]);
+    LPCWSTR wmessage = cstr_to_wcstr(message);
+}
+
+void* platform_allocate(u64 size) {
+    return malloc(size);
+}
+
+void platform_free(void* block) {
+    free(block);
+}
+
+void* platform_memcpy(void* dest, const void* source, u64 size) {
+    return memcpy(dest, source, size);
+}
+
+void platform_memset(void* dest, i32 value, u64 size) {
+    memset(dest, value, size);
 }
 
 #endif // Windows platform layer

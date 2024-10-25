@@ -22,3 +22,10 @@ b8 platform_update();
 b8 platform_create_window(const char* window_title, window* out_window);
 
 b8 platform_process_messages(window* window);
+
+void platform_log_message(u8 log_level, const char* message);
+
+void* platform_allocate(u64 size);
+void platform_free(void* block);
+void* platform_memcpy(void* dest, const void* source, u64 size);
+void platform_memset(void* dest, i32 value, u64 size);
