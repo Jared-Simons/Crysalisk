@@ -12,7 +12,7 @@
                 "PLAT_WIN32"
             ],
             "intelliSenseMode": "clang-x64",
-            "compilerPath": "D:/coding/LLVM/bin/clang.exe",
+            "compilerPath": "LLVM/bin/clang.exe",
             "cStandard": "c17",
             "cppStandard": "c++17"
         }

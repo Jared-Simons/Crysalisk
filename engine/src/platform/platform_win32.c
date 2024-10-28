@@ -1,4 +1,5 @@
 #include "platform.h"
+#include <string.h>
 
 #ifdef PLAT_WIN32
 
@@ -110,9 +111,13 @@ b8 platform_process_messages(window* window) {
 
 void platform_log_message(u8 log_level, const char* message) {
     HANDLE output_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    static u8 log_colors[6] = {64, 4, 6, 2, 1, 8};
+    static u8 log_colors[6] = {64, 4, 6, 3, 5, 8};
     SetConsoleTextAttribute(output_handle, log_colors[log_level]);
-    LPCWSTR wmessage = cstr_to_wcstr(message);
+    DWORD bytes_written = 0;
+    u64 message_length = strlen(message);
+    WriteConsoleA(output_handle, message, (DWORD)message_length, &bytes_written, 0);
+    // Clear the console back to light gray after printing the message
+    SetConsoleTextAttribute(output_handle, 15);
 }
 
 void* platform_allocate(u64 size) {

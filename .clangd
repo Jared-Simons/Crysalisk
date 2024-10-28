@@ -1,0 +1,12 @@
+If:
+	PathMatch: /engine/src/.*
+CompileFlags:
+	CompilationDatabase: /engine
+	
+---
+
+
+If:
+	PathMatch: /testapp/src/.*
+CompileFlags:
+	CompilationDatabase: /testapp

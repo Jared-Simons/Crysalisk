@@ -1,4 +1,7 @@
--Iengine/src/
+-Iengine\src\
+
+-D_DEBUG
 -DDLL_EXPORT
--D_CRT_SECURE_NO_WARNINGS
 -DPLAT_WIN32
+-D_CRT_SECURE_NO_WARNINGS
+-ferror-limit=0

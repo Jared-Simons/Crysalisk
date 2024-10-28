@@ -8,7 +8,9 @@ typedef enum log_level {
     LOG_LEVEL_WARN = 2,
     LOG_LEVEL_INFO = 3,
     LOG_LEVEL_DEBUG = 4,
-    LOG_LEVEL_TRACE = 5
+    LOG_LEVEL_TRACE = 5,
+
+    LOG_LEVEL_MAX_LEVELS
 } log_level;
 
 b8 logging_initialize();
@@ -37,17 +39,19 @@ void log_assertion_failure(const char* message, const char* filename, i32 line);
 #define LOG_TRACE(message, ...) log_message(LOG_LEVEL_TRACE, message, __VA_ARGS__)
 
 // Will break the program in the debugger, should the expression evaluate to false.
-#define C_ASSERT(expr) {      \
-    if (!(expr)) {            \
-        __debugbreak();       \
-    }                         \
-}
+#define C_ASSERT(expr)      \
+    {                       \
+        if (!(expr)) {      \
+            __debugbreak(); \
+        }                   \
+    }
 
 // Will break the program in the debugger, and/or log a message to the console,
 // should the expression evaluate to false.
-#define C_ASSERT_MSG(expr, msg) {                           \
-    if (!(expr)) {                                          \
-        log_assertion_failure(msg, __FILE__, __LINE__);     \
-        __debugbreak();                                     \
-    }                                                       \
-}
+#define C_ASSERT_MSG(expr, msg)                             \
+    {                                                       \
+        if (!(expr)) {                                      \
+            log_assertion_failure(msg, __FILE__, __LINE__); \
+            __debugbreak();                                 \
+        }                                                   \
+    }

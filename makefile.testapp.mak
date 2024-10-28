@@ -38,3 +38,14 @@ compile:
 $(OBJ_DIR)/%.c.o: %.c 
 	@echo 	$<...
 	@clang $< $(COMPILER_FLAGS) -c -o $@ $(DEFINES) $(INCLUDE_DIRS)
+
+.PHONY: gen_compile_flags 
+gen_compile_flags:
+	$(shell powershell \"$(INCLUDE_FLAGS) $(DEFINES) -ferror-limit=0\".replace('-I', '-I..\').replace(' ', \"`n\").replace('-I..\C:', '-IC:') > $(ASSEMBLY)/compile_flags.txt)
+
+.PHONY: clean
+clean:
+	@echo Cleaning "$(ASSEMBLY)"
+	@if exist $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION) del $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION)
+	@if exist $(BUILD_DIR)\$(ASSEMBLY).* del $(BUILD_DIR)\$(ASSEMBLY).*
+	@if exist $(OBJ_DIR)\$(ASSEMBLY) rmdir /s /q $(OBJ_DIR)\$(ASSEMBLY)
