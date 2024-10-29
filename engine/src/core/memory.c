@@ -56,10 +56,10 @@ void* memory_copy(void* dest, const void* source, u64 size) {
     return platform_memcpy(dest, source, size);
 }
 
-void set_memory(void* block, i32 value, u64 size) {
+void memory_set(void* block, i32 value, u64 size) {
     platform_memset(block, value, size);
 }
 
-void zero_memory(void* block, u64 size) {
-    set_memory(block, 0, size);
+void memory_zero(void* block, u64 size) {
+    memory_set(block, 0, size);
 }

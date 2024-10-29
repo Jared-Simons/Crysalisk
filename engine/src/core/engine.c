@@ -2,7 +2,10 @@
 
 #include "core/logging.h"
 #include "core/memory.h"
+#include "defines.h"
 #include "platform/platform.h"
+
+#include "containers/darray.h"
 
 // Engine state
 static engine_state_t* state_ptr = 0;
@@ -44,6 +47,21 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     LOG_TRACE("TRACE TEST, %d", 150);
 
     // C_ASSERT_MSG(1 == 0, "One does not equal zero!");
+
+    // darray test
+    i32* int_darray = darray_create(K_DARRAY_DEFAULT_CAPACITY, sizeof(i32));
+    int temp_array[5] = {1, 2, 3, 4, 5};
+    darray_push_back(int_darray, &temp_array[0]);
+    darray_push_back(int_darray, &temp_array[1]);
+    darray_push_back(int_darray, &temp_array[2]);
+    darray_push_back(int_darray, &temp_array[3]);
+    darray_push_back(int_darray, &temp_array[4]);
+
+    for (int index = 0; index < 5; ++index) {
+        LOG_INFO("darray[%d]: %d", index, (i32)int_darray[index]);
+    }
+    darray_destroy(int_darray);
+    // end darray test
 
     return true;
 }
