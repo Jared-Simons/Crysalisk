@@ -27,14 +27,15 @@ void* darray_create(u64 element_capacity, u64 element_stride) {
     header->element_stride = element_stride;
     header->element_count = 0;
 
-    memory += sizeof(darray_header);
-    memory_set(memory, 0, element_capacity * element_stride);
-    return memory;
+    u8* darray_data = memory + sizeof(darray_header);
+    memory_set(darray_data, 0, element_capacity * element_stride);
+    return darray_data;
 }
 
 void darray_destroy(void* darray) {
     if (darray) {
-        darray_header* header = darray - sizeof(darray_header);
+        u8* darray_addr = (u8*)darray;
+        darray_header* header = (darray_header*)(darray_addr - sizeof(darray_header));
         u64 capacity = header->element_capacity;
         u64 stride = header->element_stride;
 
@@ -42,11 +43,27 @@ void darray_destroy(void* darray) {
     }
 }
 
+void darray_resize(void* darray, u64 new_capacity) {
+    if (darray) {
+        u8* darray_addr = darray;
+        darray_header* header = (darray_header*)(darray_addr - sizeof(darray_header));
+
+        if (new_capacity <= header->element_capacity) {
+            // NOTE: We can only grow our darray.
+            LOG_ERROR("darray_resize is trying to shrink array, nothing was done.");
+            return;
+        }
+        LOG_ERROR("");
+    }
+}
+
 void darray_push(void* darray, void* element) {
     if (darray && element) {
-        darray_header* header = darray - sizeof(darray_header);
+        u8* darray_addr = (u8*)darray;
+        darray_header* header = (darray_header*)(darray_addr - sizeof(darray_header));
         if (header->element_count + 1 > header->element_capacity) {
             // TODO: Handle resizing.
+            darray_resize(darray, header->element_capacity * K_DARRAY_DEFAULT_RESIZE_FACTOR);
         }
 
         u64 element_data = ((u64)darray) + header->element_count * header->element_stride;
@@ -57,7 +74,8 @@ void darray_push(void* darray, void* element) {
 
 void darray_pop(void* darray, void* out_element) {
     if (darray && out_element) {
-        darray_header* header = darray - sizeof(darray_header);
+        u8* darray_addr = (u8*)darray;
+        darray_header* header = (darray_header*)(darray - sizeof(darray_header));
         if (header->element_count < 1) {
             // TODO: logging
         }

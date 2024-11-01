@@ -68,6 +68,8 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
         darray_pop(int_darray, &data);
         LOG_INFO("darray[%d]: %d", index, data);
     }
+
+    darray_resize(int_darray, 20);
     darray_destroy(int_darray);
     // end darray test
 
