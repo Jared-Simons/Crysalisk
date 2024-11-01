@@ -42,15 +42,28 @@ void darray_destroy(void* darray) {
     }
 }
 
-void darray_push_back(void* darray, void* element) {
+void darray_push(void* darray, void* element) {
     if (darray && element) {
         darray_header* header = darray - sizeof(darray_header);
         if (header->element_count + 1 > header->element_capacity) {
             // TODO: Handle resizing.
         }
 
-        u64* index = (u64*)darray + (header->element_count + 1 * sizeof(header->element_stride));
-        memory_copy(index, element, header->element_stride);
+        u64 element_data = ((u64)darray) + header->element_count * header->element_stride;
+        memory_copy((void*)element_data, element, header->element_stride);
         header->element_count++;
+    }
+}
+
+void darray_pop(void* darray, void* out_element) {
+    if (darray && out_element) {
+        darray_header* header = darray - sizeof(darray_header);
+        if (header->element_count < 1) {
+            // TODO: logging
+        }
+
+        u64 element_data = ((u64)darray) + (header->element_count - 1) * header->element_stride;
+        memory_copy((void*)out_element, (void*)element_data, header->element_stride);
+        header->element_count--;
     }
 }

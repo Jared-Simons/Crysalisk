@@ -51,14 +51,22 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     // darray test
     i32* int_darray = darray_create(K_DARRAY_DEFAULT_CAPACITY, sizeof(i32));
     int temp_array[5] = {1, 2, 3, 4, 5};
-    darray_push_back(int_darray, &temp_array[0]);
-    darray_push_back(int_darray, &temp_array[1]);
-    darray_push_back(int_darray, &temp_array[2]);
-    darray_push_back(int_darray, &temp_array[3]);
-    darray_push_back(int_darray, &temp_array[4]);
+    darray_push(int_darray, &temp_array[0]);
+    darray_push(int_darray, &temp_array[1]);
+    darray_push(int_darray, &temp_array[2]);
+    darray_push(int_darray, &temp_array[3]);
+    darray_push(int_darray, &temp_array[4]);
 
     for (int index = 0; index < 5; ++index) {
-        LOG_INFO("darray[%d]: %d", index, (i32)int_darray[index]);
+        LOG_INFO("darray[%d]: %d", index, int_darray[index]);
+    }
+
+    LOG_DEBUG("Popping from darray");
+
+    for (int index = 0; index < 5; ++index) {
+        i32 data = 0;
+        darray_pop(int_darray, &data);
+        LOG_INFO("darray[%d]: %d", index, data);
     }
     darray_destroy(int_darray);
     // end darray test
