@@ -1,14 +1,15 @@
 #include "engine.h"
 
+#include "core/event.h"
 #include "core/logging.h"
 #include "core/memory.h"
 #include "defines.h"
 #include "platform/platform.h"
 
-#include "containers/darray.h"
-
 // Engine state
 static engine_state_t* state_ptr = 0;
+
+b8 engine_shutdown_callback(event_data_t event_data);
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -25,7 +26,15 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
 
     logging_initialize();
 
-    // Platform layer.
+    // Event system
+    event_system_initialize(&engine_state->event_system_memory_requirement, 0);
+    engine_state->event_system_state = memory_allocate(engine_state->event_system_memory_requirement, MEMORY_TAG_ENGINE);
+    if (!event_system_initialize(&engine_state->event_system_memory_requirement, engine_state->event_system_state)) {
+        LOG_ERROR("Event system failed to initialize! Application cannot continue.");
+        return false;
+    }
+
+    // Platform layer
     platform_state_config platform_config = {};
     platform_config.application_name = engine_state->application_name;
     platform_initialize(&engine_state->platform_memory_requirement, 0, platform_config);
@@ -48,13 +57,21 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
 
     // C_ASSERT_MSG(1 == 0, "One does not equal zero!");
 
+    // Register for the engine shutdown callback.
+    event_system_register(EVENT_CODE_APPLICATION_QUIT, 0, engine_shutdown_callback);
+    engine_state->application_should_shutdown = false;
+
     return true;
 }
 
 b8 engine_run(struct engine_state_t* engine_state) {
-    if (!platform_update()) {
-        return false;
+    while (engine_state->application_should_shutdown == false) {
+        if (!platform_update()) {
+            return false;
+        }
     }
+
+    engine_shutdown(engine_state);
 
     return true;
 }
@@ -62,9 +79,20 @@ b8 engine_run(struct engine_state_t* engine_state) {
 void engine_shutdown(struct engine_state_t* engine_state) {
     log_message(LOG_LEVEL_INFO, "Engine shutting down");
 
+    // TODO: Platform system shutdown.
+    // TODO: This is broken!
     memory_free(engine_state->platform_state, engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
+
+    event_system_shutdown(engine_state->event_system_state);
+    memory_free(engine_state->event_system_state, engine_state->event_system_memory_requirement, MEMORY_TAG_ENGINE);
 
     logging_shutdown();
 
     memory_shutdown();
+}
+
+// Event callback to shutdown the application.
+b8 engine_shutdown_callback(event_data_t event_data) {
+    state_ptr->application_should_shutdown = true;
+    return true;
 }

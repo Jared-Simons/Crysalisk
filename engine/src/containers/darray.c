@@ -101,3 +101,14 @@ void darray_pop(void* darray, void* out_element) {
         header->element_count--;
     }
 }
+
+u64 darray_length_get(void* darray) {
+    if (darray) {
+        u8* darray_addr = (u8*)darray;
+        darray_header* header = (darray_header*)(darray - sizeof(darray_header));
+
+        return header->element_capacity;
+    }
+
+    return 0;
+}

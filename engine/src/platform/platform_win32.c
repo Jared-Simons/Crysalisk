@@ -1,3 +1,4 @@
+#include "core/event.h"
 #include "platform.h"
 #include <string.h>
 
@@ -97,6 +98,18 @@ b8 platform_create_window(const char* window_title, window* out_window) {
 }
 
 LRESULT CALLBACK pfn_wnd_proc(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_param) {
+    switch (u_msg) {
+    case WM_CLOSE: {
+        event_data_t data;
+        event_system_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+        break;
+    }
+
+    default:
+        return DefWindowProcA(hwnd, u_msg, w_param, l_param);
+        break;
+    }
+
     return DefWindowProcA(hwnd, u_msg, w_param, l_param);
 }
 

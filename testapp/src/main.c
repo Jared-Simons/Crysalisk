@@ -15,8 +15,6 @@ i32 main() {
         engine_run(engine_state);
     }
 
-    engine_shutdown(engine_state);
-
     free(engine_state);
 
     return 0;

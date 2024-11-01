@@ -10,3 +10,5 @@ void darray_destroy(void* darray);
 void* darray_resize(void* darray, u64 new_capacity);
 void darray_push(void* darray, void* element);
 void darray_pop(void* darray, void* out_element);
+
+u64 darray_length_get(void* darray);
