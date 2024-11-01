@@ -2,7 +2,10 @@
 
 #include "core/logging.h"
 #include "core/memory.h"
+#include "defines.h"
 #include "platform/platform.h"
+
+#include "containers/darray.h"
 
 // Engine state
 static engine_state_t* state_ptr = 0;
