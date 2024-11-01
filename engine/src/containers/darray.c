@@ -43,18 +43,34 @@ void darray_destroy(void* darray) {
     }
 }
 
-void darray_resize(void* darray, u64 new_capacity) {
+void* darray_resize(void* darray, u64 new_capacity) {
     if (darray) {
         u8* darray_addr = darray;
         darray_header* header = (darray_header*)(darray_addr - sizeof(darray_header));
 
         if (new_capacity <= header->element_capacity) {
             // NOTE: We can only grow our darray.
-            LOG_ERROR("darray_resize is trying to shrink array, nothing was done.");
-            return;
+            LOG_WARNING("darray_resize is trying to shrink array, nothing was done.");
+            return darray;
         }
-        LOG_ERROR("");
+
+        // Allocate new memory and copy the data over.
+        void* new_darray = memory_allocate((new_capacity * header->element_stride) + sizeof(darray_header), MEMORY_TAG_DARRAY);
+        darray_header* new_header = (darray_header*)new_darray;
+        memory_copy(new_header, header, sizeof(darray_header));
+        u8* new_darray_data = (u8*)new_header + sizeof(darray_header);
+        memory_copy(new_darray_data, darray, header->element_capacity * header->element_stride);
+
+        // Free the original darray
+        memory_free(header, sizeof(darray_header) + (header->element_capacity * header->element_stride), MEMORY_TAG_DARRAY);
+
+        // Update the new header
+        new_header->element_capacity = new_capacity;
+        return new_darray_data;
     }
+
+    LOG_ERROR("darray_resize was not provided a darray, returning nullptr.");
+    return 0;
 }
 
 void darray_push(void* darray, void* element) {

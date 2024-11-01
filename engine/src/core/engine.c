@@ -61,6 +61,8 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
         LOG_INFO("darray[%d]: %d", index, int_darray[index]);
     }
 
+    int_darray = darray_resize(int_darray, 20);
+
     LOG_DEBUG("Popping from darray");
 
     for (int index = 0; index < 5; ++index) {
@@ -69,7 +71,6 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
         LOG_INFO("darray[%d]: %d", index, data);
     }
 
-    darray_resize(int_darray, 20);
     darray_destroy(int_darray);
     // end darray test
 
