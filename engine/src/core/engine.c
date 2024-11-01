@@ -48,32 +48,6 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
 
     // C_ASSERT_MSG(1 == 0, "One does not equal zero!");
 
-    // darray test
-    i32* int_darray = darray_create(K_DARRAY_DEFAULT_CAPACITY, sizeof(i32));
-    int temp_array[5] = {1, 2, 3, 4, 5};
-    darray_push(int_darray, &temp_array[0]);
-    darray_push(int_darray, &temp_array[1]);
-    darray_push(int_darray, &temp_array[2]);
-    darray_push(int_darray, &temp_array[3]);
-    darray_push(int_darray, &temp_array[4]);
-
-    for (int index = 0; index < 5; ++index) {
-        LOG_INFO("darray[%d]: %d", index, int_darray[index]);
-    }
-
-    int_darray = darray_resize(int_darray, 20);
-
-    LOG_DEBUG("Popping from darray");
-
-    for (int index = 0; index < 5; ++index) {
-        i32 data = 0;
-        darray_pop(int_darray, &data);
-        LOG_INFO("darray[%d]: %d", index, data);
-    }
-
-    darray_destroy(int_darray);
-    // end darray test
-
     return true;
 }
 
