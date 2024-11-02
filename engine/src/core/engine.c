@@ -11,8 +11,12 @@
 static engine_state_t* state_ptr = 0;
 
 b8 engine_shutdown_callback(event_data_t event_data);
+
+// TEMP: Input callbacks
 b8 engine_key_pressed_callback(event_data_t event_data);
 b8 engine_key_released_callback(event_data_t event_data);
+b8 engine_mouse_pressed_callback(event_data_t event_data);
+b8 engine_mouse_released_callback(event_data_t event_data);
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -74,17 +78,19 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
 
     event_system_register(EVENT_CODE_INPUT_KEY_PRESSED, 0, engine_key_pressed_callback);
     event_system_register(EVENT_CODE_INPUT_KEY_RELEASED, 0, engine_key_released_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_PRESSED, 0, engine_mouse_pressed_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_RELEASED, 0, engine_mouse_released_callback);
 
     return true;
 }
 
 b8 engine_run(struct engine_state_t* engine_state) {
-    while (engine_state->application_should_shutdown == false) {
+    while (!engine_state->application_should_shutdown) {
         if (!platform_update()) {
             return false;
         }
 
-        input_system_update(engine_state->input_system_state);
+        input_system_update();
     }
 
     engine_shutdown(engine_state);
@@ -93,7 +99,7 @@ b8 engine_run(struct engine_state_t* engine_state) {
 }
 
 void engine_shutdown(struct engine_state_t* engine_state) {
-    log_message(LOG_LEVEL_INFO, "Engine shutting down");
+    LOG_INFO("Engine shutting down");
 
     // TODO: Platform system shutdown.
     memory_free(engine_state->platform_state, engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
@@ -119,5 +125,47 @@ b8 engine_key_pressed_callback(event_data_t event_data) {
 
 b8 engine_key_released_callback(event_data_t event_data) {
     LOG_DEBUG("Key Released: %c", event_data.data.u32[0]);
+    return false;
+}
+
+b8 engine_mouse_pressed_callback(event_data_t event_data) {
+    char mouse_code_char = 0;
+
+    switch (event_data.data.u8[0]) {
+    case MOUSE_BUTTON_LEFT:
+        mouse_code_char = 'L';
+        break;
+
+    case MOUSE_BUTTON_RIGHT:
+        mouse_code_char = 'R';
+        break;
+
+    case MOUSE_BUTTON_MIDDLE:
+        mouse_code_char = 'M';
+        break;
+    }
+
+    LOG_DEBUG("%c mouse button pressed", mouse_code_char);
+    return false;
+}
+
+b8 engine_mouse_released_callback(event_data_t event_data) {
+    char mouse_code_char = 0;
+
+    switch (event_data.data.u8[0]) {
+    case MOUSE_BUTTON_LEFT:
+        mouse_code_char = 'L';
+        break;
+
+    case MOUSE_BUTTON_RIGHT:
+        mouse_code_char = 'R';
+        break;
+
+    case MOUSE_BUTTON_MIDDLE:
+        mouse_code_char = 'M';
+        break;
+    }
+
+    LOG_DEBUG("%c mouse button released", mouse_code_char);
     return false;
 }

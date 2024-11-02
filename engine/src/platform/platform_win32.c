@@ -116,6 +116,40 @@ LRESULT CALLBACK pfn_wnd_proc(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_pa
         break;
     }
 
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP: {
+        b8 pressed = (u_msg == WM_LBUTTONDOWN) || (u_msg == WM_RBUTTONDOWN) || (u_msg == WM_MBUTTONDOWN);
+
+        // Convert the win32 mouse code to a platform-agnostic code.
+        u8 converted_mouse_code = 0;
+        switch (u_msg) {
+        case 513:
+        case 514:
+            converted_mouse_code = MOUSE_BUTTON_LEFT;
+            break;
+
+        case 516:
+        case 517:
+            converted_mouse_code = MOUSE_BUTTON_RIGHT;
+            break;
+
+        case 519:
+        case 520:
+            converted_mouse_code = MOUSE_BUTTON_MIDDLE;
+            break;
+
+        default:
+            converted_mouse_code = 0;
+            break;
+        }
+        input_system_process_mouse_button(converted_mouse_code, pressed);
+        break;
+    }
+
     default:
         return DefWindowProcA(hwnd, u_msg, w_param, l_param);
         break;

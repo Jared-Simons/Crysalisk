@@ -5,7 +5,7 @@ OBJ_DIR := bin-obj
 ASSEMBLY := engine
 EXTENSION := .dll
 
-COMPILER_FLAGS := -g -fdeclspec
+COMPILER_FLAGS := -g -MD -fdeclspec
 INCLUDE_DIRS := -Iengine\src 
 LINKER_FLAGS := -g -shared -luser32.lib -L$(OBJ_DIR)\engine
 DEFINES := -D_DEBUG -DDLL_EXPORT -DPLAT_WIN32 -D_CRT_SECURE_NO_WARNINGS

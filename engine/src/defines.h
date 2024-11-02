@@ -24,7 +24,7 @@ typedef double f64;
 typedef unsigned char b8;
 
 #define true 1
-#define false 2
+#define false 0
 
 // Type assertions
 // These exist to ensure that our primitive typedefs will be the correct size at
