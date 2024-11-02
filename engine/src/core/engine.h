@@ -9,6 +9,9 @@ typedef struct engine_state_t {
     u64 event_system_memory_requirement;
     void* event_system_state;
 
+    u64 input_system_memory_requirement;
+    void* input_system_state;
+
     u64 platform_memory_requirement;
     void* platform_state;
 } engine_state_t;

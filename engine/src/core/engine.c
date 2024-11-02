@@ -1,6 +1,7 @@
 #include "engine.h"
 
 #include "core/event.h"
+#include "core/input.h"
 #include "core/logging.h"
 #include "core/memory.h"
 #include "defines.h"
@@ -10,6 +11,8 @@
 static engine_state_t* state_ptr = 0;
 
 b8 engine_shutdown_callback(event_data_t event_data);
+b8 engine_key_pressed_callback(event_data_t event_data);
+b8 engine_key_released_callback(event_data_t event_data);
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -31,6 +34,14 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     engine_state->event_system_state = memory_allocate(engine_state->event_system_memory_requirement, MEMORY_TAG_ENGINE);
     if (!event_system_initialize(&engine_state->event_system_memory_requirement, engine_state->event_system_state)) {
         LOG_ERROR("Event system failed to initialize! Application cannot continue.");
+        return false;
+    }
+
+    // Input system
+    input_system_initialize(&engine_state->input_system_memory_requirement, 0);
+    engine_state->input_system_state = memory_allocate(engine_state->input_system_memory_requirement, MEMORY_TAG_ENGINE);
+    if (!input_system_initialize(&engine_state->input_system_memory_requirement, engine_state->input_system_state)) {
+        LOG_ERROR("Input system failed to initialize! Application cannot continue.");
         return false;
     }
 
@@ -61,6 +72,9 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     event_system_register(EVENT_CODE_APPLICATION_QUIT, 0, engine_shutdown_callback);
     engine_state->application_should_shutdown = false;
 
+    event_system_register(EVENT_CODE_INPUT_KEY_PRESSED, 0, engine_key_pressed_callback);
+    event_system_register(EVENT_CODE_INPUT_KEY_RELEASED, 0, engine_key_released_callback);
+
     return true;
 }
 
@@ -69,6 +83,8 @@ b8 engine_run(struct engine_state_t* engine_state) {
         if (!platform_update()) {
             return false;
         }
+
+        input_system_update(engine_state->input_system_state);
     }
 
     engine_shutdown(engine_state);
@@ -95,4 +111,14 @@ void engine_shutdown(struct engine_state_t* engine_state) {
 b8 engine_shutdown_callback(event_data_t event_data) {
     state_ptr->application_should_shutdown = true;
     return true;
+}
+
+b8 engine_key_pressed_callback(event_data_t event_data) {
+    LOG_DEBUG("Key Pressed: %c", event_data.data.u32[0]);
+    return false;
+}
+
+b8 engine_key_released_callback(event_data_t event_data) {
+    LOG_DEBUG("Key Released: %c", event_data.data.u32[0]);
+    return false;
 }

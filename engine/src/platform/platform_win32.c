@@ -4,6 +4,7 @@
 
 #ifdef PLAT_WIN32
 
+#include "core/input.h"
 #include "core/logging.h"
 #include "core/memory.h"
 
@@ -102,6 +103,16 @@ LRESULT CALLBACK pfn_wnd_proc(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_pa
     case WM_CLOSE: {
         event_data_t data;
         event_system_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+        break;
+    }
+
+    // win32 input handling
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYUP: {
+        b8 pressed = (u_msg == WM_KEYDOWN) || (u_msg == WM_SYSKEYDOWN);
+        input_system_process_key(w_param, pressed);
         break;
     }
 
