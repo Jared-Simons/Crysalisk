@@ -1,6 +1,7 @@
 #include "engine.h"
 
 #include "core/event.h"
+#include "core/input.h"
 #include "core/logging.h"
 #include "core/memory.h"
 #include "defines.h"
@@ -10,6 +11,13 @@
 static engine_state_t* state_ptr = 0;
 
 b8 engine_shutdown_callback(event_data_t event_data);
+
+// TEMP: Input callbacks
+b8 engine_key_pressed_callback(event_data_t event_data);
+b8 engine_key_released_callback(event_data_t event_data);
+b8 engine_mouse_pressed_callback(event_data_t event_data);
+b8 engine_mouse_released_callback(event_data_t event_data);
+b8 engine_mouse_moved_callback(event_data_t event_data);
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -31,6 +39,14 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     engine_state->event_system_state = memory_allocate(engine_state->event_system_memory_requirement, MEMORY_TAG_ENGINE);
     if (!event_system_initialize(&engine_state->event_system_memory_requirement, engine_state->event_system_state)) {
         LOG_ERROR("Event system failed to initialize! Application cannot continue.");
+        return false;
+    }
+
+    // Input system
+    input_system_initialize(&engine_state->input_system_memory_requirement, 0);
+    engine_state->input_system_state = memory_allocate(engine_state->input_system_memory_requirement, MEMORY_TAG_ENGINE);
+    if (!input_system_initialize(&engine_state->input_system_memory_requirement, engine_state->input_system_state)) {
+        LOG_ERROR("Input system failed to initialize! Application cannot continue.");
         return false;
     }
 
@@ -61,14 +77,22 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     event_system_register(EVENT_CODE_APPLICATION_QUIT, 0, engine_shutdown_callback);
     engine_state->application_should_shutdown = false;
 
+    event_system_register(EVENT_CODE_INPUT_KEY_PRESSED, 0, engine_key_pressed_callback);
+    event_system_register(EVENT_CODE_INPUT_KEY_RELEASED, 0, engine_key_released_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_PRESSED, 0, engine_mouse_pressed_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_RELEASED, 0, engine_mouse_released_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_MOVED, 0, engine_mouse_moved_callback);
+
     return true;
 }
 
 b8 engine_run(struct engine_state_t* engine_state) {
-    while (engine_state->application_should_shutdown == false) {
+    while (!engine_state->application_should_shutdown) {
         if (!platform_update()) {
             return false;
         }
+
+        input_system_update();
     }
 
     engine_shutdown(engine_state);
@@ -77,10 +101,9 @@ b8 engine_run(struct engine_state_t* engine_state) {
 }
 
 void engine_shutdown(struct engine_state_t* engine_state) {
-    log_message(LOG_LEVEL_INFO, "Engine shutting down");
+    LOG_INFO("Engine shutting down");
 
     // TODO: Platform system shutdown.
-    // TODO: This is broken!
     memory_free(engine_state->platform_state, engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
 
     event_system_shutdown(engine_state->event_system_state);
@@ -95,4 +118,61 @@ void engine_shutdown(struct engine_state_t* engine_state) {
 b8 engine_shutdown_callback(event_data_t event_data) {
     state_ptr->application_should_shutdown = true;
     return true;
+}
+
+b8 engine_key_pressed_callback(event_data_t event_data) {
+    LOG_DEBUG("Key Pressed: %c", event_data.data.u32[0]);
+    return false;
+}
+
+b8 engine_key_released_callback(event_data_t event_data) {
+    LOG_DEBUG("Key Released: %c", event_data.data.u32[0]);
+    return false;
+}
+
+b8 engine_mouse_pressed_callback(event_data_t event_data) {
+    char mouse_code_char = 0;
+
+    switch (event_data.data.u8[0]) {
+    case MOUSE_BUTTON_LEFT:
+        mouse_code_char = 'L';
+        break;
+
+    case MOUSE_BUTTON_RIGHT:
+        mouse_code_char = 'R';
+        break;
+
+    case MOUSE_BUTTON_MIDDLE:
+        mouse_code_char = 'M';
+        break;
+    }
+
+    LOG_DEBUG("%c mouse button pressed", mouse_code_char);
+    return false;
+}
+
+b8 engine_mouse_released_callback(event_data_t event_data) {
+    char mouse_code_char = 0;
+
+    switch (event_data.data.u8[0]) {
+    case MOUSE_BUTTON_LEFT:
+        mouse_code_char = 'L';
+        break;
+
+    case MOUSE_BUTTON_RIGHT:
+        mouse_code_char = 'R';
+        break;
+
+    case MOUSE_BUTTON_MIDDLE:
+        mouse_code_char = 'M';
+        break;
+    }
+
+    LOG_DEBUG("%c mouse button released", mouse_code_char);
+    return false;
+}
+
+b8 engine_mouse_moved_callback(event_data_t event_data) {
+    LOG_DEBUG("Mouse pos: %d, %d", event_data.data.i16[0], event_data.data.i16[1]);
+    return false;
 }

@@ -4,6 +4,7 @@
 
 #ifdef PLAT_WIN32
 
+#include "core/input.h"
 #include "core/logging.h"
 #include "core/memory.h"
 
@@ -102,6 +103,59 @@ LRESULT CALLBACK pfn_wnd_proc(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_pa
     case WM_CLOSE: {
         event_data_t data;
         event_system_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+        break;
+    }
+
+    // win32 input handling
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYUP: {
+        b8 pressed = (u_msg == WM_KEYDOWN) || (u_msg == WM_SYSKEYDOWN);
+        input_system_process_key(w_param, pressed);
+        break;
+    }
+
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP: {
+        b8 pressed = (u_msg == WM_LBUTTONDOWN) || (u_msg == WM_RBUTTONDOWN) || (u_msg == WM_MBUTTONDOWN);
+
+        // Convert the win32 mouse code to a platform-agnostic code.
+        u8 converted_mouse_code = 0;
+        switch (u_msg) {
+        case 513:
+        case 514:
+            converted_mouse_code = MOUSE_BUTTON_LEFT;
+            break;
+
+        case 516:
+        case 517:
+            converted_mouse_code = MOUSE_BUTTON_RIGHT;
+            break;
+
+        case 519:
+        case 520:
+            converted_mouse_code = MOUSE_BUTTON_MIDDLE;
+            break;
+
+        default:
+            converted_mouse_code = 0;
+            break;
+        }
+        input_system_process_mouse_button(converted_mouse_code, pressed);
+        break;
+    }
+
+    case WM_MOUSEMOVE: {
+
+        i32 x_pos = LOWORD(l_param);
+        i32 y_pos = HIWORD(l_param);
+
+        input_system_process_mouse_move(x_pos, y_pos);
         break;
     }
 
