@@ -11,9 +11,7 @@ i32 main() {
     if (!engine_initialize(engine_state)) {
     }
 
-    while (true) {
-        engine_run(engine_state);
-    }
+    engine_run(engine_state);
 
     free(engine_state);
 

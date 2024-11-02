@@ -96,7 +96,6 @@ void engine_shutdown(struct engine_state_t* engine_state) {
     log_message(LOG_LEVEL_INFO, "Engine shutting down");
 
     // TODO: Platform system shutdown.
-    // TODO: This is broken!
     memory_free(engine_state->platform_state, engine_state->platform_memory_requirement, MEMORY_TAG_ENGINE);
 
     event_system_shutdown(engine_state->event_system_state);
