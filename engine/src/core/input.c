@@ -11,12 +11,18 @@ typedef struct key_state_t {
     b8 pressed;
 } key_state_t;
 
+typedef struct mouse_state_t {
+    u8 mouse_buttons;
+    i32 x_pos;
+    i32 y_pos;
+} mouse_state_t;
+
 typedef struct input_system_state {
     key_state_t keyboard_state[INPUT_MAX_KEYS];
     key_state_t prev_frame_keyboard_state[INPUT_MAX_KEYS];
 
-    u8 mouse_state;
-    u8 prev_frame_mouse_state;
+    mouse_state_t mouse_state;
+    mouse_state_t prev_frame_mouse_state;
 } input_system_state;
 
 static input_system_state* state_ptr = 0;
@@ -40,8 +46,13 @@ b8 input_system_initialize(u64* memory_requirement, void* state) {
     }
 
     // Setup the mouse state.
-    state_ptr->mouse_state = 0;
-    state_ptr->prev_frame_mouse_state = 0;
+    state_ptr->mouse_state.mouse_buttons = 0;
+    state_ptr->mouse_state.x_pos = 0;
+    state_ptr->mouse_state.y_pos = 0;
+
+    state_ptr->prev_frame_mouse_state.mouse_buttons = 0;
+    state_ptr->prev_frame_mouse_state.x_pos = 0;
+    state_ptr->prev_frame_mouse_state.y_pos = 0;
 
     return true;
 }
@@ -72,9 +83,9 @@ void input_system_process_key(u32 keycode, b8 pressed) {
 
 void input_system_process_mouse_button(u8 mousecode, b8 pressed) {
     if (pressed) {
-        state_ptr->mouse_state |= mousecode;
+        state_ptr->mouse_state.mouse_buttons |= mousecode;
     } else {
-        state_ptr->mouse_state &= ~mousecode;
+        state_ptr->mouse_state.mouse_buttons &= ~mousecode;
     }
 
     // Fire off an event.
@@ -82,4 +93,15 @@ void input_system_process_mouse_button(u8 mousecode, b8 pressed) {
     event_data_t event_data;
     event_data.data.u8[0] = mousecode;
     event_system_fire(event_code, 0, event_data);
+}
+
+void input_system_process_mouse_move(i32 x_pos, i32 y_pos) {
+    state_ptr->mouse_state.x_pos = x_pos;
+    state_ptr->mouse_state.y_pos = y_pos;
+
+    // Fire off an event.
+    event_data_t event_data;
+    event_data.data.i16[0] = x_pos;
+    event_data.data.i16[1] = y_pos;
+    event_system_fire(EVENT_CODE_INPUT_MOUSE_MOVED, 0, event_data);
 }

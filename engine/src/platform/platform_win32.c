@@ -150,6 +150,15 @@ LRESULT CALLBACK pfn_wnd_proc(HWND hwnd, UINT u_msg, WPARAM w_param, LPARAM l_pa
         break;
     }
 
+    case WM_MOUSEMOVE: {
+
+        i32 x_pos = LOWORD(l_param);
+        i32 y_pos = HIWORD(l_param);
+
+        input_system_process_mouse_move(x_pos, y_pos);
+        break;
+    }
+
     default:
         return DefWindowProcA(hwnd, u_msg, w_param, l_param);
         break;

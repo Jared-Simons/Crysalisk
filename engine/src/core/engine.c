@@ -17,6 +17,7 @@ b8 engine_key_pressed_callback(event_data_t event_data);
 b8 engine_key_released_callback(event_data_t event_data);
 b8 engine_mouse_pressed_callback(event_data_t event_data);
 b8 engine_mouse_released_callback(event_data_t event_data);
+b8 engine_mouse_moved_callback(event_data_t event_data);
 
 b8 engine_initialize(struct engine_state_t* engine_state) {
     if (!engine_state) {
@@ -80,6 +81,7 @@ b8 engine_initialize(struct engine_state_t* engine_state) {
     event_system_register(EVENT_CODE_INPUT_KEY_RELEASED, 0, engine_key_released_callback);
     event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_PRESSED, 0, engine_mouse_pressed_callback);
     event_system_register(EVENT_CODE_INPUT_MOUSE_BUTTON_RELEASED, 0, engine_mouse_released_callback);
+    event_system_register(EVENT_CODE_INPUT_MOUSE_MOVED, 0, engine_mouse_moved_callback);
 
     return true;
 }
@@ -167,5 +169,10 @@ b8 engine_mouse_released_callback(event_data_t event_data) {
     }
 
     LOG_DEBUG("%c mouse button released", mouse_code_char);
+    return false;
+}
+
+b8 engine_mouse_moved_callback(event_data_t event_data) {
+    LOG_DEBUG("Mouse pos: %d, %d", event_data.data.i16[0], event_data.data.i16[1]);
     return false;
 }

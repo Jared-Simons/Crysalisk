@@ -45,3 +45,4 @@ void input_system_update();
 
 void input_system_process_key(u32 keycode, b8 pressed);
 void input_system_process_mouse_button(u8 mousecode, b8 pressed);
+void input_system_process_mouse_move(i32 x_pos, i32 y_pos);
