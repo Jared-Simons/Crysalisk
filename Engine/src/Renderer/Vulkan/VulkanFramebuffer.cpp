@@ -18,14 +18,14 @@ bool VulkanFramebuffer::CreateFramebuffer(CVulkanRenderer* pRenderingContext, Vu
 
 	// TODO: Make configurable
 	VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-	createInfo.renderPass = pRenderingContext->m_MainRenderpass.m_Handle;
+	createInfo.renderPass = pRenderingContext->m_MainRenderpass.GetHandle();
 	createInfo.attachmentCount = 1;
-	createInfo.pAttachments = &pRenderingContext->m_Swapchain.m_SwapchainImageViews[framebufferIndex];
-	createInfo.width = pRenderingContext->m_Swapchain.m_SwapchainExtent.width;
-	createInfo.height = pRenderingContext->m_Swapchain.m_SwapchainExtent.height;
+	createInfo.pAttachments = &pRenderingContext->m_Swapchain.GetImageViews().data()[framebufferIndex];
+	createInfo.width = pRenderingContext->m_Swapchain.GetExtent().width;
+	createInfo.height = pRenderingContext->m_Swapchain.GetExtent().height;
 	createInfo.layers = 1;
 
-	if (!VK_CHECK(vkCreateFramebuffer(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &pOutFramebuffer->m_Handle)))
+	if (!VK_CHECK(vkCreateFramebuffer(pRenderingContext->m_Device.GetLogicalDevice(), &createInfo, pRenderingContext->m_Allocator, &pOutFramebuffer->m_Handle)))
 	{
 		LOG_ERROR("Failed to create framebuffer");
 		return false;
@@ -39,7 +39,7 @@ void VulkanFramebuffer::DestroyFramebuffer(CVulkanRenderer* pRenderingContext, V
 {
 	if (pFramebuffer && pFramebuffer->m_Handle)
 	{
-		vkDestroyFramebuffer(pRenderingContext->m_Device.m_LogicalDevice, pFramebuffer->m_Handle, pRenderingContext->m_Allocator);
+		vkDestroyFramebuffer(pRenderingContext->m_Device.GetLogicalDevice(), pFramebuffer->m_Handle, pRenderingContext->m_Allocator);
 	}
 }
 

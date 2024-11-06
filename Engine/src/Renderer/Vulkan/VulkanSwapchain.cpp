@@ -68,7 +68,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, Vulkan
 	swapchainCreateInfo.clipped = VK_TRUE;
 	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	if (!VK_CHECK(vkCreateSwapchainKHR(pRenderingContext->m_Device.m_LogicalDevice, &swapchainCreateInfo, pRenderingContext->m_Allocator, &pOutSwapchain->m_SwapchainHandle)))
+	if (!VK_CHECK(vkCreateSwapchainKHR(pRenderingContext->m_Device.GetLogicalDevice(), &swapchainCreateInfo, pRenderingContext->m_Allocator, &pOutSwapchain->m_SwapchainHandle)))
 	{
 		LOG_ERROR("Failed to create swapchain");
 		return false;
@@ -77,7 +77,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer* pRenderingContext, Vulkan
 	pOutSwapchain->m_SwapchainImageFormat = swapchainCreateInfo.imageFormat;
 	pOutSwapchain->m_SwapchainExtent = swapchainCreateInfo.imageExtent;
 
-	if (!pOutSwapchain->GetSwapchainImages(pRenderingContext))
+	if (!pOutSwapchain->AcquireSwapchainImages(pRenderingContext))
 	{
 		LOG_ERROR("Failed to get swapchain images");
 		return false;
@@ -97,13 +97,31 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 {
 	if (pRenderingContext && pSwapchain && pSwapchain->m_SwapchainHandle)
 	{
-		for (i32 i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
+		for (i32 fbIndex = 0; fbIndex < pSwapchain->m_Framebuffers.size(); fbIndex++)
 		{
-			vkDestroyImageView(pRenderingContext->m_Device.m_LogicalDevice, pSwapchain->m_SwapchainImageViews[i], pRenderingContext->m_Allocator);
+			VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pSwapchain->m_Framebuffers[fbIndex]);
 		}
 
-		vkDestroySwapchainKHR(pRenderingContext->m_Device.m_LogicalDevice, pSwapchain->m_SwapchainHandle, pRenderingContext->m_Allocator);
+		for (i32 i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
+		{
+			vkDestroyImageView(pRenderingContext->m_Device.GetLogicalDevice(), pSwapchain->m_SwapchainImageViews[i], pRenderingContext->m_Allocator);
+		}
+
+		vkDestroySwapchainKHR(pRenderingContext->m_Device.GetLogicalDevice(), pSwapchain->m_SwapchainHandle, pRenderingContext->m_Allocator);
 	}
+}
+
+bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer* pRenderingContext, VulkanSwapchain* pSwapchain)
+{
+	// Create Framebuffers for rendering
+	pSwapchain->m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
+	for (i32 fbIndex = 0; fbIndex < MAX_FRAMES_IN_FLIGHT; fbIndex++)
+	{
+		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &pSwapchain->m_Framebuffers[fbIndex], fbIndex))
+			return false;
+	}
+
+	return true;
 }
 
 bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, u32 newWidth, u32 newHeight)
@@ -115,7 +133,7 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, u32 
 	if (newWidth == 0 || newHeight == 0)
 		return true;
 	
-	vkDeviceWaitIdle(pRenderingContext->m_Device.m_LogicalDevice);
+	vkDeviceWaitIdle(pRenderingContext->m_Device.GetLogicalDevice());
 
 	DestroySwapchain(pRenderingContext, this);
 
@@ -142,7 +160,7 @@ bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, u32 imageIndex
 	presentInfo.pSwapchains = &pRenderingContext->m_Swapchain.m_SwapchainHandle;
 	presentInfo.pImageIndices = &imageIndex;
 
-	VkResult presentResult = vkQueuePresentKHR(pRenderingContext->m_Device.m_PresentQueue, &presentInfo);
+	VkResult presentResult = vkQueuePresentKHR(pRenderingContext->m_Device.GetPresentQueue(), &presentInfo);
 
 	if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || g_FramebufferResized)
 	{
@@ -155,12 +173,12 @@ bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, u32 imageIndex
 	return true;
 }
 
-bool VulkanSwapchain::GetSwapchainImages(CVulkanRenderer* pRenderingContext)
+bool VulkanSwapchain::AcquireSwapchainImages(CVulkanRenderer* pRenderingContext)
 {
 	u32 imageCount{ 0 };
-	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, nullptr);
+	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.GetLogicalDevice(), m_SwapchainHandle, &imageCount, nullptr);
 	m_SwapchainImages.Resize(imageCount);
-	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.m_LogicalDevice, m_SwapchainHandle, &imageCount, m_SwapchainImages.data());
+	vkGetSwapchainImagesKHR(pRenderingContext->m_Device.GetLogicalDevice(), m_SwapchainHandle, &imageCount, m_SwapchainImages.data());
 
 	LOG_INFO("Vulkan Swapchain Images Found");
 	return true;
@@ -187,7 +205,7 @@ bool VulkanSwapchain::CreateImageViews(CVulkanRenderer* pRenderingContext)
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
 
-		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &m_SwapchainImageViews[i])))
+		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.GetLogicalDevice(), &createInfo, pRenderingContext->m_Allocator, &m_SwapchainImageViews[i])))
 		{
 			LOG_ERROR("Failed to create image views");
 			return false;

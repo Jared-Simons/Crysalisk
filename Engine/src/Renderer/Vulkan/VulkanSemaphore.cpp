@@ -18,7 +18,7 @@ bool VulkanSemaphore::CreateVulkanSemaphore(CVulkanRenderer* pRenderingContext, 
 
 	VkSemaphoreCreateInfo createInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
-	if (!VK_CHECK(vkCreateSemaphore(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &pOutSemaphore->m_Handle)))
+	if (!VK_CHECK(vkCreateSemaphore(pRenderingContext->m_Device.GetLogicalDevice(), &createInfo, pRenderingContext->m_Allocator, &pOutSemaphore->m_Handle)))
 	{
 		LOG_ERROR("Failed to create semaphore.");
 		return false;
@@ -31,6 +31,6 @@ void VulkanSemaphore::DestroyVulkanSemaphore(CVulkanRenderer* pRenderingContext,
 {
 	if (pSemaphore && pSemaphore->m_Handle)
 	{
-		vkDestroySemaphore(pRenderingContext->m_Device.m_LogicalDevice, pSemaphore->m_Handle, pRenderingContext->m_Allocator);
+		vkDestroySemaphore(pRenderingContext->m_Device.GetLogicalDevice(), pSemaphore->m_Handle, pRenderingContext->m_Allocator);
 	}
 }

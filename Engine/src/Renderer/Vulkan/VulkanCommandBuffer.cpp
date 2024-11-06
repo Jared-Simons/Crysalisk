@@ -20,9 +20,9 @@ bool VulkanCommandPool::CreateCommandPool(CVulkanRenderer* pRenderingContext, Vu
 	VkCommandPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	// Command Buffers allocated from this pool will be set to reset state
 	poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolCreateInfo.queueFamilyIndex = pRenderingContext->m_Device.m_PhysicalDeviceQueueFamilyInfo.GraphicsQueueIndex;
+	poolCreateInfo.queueFamilyIndex = pRenderingContext->m_Device.GetPhysicalDeviceQueueFamilyInfo().GraphicsQueueIndex;
 
-	if (!VK_CHECK(vkCreateCommandPool(pRenderingContext->m_Device.m_LogicalDevice, &poolCreateInfo, pRenderingContext->m_Allocator, &pOutPool->m_Handle)))
+	if (!VK_CHECK(vkCreateCommandPool(pRenderingContext->m_Device.GetLogicalDevice(), &poolCreateInfo, pRenderingContext->m_Allocator, &pOutPool->m_Handle)))
 	{
 		LOG_ERROR("Failed to create command pool");
 		return false;
@@ -37,7 +37,7 @@ void VulkanCommandPool::DestroyCommandPool(CVulkanRenderer* pRenderingContext, V
 {
 	if (pPool && pPool->m_Handle)
 	{
-		vkDestroyCommandPool(pRenderingContext->m_Device.m_LogicalDevice, pPool->m_Handle, pRenderingContext->m_Allocator);
+		vkDestroyCommandPool(pRenderingContext->m_Device.GetLogicalDevice(), pPool->m_Handle, pRenderingContext->m_Allocator);
 	}
 }
 
@@ -54,7 +54,7 @@ bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer* pRenderingContext
 	allocateInfo.commandPool = pRenderingContext->m_GraphicsCommandPool.m_Handle;
 	allocateInfo.level = isPrimary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 
-	if (!VK_CHECK(vkAllocateCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, &allocateInfo, &pOutCommandBuffer->m_Handle)))
+	if (!VK_CHECK(vkAllocateCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), &allocateInfo, &pOutCommandBuffer->m_Handle)))
 	{
 		LOG_ERROR("Failed to create command buffer");
 		return false;
@@ -68,7 +68,7 @@ void VulkanCommandBuffer::DestroyCommandBuffer(CVulkanRenderer* pRenderingContex
 {
 	if (pCommandBuffer && pCommandBuffer->m_Handle)
 	{
-		vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, pRenderingContext->m_GraphicsCommandPool.m_Handle, 1, &pCommandBuffer->m_Handle);
+		vkFreeCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), pRenderingContext->m_GraphicsCommandPool.m_Handle, 1, &pCommandBuffer->m_Handle);
 	}
 }
 
@@ -155,7 +155,7 @@ bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
 
-	if (!VK_CHECK(vkQueueSubmit(pRenderingContext->m_Device.m_GraphicsQueue, 1, &submitInfo, pRenderingContext->m_FrameInFlightFences[pRenderingContext->m_CurrentFrame].m_Handle)))
+	if (!VK_CHECK(vkQueueSubmit(pRenderingContext->m_Device.GetGraphicsQueue(), 1, &submitInfo, pRenderingContext->m_FrameInFlightFences[pRenderingContext->m_CurrentFrame].m_Handle)))
 	{
 		LOG_ERROR("Failed to submit command buffer");
 		return false;
@@ -172,7 +172,7 @@ bool VulkanCommandBuffer::BeginSingleUse(CVulkanRenderer* pRenderingContext, VkC
 	allocInfo.commandPool = *pCommandPool;
 	allocInfo.commandBufferCount = 1;
 
-	vkAllocateCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, &allocInfo, &m_Handle);
+	vkAllocateCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), &allocInfo, &m_Handle);
 
 	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -193,11 +193,11 @@ void VulkanCommandBuffer::EndSingleUse(CVulkanRenderer* pRenderingContext, VkCom
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_Handle;
 
-	vkQueueSubmit(pRenderingContext->m_Device.m_GraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueSubmit(pRenderingContext->m_Device.GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
 	m_State = eVulkanCommandBufferState::PENDING;
 
-	vkQueueWaitIdle(pRenderingContext->m_Device.m_GraphicsQueue);
+	vkQueueWaitIdle(pRenderingContext->m_Device.GetGraphicsQueue());
 
-	vkFreeCommandBuffers(pRenderingContext->m_Device.m_LogicalDevice, *pCommandPool, 1, &m_Handle);
+	vkFreeCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), *pCommandPool, 1, &m_Handle);
 	m_State = eVulkanCommandBufferState::INVALID;
 }

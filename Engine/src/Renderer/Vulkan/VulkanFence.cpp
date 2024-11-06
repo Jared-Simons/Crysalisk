@@ -19,7 +19,7 @@ bool VulkanFence::CreateFence(CVulkanRenderer* pRenderingContext, bool bCreateSi
 	VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 	createInfo.flags = bCreateSignaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
-	if (!VK_CHECK(vkCreateFence(pRenderingContext->m_Device.m_LogicalDevice, &createInfo, pRenderingContext->m_Allocator, &pOutFence->m_Handle)))
+	if (!VK_CHECK(vkCreateFence(pRenderingContext->m_Device.GetLogicalDevice(), &createInfo, pRenderingContext->m_Allocator, &pOutFence->m_Handle)))
 	{
 		LOG_ERROR("Failed to create fence");
 		return false;
@@ -32,6 +32,6 @@ void VulkanFence::DestroyFence(CVulkanRenderer* pRenderingContext, VulkanFence* 
 {
 	if (pFence && pFence->m_Handle)
 	{
-		vkDestroyFence(pRenderingContext->m_Device.m_LogicalDevice, pFence->m_Handle, pRenderingContext->m_Allocator);
+		vkDestroyFence(pRenderingContext->m_Device.GetLogicalDevice(), pFence->m_Handle, pRenderingContext->m_Allocator);
 	}
 }
