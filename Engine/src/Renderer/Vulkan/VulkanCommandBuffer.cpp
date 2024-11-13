@@ -8,7 +8,7 @@
 #include "VulkanBackend.h"
 
 #include "Core/Logging.h"
-
+/*
 bool VulkanCommandPool::CreateCommandPool(CVulkanRenderer* pRenderingContext, VulkanCommandPool* pOutPool)
 {
 	if (!pOutPool)
@@ -40,7 +40,7 @@ void VulkanCommandPool::DestroyCommandPool(CVulkanRenderer* pRenderingContext, V
 		vkDestroyCommandPool(pRenderingContext->m_Device.GetLogicalDevice(), pPool->m_Handle, pRenderingContext->m_Allocator);
 	}
 }
-
+*/
 bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer* pRenderingContext, bool isPrimary, VulkanCommandBuffer* pOutCommandBuffer)
 {
 	if (!pOutCommandBuffer)
@@ -51,7 +51,7 @@ bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer* pRenderingContext
 
 	VkCommandBufferAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	allocateInfo.commandBufferCount = 1;
-	allocateInfo.commandPool = pRenderingContext->m_GraphicsCommandPool.m_Handle;
+	allocateInfo.commandPool = pRenderingContext->m_GraphicsCommandPool;
 	allocateInfo.level = isPrimary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 
 	if (!VK_CHECK(vkAllocateCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), &allocateInfo, &pOutCommandBuffer->m_Handle)))
@@ -68,7 +68,7 @@ void VulkanCommandBuffer::DestroyCommandBuffer(CVulkanRenderer* pRenderingContex
 {
 	if (pCommandBuffer && pCommandBuffer->m_Handle)
 	{
-		vkFreeCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), pRenderingContext->m_GraphicsCommandPool.m_Handle, 1, &pCommandBuffer->m_Handle);
+		vkFreeCommandBuffers(pRenderingContext->m_Device.GetLogicalDevice(), pRenderingContext->m_GraphicsCommandPool, 1, &pCommandBuffer->m_Handle);
 	}
 }
 
@@ -148,14 +148,14 @@ bool VulkanCommandBuffer::Submit(CVulkanRenderer* pRenderingContext)
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &pRenderingContext->m_ImageAvailableSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	submitInfo.pWaitSemaphores = &pRenderingContext->m_ImageAvailableSemaphores[pRenderingContext->m_CurrentFrame];
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &m_Handle;
 	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	submitInfo.pSignalSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame];
 
-	if (!VK_CHECK(vkQueueSubmit(pRenderingContext->m_Device.GetGraphicsQueue(), 1, &submitInfo, pRenderingContext->m_FrameInFlightFences[pRenderingContext->m_CurrentFrame].m_Handle)))
+	if (!VK_CHECK(vkQueueSubmit(pRenderingContext->m_Device.GetGraphicsQueue(), 1, &submitInfo, pRenderingContext->m_FrameInFlightFences[pRenderingContext->m_CurrentFrame])))
 	{
 		LOG_ERROR("Failed to submit command buffer");
 		return false;

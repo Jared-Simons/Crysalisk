@@ -99,7 +99,7 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer* pRenderingContext, Vulka
 	{
 		for (i32 fbIndex = 0; fbIndex < pSwapchain->m_Framebuffers.size(); fbIndex++)
 		{
-			VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pSwapchain->m_Framebuffers[fbIndex]);
+			vkDestroyFramebuffer(pRenderingContext->m_Device.GetLogicalDevice(), pSwapchain->m_Framebuffers[fbIndex], pRenderingContext->m_Allocator);
 		}
 
 		for (i32 i = 0; i < pSwapchain->m_SwapchainImageViews.size(); i++)
@@ -117,8 +117,19 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer* pRenderingContext, Vul
 	pSwapchain->m_Framebuffers.Resize(MAX_FRAMES_IN_FLIGHT);
 	for (i32 fbIndex = 0; fbIndex < MAX_FRAMES_IN_FLIGHT; fbIndex++)
 	{
-		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &pSwapchain->m_Framebuffers[fbIndex], fbIndex))
+		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+		createInfo.renderPass = pRenderingContext->m_MainRenderpass.GetHandle();
+		createInfo.attachmentCount = 1;
+		createInfo.pAttachments = &pSwapchain->GetImageViews().data()[fbIndex];
+		createInfo.width = pSwapchain->GetExtent().width;
+		createInfo.height = pSwapchain->GetExtent().height;
+		createInfo.layers = 1;
+
+		if (!VK_CHECK(vkCreateFramebuffer(pRenderingContext->m_Device.GetLogicalDevice(), &createInfo, pRenderingContext->m_Allocator, &pSwapchain->m_Framebuffers[fbIndex])))
+		{
+			LOG_ERROR("Failed to create framebuffer");
 			return false;
+		}
 	}
 
 	return true;
@@ -140,11 +151,11 @@ bool VulkanSwapchain::RecreateSwapchain(CVulkanRenderer* pRenderingContext, u32 
 	CreateSwapchain(pRenderingContext, this);
 
 	for (i32 i = 0; i < m_Framebuffers.size(); i++)
-		VulkanFramebuffer::DestroyFramebuffer(pRenderingContext, &pRenderingContext->m_Swapchain.m_Framebuffers[i]);
+		vkDestroyFramebuffer(pRenderingContext->m_Device.GetLogicalDevice(), m_Framebuffers[i], pRenderingContext->m_Allocator);
 
 	for (i32 i = 0; i < m_Framebuffers.size(); i++)
 	{
-		if (!VulkanFramebuffer::CreateFramebuffer(pRenderingContext, &m_Framebuffers[i], i))
+		if (!CreateFramebuffers(pRenderingContext, this))
 			return false;
 	}
 
@@ -155,7 +166,7 @@ bool VulkanSwapchain::Present(CVulkanRenderer* pRenderingContext, u32 imageIndex
 {
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame].m_Handle;
+	presentInfo.pWaitSemaphores = &pRenderingContext->m_RenderFinishedSemaphores[pRenderingContext->m_CurrentFrame];
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &pRenderingContext->m_Swapchain.m_SwapchainHandle;
 	presentInfo.pImageIndices = &imageIndex;

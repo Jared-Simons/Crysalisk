@@ -120,7 +120,7 @@ void VulkanImage::DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* 
 bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {
 	VulkanCommandBuffer commandBuffer;
-	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 
 	VkImageMemoryBarrier imageBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	imageBarrier.oldLayout = oldLayout;
@@ -173,6 +173,6 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkIm
 	vkCmdPipelineBarrier(commandBuffer.GetHandle(), sourceStage, destinationStage,
 						0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 
-	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 	return true;
 }

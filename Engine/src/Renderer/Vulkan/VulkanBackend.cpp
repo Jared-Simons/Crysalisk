@@ -131,8 +131,17 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 		return false;
 
 	// Command Pool
-	if (!VulkanCommandPool::CreateCommandPool(this, &m_GraphicsCommandPool))
+	VkCommandPoolCreateInfo poolCreateInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+	
+	// Command buffers allocated from this pool will be set to reset state
+	poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	poolCreateInfo.queueFamilyIndex = m_Device.GetPhysicalDeviceQueueFamilyInfo().GraphicsQueueIndex;
+
+	if (!VK_CHECK(vkCreateCommandPool(m_Device.GetLogicalDevice(), &poolCreateInfo, m_Allocator, &m_GraphicsCommandPool)))
+	{
+		LOG_ERROR("Failed to create command pool");
 		return false;
+	}
 
 	// Command Buffers
 	// one per frame
@@ -165,7 +174,9 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	m_FrameInFlightFences.Resize(MAX_FRAMES_IN_FLIGHT);
 	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
 	{
-		if (!VulkanFence::CreateFence(this, true, &m_FrameInFlightFences[i]))
+		VkFenceCreateInfo fenceCreateInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+		fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+		if (!VK_CHECK(vkCreateFence(m_Device.GetLogicalDevice(), &fenceCreateInfo, m_Allocator, &m_FrameInFlightFences[i])))
 			return false;
 	}
 
@@ -175,10 +186,12 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	m_RenderFinishedSemaphores.Resize(MAX_FRAMES_IN_FLIGHT);
 	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]))
+		VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+		if (!VK_CHECK(vkCreateSemaphore(m_Device.GetLogicalDevice(), &semaphoreInfo, m_Allocator, &m_ImageAvailableSemaphores[i])))
 			return false;
 
-		if (!VulkanSemaphore::CreateVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]))
+		if (!VK_CHECK(vkCreateSemaphore(m_Device.GetLogicalDevice(), &semaphoreInfo, m_Allocator, &m_RenderFinishedSemaphores[i])))
 			return false;
 	}
 
@@ -195,12 +208,12 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	for (i32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_RenderFinishedSemaphores[i]);
-		VulkanSemaphore::DestroyVulkanSemaphore(this, &m_ImageAvailableSemaphores[i]);
+		vkDestroySemaphore(m_Device.GetLogicalDevice(), m_RenderFinishedSemaphores[i], m_Allocator);
+		vkDestroySemaphore(m_Device.GetLogicalDevice(), m_ImageAvailableSemaphores[i], m_Allocator);
 	}
 
 	for (i32 i = 0; i < m_FrameInFlightFences.size(); i++)
-		VulkanFence::DestroyFence(this, &m_FrameInFlightFences[i]);
+		vkDestroyFence(m_Device.GetLogicalDevice(), m_FrameInFlightFences[i], m_Allocator);
 
 	VulkanBuffer::DestroyBuffer(this, &m_IndexBuffer);
 	VulkanBuffer::DestroyBuffer(this, &m_VertexBuffer);
@@ -208,7 +221,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	for (i32 i = 0; i < m_CommandBuffers.size(); i++)
 		VulkanCommandBuffer::DestroyCommandBuffer(this, &m_CommandBuffers[i]);
 
-	VulkanCommandPool::DestroyCommandPool(this, &m_GraphicsCommandPool);
+	vkDestroyCommandPool(m_Device.GetLogicalDevice(), m_GraphicsCommandPool, m_Allocator);
 
 	VulkanShader::DestroyVulkanShader(this, &m_StandardShader);
 
@@ -233,7 +246,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	m_Metrics.ResetMetrics();
 
 	// Wait for the previous frame to finish it's work
-	vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle, VK_TRUE, UINT64_MAX);
+	vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_FrameInFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
 	// TEMP
 	// Update camera position
@@ -247,7 +260,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 	// END TEMP
 
 	u32 imageIndex;
-	VkResult result = vkAcquireNextImageKHR(m_Device.GetLogicalDevice(), m_Swapchain.GetHandle(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame].m_Handle, VK_NULL_HANDLE, &imageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_Device.GetLogicalDevice(), m_Swapchain.GetHandle(), UINT64_MAX, m_ImageAvailableSemaphores[m_CurrentFrame], VK_NULL_HANDLE, &imageIndex);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -256,7 +269,7 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
 		return true;
 	}
 
-	vkResetFences(m_Device.GetLogicalDevice(), 1, &m_FrameInFlightFences[m_CurrentFrame].m_Handle);
+	vkResetFences(m_Device.GetLogicalDevice(), 1, &m_FrameInFlightFences[m_CurrentFrame]);
 
 	VulkanCommandBuffer& commandBuffer = m_CommandBuffers[m_CurrentFrame];
 
@@ -555,9 +568,9 @@ bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, byte* pPixelData
 	VulkanBuffer::CreateBuffer(this, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer);
 
 	void* pImageData;
-	vkMapMemory(m_Device.GetLogicalDevice(), stagingBuffer.m_Memory, 0, imageSize, 0, &pImageData);
+	vkMapMemory(m_Device.GetLogicalDevice(), stagingBuffer.GetMemory(), 0, imageSize, 0, &pImageData);
 		Memory::MemCopy(pImageData, pPixelData, static_cast<u64>(imageSize));
-	vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBuffer.m_Memory);
+	vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBuffer.GetMemory());
 
 	pTexture.m_internalData = Memory::Allocate(sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
 	VulkanImageData_t* pInternalData = reinterpret_cast<VulkanImageData_t*>(pTexture.m_internalData);
@@ -668,7 +681,7 @@ void CVulkanRenderer::DrawGeometry(StaticMesh& pMesh, VulkanBuffer& pVertexBuffe
 	u64 numVertices = internalData->m_VertexDataSize / sizeof(Vertex3D);
 	u64 numIndices = internalData->m_IndexDataSize / sizeof(u16);
 
-	vkCmdBindVertexBuffers(pCommandBuffer.GetHandle(), 0, 1, &pVertexBuffer.m_Handle, &vertexOffset);
+	vkCmdBindVertexBuffers(pCommandBuffer.GetHandle(), 0, 1, &pVertexBuffer.GetHandle(), &vertexOffset);
 
 	// TODO: Implement
 	// If we are able to draw with indices, do so.

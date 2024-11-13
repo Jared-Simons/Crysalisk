@@ -9,6 +9,7 @@
 #include "Defines.h"
 
 #include "Core/Assertions.h"
+#include "Math/MatrixTypes.h"
 
 #include <Containers/CVector.h>
 
@@ -17,9 +18,8 @@
 // Forward declarations
 class CVulkanRenderer;
 
-template<typename T> class CVector;
-
 // Utility macro for checking success with VkResult
+// TODO: Implement!!
 /*#define VK_CHECK(expr)		\
 	{						\
 		if (!expr)			\
@@ -160,7 +160,7 @@ public:
 
 	CVector<VkImageView>&		GetImageViews() { return m_SwapchainImageViews; }
 
-	CVector<class VulkanFramebuffer> GetFramebuffers() { return m_Framebuffers; }
+	CVector<VkFramebuffer>&		GetFramebuffers() { return m_Framebuffers; }
 
 	VkFormat					GetImageFormat() { return m_SwapchainImageFormat; }
 	VkExtent2D					GetExtent() { return m_SwapchainExtent; }
@@ -172,7 +172,7 @@ private:
 	CVector<VkImageView>	m_SwapchainImageViews;
 
 	// Framebuffers for rendering to the screen
-	CVector<class VulkanFramebuffer> m_Framebuffers;
+	CVector<VkFramebuffer> m_Framebuffers;
 
 	VkFormat				m_SwapchainImageFormat;
 	VkExtent2D				m_SwapchainExtent;
@@ -217,17 +217,6 @@ enum class eVulkanCommandBufferState
 	INVALID
 };
 
-class VulkanCommandPool
-{
-public:
-	static bool		CreateCommandPool(CVulkanRenderer* pRenderingContext, VulkanCommandPool* pOutPool);
-	static void		DestroyCommandPool(CVulkanRenderer* pRenderingContext, VulkanCommandPool* pPool);
-
-public:
-	VkCommandPool				m_Handle{ VK_NULL_HANDLE };
-	VkCommandPoolCreateFlags	m_PoolFlags;
-};
-
 class VulkanCommandBuffer
 {
 public:
@@ -253,6 +242,139 @@ private:
 	eVulkanCommandBufferState	m_State{ eVulkanCommandBufferState::INITIAL };
 
 	// Is this a primary or secondary level command buffer?
-	// TODO: Is this being set?
+	// TODO: Is this being set/used?
 	bool						m_bIsPrimary{ false };
+};
+
+//=================================
+// 
+// Vulkan Buffer
+// 
+//=================================
+class VulkanBuffer
+{
+public:
+	static bool		CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VulkanBuffer* pOutBuffer);
+	static void		DestroyBuffer(CVulkanRenderer* pRenderingContext, VulkanBuffer* pBuffer);
+
+	// TODO: Handle offsets and other data here
+	void			UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 dataSize, void* data, u64 offset) const;
+	bool			CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, class VulkanImage* pImage) const;
+
+	inline VkBuffer&		GetHandle() { return m_Handle; }
+	inline VkDeviceMemory&	GetMemory() { return m_Memory; }
+
+private:
+
+	VkBuffer		m_Handle{ VK_NULL_HANDLE };
+	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
+};
+
+
+//=================================
+// 
+// Vulkan Image
+// 
+//=================================
+class VulkanImage
+{
+public:
+	static bool		CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, i32 numChannels, void* pPixelData, bool bCreateView, VulkanImage* pOutImage);
+	static void		DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* pImage);
+
+	bool			TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+
+	VkImage&		GetHandle() { return m_Handle; }
+	VkDeviceMemory& GetMemory() { return m_ImageMemory; }
+	VkImageView&	GetImageView() { return m_ImageView; }
+	VkSampler&		GetSampler() { return m_ImageSampler; }
+	VkFormat		GetFormat() { return m_ImageFormat; }
+
+private:
+	VkImage			m_Handle{ VK_NULL_HANDLE };
+	VkDeviceMemory	m_ImageMemory{ VK_NULL_HANDLE };
+	VkImageView		m_ImageView{ VK_NULL_HANDLE };
+	VkSampler		m_ImageSampler{ VK_NULL_HANDLE };
+
+	VkFormat		m_ImageFormat{ VK_FORMAT_UNDEFINED };
+};
+
+const u32 VULKAN_MAX_GLOBAL_TEXTURES = 32;
+const u32 VULKAN_MAX_INSTANCE_COUNT = 1024;
+const u32 VULKAN_SHADER_SAMPLER_COUNT = 1;
+
+//=================================
+// 
+// Uniform Buffer
+// 
+//=================================
+// TODO: Move to the frontend
+struct UniformBufferObject
+{
+	UniformBufferObject() {}
+
+	Matrix4x4 model;
+	Matrix4x4 view;
+	Matrix4x4 projection;
+};
+
+struct VulkanDescriptorSetState
+{
+	u8 generation[3];
+	VkDescriptorSet descriptorSets[3];
+};
+
+
+//=================================
+// 
+// Vulkan Shader
+// 
+//=================================
+class VulkanShader
+{
+public:
+	VulkanShader() {}
+
+	static bool		CreateVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+	static void		DestroyVulkanShader(CVulkanRenderer* pRenderingContext, VulkanShader* pShader);
+
+	static bool		CreatePipeline(CVulkanRenderer* pRenderingContext, VulkanShader* pOutShader);
+	bool			CreateDescriptorResources(CVulkanRenderer* pRenderingContext);
+
+	bool			Use(CVulkanRenderer* pRenderingContext, VkCommandBuffer* pCommandBuffer, u32 imageIndex) const;
+	void			UpdateUniforms(CVulkanRenderer* pRenderingContext, u32 imageIndex, struct Camera s_Camera, f32 deltaTime);
+	bool			AcquireInstanceResources(CVulkanRenderer* pRenderingContext, class Texture& pTexture);
+
+	void			BindGlobals(VkCommandBuffer commandBuffer, u32 imageIndex);
+	void			ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuffer commandBuffer, u32 imageIndex, Matrix4x4 projection, Matrix4x4 view);
+
+	void			BindInstance(VkCommandBuffer commandBuffer, u32 imageIndex, class Texture& pTexture);
+	void			ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBuffer commandBuffer, u32 imageIndex, class Texture& pTexture);
+	void			ApplyModel(VkCommandBuffer commandBuffer, Matrix4x4 model) const;
+
+private:
+
+public:
+	VkShaderModule		m_VertModule{ VK_NULL_HANDLE };
+	VkShaderModule		m_FragModule{ VK_NULL_HANDLE };
+
+	VkPipeline			m_Pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout	m_PipelineLayout{ VK_NULL_HANDLE };
+
+	VkDescriptorPool			m_GlobalDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout		m_GlobalDescriptorSetLayout{ VK_NULL_HANDLE };
+	VulkanDescriptorSetState	m_GlobalDescriptorSets{};
+
+	VkDescriptorPool			m_InstanceDescriptorPool{ VK_NULL_HANDLE };
+	VkDescriptorSetLayout		m_InstanceDescriptorSetLayout{ VK_NULL_HANDLE };
+	VulkanDescriptorSetState	m_InstanceDescriptorSets[VULKAN_MAX_INSTANCE_COUNT]{}; // * IMAGE_SAMPLER_COUNT?
+
+	VulkanBuffer				m_UniformBuffer{};
+	void* m_UniformBufferMappedMemory{};
+
+	u32							m_InstanceDescriptorOffset{ 0 };
+	u32							m_CurrentlyBoundInstance{ INVALID_ID_U8 };
+
+	// NOTE: This only exists as a placeholder for now.
+	VulkanImage m_GlobalTexture{};
 };

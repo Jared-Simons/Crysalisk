@@ -107,7 +107,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	// Create uniform buffer.
 	VkDeviceSize uniformBufferSize = sizeof(GlobalUniformObject) + ((sizeof(InstanceUniformObject) * VULKAN_MAX_INSTANCE_COUNT)); // Enough space for one uniform buffer and many instances.
 	VulkanBuffer::CreateBuffer(pRenderingContext, uniformBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &pOutShader->m_UniformBuffer);
-	vkMapMemory(pRenderingContext->m_Device.GetLogicalDevice(), pOutShader->m_UniformBuffer.m_Memory, 0, VK_WHOLE_SIZE, 0, &pOutShader->m_UniformBufferMappedMemory);
+	vkMapMemory(pRenderingContext->m_Device.GetLogicalDevice(), pOutShader->m_UniformBuffer.GetMemory(), 0, VK_WHOLE_SIZE, 0, &pOutShader->m_UniformBufferMappedMemory);
 
 	// Release unnecessary shader modules
 	vkDestroyShaderModule(pRenderingContext->m_Device.GetLogicalDevice(), pOutShader->m_FragModule, pRenderingContext->m_Allocator);
@@ -503,7 +503,7 @@ void VulkanShader::ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuf
 
 		// Binding 0 - Uniform Buffer
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = m_UniformBuffer.m_Handle;
+		bufferInfo.buffer = m_UniformBuffer.GetHandle();
 		bufferInfo.offset = 0; // Globals are at the front of the buffer
 		bufferInfo.range = sizeof(GlobalUniformObject);
 
@@ -519,8 +519,8 @@ void VulkanShader::ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuf
 		// Binding 1 - Image Sampler
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_GlobalTexture.m_ImageView;
-		imageInfo.sampler = m_GlobalTexture.m_ImageSampler;
+		imageInfo.imageView = m_GlobalTexture.GetImageView();
+		imageInfo.sampler = m_GlobalTexture.GetSampler();
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[1].pNext = nullptr;
@@ -562,7 +562,7 @@ void VulkanShader::ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBu
 
 		// Binding 0 - Uniform Buffer
 		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = m_UniformBuffer.m_Handle;
+		bufferInfo.buffer = m_UniformBuffer.GetHandle();
 		bufferInfo.offset = sizeof(GlobalUniformObject) + ((sizeof(InstanceUniformObject) * pInternalTextureData->offset));
 		bufferInfo.range = sizeof(InstanceUniformObject);
 
@@ -578,8 +578,8 @@ void VulkanShader::ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBu
 		// Binding 1 - Image Sampler
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = pInternalTextureData->internalImage.m_ImageView;
-		imageInfo.sampler = pInternalTextureData->internalImage.m_ImageSampler;
+		imageInfo.imageView = pInternalTextureData->internalImage.GetImageView();
+		imageInfo.sampler = pInternalTextureData->internalImage.GetSampler();
 
 		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[1].pNext = nullptr;

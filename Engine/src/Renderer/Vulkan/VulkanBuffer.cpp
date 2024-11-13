@@ -76,7 +76,7 @@ void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 da
 bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, VulkanImage* pImage) const
 {
 	VulkanCommandBuffer commandBuffer;
-	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 
 	VkBufferImageCopy copyRegion{};
 	copyRegion.bufferOffset = 0;
@@ -89,8 +89,8 @@ bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 wid
 	copyRegion.imageOffset = { 0, 0, 0 };
 	copyRegion.imageExtent = { static_cast<u32>(width), static_cast<u32>(height), 1 };
 
-	vkCmdCopyBufferToImage(commandBuffer.GetHandle(), m_Handle, pImage->m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+	vkCmdCopyBufferToImage(commandBuffer.GetHandle(), m_Handle, pImage->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 	return true;
 }
