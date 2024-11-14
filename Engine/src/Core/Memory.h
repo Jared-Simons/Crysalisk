@@ -35,25 +35,25 @@ enum class eMemAllocCategories
 
 const i32 MAX_MEM_CATEGORIES = static_cast<i32>(eMemAllocCategories::MEM_CATEGORY_MAX_CATEGORIES);
 
-class Memory
+class IMemory
 {
 public:
-	static bool		Initialize(DynamicAllocator* pinternalAllocator, void* pState);
-	static void		Shutdown(void* pState);
+	static IMemory*		Create(void* pMemoryBlock);
 
-	static void*	Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory);
-	static void		Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory);
-	static void*	Reallocate(void* pBlock, u64 iNewSize);
-	static void*	MemCopy(void* pDest, const void* pSource, u64 iSize);
-	static void*	MemSet(void* pBlock, i32 iValue, u64 iSize);
+	virtual bool		Initialize(DynamicAllocator* pInternalAllocator) = 0;
+	virtual void		Shutdown(void* pState) = 0;
 
-	static void		PrintMemoryStats();
-	static bool		IsInitialized();
+	virtual void*		Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory) = 0;
+	virtual void		Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory) = 0;
+	virtual void*		Reallocate(void* pBlock, u64 iNewSize) = 0;
+	virtual void*		MemCopy(void* pDest, const void* pSource, u64 iSize) = 0;
+	virtual void*		MemSet(void* pBlock, i32 iValue, u64 iSize) = 0;
+	static u64			GetSystemMemoryRequirement() { return m_MemorySystemRequirement; }
+
+	virtual void		PrintMemoryStats() {};
 
 private:
-	u64					m_iNumAllocations;
-	u64					m_iNumBytesAllocated;
-	u64					m_iTaggedAllocations[MAX_MEM_CATEGORIES];
-	DynamicAllocator*	m_pInternalAllocator;
-	bool				m_bSystemInitialized;
+	static u64			m_MemorySystemRequirement;
 };
+
+extern IMemory* gpMemory;

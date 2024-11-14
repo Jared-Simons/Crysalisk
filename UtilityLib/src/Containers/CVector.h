@@ -124,7 +124,7 @@ public:
 
 			if (m_pData != nullptr)
 			{
-				Memory::MemCopy(m_pData, oldData, m_Stride * m_Capacity);
+				gpMemory->MemCopy(m_pData, oldData, m_Stride * m_Capacity);
 			}
 
 			m_pAllocator->Free(oldData);

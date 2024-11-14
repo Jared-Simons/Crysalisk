@@ -26,7 +26,7 @@ public:
 		, m_pData{ nullptr }
 		, m_pCurrentAlloc{ nullptr }
 	{
-		m_pData = Memory::Allocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+		m_pData = gpMemory->Allocate(m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 		m_pCurrentAlloc = m_pData;
 	}
 
@@ -36,7 +36,7 @@ public:
 			Free();
 
 		if (m_pData)
-			Memory::Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
+			gpMemory->Free(m_pData, m_AllocatorSize, eMemAllocCategories::MEM_CATEGORY_LINEAR_ALLOC);
 
 		m_AllocatorSize = 0;
 
@@ -70,7 +70,7 @@ public:
 		// Just zero out our memory.
 		if (m_pData)
 		{
-			Memory::MemSet(m_pData, 0, m_AllocatorSize);
+			gpMemory->MemSet(m_pData, 0, m_AllocatorSize);
 		}
 		m_BytesAllocated = 0;
 	}

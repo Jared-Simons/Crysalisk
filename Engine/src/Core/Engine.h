@@ -41,11 +41,6 @@ private:
 	LinearAllocator* m_SystemsAllocator{ nullptr };
 	LinearAllocator* m_FrameAllocator{ nullptr };
 
-	Memory* m_MemorySystem{ nullptr };
-	IInputSystem* m_InputSystem{ nullptr };
-
-	Renderer* m_RenderSystem{ nullptr };
-
 public:
 	// TODO: TEMP
 	Texture* testTexture{ nullptr };

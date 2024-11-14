@@ -59,18 +59,17 @@ struct Event
 	eEventCategory m_EventCategory;
 };
 
-class EventSystem
+class IEventSystem
 {
 public:
-	static bool		Initialize();
-	static void		Shutdown();
+	static IEventSystem* Create(LinearAllocator* pAllocator);
 
-	static bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback);
-	static bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback);
-	static bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data);
+	virtual bool		Initialize() = 0;
+	virtual void		Shutdown() = 0;
 
-private:
-	static Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-	static i32 m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+	virtual bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
+	virtual bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
+	virtual bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) = 0;
 };
 
+extern IEventSystem* gpEvents;

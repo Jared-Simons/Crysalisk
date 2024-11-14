@@ -37,7 +37,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	u64 vertShaderFileSize = FileSystem::FileSize(&vertShaderFile);
-	byte* vertShaderBytecode = reinterpret_cast<byte*>(Memory::Allocate(sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	byte* vertShaderBytecode = reinterpret_cast<byte*>(gpMemory->Allocate(sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 	
 	u64 vertShaderCodeSize;
 	if (!FileSystem::ReadWholeBinaryFile(vertShaderBytecode, vertShaderFileSize, &vertShaderCodeSize, &vertShaderFile))
@@ -65,7 +65,7 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	u64 fragShaderFileSize = FileSystem::FileSize(&fragShaderFile);
-	byte* fragShaderBytecode = reinterpret_cast<byte*>(Memory::Allocate(sizeof(byte) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	byte* fragShaderBytecode = reinterpret_cast<byte*>(gpMemory->Allocate(sizeof(byte) * fragShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	u64 fragShaderCodeSize;
 	if (!FileSystem::ReadWholeBinaryFile(fragShaderBytecode, fragShaderFileSize, &fragShaderCodeSize, &fragShaderFile))
@@ -85,10 +85,10 @@ bool VulkanShader::CreateVulkanShader(CVulkanRenderer* pRenderingContext, Vulkan
 	}
 
 	// Release unnecessary resources
-	Memory::Free(fragShaderBytecode, sizeof(byte) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	gpMemory->Free(fragShaderBytecode, sizeof(byte) * fragShaderCodeSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	FileSystem::CloseFile(&fragShaderFile);
 
-	Memory::Free(vertShaderBytecode, sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	gpMemory->Free(vertShaderBytecode, sizeof(byte) * vertShaderFileSize, eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	FileSystem::CloseFile(&vertShaderFile);
 
 	if (!pOutShader->CreateDescriptorResources(pRenderingContext))
@@ -541,7 +541,7 @@ void VulkanShader::ApplyGlobals(CVulkanRenderer* pRenderingContext, VkCommandBuf
 
 	// Set uniforms.
 	GlobalUniformObject GUO{ view, projection };
-	Memory::MemCopy(m_UniformBufferMappedMemory, &GUO, sizeof(GUO)); // Copy to the front of the buffer (as that's where the globals live)
+	gpMemory->MemCopy(m_UniformBufferMappedMemory, &GUO, sizeof(GUO)); // Copy to the front of the buffer (as that's where the globals live)
 }
 
 void VulkanShader::BindInstance(VkCommandBuffer commandBuffer, u32 imageIndex, Texture& pTexture)
@@ -609,7 +609,7 @@ void VulkanShader::ApplyInstance(CVulkanRenderer* pRenderingContext, VkCommandBu
 	void* instanceUniformAddress = reinterpret_cast<byte*>(m_UniformBufferMappedMemory) + sizeof(GlobalUniformObject);
 	instanceUniformAddress = reinterpret_cast<byte*>(instanceUniformAddress) + (sizeof(InstanceUniformObject) * pInternalTextureData->offset);
 
-	Memory::MemCopy(instanceUniformAddress, &instanceUniforms, sizeof(InstanceUniformObject));
+	gpMemory->MemCopy(instanceUniformAddress, &instanceUniforms, sizeof(InstanceUniformObject));
 }
 
 void VulkanShader::ApplyModel(VkCommandBuffer commandBuffer, Matrix4x4 model) const

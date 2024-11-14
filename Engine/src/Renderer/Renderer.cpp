@@ -15,37 +15,30 @@
 
 #include <Memory/LinearAllocator.h>
 
+static Renderer* s_Renderer = nullptr;
+Renderer* gpRenderer = nullptr;
+
 //-----------------------------------------------------------------------------
 // Factory method to initialize a renderer.
 //-----------------------------------------------------------------------------
-bool Renderer::Renderer_Create(Renderer* statePtr, LinearAllocator* pAllocator)
+Renderer* Renderer::Renderer_Create(LinearAllocator* pAllocator)
 {
-	if (statePtr)
+	if (s_Renderer)
 	{
 		LOG_ERROR("Renderer_Create() -> An active Renderer already exists at this location. Aborting!");
-		return false;
+		return nullptr;
 	}
 
-	return true;
-}
+	Renderer* renderer = new (pAllocator) Renderer();
 
-//-----------------------------------------------------------------------------
-// Factory method to shutdown a renderer.
-//-----------------------------------------------------------------------------
-void Renderer::Renderer_Shutdown(Renderer* statePtr, bool bOwnsMemory)
-{
-	if (statePtr)
+	s_Renderer = renderer;
+	if (!s_Renderer->Initialize())
 	{
-		statePtr->Shutdown();
-
-		if (bOwnsMemory)
-		{
-			delete statePtr;
-			statePtr = nullptr;
-		}
+		return nullptr;
 	}
-}
 
+	return s_Renderer;
+}
 
 bool Renderer::Initialize()
 {

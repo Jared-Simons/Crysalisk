@@ -136,10 +136,9 @@ struct MouseState_t
 class IInputSystem
 {
 public:
-	static IInputSystem*		InputSystem_Initialize(LinearAllocator* pAllocator, IEventSystem* pEventSystem);
-	static void					InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory = false);
+	static IInputSystem*		InputSystem_Initialize(LinearAllocator* pAllocator);
 
-	virtual bool	Initialize(IEventSystem* pEventSystem) = 0;
+	virtual bool	Initialize() = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 

@@ -103,8 +103,8 @@ bool CVulkanRenderer::RendererBackend_Initialize()
 	Platform::GetWindowSize(&m_FramebufferWidth, &m_FramebufferHeight);
 
 	// Register for window resize events
-	EventSystem::EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
-	EventSystem::EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
+	gpEvents->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
+	gpEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
 
 	// Instance
 	if (!CreateVulkanInstance())
@@ -236,8 +236,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	vkDestroyInstance(m_Instance, m_Allocator);
 
-	EventSystem::EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
-	EventSystem::EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
+	gpEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, RendererEvent_KeyReleased);
+	gpEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_FramebufferResized);
 }
 
 bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t* pRenderData)
@@ -569,10 +569,10 @@ bool CVulkanRenderer::CreateTextureResources(Texture& pTexture, byte* pPixelData
 
 	void* pImageData;
 	vkMapMemory(m_Device.GetLogicalDevice(), stagingBuffer.GetMemory(), 0, imageSize, 0, &pImageData);
-		Memory::MemCopy(pImageData, pPixelData, static_cast<u64>(imageSize));
+		gpMemory->MemCopy(pImageData, pPixelData, static_cast<u64>(imageSize));
 	vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBuffer.GetMemory());
 
-	pTexture.m_internalData = Memory::Allocate(sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+	pTexture.m_internalData = gpMemory->Allocate(sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
 	VulkanImageData_t* pInternalData = reinterpret_cast<VulkanImageData_t*>(pTexture.m_internalData);
 	VulkanImage* pInternalImage = &pInternalData->internalImage;
 
@@ -610,14 +610,14 @@ void CVulkanRenderer::DestroyTextureResources(Texture& pTexture)
 
 		// TODO: Release internal shader instance resources as well
 
-		Memory::Free(pTexture.m_internalData, sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
+		gpMemory->Free(pTexture.m_internalData, sizeof(VulkanImageData_t), eMemAllocCategories::MEM_CATEGORY_UNKNOWN);
 		pTexture.m_internalData = nullptr;
 	}
 }
 
 bool CVulkanRenderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices)
 {
-	pMesh.m_pinternalData = Memory::Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
+	pMesh.m_pinternalData = gpMemory->Allocate(sizeof(VulkanGeometryData_t), eMemAllocCategories::MEM_CATEGORY_ARRAY);
 	VulkanGeometryData_t* internalData = reinterpret_cast<VulkanGeometryData_t*>(pMesh.m_pinternalData);
 
 	VkDeviceSize vertexDataSize = sizeof(vertices[0]) * vertices.size();

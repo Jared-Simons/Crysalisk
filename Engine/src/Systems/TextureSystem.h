@@ -22,7 +22,7 @@ struct TextureSystemConfiguration
 class TextureSystem
 {
 public:
-	bool	Initialize(void* pSystemConfig, Renderer* pRenderSystem);
+	bool	Initialize(void* pSystemConfig);
 	void	Shutdown();
 
 	// TODO: Texture destruction!
@@ -43,8 +43,6 @@ private:
 	u64								m_NumRegisteredTextures;
 
 	Texture							m_DefaultDiffuse;
-
-	Renderer*						m_RenderSystem;
 };
 
 ENGINE_API extern TextureSystem* gpTextureSystem;
