@@ -108,7 +108,7 @@ bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, Fil
 	}
 
 	// Zero out the buffer
-	Memory::MemSet(pBuffer, 0, bufferSize);
+	gpMemory->MemSet(pBuffer, 0, bufferSize);
 
 	// Read the contents of the line into the buffer
 	if (fgets(pBuffer, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData)) == 0)
@@ -129,7 +129,7 @@ bool FileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutByt
 	}
 
 	// Zero out the buffer
-	Memory::MemSet(pBuffer, 0, bufferSize);
+	gpMemory->MemSet(pBuffer, 0, bufferSize);
 
 	// Read the contents into the buffer
 	*pOutBytesRead = fread(pBuffer, bufferSize, 1, reinterpret_cast<FILE*>(pFileHandle->internalData));

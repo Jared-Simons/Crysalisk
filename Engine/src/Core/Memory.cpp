@@ -7,8 +7,6 @@
 #include <Memory/DynamicAllocator.h>
 #include <String_Utils.h>
 
-static Memory* s_MemorySystem = nullptr;
-
 static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 {
 	"UNKNOWN		",
@@ -26,26 +24,77 @@ static const char* s_MemCategoryStrings[MAX_MEM_CATEGORIES]
 	"TEXTURE		"
 };
 
-bool Memory::Initialize(DynamicAllocator* pInternalAllocator, void* pState)
+class CMemory;
+
+static CMemory* s_MemorySystem = nullptr;
+IMemory* gpMemory = nullptr;
+
+class CMemory : public IMemory
+{
+public:
+	void* operator new(size_t size, void* pMemBlock)
+	{
+		if (pMemBlock)
+		{
+			return pMemBlock;
+		}
+
+		return nullptr;
+	}
+
+	// NOTE: This does nothing and just exists to clear a compiler warning, 
+	// the memory was allocated and will be freed when the linear allocator gets cleared.
+	// If the creation of this system fails, the engine will shutdown regardless.
+	void	operator delete(void* pMemory) {}
+
+	bool		Initialize(DynamicAllocator* pInternalAllocator) override;
+	void		Shutdown(void* pState) override;
+
+	void*		Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory) override;
+	void		Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory) override;
+	void*		Reallocate(void* pBlock, u64 iNewSize) override;
+	void*		MemCopy(void* pDest, const void* pSource, u64 iSize) override;
+	void*		MemSet(void* pBlock, i32 iValue, u64 iSize) override;
+
+	virtual void		PrintMemoryStats();
+
+private:
+	u64					m_iNumAllocations;
+	u64					m_iNumBytesAllocated;
+	u64					m_iTaggedAllocations[MAX_MEM_CATEGORIES];
+	DynamicAllocator* m_pInternalAllocator;
+	bool				m_bSystemInitialized;
+};
+
+u64 IMemory::m_MemorySystemRequirement = sizeof(CMemory);
+
+IMemory* IMemory::Create(void* pMemoryBlock)
+{
+	if (s_MemorySystem != nullptr)
+	{
+		LOG_WARN("Memory::Create -> A memory system is already initialized! Nothing was done");
+		return nullptr;
+	}
+
+	s_MemorySystem = new (pMemoryBlock) CMemory();
+	return s_MemorySystem;
+}
+
+bool CMemory::Initialize(DynamicAllocator* pInternalAllocator)
 {
 	if (!pInternalAllocator)
 	{
 		LOG_ERROR("Memory System REQUIRES a valid pointer to pInternalAllocator.");
 		return false;
 	}
-	pState = pInternalAllocator->Allocate(sizeof(Memory));
-	s_MemorySystem = reinterpret_cast<Memory*>(pState);
-	s_MemorySystem->m_bSystemInitialized = false;
 
-	s_MemorySystem->m_iNumAllocations = 1; // We just made one allocation.
-	s_MemorySystem->m_iNumBytesAllocated = sizeof(Memory);
+	s_MemorySystem->m_iNumAllocations = 0;
+	s_MemorySystem->m_iNumBytesAllocated = 0;
 
 	for (i32 index = 0; index < MAX_MEM_CATEGORIES; index++)
 	{
 		s_MemorySystem->m_iTaggedAllocations[index] = 0;
 	}
-
-	s_MemorySystem->m_iTaggedAllocations[static_cast<i32>(eMemAllocCategories::MEM_CATEGORY_ENGINE)] += sizeof(Memory);
 
 	s_MemorySystem->m_pInternalAllocator = pInternalAllocator;
 
@@ -54,15 +103,15 @@ bool Memory::Initialize(DynamicAllocator* pInternalAllocator, void* pState)
 	return true;
 }
 
-void Memory::Shutdown(void* pState)
+void CMemory::Shutdown(void* pState)
 {
 	if (pState)
 	{
-		Memory* pMemorySystem = reinterpret_cast<Memory*>(pState);
+		CMemory* pMemorySystem = reinterpret_cast<CMemory*>(pState);
 		pMemorySystem->m_bSystemInitialized = false;
 
 		pMemorySystem->m_iNumAllocations -= 1;
-		pMemorySystem->m_iNumBytesAllocated -= sizeof(Memory);
+		pMemorySystem->m_iNumBytesAllocated -= sizeof(CMemory);
 
 		pMemorySystem->m_pInternalAllocator->Free(pState);
 
@@ -70,9 +119,10 @@ void Memory::Shutdown(void* pState)
 	}
 
 	s_MemorySystem = nullptr;
+	gpMemory = nullptr;
 }
 
-void* Memory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
+void* CMemory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
 {
 	if (eAllocCategory == eMemAllocCategories::MEM_CATEGORY_UNKNOWN)
 	{
@@ -97,7 +147,7 @@ void* Memory::Allocate(u64 iNumBytes, eMemAllocCategories eAllocCategory)
 	return nullptr;
 }
 
-void Memory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory)
+void CMemory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategory)
 {
 	if (!s_MemorySystem->m_bSystemInitialized)
 		return;
@@ -114,7 +164,7 @@ void Memory::Free(void* pBlock, u64 iNumBytes, eMemAllocCategories eAllocCategor
 	pBlock = nullptr;
 }
 
-void* Memory::Reallocate(void* pBlock, u64 iNewSize)
+void* CMemory::Reallocate(void* pBlock, u64 iNewSize)
 {
 	// TODO: Memory alignment
 	void* pNewBlock = nullptr;
@@ -131,7 +181,7 @@ void* Memory::Reallocate(void* pBlock, u64 iNewSize)
 	return nullptr;
 }
 
-void* Memory::MemCopy(void* pDest, const void* pSource, u64 iSize)
+void* CMemory::MemCopy(void* pDest, const void* pSource, u64 iSize)
 {
 	if (pDest && pSource && iSize)
 		return Platform::MemoryCopy(pDest, pSource, iSize);
@@ -140,7 +190,7 @@ void* Memory::MemCopy(void* pDest, const void* pSource, u64 iSize)
 	return nullptr;
 }
 
-void* Memory::MemSet(void* pBlock, i32 iValue, u64 iSize)
+void* CMemory::MemSet(void* pBlock, i32 iValue, u64 iSize)
 {
 	if (pBlock)
 		return Platform::MemorySet(pBlock, iValue, iSize);
@@ -149,7 +199,7 @@ void* Memory::MemSet(void* pBlock, i32 iValue, u64 iSize)
 	return nullptr;
 }
 
-void Memory::PrintMemoryStats()
+void CMemory::PrintMemoryStats()
 {
 	char memStatsString[10000] = "Memory Stats:\n";
 
@@ -172,15 +222,4 @@ void Memory::PrintMemoryStats()
 	StringConcat(memStatsString, totalAllocationString);
 
 	LOG_INFO(memStatsString);
-}
-
-bool Memory::IsInitialized()
-{
-	if (!s_MemorySystem)
-		return false;
-
-	if (s_MemorySystem->m_bSystemInitialized)
-		return true;
-	else
-		return false;
 }

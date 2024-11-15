@@ -26,7 +26,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64
 
 	pOutImage->m_ImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
 
-	if (!VK_CHECK(vkCreateImage(pRenderingContext->m_Device.m_LogicalDevice, &imageCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_Handle)))
+	if (!VK_CHECK(vkCreateImage(pRenderingContext->m_Device.GetLogicalDevice(), &imageCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_Handle)))
 	{
 		LOG_ERROR("Failed to create Vulkan Image");
 		return false;
@@ -34,7 +34,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64
 
 	// Allocate the memory for the image
 	VkMemoryRequirements imageMemoryRequirements;
-	vkGetImageMemoryRequirements(pRenderingContext->m_Device.m_LogicalDevice, pOutImage->m_Handle, &imageMemoryRequirements);
+	vkGetImageMemoryRequirements(pRenderingContext->m_Device.GetLogicalDevice(), pOutImage->m_Handle, &imageMemoryRequirements);
 
 	VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
@@ -42,14 +42,14 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64
 	memAllocInfo.allocationSize = imageMemoryRequirements.size;
 	memAllocInfo.memoryTypeIndex = pRenderingContext->m_Device.FindMemoryType(imageMemoryRequirements.memoryTypeBits, properties); // TODO: Make configurable
 
-	if (!VK_CHECK(vkAllocateMemory(pRenderingContext->m_Device.m_LogicalDevice, &memAllocInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageMemory)))
+	if (!VK_CHECK(vkAllocateMemory(pRenderingContext->m_Device.GetLogicalDevice(), &memAllocInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageMemory)))
 	{
 		LOG_ERROR("Failed to allocate Vulkan Image memory");
 		return false;
 	}
 
 	// TODO: Bind on create parameter?
-	vkBindImageMemory(pRenderingContext->m_Device.m_LogicalDevice, pOutImage->m_Handle, pOutImage->m_ImageMemory, 0);
+	vkBindImageMemory(pRenderingContext->m_Device.GetLogicalDevice(), pOutImage->m_Handle, pOutImage->m_ImageMemory, 0);
 
 	// Create Image View
 	if (bCreateView)
@@ -64,7 +64,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64
 		viewCreateInfo.subresourceRange.baseArrayLayer = 0;
 		viewCreateInfo.subresourceRange.layerCount = 1;
 
-		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.m_LogicalDevice, &viewCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageView)))
+		if (!VK_CHECK(vkCreateImageView(pRenderingContext->m_Device.GetLogicalDevice(), &viewCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageView)))
 		{
 			LOG_ERROR("Failed to create Vulkan Image View");
 			return false;
@@ -81,14 +81,14 @@ bool VulkanImage::CreateImage(CVulkanRenderer* pRenderingContext, u64 width, u64
 		samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerCreateInfo.anisotropyEnable = VK_TRUE;
-		samplerCreateInfo.maxAnisotropy = pRenderingContext->m_Device.m_PhysicalDeviceProperties.limits.maxSamplerAnisotropy;
+		samplerCreateInfo.maxAnisotropy = pRenderingContext->m_Device.GetPhysicalDeviceProperties().limits.maxSamplerAnisotropy;
 		samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
 		samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 		samplerCreateInfo.compareEnable = VK_FALSE;
 		samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-		if (!VK_CHECK(vkCreateSampler(pRenderingContext->m_Device.m_LogicalDevice, &samplerCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageSampler)))
+		if (!VK_CHECK(vkCreateSampler(pRenderingContext->m_Device.GetLogicalDevice(), &samplerCreateInfo, pRenderingContext->m_Allocator, &pOutImage->m_ImageSampler)))
 		{
 			LOG_ERROR("Failed to create Vulkan Image Sampler");
 			return false;
@@ -102,25 +102,25 @@ void VulkanImage::DestroyImage(CVulkanRenderer* pRenderingContext, VulkanImage* 
 {
 	if (pImage->m_ImageSampler)
 	{
-		vkDestroySampler(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_ImageSampler, pRenderingContext->m_Allocator);
+		vkDestroySampler(pRenderingContext->m_Device.GetLogicalDevice(), pImage->m_ImageSampler, pRenderingContext->m_Allocator);
 	}
 
 	if (pImage->m_ImageView)
 	{
-		vkDestroyImageView(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_ImageView, pRenderingContext->m_Allocator);
+		vkDestroyImageView(pRenderingContext->m_Device.GetLogicalDevice(), pImage->m_ImageView, pRenderingContext->m_Allocator);
 	}
 
 	if (pImage)
 	{
-		vkDestroyImage(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_Handle, pRenderingContext->m_Allocator);
-		vkFreeMemory(pRenderingContext->m_Device.m_LogicalDevice, pImage->m_ImageMemory, pRenderingContext->m_Allocator);
+		vkDestroyImage(pRenderingContext->m_Device.GetLogicalDevice(), pImage->m_Handle, pRenderingContext->m_Allocator);
+		vkFreeMemory(pRenderingContext->m_Device.GetLogicalDevice(), pImage->m_ImageMemory, pRenderingContext->m_Allocator);
 	}
 }
 
 bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {
 	VulkanCommandBuffer commandBuffer;
-	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 
 	VkImageMemoryBarrier imageBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	imageBarrier.oldLayout = oldLayout;
@@ -170,9 +170,9 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer* pRenderingContext, VkIm
 		return false;
 	}
 
-	vkCmdPipelineBarrier(commandBuffer.m_Handle, sourceStage, destinationStage,
+	vkCmdPipelineBarrier(commandBuffer.GetHandle(), sourceStage, destinationStage,
 						0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 
-	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 	return true;
 }

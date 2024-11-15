@@ -57,7 +57,10 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	LogSystem::Init(6); // Log all messages
 
 	// Memory System
-	if (!Memory::Initialize(s_EnginePtr->m_EngineHeap, s_EnginePtr->m_MemorySystem))
+	u64 memorySystemMemoryRequirement = gpMemory->GetSystemMemoryRequirement();
+	void* pMemorySysBlock = s_EnginePtr->m_EngineHeap->Allocate(memorySystemMemoryRequirement);
+	gpMemory = gpMemory->Create(pMemorySysBlock);
+	if (!gpMemory->Initialize(s_EnginePtr->m_EngineHeap))
 	{
 		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
 		return false;
@@ -66,31 +69,33 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	ConnectUtilityLib(s_EnginePtr->m_EngineHeap, "Engine.dll");
 
 	// Initialize the subsystem memory allocator
-	s_EnginePtr->m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
+	void* systemsAllocatorMem = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
+	s_EnginePtr->m_SystemsAllocator = new (systemsAllocatorMem) LinearAllocator(MEBIBYTES(1));
 	LOG_INFO("Systems Allocator created with %u B", s_EnginePtr->m_SystemsAllocator->GetAllocatorSize());
 
 	// Event System
-	if (!EventSystem::Initialize())
+	gpEvents = IEventSystem::Create(s_EnginePtr->m_SystemsAllocator);
+	
+	if (gpEvents == nullptr)
 	{
 		LOG_FATAL("Event System failed to initialize! Application cannot continue.");
 		return false;
 	}
 
 	// Register for engine-level events
-	EventSystem::EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
-	EventSystem::EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
-	EventSystem::EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
-	EventSystem::EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
-	EventSystem::EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
-	EventSystem::EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
-	EventSystem::EventRegister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
-	EventSystem::EventRegister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
+	gpEvents->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
+	gpEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
+	gpEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
+	gpEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
+	gpEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
+	gpEvents->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	gpEvents->EventRegister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
+	gpEvents->EventRegister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
 
 
 	// Input System
-	/*if (!IInputSystem::InputSystem_Initialize(gpInputSystem, m_SystemsAllocator))*/
-	s_EnginePtr->m_InputSystem = IInputSystem::InputSystem_Initialize(s_EnginePtr->m_SystemsAllocator, nullptr);
-	if (s_EnginePtr->m_InputSystem == nullptr)
+	gpInputSystem = IInputSystem::InputSystem_Initialize(s_EnginePtr->m_SystemsAllocator);
+	if (gpInputSystem == nullptr)
 	{
 		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
 		return false;
@@ -109,8 +114,8 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	// Renderer
 	if (!s_EnginePtr->m_engineConfig.isHeadless)
 	{
-		s_EnginePtr->m_RenderSystem = reinterpret_cast<Renderer*>(s_EnginePtr->m_SystemsAllocator->Allocate(sizeof(Renderer)));
-		if (!s_EnginePtr->m_RenderSystem->Initialize())
+		gpRenderer = Renderer::Renderer_Create(s_EnginePtr->m_SystemsAllocator);
+		if (!gpRenderer)
 		{
 			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 			return false;
@@ -123,7 +128,7 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	gpTextureSystem = (TextureSystem*)s_EnginePtr->m_SystemsAllocator->Allocate(sizeof(TextureSystem));
 
 	TextureSystemConfiguration textureSysConfig = { 1024 };
-	if (!gpTextureSystem->Initialize(&textureSysConfig, s_EnginePtr->m_RenderSystem))
+	if (!gpTextureSystem->Initialize(&textureSysConfig))
 	{
 		LOG_FATAL("Texture system failed to initialize! Application cannot continue.");
 		return false;
@@ -138,7 +143,8 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	typedState->CreateSceneGeometry();
 
 	// Initialize the frame allocator
-	typedState->m_FrameAllocator = new LinearAllocator(MEBIBYTES(1));
+	void* frameAllocatorState = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
+	typedState->m_FrameAllocator = new (frameAllocatorState) LinearAllocator(MEBIBYTES(1));
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
@@ -162,7 +168,7 @@ bool Engine::Engine_Run()
 				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->Allocate(sizeof(RenderPacket_t)));
 				frameRenderData->geometries[0] = m_TestGeometry;
 
-				if (!s_EnginePtr->m_RenderSystem->Update(frameRenderData))
+				if (!gpRenderer->Update(frameRenderData))
 				{
 					LOG_FATAL("Renderer update failed!");
 					return false;
@@ -183,7 +189,7 @@ void Engine::Engine_Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	s_EnginePtr->m_RenderSystem->DestroyGeometryResources(*m_TestGeometry);
+	gpRenderer->DestroyGeometryResources(*m_TestGeometry);
 	//gpTextureSystem->UnloadTexture(*testTexture);
 
 	// TODO: Overloaded delete operator?
@@ -191,7 +197,7 @@ void Engine::Engine_Shutdown()
 
 	if (!m_engineConfig.isHeadless)
 	{
-		Renderer::Renderer_Shutdown(s_EnginePtr->m_RenderSystem, false);
+		gpRenderer->Shutdown();
 	}
 
 	if (!m_engineConfig.isHeadless)
@@ -199,32 +205,32 @@ void Engine::Engine_Shutdown()
 		Platform::Shutdown();
 	}
 
-	IInputSystem::InputSystem_Shutdown(gpInputSystem, false);
+	gpInputSystem->Shutdown();
 
 	// Unregister from engine-level events
-	EventSystem::EventUnregister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
-	EventSystem::EventUnregister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
-	EventSystem::EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
-	EventSystem::EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
-	EventSystem::EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
-	EventSystem::EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
-	EventSystem::EventUnregister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
-	EventSystem::EventUnregister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
+	gpEvents->EventUnregister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
+	gpEvents->EventUnregister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
+	gpEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	gpEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
+	gpEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
+	gpEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
+	gpEvents->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
+	gpEvents->EventUnregister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
 
-	EventSystem::Shutdown();
+	gpEvents->Shutdown();
 
 	// Destroy allocators
 	m_FrameAllocator->Free(false);
-	delete m_FrameAllocator;
+	gpMemory->Free(m_FrameAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
 	m_FrameAllocator = nullptr;
 
 	m_SystemsAllocator->Free(false);
-	delete m_SystemsAllocator;
+	gpMemory->Free(m_SystemsAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
 	m_SystemsAllocator = nullptr;
 
 	DisconnectUtilityLib();
 
-	Memory::Shutdown(m_MemorySystem);
+	gpMemory->Shutdown(gpMemory);
 
 	void* pEngineMemoryBlock = m_EngineHeap->GetMemoryBlock();
 	delete m_EngineHeap;
@@ -254,7 +260,7 @@ bool Event_KeyReleased(EventData_t data)
 
 	if (keycode == 'M')
 	{
-		Memory::PrintMemoryStats();
+		gpMemory->PrintMemoryStats();
 	}
 	
 	if (keycode == 'T')
@@ -284,7 +290,7 @@ bool Event_KeyReleased(EventData_t data)
 
 void Engine::CreateSceneGeometry()
 {
-	m_TestGeometry = reinterpret_cast<StaticMesh*>(Memory::Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
+	m_TestGeometry = reinterpret_cast<StaticMesh*>(gpMemory->Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
 
 	CVector<Vertex3D> vertices(36);
 
@@ -332,7 +338,7 @@ void Engine::CreateSceneGeometry()
 	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
 	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
 
-	s_EnginePtr->m_RenderSystem->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/container.jpg", "TestGeometry");
+	gpRenderer->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/container.jpg", "TestGeometry");
 }
 
 bool Event_MouseButtonPressed(EventData_t data)

@@ -15,14 +15,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <Vendor/stb_image.h>
 
-bool TextureSystem::Initialize(void* pSystemConfig, Renderer* pRenderSystem)
+bool TextureSystem::Initialize(void* pSystemConfig)
 {
-	if (!pSystemConfig || !pRenderSystem)
+	if (!pSystemConfig)
 	{
-		LOG_ERROR("Texture System requires a valid pointer to a Texture System Configuration and Renderer! Texture System creation failed");
+		LOG_ERROR("Texture System requires a valid pointer to a Texture System Configuration! Texture System creation failed");
 		return false;
 	}
-	m_RenderSystem = pRenderSystem;
 
 	TextureSystemConfiguration* typedConfig = static_cast<TextureSystemConfiguration*>(pSystemConfig);
 
@@ -51,7 +50,7 @@ void TextureSystem::Shutdown()
 	}
 
 	// Destroy default texture resources
-	m_RenderSystem->DestroyTextureResources(m_DefaultDiffuse);
+	gpRenderer->DestroyTextureResources(m_DefaultDiffuse);
 }
 
 bool TextureSystem::LoadTexture(const char* pTexturePath)
@@ -83,7 +82,7 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 	newTexture->m_TextureName = StringDuplicate(pTexturePath); // TODO: Strip texture name down to just the file name...
 
 	// Obtain GPU Texture resources
-	m_RenderSystem->CreateTextureResources(*newTexture, pixelData);
+	gpRenderer->CreateTextureResources(*newTexture, pixelData);
 
 	// Free resources that are no longer needed.
 	stbi_image_free(pixelData);
@@ -98,7 +97,7 @@ bool TextureSystem::LoadTexture(const char* pTexturePath)
 void TextureSystem::UnloadTexture(Texture& pTexture)
 {
 	// Release GPU Texture resources
-	m_RenderSystem->DestroyTextureResources(pTexture);
+	gpRenderer->DestroyTextureResources(pTexture);
 
 	pTexture.m_Width = pTexture.m_Height = pTexture.m_ChannelCount = 0;
 	StringFree(const_cast<char*>(pTexture.m_TextureName)); // TODO: NO CONST CAST! This should be a char* not a const char*
@@ -133,12 +132,12 @@ bool TextureSystem::CreateDefaultTextures()
 	// Diffuse texture.
 
 	byte diffusePixels[16 * 16 * 4];
-	Memory::MemSet(diffusePixels, 255, sizeof(byte) * 16 * 16 * 4);
+	gpMemory->MemSet(diffusePixels, 255, sizeof(byte) * 16 * 16 * 4);
 
 	m_DefaultDiffuse.m_Height = m_DefaultDiffuse.m_Width = 16;
 	m_DefaultDiffuse.m_ChannelCount = 4;
 	m_DefaultDiffuse.m_TextureName = "DefaultDiffuse";
-	if (!m_RenderSystem->CreateTextureResources(m_DefaultDiffuse, diffusePixels))
+	if (!gpRenderer->CreateTextureResources(m_DefaultDiffuse, diffusePixels))
 	{
 		LOG_ERROR("Failed to create default diffuse texture!");
 		return false;

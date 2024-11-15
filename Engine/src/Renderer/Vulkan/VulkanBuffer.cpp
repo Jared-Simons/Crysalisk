@@ -21,26 +21,26 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer* pRenderingContext, VkDeviceSize
 	bufferCreateInfo.usage = usage;
 	bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (!VK_CHECK(vkCreateBuffer(pRenderingContext->m_Device.m_LogicalDevice, &bufferCreateInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Handle)))
+	if (!VK_CHECK(vkCreateBuffer(pRenderingContext->m_Device.GetLogicalDevice(), &bufferCreateInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Handle)))
 	{
 		LOG_ERROR("VulKanBuffer::CreateBuffer(): Failed to create buffer.");
 		return false;
 	}
 
 	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(pRenderingContext->m_Device.m_LogicalDevice, pOutBuffer->m_Handle, &memRequirements);
+	vkGetBufferMemoryRequirements(pRenderingContext->m_Device.GetLogicalDevice(), pOutBuffer->m_Handle, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex = pRenderingContext->m_Device.FindMemoryType(memRequirements.memoryTypeBits, properties);
 
-	if (!VK_CHECK(vkAllocateMemory(pRenderingContext->m_Device.m_LogicalDevice, &allocInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Memory)))
+	if (!VK_CHECK(vkAllocateMemory(pRenderingContext->m_Device.GetLogicalDevice(), &allocInfo, pRenderingContext->m_Allocator, &pOutBuffer->m_Memory)))
 	{
 		LOG_ERROR("VulKanBuffer::CreateBuffer(): Failed to allocate buffer memory.");
 		return false;
 	}
 
-	vkBindBufferMemory(pRenderingContext->m_Device.m_LogicalDevice, pOutBuffer->m_Handle, pOutBuffer->m_Memory, 0);
+	vkBindBufferMemory(pRenderingContext->m_Device.GetLogicalDevice(), pOutBuffer->m_Handle, pOutBuffer->m_Memory, 0);
 
 	return true;
 }
@@ -49,8 +49,8 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer* pRenderContext, VulkanBuffer* 
 {
 	if (pBuffer && pBuffer->m_Handle && pBuffer->m_Memory)
 	{
-		vkFreeMemory(pRenderContext->m_Device.m_LogicalDevice, pBuffer->m_Memory, pRenderContext->m_Allocator);
-		vkDestroyBuffer(pRenderContext->m_Device.m_LogicalDevice, pBuffer->m_Handle, pRenderContext->m_Allocator);
+		vkFreeMemory(pRenderContext->m_Device.GetLogicalDevice(), pBuffer->m_Memory, pRenderContext->m_Allocator);
+		vkDestroyBuffer(pRenderContext->m_Device.GetLogicalDevice(), pBuffer->m_Handle, pRenderContext->m_Allocator);
 	}
 	else
 	{
@@ -68,15 +68,15 @@ void VulkanBuffer::UploadDataToBuffer(CVulkanRenderer* pRenderingContext, u64 da
 	}
 
 	void* bufferData;
-	vkMapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory, offset, dataSize, 0, &bufferData);
+	vkMapMemory(pRenderingContext->m_Device.GetLogicalDevice(), m_Memory, offset, dataSize, 0, &bufferData);
 		memcpy(bufferData, data, dataSize);
-	vkUnmapMemory(pRenderingContext->m_Device.m_LogicalDevice, m_Memory);
+	vkUnmapMemory(pRenderingContext->m_Device.GetLogicalDevice(), m_Memory);
 }
 
 bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 width, u64 height, VulkanImage* pImage) const
 {
 	VulkanCommandBuffer commandBuffer;
-	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.BeginSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 
 	VkBufferImageCopy copyRegion{};
 	copyRegion.bufferOffset = 0;
@@ -89,8 +89,8 @@ bool VulkanBuffer::CopyBufferToImage(CVulkanRenderer* pRenderingContext, u64 wid
 	copyRegion.imageOffset = { 0, 0, 0 };
 	copyRegion.imageExtent = { static_cast<u32>(width), static_cast<u32>(height), 1 };
 
-	vkCmdCopyBufferToImage(commandBuffer.m_Handle, m_Handle, pImage->m_Handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+	vkCmdCopyBufferToImage(commandBuffer.GetHandle(), m_Handle, pImage->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
-	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool.m_Handle);
+	commandBuffer.EndSingleUse(pRenderingContext, &pRenderingContext->m_GraphicsCommandPool);
 	return true;
 }

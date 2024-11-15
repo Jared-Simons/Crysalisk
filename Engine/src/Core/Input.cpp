@@ -36,7 +36,7 @@ public:
 	// If the creation of this system fails, the engine will shutdown regardless.
 	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
 
-	bool		Initialize(IEventSystem* pEventSystem) override;
+	bool		Initialize() override;
 	void		Shutdown() override;
 	void		Update() override;
 
@@ -52,10 +52,6 @@ private:
 	MouseState_t m_MouseState;
 
 	bool		m_KeyStateDirty;
-
-private:
-	// Hold a pointer to the engine's event system so we can fire off events.
-	IEventSystem*	m_pEventSystem{ nullptr };
 };
 
 static CInputSystem* sInputSystem{ nullptr };
@@ -64,21 +60,16 @@ IInputSystem* gpInputSystem = sInputSystem;
 //-----------------------------------------------------------------------------
 // Factory method to initialize an event system.
 //-----------------------------------------------------------------------------
-IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator, IEventSystem* pEventSystem)
+IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator)
 {
 	if (pAllocator)
 	{
 		CInputSystem* inputSystem = new (pAllocator) CInputSystem();
 
-		if (!inputSystem->Initialize(pEventSystem))
+		if (!inputSystem->Initialize())
 		{
 			return nullptr;
 		}
-
-		// HACK: This exposes the engine input system through a global accessor.
-		// This is hacky and should be cleaned up down the line...
-		sInputSystem = inputSystem;
-		gpInputSystem = sInputSystem;
 
 		return inputSystem;
 	}
@@ -87,27 +78,8 @@ IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator, 
 	return false;
 }
 
-//-----------------------------------------------------------------------------
-// Factory method to shutdown an input system.
-//-----------------------------------------------------------------------------
-void IInputSystem::InputSystem_Shutdown(IInputSystem* statePtr, bool bOwnsMemory)
+bool CInputSystem::Initialize()
 {
-	if (statePtr)
-	{
-		statePtr->Shutdown();
-
-		if (bOwnsMemory)
-		{
-			delete statePtr;
-			statePtr = nullptr;
-		}
-	}
-}
-
-bool CInputSystem::Initialize(IEventSystem* pEventSystem)
-{
-	// TODO: Logging for event system.
-
 	// setup m_KeysState table
 	for (u8 i = 0; i < MAX_INPUT_KEYS; i++)
 	{
@@ -126,8 +98,6 @@ bool CInputSystem::Initialize(IEventSystem* pEventSystem)
 		m_MouseState.m_MouseButtons[i] = false;
 	}
 
-	m_pEventSystem = pEventSystem;
-
 	LOG_INFO("Input System Initialized!");
 
 	return true;
@@ -142,7 +112,7 @@ void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
-		Memory::MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		gpMemory->MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
 		m_KeyStateDirty = false;
 	}
 }
@@ -157,12 +127,12 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, En
 		{
 			eventData.c[0] = processedKeyInput;
 			m_KeysState[processedKeyInput].m_Pressed = true;
-			EventSystem::EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
+			gpEvents->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_Pressed = false;
-			EventSystem::EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
+			gpEvents->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
 		}
 	}
 	else
@@ -207,7 +177,7 @@ void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
+		gpEvents->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && !pressed)
@@ -234,7 +204,7 @@ void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		EventSystem::EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
+		gpEvents->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
 }
 

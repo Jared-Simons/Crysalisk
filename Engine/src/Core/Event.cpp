@@ -2,13 +2,66 @@
 
 #include "Core/Logging.h"
 
-#include <string>
+class EventSystem : public IEventSystem
+{
+public:
+	void* operator new(u64 size, LinearAllocator* pAllocator)
+	{
+		void* pBlock = pAllocator->Allocate(size);
+		if (pBlock)
+		{
+			return pBlock;
+		}
+		else
+		{
+			LOG_FATAL("Systems allocator failed to allocate memory for the event system!");
+			return nullptr;
+		}
+	}
 
-// Event System Static variables
+	// NOTE: This does nothing and just exists to clear a compiler warning, 
+	// the memory was allocated and will be freed when the linear allocator gets cleared.
+	// If the creation of this system fails, the engine will shutdown regardless.
+	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
 
-// TODO: Make this a pointer or something so we can control lifetime.
-Event EventSystem::m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-i32	EventSystem::m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+	bool		Initialize() override;
+	void		Shutdown() override;
+
+	bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
+	bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
+	bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) override;
+
+private:
+	Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
+	i32 m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+};
+
+class EventSystem* s_EventSystem = nullptr;
+class IEventSystem* gpEvents = s_EventSystem;
+
+IEventSystem* IEventSystem::Create(LinearAllocator* pAllocator)
+{
+	if (pAllocator)
+	{
+		if (s_EventSystem)
+		{
+			LOG_ERROR("IEventSystem::Create -> An Event System is already initialized! Nothing was done");
+			return nullptr;
+		}
+
+		EventSystem* eventSystem = new (pAllocator) EventSystem();
+
+		if (!eventSystem->Initialize())
+		{
+			return nullptr;
+		}
+
+		s_EventSystem = eventSystem;
+		return s_EventSystem;
+	}
+
+	return nullptr;
+}
 
 bool EventSystem::Initialize()
 {
