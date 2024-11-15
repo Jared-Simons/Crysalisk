@@ -69,7 +69,8 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	ConnectUtilityLib(s_EnginePtr->m_EngineHeap, "Engine.dll");
 
 	// Initialize the subsystem memory allocator
-	s_EnginePtr->m_SystemsAllocator = new LinearAllocator(MEBIBYTES(1));
+	void* systemsAllocatorMem = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
+	s_EnginePtr->m_SystemsAllocator = new (systemsAllocatorMem) LinearAllocator(MEBIBYTES(1));
 	LOG_INFO("Systems Allocator created with %u B", s_EnginePtr->m_SystemsAllocator->GetAllocatorSize());
 
 	// Event System
@@ -142,7 +143,8 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	typedState->CreateSceneGeometry();
 
 	// Initialize the frame allocator
-	typedState->m_FrameAllocator = new LinearAllocator(MEBIBYTES(1));
+	void* frameAllocatorState = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
+	typedState->m_FrameAllocator = new (frameAllocatorState) LinearAllocator(MEBIBYTES(1));
 
 	LOG_INFO("Engine Finished Initialization");
 	return true;
@@ -219,11 +221,11 @@ void Engine::Engine_Shutdown()
 
 	// Destroy allocators
 	m_FrameAllocator->Free(false);
-	delete m_FrameAllocator;
+	gpMemory->Free(m_FrameAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
 	m_FrameAllocator = nullptr;
 
 	m_SystemsAllocator->Free(false);
-	delete m_SystemsAllocator;
+	gpMemory->Free(m_SystemsAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
 	m_SystemsAllocator = nullptr;
 
 	DisconnectUtilityLib();

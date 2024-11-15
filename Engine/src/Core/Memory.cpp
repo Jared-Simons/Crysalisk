@@ -38,6 +38,8 @@ public:
 		{
 			return pMemBlock;
 		}
+
+		return nullptr;
 	}
 
 	// NOTE: This does nothing and just exists to clear a compiler warning, 
