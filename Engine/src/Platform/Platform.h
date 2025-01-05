@@ -12,6 +12,13 @@
 class LinearAllocator;
 class Engine;
 
+class ISysModule
+{
+public:
+	virtual bool LoadFuncAddr(const char* pFuncName) = 0;
+	virtual void* GetLoadedFunctionAddr(const char* pFuncName) = 0;
+};
+
 namespace Platform {
 
 	bool	Initialize(LinearAllocator* pAllocator, Engine* pEngine);
@@ -37,4 +44,10 @@ namespace Platform {
 	void* MemoryReallocate(void* memory, u64 newSize);
 	void* MemoryCopy(void* dest, const void* source, u64 size);
 	void* MemorySet(void* memory, i32 value, u64 size);
+
+	//-----------------------------------------------------------------------------
+	// External library functions
+	//-----------------------------------------------------------------------------
+	ISysModule* LoadModule(const char* pModulePath);
+	void UnloadModule(ISysModule* pModule);
 }

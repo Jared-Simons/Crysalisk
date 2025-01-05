@@ -42,6 +42,14 @@ Renderer* Renderer::Renderer_Create(LinearAllocator* pAllocator)
 
 bool Renderer::Initialize()
 {
+	// TODO: Connect Renderer_Vulkan.dll interface.
+	ISysModule* pVulkanRendererDLL = Platform::LoadModule("Renderer_Vulkan.dll");
+	pVulkanRendererDLL->LoadFuncAddr("ConnectInterface");
+	void* funcAddr = pVulkanRendererDLL->GetLoadedFunctionAddr("ConnectInterface");
+	typedef void (*connectInterface)(void* pInterfaceState);
+	connectInterface testFunc = reinterpret_cast<connectInterface>(funcAddr);
+	testFunc(m_RendererBackend);
+
 	m_RendererBackend = GetVulkanBackend();
 
 	if (m_RendererBackend != nullptr)

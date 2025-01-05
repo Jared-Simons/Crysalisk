@@ -146,6 +146,17 @@ bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
 	void* frameAllocatorState = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
 	typedState->m_FrameAllocator = new (frameAllocatorState) LinearAllocator(MEBIBYTES(1));
 
+	// TEMP: DLL TEST
+	ISysModule* pCoreDLL = Platform::LoadModule("Core.dll");
+	pCoreDLL->LoadFuncAddr("Test");
+	void* extFuncAddr = pCoreDLL->GetLoadedFunctionAddr("Test");
+	typedef void (*extFunc)();
+	extFunc testFunc = reinterpret_cast<extFunc>(extFuncAddr);
+	testFunc();
+
+	Platform::UnloadModule(pCoreDLL);
+	// TEMP: END DLL TEST
+
 	LOG_INFO("Engine Finished Initialization");
 	return true;
 }
@@ -168,11 +179,11 @@ bool Engine::Engine_Run()
 				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->Allocate(sizeof(RenderPacket_t)));
 				frameRenderData->geometries[0] = m_TestGeometry;
 
-				if (!gpRenderer->Update(frameRenderData))
+				/*if (!gpRenderer->Update(frameRenderData))
 				{
 					LOG_FATAL("Renderer update failed!");
 					return false;
-				}
+				}*/
 			}
 		}
 

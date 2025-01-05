@@ -9,6 +9,78 @@ workspace "Engine"
 	}
 	
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
+project "Core"
+	location "Core"
+	kind "SharedLib"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+
+	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302,	---'type-cast' truncation (primary for void* casts)
+		C4244,	--- type conversion (possible loss of data)
+	}
+	
+	includedirs
+	{	
+		"%{prj.name}/src",
+		"Engine/src/",
+		"Public/",
+		"D:/coding/Vulkan/Include",
+		"UtilityLib/src/"
+	}
+
+	links
+	{
+		"D:/coding/Vulkan/Lib/Vulkan-1",
+		"UtilityLib"
+	}
+
+	libdirs
+	{
+		"bin/Debug-windows-x86_64/VulkanRenderer",
+		"D:/coding/Vulkan/Lib"
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+	
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
+	filter "configurations:Debug"
+		defines "CRYS_DEBUG;CORE_DLL"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "CRYS_RELEASE;CORE_DLL"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "CRYS_DIST;CORE_DLL"
+		optimize "on"
 	
 project "Engine"
 	location "engine"
@@ -36,6 +108,7 @@ project "Engine"
 	{	
 		"%{prj.name}/src",
 		"D:/coding/Vulkan/Include",
+		"Public/",
 		"UtilityLib/src/"
 	}
 
@@ -102,7 +175,8 @@ project "Testapp"
 	
 	includedirs
 	{	
-		"Engine/src/"
+		"Engine/src/",
+		"Public/",
 	}
 	
 	links
@@ -161,6 +235,7 @@ project "UnitTest"
 	includedirs
 	{	
 		"Engine/src/",
+		"Public/",
 		"UnitTest/src/",
 		"UtilityLib/src/"
 	}
@@ -233,7 +308,8 @@ project "UtilityLib"
 	
 	includedirs
 	{	
-		"Engine/src/"
+		"Engine/src/",
+		"Public/",
 	}
 	
 	links
@@ -273,3 +349,75 @@ project "UtilityLib"
 		defines "UTILITY_DLL;UTILITY_API;CRYS_DIST;"
 		optimize "on"
 
+project "Renderer_Vulkan"
+	location "VulkanRenderer"
+	kind "SharedLib"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+
+	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302,	---'type-cast' truncation (primary for void* casts)
+		C4244,	--- type conversion (possible loss of data)
+	}
+	
+	includedirs
+	{	
+		"%{prj.name}/src",
+		"Engine/src",
+		"D:/coding/Vulkan/Include",
+		"Public/",
+		"UtilityLib/src/",
+	}
+
+	links
+	{
+		"D:/coding/Vulkan/Lib/Vulkan-1",
+		"Engine",
+		"UtilityLib",
+	}
+
+	libdirs
+	{
+		"bin/Debug-windows-x86_64/VulkanRenderer",
+		"D:/coding/Vulkan/Lib"
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+	
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
+	filter "configurations:Debug"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DEBUG;VULKAN_DLL"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_RELEASE;VULKAN_DLL"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DIST;VULKAN_DLL"
+		optimize "on"

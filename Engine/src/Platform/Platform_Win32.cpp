@@ -15,6 +15,8 @@
 #include "Core/Input.h"
 #include "Core/Engine.h"
 
+#include <String_Utils.h>
+#include <Containers/CVector.h>
 #include <Memory/LinearAllocator.h>
 
 #include <Windows.h>
@@ -42,6 +44,58 @@ static Platform_Win32_InternalData* win32PlatformData{ nullptr };
 
 // An internal pointer to the engine context.
 static Engine* s_EnginePtr{ nullptr };
+
+struct CExtModuleFunc
+{
+	const char* funcName;
+	void* funcAddr;
+};
+
+class CSysModule : public ISysModule
+{
+public:
+	CSysModule(HMODULE _moduleHandle)
+		: m_ModuleHandle{ _moduleHandle }
+	{}
+
+	HMODULE GetTypedInternalHandle() const { return m_ModuleHandle; }
+	void* GetOpaqueInternalHandle() const { return m_ModuleHandle; }
+
+	bool LoadFuncAddr(const char* pFuncName) override
+	{
+		if (pFuncName && m_ModuleHandle)
+		{
+			// TODO: Actually store these off so they can be looked up later.
+			void* pFuncAddr = GetProcAddress(m_ModuleHandle, pFuncName);
+			m_ModuleFuncs.PushBack(CExtModuleFunc{ pFuncName, pFuncAddr });
+			return true;
+		}
+
+		// TODO: Logging.
+		return false;
+	}
+
+	void* GetLoadedFunctionAddr(const char* pFuncName)
+	{
+		if (pFuncName)
+		{
+			for (int i = 0; i < m_ModuleFuncs.size(); i++)
+			{
+				if (StringCompare(m_ModuleFuncs[i].funcName, pFuncName))
+				{
+					return m_ModuleFuncs[i].funcAddr;
+				}
+			}
+		}
+
+		// TODO: Logging.
+		return nullptr;
+	}
+
+private:
+	HMODULE m_ModuleHandle;
+	CVector<CExtModuleFunc> m_ModuleFuncs;
+};
 
 namespace Platform {
 
@@ -578,6 +632,37 @@ namespace Platform {
 
 		LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");
 		return nullptr;
+	}
+
+	//-----------------------------------------------------------------------------
+	// External library functions
+	//-----------------------------------------------------------------------------
+	ISysModule* LoadModule(const char* pModulePath)
+	{
+		if (!pModulePath)
+		{
+			return nullptr;
+		}
+
+		// TODO: Error checking/logging.
+		HMODULE dllModule = LoadLibraryA(pModulePath);
+
+		CSysModule* pModule = new CSysModule(dllModule);
+		return pModule;
+	}
+
+	void UnloadModule(ISysModule* pModule)
+	{
+		if (pModule)
+		{
+			CSysModule* typedModule = reinterpret_cast<CSysModule*>(pModule);
+			if (typedModule && typedModule->GetTypedInternalHandle())
+			{
+				FreeLibrary(typedModule->GetTypedInternalHandle());
+			}
+		}
+
+		delete pModule;
 	}
 }
 
