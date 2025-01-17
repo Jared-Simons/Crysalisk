@@ -38,13 +38,11 @@ project "Core"
 		"Engine/src/",
 		"Public/",
 		"D:/coding/Vulkan/Include",
-		"UtilityLib/src/"
 	}
 
 	links
 	{
 		"D:/coding/Vulkan/Lib/Vulkan-1",
-		"UtilityLib"
 	}
 
 	libdirs
@@ -107,21 +105,20 @@ project "Engine"
 	includedirs
 	{	
 		"%{prj.name}/src",
-		"D:/coding/Vulkan/Include",
+		"Core/src/",
+		"Interfaces/src/",
 		"Public/",
-		"UtilityLib/src/"
 	}
 
 	links
 	{
-		"D:/coding/Vulkan/Lib/Vulkan-1",
-		"UtilityLib"
+		"Core",
+		"Interfaces"
 	}
 
 	libdirs
 	{
 		"bin/Debug-windows-x86_64/VulkanRenderer",
-		"D:/coding/Vulkan/Lib"
 	}
 	
 	filter "system:windows"
@@ -153,6 +150,73 @@ project "Engine"
 		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DIST;ENGINE_DLL"
 		optimize "on"
 
+project "Interfaces"
+	location "Interfaces"
+	kind "StaticLib"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+
+	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302,	---'type-cast' truncation (primary for void* casts)
+		C4244,	--- type conversion (possible loss of data)
+	}
+	
+	includedirs
+	{	
+		"%{prj.name}/src",
+		"Core/src/",
+		"Engine/src/",
+		"Public/",
+	}
+
+	links
+	{
+	}
+
+	libdirs
+	{
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+	
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
+	filter "configurations:Debug"
+		defines "CRYS_DEBUG;"
+		symbols "on"
+		
+	filter "configurations:Release"
+		defines "CRYS_RELEASE;"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "CRYS_DIST;"
+		optimize "on"
+
 project "Testapp"
 	location "Testapp"
 	kind "ConsoleApp"
@@ -177,6 +241,7 @@ project "Testapp"
 	{	
 		"Engine/src/",
 		"Public/",
+		"Core/src/",
 	}
 	
 	links
@@ -196,7 +261,7 @@ project "Testapp"
 
 		links
 		{
-			"UtilityLib"
+
 		}
 	
 	filter "configurations:Debug"
@@ -212,145 +277,8 @@ project "Testapp"
 		defines "GAME_API;CRYS_DIST;"
 		optimize "on"
 		
-project "UnitTest"
-	location "UnitTest"
-	kind "ConsoleApp"
-	language "C++"
-	
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
-	characterset("MBCS")
-
-	disablewarnings
-	{
-		C4302	---'type-cast' truncation (primary for void* casts).
-	}
-	
-	files
-	{
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
-	}
-	
-	includedirs
-	{	
-		"Engine/src/",
-		"Public/",
-		"UnitTest/src/",
-		"UtilityLib/src/"
-	}
-	
-	links
-	{
-		"Engine"
-	}
-	
-	filter "system:windows"
-		cppdialect "C++17"
-		staticruntime "on"
-		systemversion "latest"
-		
-		defines
-		{
-			PLAT_WINDOWS
-		}
-
-		links
-		{
-			"Engine",
-			"UtilityLib"
-		}
-		
-		postbuildcommands
-		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
-		}
-	
-	filter "configurations:Debug"
-		defines "GAME_API;CRYS_DEBUG;"
-		symbols "on"
-		debugdir = "bin/Debug-windows-x86_64/Testapp"
-		
-	filter "configurations:Release"
-		defines "GAME_API;CRYS_RELEASE;"
-		symbols "on"
-		optimize "on"
-	
-	filter "configurations:Distribution"
-		defines "GAME_API;CRYS_DIST;"
-		optimize "on"
-
-
-project "UtilityLib"
-	location "UtilityLib"
-	kind "StaticLib"
-	language "C++"
-	
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
-	characterset("MBCS")
-
-	disablewarnings
-	{
-		C4302	---'type-cast' truncation (primary for void* casts).
-	}
-
-	defines
-	{
-		ENGINE_DLL  ---UtilityLib MUST be defined with every library that consumes it, so that there are no warnings with it trying to import unnecessary function symbols at link-time
-	}
-	
-	files
-	{
-		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp",
-	}
-	
-	includedirs
-	{	
-		"Engine/src/",
-		"Public/",
-	}
-	
-	links
-	{
-	}
-
-	defines
-	{
-		_CRT_SECURE_NO_WARNINGS
-	}
-	
-	filter "system:windows"
-		cppdialect "C++17"
-		staticruntime "on"
-		systemversion "latest"
-		
-		defines
-		{
-			PLAT_WINDOWS
-		}
-	
-		postbuildcommands
-		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
-		}
-	
-	filter "configurations:Debug"
-		defines "UTILITY_DLL;UTILITY_API;CRYS_DEBUG;"
-		symbols "on"
-		
-	filter "configurations:Release"
-		defines "UTILITY_DLL;UTILITY_API;CRYS_RELEASE;"
-		symbols "on"
-		optimize "on"
-	
-	filter "configurations:Distribution"
-		defines "UTILITY_DLL;UTILITY_API;CRYS_DIST;"
-		optimize "on"
-
 project "Renderer_Vulkan"
-	location "VulkanRenderer"
+	location "Renderer_Vulkan"
 	kind "SharedLib"
 	language "C++"
 	
@@ -369,22 +297,25 @@ project "Renderer_Vulkan"
 	{
 		C4302,	---'type-cast' truncation (primary for void* casts)
 		C4244,	--- type conversion (possible loss of data)
+		C4190,  --- stop warning about C-compatible interfaces, we need this now for our interface registry, but this should be fixed in the future.
 	}
 	
 	includedirs
 	{	
 		"%{prj.name}/src",
+		"Core/src/",
 		"Engine/src",
+		"Interfaces/src",
 		"D:/coding/Vulkan/Include",
 		"Public/",
-		"UtilityLib/src/",
 	}
 
 	links
 	{
 		"D:/coding/Vulkan/Lib/Vulkan-1",
+		"Core",
 		"Engine",
-		"UtilityLib",
+		"Interfaces",
 	}
 
 	libdirs
@@ -420,4 +351,66 @@ project "Renderer_Vulkan"
 	
 	filter "configurations:Distribution"
 		defines "VK_USE_PLATFORM_WIN32_KHR;VK_PROTOTYPES;CRYS_DIST;VULKAN_DLL"
+		optimize "on"
+
+project "UnitTest"
+	location "UnitTest"
+	kind "ConsoleApp"
+	language "C++"
+	
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	characterset("MBCS")
+
+	disablewarnings
+	{
+		C4302	---'type-cast' truncation (primary for void* casts).
+	}
+	
+	files
+	{
+		"%{prj.name}/src/**.h",
+		"%{prj.name}/src/**.cpp",
+	}
+	
+	includedirs
+	{	
+		"Engine/src/",
+		"Core/src/",
+		"Public/",
+		"UnitTest/src/",
+	}
+	
+	links
+	{
+		"Core"
+	}
+	
+	filter "system:windows"
+		cppdialect "C++17"
+		staticruntime "on"
+		systemversion "latest"
+		
+		defines
+		{
+			PLAT_WINDOWS
+		}
+		
+		postbuildcommands
+		{
+			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Testapp")
+		}
+	
+	filter "configurations:Debug"
+		defines "GAME_API;CRYS_DEBUG;"
+		symbols "on"
+		debugdir = "bin/Debug-windows-x86_64/Testapp"
+		
+	filter "configurations:Release"
+		defines "GAME_API;CRYS_RELEASE;"
+		symbols "on"
+		optimize "on"
+	
+	filter "configurations:Distribution"
+		defines "GAME_API;CRYS_DIST;"
 		optimize "on"

@@ -7,11 +7,10 @@
 #pragma once
 
 #include "Defines.h"
-#include <Memory/LinearAllocator.h>
 
-// Forward Declarations
-class LinearAllocator;
-
+//-------------------------------------------------------------------------
+// Core engine event codes.
+//-------------------------------------------------------------------------
 enum class eEventCategory
 {
 	UNKNOWN = -1,
@@ -28,9 +27,12 @@ enum class eEventCategory
 	MAX_EVENTS
 };
 
-const i32 MAX_EVENTS_PER_CATEGORY = 32;
-const i32 NUM_EVENT_CATEGORIES = static_cast<i32>(eEventCategory::MAX_EVENTS);
+const int kMaxEventsPerCategory = 32;
+const int kNumEventCategories = static_cast<int>(eEventCategory::MAX_EVENTS);
 
+//-------------------------------------------------------------------------
+// A somewhat generic structure to store event data.
+//-------------------------------------------------------------------------
 union EventData_t
 {
 	u64		u64[2];
@@ -50,26 +52,42 @@ union EventData_t
 	char	c[16];
 };
 
+//-------------------------------------------------------------------------
+// Function pointer signature that all event callbacks must match.
+// 
+// NOTE: Returning true from this callback means that the event is considered
+// 'handled', and will not propagate to other listeners, returning false means
+// that the event will continue to pass through to all listeners.
+//-------------------------------------------------------------------------
 typedef bool (*Event_Callback)(EventData_t data);
 
 struct Event
 {
+	// The callback function to handle the event.
 	Event_Callback m_PFNEventCallback;
-	i32 m_EventID;
+	// An event ID that is maintained internally by the event system.
+	int m_EventID;
+	// The event category that this event is listening to.
 	eEventCategory m_EventCategory;
 };
 
+//-------------------------------------------------------------------------
+// Interface for an event system.
+//-------------------------------------------------------------------------
 class IEventSystem
 {
 public:
-	static IEventSystem* Create(LinearAllocator* pAllocator);
-
+	// Initialization, shutdown.
 	virtual bool		Initialize() = 0;
 	virtual void		Shutdown() = 0;
 
 	virtual bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
 	virtual bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
-	virtual bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) = 0;
+	virtual void		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) = 0;
 };
 
-extern IEventSystem* gpEvents;
+// A note on interfaces:
+// Any code that wants to access the engine's event system from within the engine.dll can include this file and use g_pEngineEvents_Internal.
+// Any code in another library must link with Interfaces.lib to get access to the engine's shared interfaces. Then include both Event.h AND Interfaces.h,
+// to get access to the g_pEngineEvents interface.
+ENGINE_API extern IEventSystem* g_pEngineEvents_Internal;

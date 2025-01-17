@@ -1,0 +1,92 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/12/2024
+// 
+// Purpose: interface for a Vulkan Renderpass
+//=============================================================================
+#include "VulkanRenderer.h"
+
+bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, VulkanRenderPass& pOutRenderpass)
+{
+	// TODO: Make this configurable with some config.
+	Utl::CVector<VkAttachmentDescription> attachments;
+	Utl::CVector<VkSubpassDescription> subpasses;
+
+	// Color attachment
+	VkAttachmentDescription colorAttachment{};
+	colorAttachment.flags = 0;
+	colorAttachment.format = pRenderingContext.m_Swapchain.m_SwapchainImageFormat;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	attachments.PushBack(colorAttachment);
+
+	// Depth attachment
+	VkAttachmentDescription depthAttachment{};
+	depthAttachment.format = pRenderingContext.m_Swapchain.m_DepthImageFormat;
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	attachments.PushBack(depthAttachment);
+
+	// Color attachment reference
+	VkAttachmentReference colorAttachRef{};
+	colorAttachRef.attachment = 0;
+	colorAttachRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	// Depth attachment reference
+	VkAttachmentReference depthAttachRef{};
+	depthAttachRef.attachment = 1;
+	depthAttachRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	// Main subpass
+	VkSubpassDescription subpass{};
+	subpass.flags = 0;
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colorAttachRef;
+	subpass.pDepthStencilAttachment = &depthAttachRef;
+
+	subpasses.PushBack(subpass);
+
+	// Subpass dependency
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.srcAccessMask = 0;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	renderpassInfo.attachmentCount = static_cast<uint32_t>(attachments.Count());
+	renderpassInfo.pAttachments = attachments.Data();
+	renderpassInfo.subpassCount = static_cast<uint32_t>(subpasses.Count());
+	renderpassInfo.pSubpasses = subpasses.Data();
+	renderpassInfo.dependencyCount = 1;
+	renderpassInfo.pDependencies = &dependency;
+
+	// TODO: Custom allocator hooks.
+	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, nullptr, &pOutRenderpass.m_Handle));
+
+	
+
+	return true;
+}
+
+void VulkanRenderPass::DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass)
+{
+	// TODO: Custom allocator hooks.
+
+	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, nullptr);
+}

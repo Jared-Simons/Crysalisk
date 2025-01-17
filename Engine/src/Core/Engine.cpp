@@ -7,249 +7,204 @@
 
 #include "Engine.h"
 
-#include "Core/Logging.h"
-#include "Core/Event.h"
-#include "Core/Input.h"
-#include "Core/Memory.h"
-#include "Platform/Platform.h"
-#include "Systems/Renderer.h"
+#include <Containers/CHashMap.h>
+#include <Containers/CVector.h>
+#include <Core/Event.h>
+#include <Core/Input.h>
+#include <Core/Logging.h>
+#include <Interfaces.h>
+#include <Memory/MemoryManager.h>
+#include <Platform/InterfaceRegistry.h>
+#include <Platform/Platform.h>
+#include "Renderer/Renderer.h"
+#include "Renderer/RendererTypes.h"
+#include "Resources/GeometryGenerator.h"
+#include <Strings/String_Utils.h>
 #include "Systems/TextureSystem.h"
 
-#include <Memory/LinearAllocator.h>
-#include <Memory/DynamicAllocator.h>
+static bool s_bApplicationQuitCalled{ false };
+static bool s_bApplicationSuspended{ false };
 
-#include <UtilityLib_Core.h>
-#include <Containers/CVector.h>
-#include <Math/VertexTypes.h>
-
-static bool s_bApplicationQuitCalled = false;
+// Engine Event Handlers
 static bool Event_ApplicationQuit(EventData_t data);
 static bool Event_KeyPressed(EventData_t data);
 static bool Event_KeyReleased(EventData_t data);
 static bool Event_MouseButtonPressed(EventData_t data);
 static bool Event_MouseButtonReleased(EventData_t data);
+static bool Event_MouseMoved(EventData_t data);
 static bool Event_WindowResized(EventData_t data);
 static bool Event_WindowResizedPause(EventData_t data);
 static bool Event_WindowResizedUnpause(EventData_t data);
 
-// TODO: Stick this in the engine class.
-static bool g_sApplicationSuspended{ false };
-
-Engine* s_EnginePtr = nullptr;
-
-bool Engine::Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState)
+//-------------------------------------------------------------------------
+// Implementation of the core engine class
+//-------------------------------------------------------------------------
+class CEngine : public IEngine
 {
-	if (!pEngineState)
+public:
+	virtual bool	Initialize(EngineConfig_t engineConfig) override;
+	virtual bool	Run() override;
+	virtual void	Shutdown() override;
+
+private:
+	EngineConfig_t	m_engineConfig;
+
+	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
+
+public:
+};
+
+// Engine context.
+static CEngine s_Engine;
+IEngine* g_pEngine = &s_Engine;
+
+//-------------------------------------------------------------------------
+// Purpose: Initialize the engine and it's required subsystems.
+// Input: engineConfig - A configuration passed in by the calling application.
+// Output: bool - Returns true on successful initialization, otherwise false.
+//-------------------------------------------------------------------------
+bool CEngine::Initialize(EngineConfig_t engineConfig)
+{
+	m_engineConfig = engineConfig;
+
+	// Stand up our memory manager.
+	ApplicationMemoryConfiguration_t memoryConfig{};
+	memoryConfig.totalMemoryBudget = MEBIBYTES(1);
+	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
-		LOG_ERROR("Engine->Initialize() called without a pointer to an engine state. Application cannot continue.");
+		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
+		Platform::DisplayMessageBox(nullptr, "Memory manager failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
 
-	Engine* typedState = reinterpret_cast<Engine*>(pEngineState);
-	s_EnginePtr = typedState;
-
-	s_EnginePtr->m_engineConfig = engineConfig;
-
-	void* engineMemoryBlock = Platform::MemoryAllocate(MEBIBYTES(20));
-	s_EnginePtr->m_EngineHeap = new DynamicAllocator(MEBIBYTES(20), engineMemoryBlock);
-
-	// Logging Utilities
-	LogSystem::Init(6); // Log all messages
-
-	// Memory System
-	u64 memorySystemMemoryRequirement = gpMemory->GetSystemMemoryRequirement();
-	void* pMemorySysBlock = s_EnginePtr->m_EngineHeap->Allocate(memorySystemMemoryRequirement);
-	gpMemory = gpMemory->Create(pMemorySysBlock);
-	if (!gpMemory->Initialize(s_EnginePtr->m_EngineHeap))
+	// Event System.
+	if (!g_pEngineEvents_Internal->Initialize())
 	{
-		LOG_FATAL("Memory System failed to initialize! Application cannot continue.");
+		LOG_FATAL("Event system failed to initialize! Application cannot continue.");
 		return false;
 	}
 
-	ConnectUtilityLib(s_EnginePtr->m_EngineHeap, "Engine.dll");
-
-	// Initialize the subsystem memory allocator
-	void* systemsAllocatorMem = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
-	s_EnginePtr->m_SystemsAllocator = new (systemsAllocatorMem) LinearAllocator(MEBIBYTES(1));
-	LOG_INFO("Systems Allocator created with %u B", s_EnginePtr->m_SystemsAllocator->GetAllocatorSize());
-
-	// Event System
-	gpEvents = IEventSystem::Create(s_EnginePtr->m_SystemsAllocator);
-	
-	if (gpEvents == nullptr)
+	if (!Platform::InitializePlatformLayer())
 	{
-		LOG_FATAL("Event System failed to initialize! Application cannot continue.");
+		LOG_FATAL("Failed to initialize platform layer! Application cannot continue.");
 		return false;
 	}
 
-	// Register for engine-level events
-	gpEvents->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
-	gpEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
-	gpEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
-	gpEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
-	gpEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
-	gpEvents->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
-	gpEvents->EventRegister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
-	gpEvents->EventRegister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
+	Platform::WindowParams_t windowParams{};
+	windowParams.Name = "Crysalisk Engine\0";
+	windowParams.X = 100;
+	windowParams.Y = 100;
+	windowParams.Width = 800;
+	windowParams.Height = 600;
+	m_pEngineWindow = Platform::CreatePlatformWindow(windowParams, true);
+	m_pEngineWindow->SetWindowResizeCallback(WindowResizeHandler);
 
-
-	// Input System
-	gpInputSystem = IInputSystem::InputSystem_Initialize(s_EnginePtr->m_SystemsAllocator);
-	if (gpInputSystem == nullptr)
+	// Load up external libraries now, so they can get interfaces prior to initialization.
+	Platform::ISysModule* pRendererModule = Platform::LoadSysModule("Renderer_Vulkan.dll");
+	if (!pRendererModule)
 	{
-		LOG_FATAL("Input System failed to initialize! Application cannot continue.");
+		LOG_FATAL("Failed to load Renderer_Vulkan.dll! Application cannot continue.");
 		return false;
 	}
 
-	// Platform Layer
-	if (!s_EnginePtr->m_engineConfig.isHeadless)
+	// Get everyone's interfaces!
+	Platform::ObtainLibraryInterfaces();
+
+	// Make sure everyone gets their interfaces!
+	ReturnInterfacesToRegistry();
+	AssignInterfaces(Platform::GetRegisteredInterfaces());
+	Platform::ConnectLibraryInterfaces();
+
+	// Input System.
+	if (!g_pInputSystem_Internal->Initialize(*m_pEngineWindow))
 	{
-		if (!Platform::Initialize(s_EnginePtr->m_SystemsAllocator, s_EnginePtr))
-		{
-			LOG_FATAL("Platform Layer failed to initialize! Application cannot continue.");
-			return false;
-		}
+		LOG_FATAL("Input system failed to initialize! Application cannot continue.");
+		return false;
 	}
+
+	// Register for engine-level events.
+	g_pEngineEvents->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
+	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
+	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
+	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
+	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
+	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
 
 	// Renderer
-	if (!s_EnginePtr->m_engineConfig.isHeadless)
+	RendererConfig_t rendererConfig{};
+	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
+	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
+	rendererConfig.pRendererBackendDLL = pRendererModule;
+
+	if (!g_pRenderer->Initialize(rendererConfig))
 	{
-		gpRenderer = Renderer::Renderer_Create(s_EnginePtr->m_SystemsAllocator);
-		if (!gpRenderer)
-		{
-			LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
-			return false;
-		}
-	}
-
-	// Texture System
-
-	// TODO: Overloaded new operator?
-	gpTextureSystem = (TextureSystem*)s_EnginePtr->m_SystemsAllocator->Allocate(sizeof(TextureSystem));
-
-	TextureSystemConfiguration textureSysConfig = { 1024 };
-	if (!gpTextureSystem->Initialize(&textureSysConfig))
-	{
-		LOG_FATAL("Texture system failed to initialize! Application cannot continue.");
+		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 		return false;
 	}
 
-	// TEMP: Load up a texture
-	gpTextureSystem->LoadTexture("Assets/Textures/container.jpg");
-
-	//typedState->testTexture = gpTextureSystem->AcquireTexture("Assets/Textures/plasterwall024b.png");
-
-	// TEMP Geometry
-	typedState->CreateSceneGeometry();
-
-	// Initialize the frame allocator
-	void* frameAllocatorState = gpMemory->Allocate(sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
-	typedState->m_FrameAllocator = new (frameAllocatorState) LinearAllocator(MEBIBYTES(1));
-
-	// TEMP: DLL TEST
-	ISysModule* pCoreDLL = Platform::LoadModule("Core.dll");
-	pCoreDLL->LoadFuncAddr("Test");
-	void* extFuncAddr = pCoreDLL->GetLoadedFunctionAddr("Test");
-	typedef void (*extFunc)();
-	extFunc testFunc = reinterpret_cast<extFunc>(extFuncAddr);
-	testFunc();
-
-	Platform::UnloadModule(pCoreDLL);
-	// TEMP: END DLL TEST
+	// Texture manager.
+	TextureSystemConfig_t textureSysConfig{};
+	textureSysConfig.MaxTextures = 2049;
+	if (!g_pTextureSystem->Initialize(textureSysConfig))
+	{
+		LOG_ERROR("Failed to initialize texture system! Application cannot continue.");
+		return false;
+	}
 
 	LOG_INFO("Engine Finished Initialization");
+	
 	return true;
 }
 
-bool Engine::Engine_Run()
+//-------------------------------------------------------------------------
+// Runs a single engine frame.
+//-------------------------------------------------------------------------
+bool CEngine::Run()
 {
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
-		if (!g_sApplicationSuspended)
+		if (!s_bApplicationSuspended)
 		{
-			// Clear the frame allocator
-			m_FrameAllocator->Free();
-			if (!m_engineConfig.isHeadless)
-			{
-				gpInputSystem->Update();
+			g_pInputSystem_Internal->Update();
 
-				Platform::Update();
+			RenderPacket_t frameRenderData{};
 
-				RenderPacket_t* frameRenderData = reinterpret_cast<RenderPacket_t*>(m_FrameAllocator->Allocate(sizeof(RenderPacket_t)));
-				frameRenderData->geometries[0] = m_TestGeometry;
-
-				/*if (!gpRenderer->Update(frameRenderData))
-				{
-					LOG_FATAL("Renderer update failed!");
-					return false;
-				}*/
-			}
+			g_pRenderer->Update(frameRenderData);
 		}
-
-		return true;
 	}
 
-	Engine_Shutdown();
-
-	// Returning false signifies that the engine is done running and ready for shutdown
-	return false;
+	Shutdown();
+	return true;
 }
 
-void Engine::Engine_Shutdown()
+//-------------------------------------------------------------------------
+// Shutdows down the engine.
+//-------------------------------------------------------------------------
+void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	gpRenderer->DestroyGeometryResources(*m_TestGeometry);
-	//gpTextureSystem->UnloadTexture(*testTexture);
+	g_pTextureSystem->Shutdown();
 
-	// TODO: Overloaded delete operator?
-	gpTextureSystem->Shutdown();
+	g_pRenderer->Shutdown();
 
-	if (!m_engineConfig.isHeadless)
+	// Release our main window.
+	if (m_pEngineWindow)
 	{
-		gpRenderer->Shutdown();
+		delete m_pEngineWindow;
+		m_pEngineWindow = nullptr;
 	}
 
-	if (!m_engineConfig.isHeadless)
-	{
-		Platform::Shutdown();
-	}
-
-	gpInputSystem->Shutdown();
-
-	// Unregister from engine-level events
-	gpEvents->EventUnregister(eEventCategory::WINDOW_END_RESIZE, nullptr, Event_WindowResizedUnpause);
-	gpEvents->EventUnregister(eEventCategory::WINDOW_START_RESIZE, nullptr, Event_WindowResizedPause);
-	gpEvents->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
-	gpEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
-	gpEvents->EventUnregister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
-	gpEvents->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
-	gpEvents->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
-	gpEvents->EventUnregister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
-
-	gpEvents->Shutdown();
-
-	// Destroy allocators
-	m_FrameAllocator->Free(false);
-	gpMemory->Free(m_FrameAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
-	m_FrameAllocator = nullptr;
-
-	m_SystemsAllocator->Free(false);
-	gpMemory->Free(m_SystemsAllocator, sizeof(LinearAllocator), eMemAllocCategories::MEM_CATEGORY_ENGINE);
-	m_SystemsAllocator = nullptr;
-
-	DisconnectUtilityLib();
-
-	gpMemory->Shutdown(gpMemory);
-
-	void* pEngineMemoryBlock = m_EngineHeap->GetMemoryBlock();
-	delete m_EngineHeap;
-	Platform::MemoryFree(pEngineMemoryBlock);
-
-	LogSystem::Shutdown();
+	Platform::ShutdownPlatformLayer();
+	g_pInputSystem->Shutdown();
+	g_pEngineEvents->Shutdown();
+	g_pMemoryManager->Shutdown();
 }
 
+//-------------------------------------------------------------------------
+// Engine-level event handlers.
+//-------------------------------------------------------------------------
 bool Event_ApplicationQuit(EventData_t data)
 {
 	LOG_VERBOSE("Application_Quit() called");
@@ -260,96 +215,29 @@ bool Event_ApplicationQuit(EventData_t data)
 bool Event_KeyPressed(EventData_t data)
 {
 	char keycode = *data.c;
-	//LOG_DEBUG("%c Key Pressed", keycode);
+	//if (keycode >= 65 && keycode <= 90)
+		//LOG_DEBUG("%c Key Pressed", keycode);
 	return true;
 }
 
 bool Event_KeyReleased(EventData_t data)
 {
 	char keycode = *data.c;
-	//LOG_DEBUG("%c Key Released", keycode);
+	//if (keycode >= 65 && keycode <= 90)
+		//LOG_DEBUG("%c Key Released", keycode);
+
+	if (keycode == KEY_ESCAPE)
+	{
+		// Time to shutdown the application!
+		g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+	}
 
 	if (keycode == 'M')
 	{
-		gpMemory->PrintMemoryStats();
-	}
-	
-	if (keycode == 'T')
-	{
-		Texture* pOldTexture = s_EnginePtr->m_TestGeometry->m_pTexture;
-
-		// TODO: THIS CAUSES A MEMORY LEAK! TEXTURES ARE NOT BEING DESTROYED
-		// Once this is properly implemented, we need to make sure this is no longer leaking resources.
-		static i32 TextureChoice = 0;
-		const char* textureNames[] =
-		{
-			"Assets/Textures/container.jpg",
-			"Assets/Textures/container2.png",
-			//"Assets/Textures/plasterwall024b.png",
-		};
-
-		TextureChoice = TextureChoice == 0 ? 1 : 0;
-
-		// Load up the new texture.
-		s_EnginePtr->m_TestGeometry->m_pTexture = gpTextureSystem->AcquireTexture(textureNames[TextureChoice]);
-
-		gpTextureSystem->UnloadTexture(*pOldTexture);
+		// TODO: Print Memory Stats
 	}
 
 	return true;
-}
-
-void Engine::CreateSceneGeometry()
-{
-	m_TestGeometry = reinterpret_cast<StaticMesh*>(gpMemory->Allocate(sizeof(StaticMesh), eMemAllocCategories::MEM_CATEGORY_ARRAY));
-
-	CVector<Vertex3D> vertices(36);
-
-	CVector<u16> indices((u16)0);
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, -0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, -0.5f), Vector3D(0.0, 1.0, 0.0), Vector2D(1.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 0.0, 0.0), Vector2D(0.0f, 1.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(0.0, 0.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(0.5, 0.5, 0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(1.0f, 0.0f)));
-	vertices.PushBack(Vertex3D(Vector3D(-0.5, 0.5, -0.5f), Vector3D(1.0, 1.0, 1.0), Vector2D(0.0f, 1.0f)));
-
-	gpRenderer->CreateGeometryResources(*m_TestGeometry, vertices, indices, "Assets/Textures/container.jpg", "TestGeometry");
 }
 
 bool Event_MouseButtonPressed(EventData_t data)
@@ -366,6 +254,14 @@ bool Event_MouseButtonReleased(EventData_t data)
 	return true;
 }
 
+bool Event_MouseMoved(EventData_t data)
+{
+	float mouseXPos = data.f32[0];
+	float mouseYPos = data.f32[1];
+
+	//LOG_DEBUG("Mouse Pos: X:%f Y:%f", mouseXPos, mouseYPos);
+	return true;
+}
 
 static bool Event_WindowResized(EventData_t data)
 {
@@ -377,11 +273,11 @@ static bool Event_WindowResized(EventData_t data)
 
 	if (width == 0 || height == 0)
 	{
-		g_sApplicationSuspended = true;
+		s_bApplicationSuspended = true;
 	}
 	else
 	{
-		g_sApplicationSuspended = false;
+		s_bApplicationSuspended = false;
 	}
 
 	return true;
@@ -389,13 +285,48 @@ static bool Event_WindowResized(EventData_t data)
 
 static bool Event_WindowResizedPause(EventData_t data)
 {
-	g_sApplicationSuspended = true;
+	s_bApplicationSuspended = true;
 	return true;
 }
 
 static bool Event_WindowResizedUnpause(EventData_t data)
 {
-	g_sApplicationSuspended = false;
+	s_bApplicationSuspended = false;
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Method to pass our interface objects down to the interface registry.
+//-------------------------------------------------------------------------
+bool ReturnInterfacesToRegistry()
+{
+	LOG_DEBUG("Engine.dll passing interfaces down to Core.dll");
+
+	// This does nothing in the engine.dll
+	// TODO: How should the engine implicitly pass interfaces back to the core registry, just like any other dll?
+
+	Platform::SystemInterface_t eventSystem{};
+	eventSystem.pSystemAddr = reinterpret_cast<void*>(g_pEngineEvents_Internal);
+	eventSystem.szSystemName = StringDuplicate("engine_events");
+	Platform::RegisterInterface(eventSystem);
+
+	Platform::SystemInterface_t inputSystem{};
+	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
+	inputSystem.szSystemName = StringDuplicate("input_system");
+	Platform::RegisterInterface(inputSystem);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// An callback that is exported so other libraries can call window resize events.
+//-------------------------------------------------------------------------
+bool WindowResizeHandler(unsigned int width, unsigned int height)
+{
+	EventData_t data{};
+	data.u32[0] = width;
+	data.u32[1] = height;
+	g_pEngineEvents->EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
+
+	return true;
+}

@@ -7,18 +7,29 @@
 #pragma once
 
 #include "Defines.h"
-#include <Math/MatrixTypes.h>
 
-struct GlobalUniformObject
+#include <Math/MatrixTypes.h>
+#include <Math/VectorTypes.h>
+
+//-------------------------------------------------------------------------
+// Purpose: Frame-specific data to be uused in rendering operations.
+//-------------------------------------------------------------------------
+struct RenderPacket_t
 {
-	Matrix4x4 view;
-	Matrix4x4 projection;
 };
 
-struct InstanceUniformObject
+struct GlobalUniformObject_t
 {
-	Vector4D color;
-	Vector4D reserved1; // for padding
-	Vector4D reserved2; // for padding
-	Vector4D reserved3; // for padding
+	Matrix4x4	Projection;
+	Matrix4x4	View;
+	Matrix4x4	Model; // TODO: This should not be global at all.
+	Matrix4x4	Reserved; // Here for alignment.
+};
+
+struct InstanceUniformObject_t
+{
+	Matrix4x4	Reserved0;
+	Matrix4x4	Reserved1;
+	Matrix4x4	Reserved2;
+	Matrix4x4	Reserved3;
 };

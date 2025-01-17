@@ -1,74 +1,40 @@
 #include "Event.h"
 
-#include "Core/Logging.h"
+#include <Core/Logging.h>
 
+//-------------------------------------------------------------------------
+// Implementation of the engine's event system.
+//-------------------------------------------------------------------------
 class EventSystem : public IEventSystem
 {
 public:
-	void* operator new(u64 size, LinearAllocator* pAllocator)
-	{
-		void* pBlock = pAllocator->Allocate(size);
-		if (pBlock)
-		{
-			return pBlock;
-		}
-		else
-		{
-			LOG_FATAL("Systems allocator failed to allocate memory for the event system!");
-			return nullptr;
-		}
-	}
+	virtual bool		Initialize() override;
+	virtual void		Shutdown() override;
 
-	// NOTE: This does nothing and just exists to clear a compiler warning, 
-	// the memory was allocated and will be freed when the linear allocator gets cleared.
-	// If the creation of this system fails, the engine will shutdown regardless.
-	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
-
-	bool		Initialize() override;
-	void		Shutdown() override;
-
-	bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
-	bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
-	bool		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) override;
+	virtual bool		EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
+	virtual bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) override;
+	virtual void		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) override;
 
 private:
-	Event m_RegisteredEvents[NUM_EVENT_CATEGORIES][MAX_EVENTS_PER_CATEGORY];
-	i32 m_numRegisteredEvents[NUM_EVENT_CATEGORIES];
+	Event m_RegisteredEvents[kNumEventCategories][kMaxEventsPerCategory];
+	int m_numRegisteredEvents[kNumEventCategories];
 };
 
-class EventSystem* s_EventSystem = nullptr;
-class IEventSystem* gpEvents = s_EventSystem;
+// Event system context.
+EventSystem s_EventSystem;
+IEventSystem* g_pEngineEvents_Internal = &s_EventSystem;
 
-IEventSystem* IEventSystem::Create(LinearAllocator* pAllocator)
-{
-	if (pAllocator)
-	{
-		if (s_EventSystem)
-		{
-			LOG_ERROR("IEventSystem::Create -> An Event System is already initialized! Nothing was done");
-			return nullptr;
-		}
-
-		EventSystem* eventSystem = new (pAllocator) EventSystem();
-
-		if (!eventSystem->Initialize())
-		{
-			return nullptr;
-		}
-
-		s_EventSystem = eventSystem;
-		return s_EventSystem;
-	}
-
-	return nullptr;
-}
-
+//-------------------------------------------------------------------------
+// Purpose - Initializes the event system.
+// Input - none
+// Output - bool: Returns true on success; otherwise false.
+//-------------------------------------------------------------------------
 bool EventSystem::Initialize()
 {
 	// Loop through and invalidate event entries.
-	for (i32 i = 0; i < NUM_EVENT_CATEGORIES; i++)
+	for (int i = 0; i < kNumEventCategories; i++)
 	{
-		for (i32 j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
+		for (int j = 0; j < kMaxEventsPerCategory; j++)
 		{
 			m_RegisteredEvents[i][j].m_EventCategory = eEventCategory::UNKNOWN;
 			m_RegisteredEvents[i][j].m_EventID = -1;
@@ -82,22 +48,20 @@ bool EventSystem::Initialize()
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Shuts down the event system.
+//-------------------------------------------------------------------------
 void EventSystem::Shutdown()
 {
-	LOG_INFO("Event System Shutting Down");
-
-	for (i32 i = 0; i < NUM_EVENT_CATEGORIES; i++)
-	{
-		for (i32 j = 0; j < MAX_EVENTS_PER_CATEGORY; j++)
-		{
-			if (m_RegisteredEvents[i][j].m_EventID != -1)
-			{
-				LOG_WARN("Event System shutting down with events still registered, clean this up...");
-			}
-		}
-	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Registers a callback to the event system.
+// Input - eventCategory: The event category to listen for. (I.E., Window-Resized, Mouse-Moved).
+//		   listenerInst: An opaque pointer to some listener to provide additional context to the callback (Optional).
+//		   PFN_Callback: A function pointer to the event-handler to be called on event firing.
+// Output - bool: Returns true on event successfully registered, otherwise false.
+//-------------------------------------------------------------------------
 bool EventSystem::EventRegister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback)
 {
 	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
@@ -106,11 +70,11 @@ bool EventSystem::EventRegister(eEventCategory eventCategory, void* listenerInst
 		return false;
 	}
 
-	i32 intEventCategory = static_cast<i32>(eventCategory);
+	int intEventCategory = static_cast<int>(eventCategory);
 	Event* newEvent = &m_RegisteredEvents[intEventCategory][0];
 
 	// Iterate through the registered events (of the same category) until a free slot is found
-	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY;i++)
+	for (int i = 0; i < kMaxEventsPerCategory;i++)
 	{
 		// If the event has the same type and callback as another registered event, boot out and log a message
 		// We do not want multiple copies of the same event
@@ -139,6 +103,13 @@ bool EventSystem::EventRegister(eEventCategory eventCategory, void* listenerInst
 	return false;
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Unregisters a callback from the event system.
+// Input - eventCategory: The event category to stop listening for.
+//		   listenerInst: An opaque pointer to some listener to provide additional context to the callback (Optional).
+//		   PFN_Callback: A function pointer to the event-handler to be unregistered.
+// Output - bool: Returns true on event successfully unregistered, otherwise false.
+//-------------------------------------------------------------------------
 bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback)
 {
 	if (eventCategory == eEventCategory::UNKNOWN || !PFN_Callback)
@@ -147,10 +118,10 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerIn
 		return false;
 	}
 
-	i32 intEventCategory = static_cast<i32>(eventCategory);
+	int intEventCategory = static_cast<int>(eventCategory);
 	Event* eventToBeFreed = &m_RegisteredEvents[intEventCategory][0];
 
-	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
+	for (int i = 0; i < kMaxEventsPerCategory; i++)
 	{
 		if (eventToBeFreed[i].m_EventCategory == eventCategory && eventToBeFreed[i].m_PFNEventCallback == PFN_Callback)
 		{
@@ -170,12 +141,19 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* listenerIn
 	return false;
 }
 
-bool EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
+//-------------------------------------------------------------------------
+// Purpose - Fires an event out to all registered listeners.
+// Input - eventCategory: The event category to fire.
+//		   listenerInst: An opaque pointer to the sender instance, to provide additional context in the callback. Optional.
+//		   EventData: A structure of generic data that can be used in the callback to provide context (e.g. the new window dimensions in a window resize event).
+// Output - void
+//-------------------------------------------------------------------------
+void EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
 {
-	i32 intEventCategory = static_cast<i32>(eventCategory);
+	int intEventCategory = static_cast<int>(eventCategory);
 	Event* currEvent = m_RegisteredEvents[intEventCategory];
 
-	for (i32 i = 0; i < MAX_EVENTS_PER_CATEGORY; i++)
+	for (int i = 0; i < kMaxEventsPerCategory; i++)
 	{
 		// TODO: Implement some kind of sorting system, so that we don't have to loop through the ENTIRE array to fire messages.
 		// Perhaps we should periodically move events back as far as possible in the array so that all valid events are contiguous,
@@ -185,7 +163,5 @@ bool EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, Even
 			currEvent[i].m_PFNEventCallback(data);
 		}
 	}
-
-	return true;
 }
 

@@ -8,6 +8,9 @@ Features to be developed:
    - Also investigate subsystem creation, possibly cleanup system factory functions.
 
 Chores:
+- Setup new memory manager with custom allocators.
+- We need a way to register callbacks between dlls. I.E. The Platform Layer in Core.dll needs a way to be able to fire events in the Engine.dll. The Platform layer in Core.dll also needs a way to communicate with the Input system in the Engine.dll.
+
 - Revamp Math Library
 	
 - Completely overhaul the logging system, it needs to be consolidated for simplified for the time being.

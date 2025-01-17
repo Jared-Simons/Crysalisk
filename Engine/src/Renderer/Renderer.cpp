@@ -4,57 +4,43 @@
 // 
 // Purpose: Implements the Renderer Front-end
 //=============================================================================
-#include "Systems/Renderer.h"
+#include "Renderer/Renderer.h"
 
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
+#include "Platform/Platform.h"
 #include "Resources/ResourceTypes.h"
-#include "Vulkan/VulkanBackend.h"
 
-#include "Systems/TextureSystem.h"
+// Renderer frontend context.
+static Renderer s_Renderer;
+Renderer* g_pRenderer = &s_Renderer;
 
-#include <Memory/LinearAllocator.h>
+// A callback to be used to get an opaque pointer to the renderer-backend's state.
+typedef void* (*PFN_GetRendererBackendState)();
 
-static Renderer* s_Renderer = nullptr;
-Renderer* gpRenderer = nullptr;
-
-//-----------------------------------------------------------------------------
-// Factory method to initialize a renderer.
-//-----------------------------------------------------------------------------
-Renderer* Renderer::Renderer_Create(LinearAllocator* pAllocator)
+//-------------------------------------------------------------------------
+// Purpose: Initialize the Renderer frontend and backend.
+// Input: pConfig - The configuration for both the frontend and backend.
+// Output: bool - Returns true on successful initialization, otherwise false.
+//-------------------------------------------------------------------------
+bool Renderer::Initialize(RendererConfig_t& pConfig)
 {
-	if (s_Renderer)
+	// Load up the renderer backend module, and connect our interfaces.
+	Platform::ISysModule* pVulkanRendererDLL = pConfig.pRendererBackendDLL;
+
+	PFN_GetRendererBackendState getRendererBackend = (PFN_GetRendererBackendState)pVulkanRendererDLL->GetFuncAddr("GetRendererBackendState");
+	if (!getRendererBackend)
 	{
-		LOG_ERROR("Renderer_Create() -> An active Renderer already exists at this location. Aborting!");
-		return nullptr;
+		LOG_ERROR("Renderer::Initialize failed to get a pointer to the renderer backend. Initialization failed.");
+		return false;
 	}
 
-	Renderer* renderer = new (pAllocator) Renderer();
-
-	s_Renderer = renderer;
-	if (!s_Renderer->Initialize())
-	{
-		return nullptr;
-	}
-
-	return s_Renderer;
-}
-
-bool Renderer::Initialize()
-{
-	// TODO: Connect Renderer_Vulkan.dll interface.
-	ISysModule* pVulkanRendererDLL = Platform::LoadModule("Renderer_Vulkan.dll");
-	pVulkanRendererDLL->LoadFuncAddr("ConnectInterface");
-	void* funcAddr = pVulkanRendererDLL->GetLoadedFunctionAddr("ConnectInterface");
-	typedef void (*connectInterface)(void* pInterfaceState);
-	connectInterface testFunc = reinterpret_cast<connectInterface>(funcAddr);
-	testFunc(m_RendererBackend);
-
-	m_RendererBackend = GetVulkanBackend();
+	// TODO: This is still not great. Would probably be better to use the IRendererBackend interface or something to get at the state.
+	m_RendererBackend = (IRendererBackend*)getRendererBackend();
 
 	if (m_RendererBackend != nullptr)
 	{
-		if (!m_RendererBackend->RendererBackend_Initialize())
+		if (!m_RendererBackend->RendererBackend_Initialize(pConfig))
 		{
 			return false;
 		}
@@ -69,15 +55,23 @@ bool Renderer::Initialize()
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Shuts down the renderer system.
+//-------------------------------------------------------------------------
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
 	m_RendererBackend->RendererBackend_Shutdown();
-	delete m_RendererBackend;
+
 	m_RendererBackend = nullptr;
 }
 
-bool Renderer::Update(RenderPacket_t* pRenderData)
+//-------------------------------------------------------------------------
+// Purpose: Draws a frame with the renderer.
+// Input: pRenderData - Frame-specific data to be used in rendering ops.
+// Output: bool - True on successful frame; if there were any rendering errors, false.
+//-------------------------------------------------------------------------
+bool Renderer::Update(RenderPacket_t& pRenderData)
 {
 	if (!m_RendererBackend->RendererBackend_Update(pRenderData))
 	{
@@ -85,35 +79,4 @@ bool Renderer::Update(RenderPacket_t* pRenderData)
 	}
 
 	return true;
-}
-
-bool Renderer::CreateTextureResources(Texture& pTexture, byte* pPixelData)
-{
-	if (!pPixelData)
-	{
-		LOG_ERROR("CreateTextureResources requires a valid pointer to pixel data. Texture creation failed.");
-		return false;
-	}
-
-	return m_RendererBackend->CreateTextureResources(pTexture, pPixelData);
-}
-
-void Renderer::DestroyTextureResources(Texture& pTexture)
-{
-	m_RendererBackend->DestroyTextureResources(pTexture);
-}
-
-bool Renderer::CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices, const char* szTextureName, const char* szGeometryName)
-{
-	// Acquire necessary textures
-	pMesh.m_pTexture = gpTextureSystem->AcquireTexture(szTextureName);
-	pMesh.m_szGeometryName = szGeometryName;
-
-	return m_RendererBackend->CreateGeometryResources(pMesh, vertices, indices);
-}
-
-void Renderer::DestroyGeometryResources(StaticMesh& pMesh)
-{
-	m_RendererBackend->DestroyGeometryResources(pMesh);
-	gpTextureSystem->UnloadTexture(*pMesh.m_pTexture); // TODO: Release reference instead
 }

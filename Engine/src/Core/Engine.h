@@ -8,16 +8,9 @@
 
 #include "Defines.h"
 
-// Forward declarations
-// TODO: These should not be here.
-class Texture;
-class StaticMesh;
-class DynamicAllocator;
-class LinearAllocator;
-class Memory;
-class IInputSystem;
-class Renderer;
-
+//-------------------------------------------------------------------------
+// Engine configuration, to be passed in by the calling application.
+//-------------------------------------------------------------------------
 struct EngineConfig_t
 {
 	// Set this to true to run the engine without rendering or platform faculties.
@@ -25,26 +18,21 @@ struct EngineConfig_t
 	bool isHeadless = false;
 };
 
-class ENGINE_API Engine
+//-------------------------------------------------------------------------
+// Interface for the core engine.
+//-------------------------------------------------------------------------
+class IEngine
 {
 public:
-	static bool	Engine_Initialize(EngineConfig_t engineConfig, void* pEngineState);
-	bool	Engine_Run();
-	void	Engine_Shutdown();
+	// These get called by the the application using the engine.
 
-	// TODO: TEMP
-	void	CreateSceneGeometry();
-
-private:
-	EngineConfig_t	m_engineConfig;
-	DynamicAllocator* m_EngineHeap{ nullptr };
-	LinearAllocator* m_SystemsAllocator{ nullptr };
-	LinearAllocator* m_FrameAllocator{ nullptr };
-
-public:
-	// TODO: TEMP
-	Texture* testTexture{ nullptr };
-	StaticMesh* m_TestGeometry{ nullptr };
-	// TODO: END TEMP
+	// Initialize the engine and it's required subsystems.
+	virtual bool	Initialize(EngineConfig_t engineConfig) = 0;
+	virtual bool	Run() = 0;
+	virtual void	Shutdown() = 0;
 };
 
+extern IEngine* g_pEngine;
+
+// TODO: Temporary until interfaces are working
+ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);

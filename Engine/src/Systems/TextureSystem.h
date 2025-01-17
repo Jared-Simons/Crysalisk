@@ -1,48 +1,31 @@
 //=============================================================================
 // Author: Jared Simons
-// Date Created: 8/28/2024
+// Date Created: 2/23/2025
 // 
-// Purpose: Texture System
+// Purpose: The texture manager.
 //=============================================================================
 #pragma once
 
-#include "Defines.h"
-#include "Resources/ResourceTypes.h"
+#include <Defines.h>
 
-#include <Containers/CHashmap.h>
+typedef uint32_t TextureHandle_t;
 
-// Forward declarations
-class Renderer;
-
-struct TextureSystemConfiguration
-{
-	u64 maxTextureCount;
-};
-
-class TextureSystem
+class Texture
 {
 public:
-	bool	Initialize(void* pSystemConfig);
-	void	Shutdown();
 
-	// TODO: Texture destruction!
-	bool	LoadTexture(const char* pTexturePath);
-	void	UnloadTexture(Texture& pTexture);
-
-	Texture*	AcquireTexture(const char* pTexturePath);
-
-	Texture*	GetDefaultDiffuseTexture() { return &m_DefaultDiffuse; }
-
-private:
-	bool	CreateDefaultTextures();
-
-private:
-	TextureSystemConfiguration		m_Configuration;
-
-	CHashmap<const char*, Texture>	m_RegisteredTextures;
-	u64								m_NumRegisteredTextures;
-
-	Texture							m_DefaultDiffuse;
 };
 
-ENGINE_API extern TextureSystem* gpTextureSystem;
+struct TextureSystemConfig_t
+{
+	size_t	MaxTextures;
+};
+
+class ITextureSystem
+{
+public:
+	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
+	virtual void	Shutdown() = 0;
+};
+
+DLL_EXPORT ITextureSystem* g_pTextureSystem;

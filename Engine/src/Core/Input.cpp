@@ -6,118 +6,110 @@
 //=============================================================================
 #include "Core/Input.h"
 
-#include "Core/Logging.h"
-#include "Core/Event.h"
-#include "Core/Memory.h"
 #include "Core/Engine.h"
+#include "Core/Event.h"
+#include "Core/Logging.h"
+#include <Memory/MemoryManager.h>
 
-
+//-------------------------------------------------------------------------
+// Engine input system implementation.
+//-------------------------------------------------------------------------
 class CInputSystem : public IInputSystem
 {
 public:
 	CInputSystem() : m_KeysState{ 0 }, m_PrevKeysState{ 0 }, m_KeyStateDirty{ true } {}
 
-	void* operator new(size_t size, LinearAllocator* pAllocator)
-	{
-		void* block = pAllocator->Allocate(size);
-		if (block)
-		{
-			return block;
-		}
-		else
-		{
-			LOG_FATAL("Systems Allocator failed to allocate memory for the input system!");
-			return nullptr;
-		}
-	}
-
-	// NOTE: This does nothing and just exists to clear a compiler warning, 
-	// the memory was allocated and will be freed when the linear allocator gets cleared.
-	// If the creation of this system fails, the engine will shutdown regardless.
-	void	operator delete(void* pMemory, LinearAllocator* pAllocator) {}
-
-	bool		Initialize() override;
+	// Initialization, shutdown.
+	bool		Initialize(Platform::IPlatformWindow& pEngineWindow) override;
 	void		Shutdown() override;
 	void		Update() override;
 
-	void		ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr) override;
-	void		ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed) override;
+	// Input processing.
+	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
+	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, byte mouseButtonFlags, bool pressed) override;
 
-	bool		IsKeyPressed(const i32 key) const override;
+	bool		IsKeyPressed(const int key) const override;
 
 private:
-	KeyState_T	m_KeysState[256];
-	KeyState_T	m_PrevKeysState[256];
+	// Keyboard state this frame.
+	KeyState_t	m_KeysState[256];
+	// Keyboard state from the previous frame.
+	KeyState_t	m_PrevKeysState[256];
 
+	// Current mouse state.
 	MouseState_t m_MouseState;
 
+	// Should the keys state be updated? (Was a key pressed this frame?)
 	bool		m_KeyStateDirty;
 };
 
-static CInputSystem* sInputSystem{ nullptr };
-IInputSystem* gpInputSystem = sInputSystem;
+// Input system context.
+static CInputSystem sInputSystem;
+IInputSystem* g_pInputSystem_Internal = &sInputSystem;
 
-//-----------------------------------------------------------------------------
-// Factory method to initialize an event system.
-//-----------------------------------------------------------------------------
-IInputSystem* IInputSystem::InputSystem_Initialize(LinearAllocator* pAllocator)
-{
-	if (pAllocator)
-	{
-		CInputSystem* inputSystem = new (pAllocator) CInputSystem();
-
-		if (!inputSystem->Initialize())
-		{
-			return nullptr;
-		}
-
-		return inputSystem;
-	}
-
-	LOG_ERROR("Engine subsystem initialization requires a memory allocator!");
-	return false;
-}
-
-bool CInputSystem::Initialize()
+//-------------------------------------------------------------------------
+// Purpose - Initializes the input system.
+// Input - none
+// Output - bool: Returns true on success; otherwise false.
+//-------------------------------------------------------------------------
+bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
 {
 	// setup m_KeysState table
-	for (u8 i = 0; i < MAX_INPUT_KEYS; i++)
+	for (int i = 0; i < MAX_INPUT_KEYS; i++)
 	{
 		m_KeysState[i].m_Char = i + 65;	// +65 so that array 0 lines up with 'A'
-		m_KeysState[i].m_Pressed = false;
+		m_KeysState[i].m_bPressed = false;
 
 		m_PrevKeysState[i].m_Char = i + 65;
-		m_PrevKeysState[i].m_Pressed = false;
+		m_PrevKeysState[i].m_bPressed = false;
 	}
 
 	// setup m_MouseState table
 	m_MouseState.m_XPos = 0.0f;
 	m_MouseState.m_YPos = 0.0f;
-	for (u8 i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
+	for (int i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
 	{
 		m_MouseState.m_MouseButtons[i] = false;
 	}
+
+	// Register our callbacks with the platform layer.
+	pEngineWindow.SetKeyboardEventCallback(API_ProcessKeyInput);
+	pEngineWindow.SetMouseEventCallback(API_ProcessMouseInput);
 
 	LOG_INFO("Input System Initialized!");
 
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Shuts down the input system.
+//-------------------------------------------------------------------------
 void CInputSystem::Shutdown()
 {
-	LOG_INFO("Input System Shutting Down");
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Updates the internal state of the input system.
+//			 Typically called once per application update.
+//-------------------------------------------------------------------------
 void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
-		gpMemory->MemCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_T));
+		// FIXME: We need to be saving off mouse state as well...
+		Platform::MemoryCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_t));
 		m_KeyStateDirty = false;
 	}
 }
 
-void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, Engine* enginePtr)
+//-------------------------------------------------------------------------
+// Purpose - Processes a key input passed in from some data stream.
+//			 Also responsible for firing an event to any listeners.
+// Input - processedKeyInput: The ordinal value of the key being processed.
+//		   pressed: True if the key was pressed, otherwise false.
+// Output - void.
+//-------------------------------------------------------------------------
+void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 {
 	if (processedKeyInput != 0)
 	{
@@ -126,13 +118,13 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, En
 		if (pressed)
 		{
 			eventData.c[0] = processedKeyInput;
-			m_KeysState[processedKeyInput].m_Pressed = true;
-			gpEvents->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
+			m_KeysState[processedKeyInput].m_bPressed = true;
+			g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
 		}
 		else
 		{
-			m_KeysState[processedKeyInput].m_Pressed = false;
-			gpEvents->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
+			m_KeysState[processedKeyInput].m_bPressed = false;
+			g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
 		}
 	}
 	else
@@ -143,14 +135,27 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed, En
 	m_KeyStateDirty = true;
 }
 
-void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u8 mouseButtonFlags, bool pressed)
+//-------------------------------------------------------------------------
+// Purpose - Processes mouse input.
+//			 Also responsible for firing an event to any listeners.
+// Input - mouseXPos/mouseYPos: the X and Y positions of the cursor on the window.
+//		   mouseButtonFlags: A bitfield of the mouse buttons to be processed.
+//		   pressed: True if the processed buttons are pressed, otherwise false.
+// Output - void.
+//-------------------------------------------------------------------------
+void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPos, byte mouseButtonFlags, bool pressed)
 {
 	if (mouseXPos != 0 && mouseYPos != 0)
 	{
 		m_MouseState.m_XPos = mouseXPos;
 		m_MouseState.m_YPos = mouseYPos;
+		
+		// Fire off an event.
+		EventData_t eventData;
+		eventData.f32[0] = mouseXPos;
+		eventData.f32[1] = mouseYPos;
 
-		//LOG_DEBUG("Mouse Pos: X:%f Y:%f", mouseXPos, mouseYPos);
+		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && pressed)
@@ -177,7 +182,7 @@ void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEvents->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
+		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 
 	if (mouseButtonFlags != 0 && !pressed)
@@ -204,14 +209,32 @@ void CInputSystem::ProcessMouseInput(const f32 mouseXPos, const f32 mouseYPos, u
 		EventData_t eventData;
 		eventData.u16[0] = mouseButtonFlags;
 
-		gpEvents->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
+		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
 }
 
-bool CInputSystem::IsKeyPressed(const i32 key) const
+//-------------------------------------------------------------------------
+// Purpose - Checks to see if 'key' is currently pressed.
+// Input - key: The ordinal value of the key to check for.
+// Output - True if the key is currently pressed, otherwise false.
+//-------------------------------------------------------------------------
+bool CInputSystem::IsKeyPressed(const int key) const
 {
-	if (m_KeysState[key].m_Pressed)
+	if (m_KeysState[key].m_bPressed)
 		return true;
 
 	return false;
+}
+
+//-----------------------------------------------------------------------------
+// API for external libraries to access our callbacks.
+//-----------------------------------------------------------------------------
+void API_ProcessKeyInput(int processedKeyInput, bool pressed) 
+{ 
+	g_pInputSystem_Internal->ProcessKeyInput(processedKeyInput, pressed);
+}
+
+void API_ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags)
+{
+	g_pInputSystem_Internal->ProcessMouseInput(mouseXPos, mouseYPos, mouseButtonFlags, false);
 }

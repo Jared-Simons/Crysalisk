@@ -9,24 +9,16 @@
 
 #include "Defines.h"
 
-// Forward declarations
-class Texture;
-class StaticMesh;
-class Vertex3D;
-
-template <typename T> class CVector;
-
+//-------------------------------------------------------------------------
+// Interface for the renderer backend.
+// NOTE: This should only be accessed through the IRenderer interface.
+// Do not go about including "VulkanRenderer.h" outside of it's library.
+//-------------------------------------------------------------------------
 class IRendererBackend
 {
 public:
-	virtual bool	RendererBackend_Initialize() = 0;
+	// Initialization, shutdown
+	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
-	virtual bool	RendererBackend_Update(struct RenderPacket_t* pRenderData) = 0;
-
-	virtual bool	CreateTextureResources(Texture& pTexture, byte* pPixelData) = 0;
-	virtual void	DestroyTextureResources(Texture& pTexture) = 0;
-
-	virtual bool	CreateGeometryResources(StaticMesh& pMesh, CVector<Vertex3D>& vertices, CVector<u16>& indices) = 0;
-	virtual void	DestroyGeometryResources(StaticMesh& pMesh) = 0;
+	virtual bool	RendererBackend_Update(struct RenderPacket_t& pRenderData) = 0;
 };
-

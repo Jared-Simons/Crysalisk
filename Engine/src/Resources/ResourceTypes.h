@@ -8,27 +8,12 @@
 
 #include "Defines.h"
 
-class Texture
+#include <Containers/CVector.h>
+#include <Math/VectorTypes.h>
+#include <Math/VertexTypes.h>
+
+struct GeometryConfig_t
 {
-public:
-	u64 m_Width;
-	u64 m_Height;
-	u64 m_ChannelCount;
-	const char* m_TextureName;
-
-	void* m_internalData;
-};
-
-class StaticMesh
-{
-public:
-	Texture* m_pTexture;
-	const char* m_szGeometryName;
-
-	void* m_pinternalData;
-};
-
-struct RenderPacket_t
-{
-	StaticMesh* geometries[10];
+	Utl::CVector<Vertex3D> Vertices{};
+	Utl::CVector<uint32_t> Indices{};
 };

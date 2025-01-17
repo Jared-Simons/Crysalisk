@@ -6,27 +6,20 @@
 //=============================================================================
 #include <Defines.h>
 
-#include <Core/Engine.h>
-#include <Core/Logging.h>
-#include <Core/Memory.h>
-#include <Clock.h>
-
-#include "Math/MathLib.h"
-#include "Math/VectorTypes.h"
-#include "Math/MatrixTypes.h"
+#include <Core/Clock.h>
+#include "Containers/CVectorTests.h"
 
 bool PerformUnitTests()
-{
-	Vector2D vector{ 4.7f, -6.0f };
-	Vector2D vector2 = vector / 2;
-	
+{	
+	g_pCVectorUnitTests->PerformTests();
+
 	return true;
 }
 
-i32 main()
+int main()
 {
 	// Running unit tests in headless mode as we do not require rendering or input.
-	EngineConfig_t engineConfig{};
+	/*EngineConfig_t engineConfig{};
 	engineConfig.isHeadless = true;
 	Engine pEngineState;
 
@@ -38,7 +31,8 @@ i32 main()
 	PerformUnitTests();
 
 	//gpMemorySystem->PrintMemoryStats();
-	LOG_VERBOSE("\n\n\n\n\n");
+	LOG_VERBOSE("\n\n\n\n\n");*/
+	PerformUnitTests();
 
 	return 0;
 }

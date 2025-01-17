@@ -9,10 +9,10 @@
 #include <Defines.h>
 
 #include <Containers/CVector.h>
-#include <Clock.h>
+#include <Core/Clock.h>
 #include <Core/Logging.h>
 
-typedef i32 (*PFN_UnitTestFunc)();
+typedef int (*PFN_UnitTestFunc)();
 
 // Use these macros to state if your test passed or failed
 #define FAIL 0
@@ -25,12 +25,25 @@ public:
 	UnitTestGroup(const char* debugTestName)
 		: m_debugTestName{ debugTestName } {}
 
-	bool RegisterTestFunc(PFN_UnitTestFunc newTestFunc, const char* testDesc) { m_RegisteredTests.PushBack(newTestFunc); m_RegisteredTestNames.PushBack(testDesc); return true; }
+	bool RegisterTestFunc(PFN_UnitTestFunc newTestFunc, const char* testDesc, bool bIsSTLTest) 
+	{ 
+		if (bIsSTLTest)
+		{
+			m_STLTests.PushBack(newTestFunc);
+		}
+		else
+		{
+			m_RegisteredTests.PushBack(newTestFunc);
+			m_NumTests++; // NOTE: We only care about our own container's tests, ignore STL tests in this count.
+		}
+		m_RegisteredTestNames.PushBack(testDesc); 
+		return true; 
+	}
 	void PerformTests()
 	{
 		m_TestClock.Start();
 
-		for (i32 i = 0; i < m_RegisteredTests.size(); i++)
+		for (int i = 0; i < m_RegisteredTests.Count(); i++)
 		{
 			Clock singleClock;
 			singleClock.Start();
@@ -45,8 +58,36 @@ public:
 
 			singleClock.Stop();
 
-			if (!passed)
-				LOG_VERBOSE("[%s]\t\t\t\t %s", passed ? "PASS" : "FAIL", m_RegisteredTestNames[i]);
+			if (passed)
+			{
+				LOG_DEBUG("[%s]\t\t\t\t\t\t %s\t(Time Elapsed: %.10f)", "PASS", m_RegisteredTestNames[i], singleClock.GetElapsedTime());
+			}
+			else
+			{
+				LOG_ERROR("[%s]\t\t\t\t\t\t %s\t(Time Elapsed: %.10f)", "FAIL", m_RegisteredTestNames[i], singleClock.GetElapsedTime());
+			}
+
+			// Perform the equivalent STL test.
+			singleClock.Start();
+			if (m_STLTests[i]() == 1)
+			{
+				passed = true;
+			}
+			else
+			{
+				passed = false;
+			}
+
+			if (passed)
+			{
+				LOG_DEBUG("[%s - STL Equivalent]\t\t\t %s\t(Time Elapsed: %.10f)", "PASS", m_RegisteredTestNames[i], singleClock.GetElapsedTime());
+			}
+			else
+			{
+				LOG_ERROR("[%s - STL Equivalent]\t\t\t %s\t(Time Elapsed: %.10f)", "FAIL", m_RegisteredTestNames[i], singleClock.GetElapsedTime());
+			}
+
+			singleClock.Stop();
 		}
 
 		m_TestClock.Stop();
@@ -61,14 +102,15 @@ public:
 	}
 
 private:
-	CVector<PFN_UnitTestFunc> m_RegisteredTests;
-	CVector<const char*> m_RegisteredTestNames;
+	Utl::CVector<PFN_UnitTestFunc> m_RegisteredTests;
+	Utl::CVector<PFN_UnitTestFunc> m_STLTests;
+	Utl::CVector<const char*> m_RegisteredTestNames;
 	Clock m_TestClock;
 
 	const char*	 m_debugTestName = nullptr;
-	u32 m_NumTests = 0;
-	u32 m_TestsPassed = 0;
-	u32 m_TestsFailed = 0;
-	u32 m_TestsSkipped = 0;
+	int m_NumTests = 0;
+	int m_TestsPassed = 0;
+	int m_TestsFailed = 0;
+	int m_TestsSkipped = 0;
 };
 

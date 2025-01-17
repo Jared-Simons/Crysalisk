@@ -7,6 +7,8 @@
 //=============================================================================
 #pragma once
 
+#include <cstdint>
+
 //-----------------------------------------------
 // Primitive Typedefs
 //-----------------------------------------------
@@ -46,10 +48,16 @@ static_assert(sizeof(f32) == 4, "Expected f32 to be 4 bytes.");
 static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 
 // Function imports/exports
+#if defined CORE_DLL
+#define CORE_API __declspec(dllexport)
+#else
+#define CORE_API __declspec(dllimport)
+#endif
+
 #if defined ENGINE_DLL
 #define ENGINE_API __declspec(dllexport)
 #else
-#define ENGINE_API
+#define ENGINE_API __declspec(dllimport)
 #endif
 
 #if defined GAME_DLL
@@ -82,7 +90,7 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 #define GIBIBYTES(x) (x * (1024 * 1024 * 1024))
 
 // Invalid IDs
-#define INVALID_ID_U8	255
+const unsigned int kInvalidID_U8 = 255;
 
 // Utility Functions
 
