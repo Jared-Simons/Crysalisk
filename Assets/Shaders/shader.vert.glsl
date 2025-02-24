@@ -16,12 +16,17 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 {
 	mat4 projection;
 	mat4 view;
-	mat4 model;
-	mat4 reserved;
+	mat4 reserved0;
+	mat4 reserved1;
 } global_ubo;
+
+layout(push_constant) uniform push_constants
+{
+	mat4 model;
+} u_PushConstants;
 
 void main()
 {
-	gl_Position = global_ubo.projection * global_ubo.view * global_ubo.model * vec4(inPosition, 1.0);
+	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 	outTexCoord = fragTexCoord;
 }

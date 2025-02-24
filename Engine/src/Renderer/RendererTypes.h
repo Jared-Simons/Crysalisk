@@ -22,8 +22,8 @@ struct GlobalUniformObject_t
 {
 	Matrix4x4	Projection;
 	Matrix4x4	View;
-	Matrix4x4	Model; // TODO: This should not be global at all.
-	Matrix4x4	Reserved; // Here for alignment.
+	Matrix4x4	Reserved0; // Here for alignment.
+	Matrix4x4	Reserved1; 
 };
 
 struct InstanceUniformObject_t

@@ -504,9 +504,10 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Update our matrices.
-		m_UniformData.Model = Matrix4x4(1.0f);
-		m_UniformData.Model = Matrix4x4::Rotate(m_UniformData.Model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-		m_UniformData.Model = Matrix4x4::Translate(m_UniformData.Model, Vector3D(0.0f, 0.0f, -100.0f));
+		Matrix4x4 model{};
+		model = Matrix4x4(1.0f);
+		model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
+		model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -100.0f));
 
 		m_UniformData.View = s_MainCamera.GetViewMatrix();
 		m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
@@ -518,6 +519,9 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 		vkMapMemory(m_Device.m_Device, m_UniformBuffers[imageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
 		memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
 		vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[imageIndex].m_Memory);
+
+		// Push our model matrix as well.
+		vkCmdPushConstants(commandBuffer, m_DefaultShader.m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 		// Bind our descriptor sets.
 		if (m_TestTexture.m_Generation != kInvalidID_U8)
@@ -1060,7 +1064,14 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	pipelineLayoutInfo.flags = 0;
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &pOutShader.m_DescriptorSetLayouts;
-	pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+	VkPushConstantRange pushConstant;
+	pushConstant.offset = 0;
+	pushConstant.size = sizeof(Matrix4x4);
+	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
 	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, nullptr, &pOutShader.m_PipelineLayout));
 
 	// Create the pipeline.
