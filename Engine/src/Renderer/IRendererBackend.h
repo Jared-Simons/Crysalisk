@@ -21,4 +21,6 @@ public:
 	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
 	virtual bool	RendererBackend_Update(struct RenderPacket_t& pRenderData) = 0;
+
+	virtual bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) = 0;
 };

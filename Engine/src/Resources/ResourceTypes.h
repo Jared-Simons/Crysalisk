@@ -12,6 +12,25 @@
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
 
+typedef uint32_t TextureHandle_t;
+
+class Texture
+{
+public:
+	void	SetInternalTextureData(void* pInternalData) { m_pInternalData = pInternalData; }
+	int32_t	GetWidth() const { return width; }
+	int32_t GetHeight() const { return height; }
+	int32_t GetNumChannels() const { return numChannels; }
+
+private:
+	int32_t width;
+	int32_t height;
+	int32_t numChannels; // TODO: Image format
+	void* m_pInternalData{ nullptr };
+
+	friend class CTextureSystem;
+};
+
 struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};

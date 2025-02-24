@@ -7,14 +7,7 @@
 #pragma once
 
 #include <Defines.h>
-
-typedef uint32_t TextureHandle_t;
-
-class Texture
-{
-public:
-
-};
+#include "Resources/ResourceTypes.h"
 
 struct TextureSystemConfig_t
 {
@@ -26,6 +19,11 @@ class ITextureSystem
 public:
 	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
 	virtual void	Shutdown() = 0;
+
+	virtual TextureHandle_t	LoadTexture(const char* pszTextureName) = 0;
+	virtual void			ReleaseTexture(TextureHandle_t textureHandle) = 0;
+
+	friend class Texture;
 };
 
 DLL_EXPORT ITextureSystem* g_pTextureSystem;

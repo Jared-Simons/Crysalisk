@@ -18,6 +18,7 @@
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 #include <Resources/GeometryGenerator.h>
+#include <Resources/ResourceTypes.h>
 #include <Strings/String_Utils.h>
 
 #include <Interfaces.h>
@@ -577,6 +578,41 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 	presentInfo.pImageIndices = &imageIndex;
 	presentInfo.pResults = nullptr;
 	vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+
+	return true;
+}
+
+bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
+{
+	// Allocate space for Vulkan texture data.
+	VulkanTextureInternal* pInternalData = new VulkanTextureInternal;
+
+	if (!VulkanImage::CreateImage((*this), pTexture.GetWidth(), pTexture.GetHeight(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
+	{
+		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
+		delete pInternalData;
+		return false;
+	}
+
+	if (!pInternalData->m_Image.WriteDataToImage((*this), pTexture.GetWidth(), pTexture.GetHeight(), pPixelData))
+	{
+		LOG_ERROR("Failed to write pixel data to texture. Nothing was done.");
+		VulkanImage::DestroyImage((*this), pInternalData->m_Image);
+		delete pInternalData;
+	}
+
+	// Acquire shader resources.
+	if (!AcquireShaderResources((*this), m_DefaultShader, *pInternalData))
+	{
+		LOG_ERROR("Failed to acquire shader resources for test texture!");
+		return false;
+	}
+
+	// If we got here, the image should be loaded and ready for use. Mark it as such...
+	pInternalData->m_Generation = 0;
+
+	// Hook us up to the frontend.
+	pTexture.SetInternalTextureData(pInternalData);
 
 	return true;
 }

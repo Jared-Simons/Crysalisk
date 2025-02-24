@@ -22,6 +22,8 @@ public:
 	void	RendererBackend_Shutdown() override;
 	bool	RendererBackend_Update(struct RenderPacket_t& pRenderData) override;
 
+	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+
 	// NOTE: These methods are temporary until we implement a shader system on the front-end to handle this.
 	bool CreateDefaultShader(VulkanShaderInternal& pOutShader);
 	void DestroyDefaultShader(VulkanShaderInternal& pShader);

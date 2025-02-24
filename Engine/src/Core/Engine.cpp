@@ -151,6 +151,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	TextureHandle_t newTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+
 	LOG_INFO("Engine Finished Initialization");
 	
 	return true;

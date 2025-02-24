@@ -80,3 +80,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	return true;
 }
+
+bool Renderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
+{
+	// No work to be done here, pass it right through to the backend.
+	return m_RendererBackend->AcquireTextureResources(pTexture, nPixelDataSize, pPixelData);
+}

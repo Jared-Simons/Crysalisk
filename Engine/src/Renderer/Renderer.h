@@ -27,6 +27,8 @@ public:
 	void	Shutdown();
 	bool	Update(struct RenderPacket_t& pRenderData);
 
+	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData);
+
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
 };
