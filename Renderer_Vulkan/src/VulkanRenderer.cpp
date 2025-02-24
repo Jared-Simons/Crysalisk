@@ -599,12 +599,15 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDa
 		LOG_ERROR("Failed to write pixel data to texture. Nothing was done.");
 		VulkanImage::DestroyImage((*this), pInternalData->m_Image);
 		delete pInternalData;
+		return false;
 	}
 
 	// Acquire shader resources.
 	if (!AcquireShaderResources((*this), m_DefaultShader, *pInternalData))
 	{
 		LOG_ERROR("Failed to acquire shader resources for test texture!");
+		VulkanImage::DestroyImage((*this), pInternalData->m_Image);
+		delete pInternalData;
 		return false;
 	}
 
