@@ -18,11 +18,16 @@
 class CVulkanRenderer : public IRendererBackend
 {
 public:
-	bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
-	void	RendererBackend_Shutdown() override;
-	bool	RendererBackend_Update(struct RenderPacket_t& pRenderData) override;
+	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
+	virtual void	RendererBackend_Shutdown() override;
+	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
+	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
-	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry) override;
+
+	virtual bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+
+	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
 	// NOTE: These methods are temporary until we implement a shader system on the front-end to handle this.
 	bool CreateDefaultShader(VulkanShaderInternal& pOutShader);
@@ -85,8 +90,8 @@ public:
 	unsigned int m_MaxImagesInFlight{ 3 };
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
+	unsigned int	m_ImageIndex{ 0 };
 	bool		m_bWindowResized{ false };
-	bool		m_bMinimized{ false };
 	Clock		m_RendererClock{};
 };
 

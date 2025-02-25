@@ -6,14 +6,20 @@
 //=============================================================================
 #include "Renderer/Renderer.h"
 
+#include "Core/Event.h"
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/TextureSystem.h"
 
 // Renderer frontend context.
 static Renderer s_Renderer;
 Renderer* g_pRenderer = &s_Renderer;
+
+// Event handlers.
+static bool RendererEvent_WindowResized(EventData_t data);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
@@ -51,6 +57,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -73,10 +81,22 @@ void Renderer::Shutdown()
 //-------------------------------------------------------------------------
 bool Renderer::Update(RenderPacket_t& pRenderData)
 {
-	if (!m_RendererBackend->RendererBackend_Update(pRenderData))
+	// If we are currently minimized, do not do anything!
+	if (m_bMinimized)
+	{
+		return true;
+	}
+
+	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
 	}
+
+	// Render our temp geometry.
+	m_RendererBackend->DrawGeometry(m_Cube1);
+	m_RendererBackend->DrawGeometry(m_Cube2);
+
+	m_RendererBackend->EndFrame(pRenderData);
 
 	return true;
 }
@@ -85,4 +105,43 @@ bool Renderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize,
 {
 	// No work to be done here, pass it right through to the backend.
 	return m_RendererBackend->AcquireTextureResources(pTexture, nPixelDataSize, pPixelData);
+}
+
+bool Renderer::CreateTempGeometry()
+{
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 0 }, 32, 32, 32);
+	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, -50 }, 32, 32, 32);
+
+	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig, m_Cube1))
+	{
+		LOG_ERROR("Failed to acquire geometry resources.");
+		return false;
+	}
+
+	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig2, m_Cube2))
+	{
+		LOG_ERROR("Failed to acquire geometry resources.");
+		return false;
+	}
+
+	// Acquire texture
+	m_Cube2.pTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+
+	return true;
+}
+
+static bool RendererEvent_WindowResized(EventData_t data)
+{
+	// Handle minimized contexts.
+	if (data.u32[0] == 0 || data.u32[1] == 0)
+	{
+		s_Renderer.SetMinimized(true);
+	}
+	else
+	{
+		s_Renderer.SetMinimized(false);
+	}
+
+	// Let other listeners handle this event.
+	return false;
 }

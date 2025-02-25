@@ -18,6 +18,7 @@ class Texture
 {
 public:
 	void	SetInternalTextureData(void* pInternalData) { m_pInternalData = pInternalData; }
+	void*	GetInternalData() const { return m_pInternalData; } // TODO: I don't like this :(
 	int32_t	GetWidth() const { return width; }
 	int32_t GetHeight() const { return height; }
 	int32_t GetNumChannels() const { return numChannels; }
@@ -35,4 +36,16 @@ struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};
 	Utl::CVector<uint32_t> Indices{};
+	const char* pTextureName{};
+};
+
+// TODO: This is temporary and should NOT stick around
+struct GeometryInstance_t
+{
+	int	vertexCount{};
+	int vertexDataOffset{};
+	int indexDataSize{};
+	int indexDataOffset{};
+
+	Texture* pTexture{};
 };

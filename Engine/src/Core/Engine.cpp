@@ -154,7 +154,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	TextureHandle_t newTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container.jpg");
+	// Create temporary geometry.
+	g_pRenderer->CreateTempGeometry();
 
 	LOG_INFO("Engine Finished Initialization");
 	

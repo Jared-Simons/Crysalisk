@@ -20,7 +20,7 @@ public:
 	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual TextureHandle_t	LoadTexture(const char* pszTextureName) = 0;
+	virtual Texture*		LoadTexture(const char* pszTextureName) = 0;
 	virtual void			ReleaseTexture(TextureHandle_t textureHandle) = 0;
 
 	friend class Texture;

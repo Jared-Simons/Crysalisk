@@ -8,6 +8,7 @@
 
 #include "Defines.h"
 #include "Core/Logging.h"
+#include "Resources/ResourceTypes.h"
 
 // Forward Declarations
 class IRendererBackend;
@@ -29,8 +30,18 @@ public:
 
 	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData);
 
+	// Temp geometry stuff
+	bool	CreateTempGeometry();
+
+	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
+
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
+	bool	m_bMinimized{ false };
+
+	// TODO: These are temporary...
+	GeometryInstance_t	m_Cube1{};
+	GeometryInstance_t	m_Cube2{};
 };
 
 extern Renderer* g_pRenderer;

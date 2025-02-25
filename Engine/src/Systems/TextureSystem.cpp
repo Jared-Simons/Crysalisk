@@ -21,7 +21,7 @@ public:
 	virtual bool	Initialize(TextureSystemConfig_t config) override;
 	virtual void	Shutdown() override;
 
-	virtual TextureHandle_t	LoadTexture(const char* pszTextureName) override;
+	virtual Texture*		LoadTexture(const char* pszTextureName) override;
 	virtual void			ReleaseTexture(TextureHandle_t textureHandle) override;
 
 private:
@@ -51,7 +51,7 @@ void CTextureSystem::Shutdown()
 	g_pMemoryManager->Free(m_TextureArray);
 }
 
-TextureHandle_t CTextureSystem::LoadTexture(const char* pszTextureName)
+Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 {
 	Texture* newTexture = nullptr;
 	int texIdx = 0;
@@ -107,7 +107,7 @@ TextureHandle_t CTextureSystem::LoadTexture(const char* pszTextureName)
 	stbi_image_free(pPixelData);
 
 	LOG_VERBOSE("Successfully loaded texture: '%s'!", pszTextureName);
-	return texIdx; // TODO: Work this with the texture hash.
+	return newTexture; // TODO: Work this with the texture hash.
 }
 
 void CTextureSystem::ReleaseTexture(TextureHandle_t)

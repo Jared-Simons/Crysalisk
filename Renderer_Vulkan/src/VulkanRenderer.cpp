@@ -22,11 +22,6 @@
 #include <Strings/String_Utils.h>
 
 #include <Interfaces.h>
-#include <Platform/InterfaceRegistry.h>
-
-// TODO: Move this to a texture manager.
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
 
 static CVulkanRenderer s_VulkanContext;
 IRendererBackend* g_pRendererBackend = &s_VulkanContext;
@@ -37,7 +32,6 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 
 // TODO: Move this to a texture manager.
 static bool CreateDefaultTextures(CVulkanRenderer& pRenderingContext);
-static bool LoadTestTexture(CVulkanRenderer& pRenderingContext);
 static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture);
 
 static bool RendererEvent_WindowResized(EventData_t data);
@@ -352,11 +346,16 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	// Create temp scene geometry
-	// THIS IS ALSO TEMPORARY
-	if (!CreateDefaultGeometry())
+	// Create the temp geometry buffer.
+	if (!VulkanBuffer::CreateBuffer((*this), sizeof(Vertex3D) * 72, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
 	{
-		LOG_ERROR("Failed to create temp scene geometry. Renderer initialization failed!");
+		LOG_ERROR("Failed to create geometry vertex data buffer.");
+		return false;
+	}
+
+	if (!VulkanBuffer::CreateBuffer((*this), sizeof(uint32_t) * 6, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
+	{
+		LOG_ERROR("Failed to create geometry index data buffer.");
 		return false;
 	}
 
@@ -433,14 +432,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroyInstance(m_Instance, nullptr);
 }
 
-bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
+bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 {
-	// If we are currently minimized, do not do anything!
-	if (m_bMinimized)
-	{
-		return true;
-	}
-
 	// Wait for the prior frame to finish it's work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
@@ -453,13 +446,12 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 
 	//LOG_DEBUG("Delta Time: %.8f", currentFrameTime);
 
-	unsigned int imageIndex{ 0 };
-
 	// Acquire the next swapchain image.
-	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
 
 	if (imageAcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
+		vkDeviceWaitIdle(m_Device.m_Device);
 		// We need to recreate our swapchain.
 		m_Swapchain.RecreateSwapchain((*this), m_Swapchain);
 
@@ -483,77 +475,52 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 	vkResetFences(m_Device.m_Device, 1, &m_InFlightFence);
 
 	// Reset and startup our current command buffer.
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[imageIndex].m_Handle;
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkResetCommandBuffer(commandBuffer, 0);
 
 	VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	VK_CHECK(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
 
-	// All rendering commands happen in this scope.
-	{
-		VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
-		renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[imageIndex]; // Have these be owned by the swapchain instead?
-		renderpassInfo.renderArea.offset = { 0, 0 };
-		renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
+	// Start the renderpass and update globals.
+	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
+	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex]; // Have these be owned by the swapchain instead?
+	renderpassInfo.renderArea.offset = { 0, 0 };
+	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
 
-		VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
-		renderpassInfo.clearValueCount = 2;
-		renderpassInfo.pClearValues = clearColors;
+	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
+	renderpassInfo.clearValueCount = 2;
+	renderpassInfo.pClearValues = clearColors;
 
-		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		// Update our matrices.
-		Matrix4x4 model{};
-		model = Matrix4x4(1.0f);
-		model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-		model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -100.0f));
+	// Update our matrices.
+	Matrix4x4 model{};
+	model = Matrix4x4(1.0f);
+	model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
+	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -100.0f));
 
-		m_UniformData.View = s_MainCamera.GetViewMatrix();
-		m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
-		m_UniformData.Projection.data[5] *= -1;
+	m_UniformData.View = s_MainCamera.GetViewMatrix();
+	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
+	m_UniformData.Projection.data[5] *= -1;
 
-		// Copy to the GPU.
-		void* pUniformData;
-		VkDeviceSize uniformOffset = { 0 };
-		vkMapMemory(m_Device.m_Device, m_UniformBuffers[imageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-		memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
-		vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[imageIndex].m_Memory);
+	// Copy to the GPU.
+	void* pUniformData;
+	VkDeviceSize uniformOffset = { 0 };
+	vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
 
-		// Push our model matrix as well.
-		vkCmdPushConstants(commandBuffer, m_DefaultShader.m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
+	// Push our model matrix as well.
+	vkCmdPushConstants(commandBuffer, m_DefaultShader.m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
-		// Bind our descriptor sets.
-		if (m_TestTexture.m_Generation != kInvalidID_U8)
-		{
-			// Use the test texture.
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[m_TestTexture.m_DescriptorSetIndex].m_DescriptorSets[imageIndex], 0, nullptr);
-		}
-		else
-		{
-			// Use the default texture.
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[0].m_DescriptorSets[imageIndex], 0, nullptr);
-		}
+	return true;
+}
 
-		// Bind our geometry data.
-		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, offsets);
-		//vkCmdBindIndexBuffer(commandBuffer, m_GeometryIndexBuffer.m_Handle, *offsets, VK_INDEX_TYPE_UINT32);
-
-		// Bind our pipeline.
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
-
-		// Issue the draw.
-		vkCmdDraw(commandBuffer, 36, 1, 0, 0);
-
-		// Use the default texture for the second cube.
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[0].m_DescriptorSets[imageIndex], 0, nullptr);
-
-		vkCmdDraw(commandBuffer, 36, 1, 36, 0);
-		//vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
-
-		vkCmdEndRenderPass(commandBuffer);
-	}
+void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
+{
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	vkCmdEndRenderPass(commandBuffer);
 
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
@@ -579,11 +546,30 @@ bool CVulkanRenderer::RendererBackend_Update(struct RenderPacket_t& pRenderData)
 	presentInfo.pWaitSemaphores = signalSemaphores;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = &m_Swapchain.m_Handle;
-	presentInfo.pImageIndices = &imageIndex;
+	presentInfo.pImageIndices = &m_ImageIndex;
 	presentInfo.pResults = nullptr;
 	vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+}
 
-	return true;
+void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
+{
+	// TODO: Check to make sure we're in a renderpass first!
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	// Bind our geometry data.
+	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, offsets);
+	// TODO: Index buffer
+
+	// Bind our pipeline.
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
+
+	// Bind instance descriptor set.
+	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pGeometry.pTexture->GetInternalData())->m_DescriptorSetIndex : 0;
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+
+	// Issue the draw.
+	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
 }
 
 bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
@@ -620,6 +606,16 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDa
 
 	// Hook us up to the frontend.
 	pTexture.SetInternalTextureData(pInternalData);
+
+	return true;
+}
+
+bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	pOutInstance.vertexDataOffset = m_GeometryVertexBuffer.m_BytesAllocated;
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Capacity();
+	// TODO: Handle index buffer.
+	m_GeometryVertexBuffer.UploadDataRange((*this), pGeometryConfig.Vertices.Capacity() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
 
 	return true;
 }
@@ -745,50 +741,6 @@ static bool CreateDefaultTextures(CVulkanRenderer& pRenderingContext)
 		LOG_ERROR("Failed to upload default texture data!");
 		return false;
 	}
-
-	return true;
-}
-
-static bool LoadTestTexture(CVulkanRenderer& pRenderingContext)
-{
-	if (pRenderingContext.m_TestTexture.m_Image.m_Image != VK_NULL_HANDLE)
-	{
-		// The image already exists, don't do it again.
-		return true;
-	}
-
-	LOG_DEBUG("Creating test texture...");
-
-	int width, height, numChannels;
-	byte* pPixelData = stbi_load("Assets/Textures/container.jpg", &width, &height, &numChannels, 4);
-
-	if (!pPixelData)
-	{
-		LOG_ERROR("Failed to load test texture from disk!");
-		return false;
-	}
-
-	if (!VulkanImage::CreateImage(pRenderingContext, width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pRenderingContext.m_TestTexture.m_Image))
-	{
-		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
-		stbi_image_free(pPixelData);
-		return false;
-	}
-
-	// Upload texture data to the GPU.
-	pRenderingContext.m_TestTexture.m_Image.WriteDataToImage(pRenderingContext, width, height, pPixelData);
-
-	// Acquire shader resources.
-	if (!AcquireShaderResources(pRenderingContext, pRenderingContext.m_DefaultShader, pRenderingContext.m_TestTexture))
-	{
-		LOG_ERROR("Failed to acquire shader resources for test texture!");
-		return false;
-	}
-
-	stbi_image_free(pPixelData);
-
-	// If we got here, the image should be loaded and ready for use. Mark it as such...
-	pRenderingContext.m_TestTexture.m_Generation = 0;
 
 	return true;
 }
@@ -1190,16 +1142,6 @@ static bool RendererEvent_WindowResized(EventData_t data)
 {
 	s_VulkanContext.m_bWindowResized = true;
 
-	// Handle minimized contexts.
-	if (data.u32[0] == 0 || data.u32[1] == 0)
-	{
-		s_VulkanContext.m_bMinimized = true;
-	}
-	else
-	{
-		s_VulkanContext.m_bMinimized = false;
-	}
-
 	// Let other listeners handle this event.
 	return false;
 }
@@ -1211,59 +1153,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		LOG_DEBUG("Camera Pos: %.8f, %.8f, %.8f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z);
 		LOG_DEBUG("Camera Ang: %.8f, %.8f", s_MainCamera.Yaw, s_MainCamera.Pitch);
 	}
-
-	if (data.c[0] == 'T')
-	{
-		LoadTestTexture(s_VulkanContext);
-	}
-
-	/*double velocity = s_MainCamera.MoveSpeed * s_VulkanContext.m_flDeltaTime;
-	if (data.c[0] == 'W')
-	{
-		s_MainCamera.vecPosition += s_MainCamera.vecFront * velocity;
-	}
-	else if (data.c[0] == 'S')
-	{
-		s_MainCamera.vecPosition -= s_MainCamera.vecFront * velocity;
-	}
-	else if (data.c[0] == 'A')
-	{
-		s_MainCamera.vecPosition -= s_MainCamera.vecRight * velocity;
-	}
-	else if (data.c[0] == 'D')
-	{
-		s_MainCamera.vecPosition += s_MainCamera.vecRight * velocity;
-	}*/
-
-	// Let other listeners handle this event.
 	return false;
-}
-
-bool CVulkanRenderer::CreateDefaultGeometry()
-{
-	// Create the temp geometry buffer.
-	if (!VulkanBuffer::CreateBuffer((*this), sizeof(Vertex3D) * 72, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
-	{
-		LOG_ERROR("Failed to create geometry vertex data buffer.");
-		return false;
-	}
-
-	if (!VulkanBuffer::CreateBuffer((*this), sizeof(uint32_t) * 6, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
-	{
-		LOG_ERROR("Failed to create geometry index data buffer.");
-		return false;
-	}
-
-	//GeometryConfig_t quadConfig = MeshGenerator::CreateDefaultQuadConfiguration({ 0, 0, 0 }, 32, 32);
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 0 }, 32, 32, 32);
-	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, -50 }, 32, 32, 32);
-
-	m_GeometryVertexBuffer.UploadDataRange((*this), cubeConfig.Vertices.Capacity() * cubeConfig.Vertices.Stride(), cubeConfig.Vertices.Data());
-	m_GeometryVertexBuffer.UploadDataRange((*this), cubeConfig2.Vertices.Capacity() * cubeConfig2.Vertices.Stride(), cubeConfig2.Vertices.Data());
-	// Note: There should be no index data here... so this shouldn't do anythingcubeConfig2
-	//m_GeometryIndexBuffer.UploadDataRange((*this), quadConfig.Indices.Capacity() * quadConfig.Indices.Stride(), quadConfig.Indices.Data());
-
-	return true;
 }
 
 void CVulkanRenderer::DestroyDefaultGeometry()
