@@ -21,7 +21,7 @@ public:
 	virtual void	Shutdown() = 0;
 
 	virtual Texture*		LoadTexture(const char* pszTextureName) = 0;
-	virtual void			ReleaseTexture(TextureHandle_t textureHandle) = 0;
+	virtual void			ReleaseTexture(Texture& pTexture) = 0;
 
 	friend class Texture;
 };

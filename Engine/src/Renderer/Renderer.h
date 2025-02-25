@@ -29,6 +29,7 @@ public:
 	bool	Update(struct RenderPacket_t& pRenderData);
 
 	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData);
+	void	ReleaseTextureResources(class Texture& pTexture);
 
 	// Temp geometry stuff
 	bool	CreateTempGeometry();

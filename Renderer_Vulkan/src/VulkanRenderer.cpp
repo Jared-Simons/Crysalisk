@@ -33,6 +33,7 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 // TODO: Move this to a texture manager.
 static bool CreateDefaultTextures(CVulkanRenderer& pRenderingContext);
 static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture);
+static void	ReleaseShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture);
 
 static bool RendererEvent_WindowResized(EventData_t data);
 static bool RendererEvent_KeyPressed(EventData_t data);
@@ -434,6 +435,11 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 {
+	if (m_bResizingFramebuffer)
+	{
+		return true;
+	}
+
 	// Wait for the prior frame to finish it's work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
@@ -519,6 +525,11 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 {
+	if (m_bResizingFramebuffer)
+	{
+		return;
+	}
+
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
 
@@ -548,11 +559,41 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	presentInfo.pSwapchains = &m_Swapchain.m_Handle;
 	presentInfo.pImageIndices = &m_ImageIndex;
 	presentInfo.pResults = nullptr;
-	vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+	VkResult imagePresentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
+
+	// Make sure window resizes don't anything post-presentation.
+	// TODO: Instance descriptor sets are still borked after resize. This is most likely to to do with destroying and recreating our shader, 
+	// we need to re-evaluate this after we setup dynamic rendering.
+	if (imagePresentResult == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		vkDeviceWaitIdle(m_Device.m_Device);
+		// We need to recreate our swapchain.
+		m_Swapchain.RecreateSwapchain((*this), m_Swapchain);
+
+		// NOTE: We have to recreate our shader as well because we are not yet using any level of dynamic rendering.
+		// This means that our existing pipeline would be using the old swapchain's viewport information, which can
+		// only be updated by recreating the shader. (We will eventually implement dynamic rendering though).
+		DestroyDefaultShader(m_DefaultShader);
+		CreateDefaultShader(m_DefaultShader);
+
+		m_bWindowResized = false;
+		return;
+	}
+	else if (imagePresentResult != VK_SUCCESS && imagePresentResult != VK_SUBOPTIMAL_KHR)
+	{
+		// If we get in here it is very likely that we won't be able to recover...
+		CAssert(0);
+		return;
+	}
 }
 
 void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
 {
+	if (m_bResizingFramebuffer)
+	{
+		return;
+	}
+
 	// TODO: Check to make sure we're in a renderpass first!
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
@@ -608,6 +649,29 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDa
 	pTexture.SetInternalTextureData(pInternalData);
 
 	return true;
+}
+
+void CVulkanRenderer::ReleaseTextureResources(Texture& pTexture)
+{
+	// Make sure the resource isn't in use.
+	vkDeviceWaitIdle(m_Device.m_Device);
+
+	// Get at the Vulkan specific data.
+	VulkanTextureInternal* pInternalData = reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData());
+
+	if (!pInternalData)
+	{
+		LOG_ERROR("Failed to get Vulkan data when freeing texture. Texture release failed.");
+	}
+
+	// Make sure we do not render anymore...
+	pInternalData->m_Generation = kInvalidID_U8;
+
+	// Release shader resources.
+	ReleaseShaderResources((*this), m_DefaultShader, *pInternalData);
+
+	// Release our image resources.
+	VulkanImage::DestroyImage((*this), pInternalData->m_Image);
 }
 
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
@@ -795,6 +859,14 @@ static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanSha
 	pShader.m_NextFreeDescriptorSetIndex++;
 
 	return true;
+}
+
+static void	ReleaseShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture)
+{
+	// TODO: Keep a freelist or something for freed descriptors.
+	vkFreeDescriptorSets(pRenderingContext.m_Device.m_Device, pRenderingContext.m_DescriptorPool, pRenderingContext.m_MaxImagesInFlight, pShader.m_DescriptorSets[pTexture.m_DescriptorSetIndex].m_DescriptorSets);
+
+	pTexture.m_DescriptorSetIndex = kInvalidID_U8;
 }
 
 bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
@@ -1140,6 +1212,7 @@ void CVulkanRenderer::DestroyDefaultShader(VulkanShaderInternal& pShader)
 
 static bool RendererEvent_WindowResized(EventData_t data)
 {
+	s_VulkanContext.m_bWindowResized = true;
 	s_VulkanContext.m_bWindowResized = true;
 
 	// Let other listeners handle this event.

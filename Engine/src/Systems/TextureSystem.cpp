@@ -22,7 +22,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual Texture*		LoadTexture(const char* pszTextureName) override;
-	virtual void			ReleaseTexture(TextureHandle_t textureHandle) override;
+	virtual void			ReleaseTexture(Texture& pTexture) override;
 
 private:
 	TextureSystemConfig_t	m_Config{};
@@ -48,6 +48,16 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 
 void CTextureSystem::Shutdown()
 {
+	// Free any texture resources in use by the renderer.
+	for (int idx = 0; idx < m_Config.MaxTextures; idx++)
+	{
+		if (m_TextureArray[idx].m_pInternalData != nullptr)
+		{
+			ReleaseTexture(m_TextureArray[idx]);
+			m_TextureArray[idx].m_pInternalData = nullptr;
+		}
+	}
+
 	g_pMemoryManager->Free(m_TextureArray);
 }
 
@@ -110,7 +120,8 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	return newTexture; // TODO: Work this with the texture hash.
 }
 
-void CTextureSystem::ReleaseTexture(TextureHandle_t)
+void CTextureSystem::ReleaseTexture(Texture& pTexture)
 {
 	// TODO: Implement.
+	g_pRenderer->ReleaseTextureResources(pTexture);
 }

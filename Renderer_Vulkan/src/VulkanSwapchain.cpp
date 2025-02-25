@@ -186,4 +186,6 @@ void VulkanSwapchain::RecreateSwapchain(CVulkanRenderer& pRenderingContext, Vulk
 	DestroySwapchain(pRenderingContext, pSwapchain);
 	CreateSwapchain(pRenderingContext, pSwapchain);
 	CreateFramebuffers(pRenderingContext, pSwapchain);
+
+	pRenderingContext.m_bResizingFramebuffer = false;
 }

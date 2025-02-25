@@ -26,6 +26,7 @@ public:
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry) override;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
@@ -34,7 +35,6 @@ public:
 	void DestroyDefaultShader(VulkanShaderInternal& pShader);
 
 	// NOTE: These are also temporary.
-	bool CreateDefaultGeometry(); 
 	void DestroyDefaultGeometry();
 
 // All this stuff can be public because nothing outside of this module should be accessing the backend...
@@ -92,6 +92,7 @@ public:
 	double		m_flLastFrameTime{ 0.0f };
 	unsigned int	m_ImageIndex{ 0 };
 	bool		m_bWindowResized{ false };
+	bool		m_bResizingFramebuffer{ false };
 	Clock		m_RendererClock{};
 };
 

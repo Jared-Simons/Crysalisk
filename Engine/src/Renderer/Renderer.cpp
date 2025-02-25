@@ -107,6 +107,11 @@ bool Renderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize,
 	return m_RendererBackend->AcquireTextureResources(pTexture, nPixelDataSize, pPixelData);
 }
 
+void Renderer::ReleaseTextureResources(Texture& pTexture)
+{
+	m_RendererBackend->ReleaseTextureResources(pTexture);
+}
+
 bool Renderer::CreateTempGeometry()
 {
 	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 0 }, 32, 32, 32);
