@@ -490,7 +490,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	// Start the renderpass and update globals.
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
-	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex]; // Have these be owned by the swapchain instead?
+	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
 	renderpassInfo.renderArea.offset = { 0, 0 };
 	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
 
@@ -561,7 +561,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	presentInfo.pResults = nullptr;
 	VkResult imagePresentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
 
-	// Make sure window resizes don't anything post-presentation.
+	// Make sure window resizes don't break anything post-presentation.
 	// TODO: Instance descriptor sets are still borked after resize. This is most likely to to do with destroying and recreating our shader, 
 	// we need to re-evaluate this after we setup dynamic rendering.
 	if (imagePresentResult == VK_ERROR_OUT_OF_DATE_KHR)
