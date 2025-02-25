@@ -10,8 +10,10 @@
 
 #include "Platform.h"
 
+#include <Core/Event.h>
 #include "Core/InputTypes.h"
 #include "Core/Logging.h"
+#include "Interfaces.h"
 #include "InterfaceRegistry.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -219,6 +221,10 @@ namespace Platform {
 	{
 		switch (uMsg)
 		{
+		case WM_CLOSE:
+			g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+			break;
+
 		case WM_SIZE:
 			{
 				UINT width = LOWORD(lParam);
@@ -575,6 +581,11 @@ namespace Platform {
 		s_ModuleRegistry.PushBack(pNewModule);
 
 		return pNewModule;
+	}
+
+	void SetupExternalInterfaces()
+	{
+		::AssignInterfaces(GetRegisteredInterfaces());
 	}
 
 	// TODO: Make this more configurable (i.e. Able to continue, or abort)

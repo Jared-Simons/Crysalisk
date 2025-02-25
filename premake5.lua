@@ -36,6 +36,7 @@ project "Core"
 	{	
 		"%{prj.name}/src",
 		"Engine/src/",
+		"Interfaces/src",
 		"Public/",
 		"D:/coding/Vulkan/Include",
 	}

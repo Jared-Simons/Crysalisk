@@ -50,6 +50,8 @@ namespace Platform {
 	};
 
 	CORE_API ISysModule*	LoadSysModule(const char* pModulePath);
+	CORE_API void			SetupExternalInterfaces();
+
 	CORE_API bool			DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable);
 
 	CORE_API bool	InitializePlatformLayer();

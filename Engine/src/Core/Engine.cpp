@@ -115,6 +115,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	AssignInterfaces(Platform::GetRegisteredInterfaces());
 	Platform::ConnectLibraryInterfaces();
 
+	// The Core.dll gets it's interfaces separately because it is linked at link-time (TODO: Maybe this should work like every other lib?)
+	Platform::SetupExternalInterfaces();
+
 	// Input System.
 	if (!g_pInputSystem_Internal->Initialize(*m_pEngineWindow))
 	{
