@@ -170,7 +170,9 @@ bool CEngine::Run()
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
-		if (!s_bApplicationSuspended)
+		// NOTE: We need to check for the application quit event here, because it might've been set during 'Platform::ProcessMessages()' 
+		// and trying to run another frame may result in a fatal crash (the renderer attempting to render to a window that no longer exists, for example).
+		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled) 
 		{
 			g_pInputSystem_Internal->Update();
 
