@@ -116,7 +116,9 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	// Free the original pixel data.
 	stbi_image_free(pPixelData);
 
-	LOG_VERBOSE("Successfully loaded texture: '%s'!", pszTextureName);
+	TextureHandle_t newTextureHash = m_TextureHashmap.Insert(pszTextureName);
+
+	LOG_VERBOSE("Successfully loaded texture: '%s', at index: %d", pszTextureName, newTextureHash);
 	return newTexture; // TODO: Work this with the texture hash.
 }
 

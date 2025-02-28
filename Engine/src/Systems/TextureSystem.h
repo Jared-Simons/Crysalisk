@@ -22,8 +22,6 @@ public:
 
 	virtual Texture*		LoadTexture(const char* pszTextureName) = 0;
 	virtual void			ReleaseTexture(Texture& pTexture) = 0;
-
-	friend class Texture;
 };
 
 DLL_EXPORT ITextureSystem* g_pTextureSystem;

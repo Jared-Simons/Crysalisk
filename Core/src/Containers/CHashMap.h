@@ -48,10 +48,10 @@ namespace Utl {
 		~CHashMap()
 		{
 			if (m_pKeys)
-				g_pMemoryManager->Free(m_pKeys);
+				g_pMemoryManager->Free((void*)m_pKeys);
 
 			if (m_pValues)
-				g_pMemoryManager->Free(m_pValues);
+				g_pMemoryManager->Free((void*)m_pValues);
 		}
 
 		Value& operator[](Key pKey)
@@ -69,11 +69,11 @@ namespace Utl {
 		int Insert(Key key)
 		{
 			// TODO: We need a generic function here
-			Key hashedKey = SimpleHash(value, m_Capacity);
+			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
 			CAssert((hashedValue >= 0 && hashedValue < m_Capacity));
 
 			// TODO: Check for collisions.
-			m_pValues[hashedValue] = value;
+			m_pKeys[hashedValue] = key;
 
 			return hashedValue;
 		}
@@ -83,6 +83,7 @@ namespace Utl {
 		{
 			m_pKeys = (Key*)g_pMemoryManager->Allocate(sizeof(Key) * nNewCapacity);
 			m_pValues = (Value*)g_pMemoryManager->Allocate(sizeof(Value) * nNewCapacity);
+			m_Capacity = nNewCapacity;
 		}
 
 	private:

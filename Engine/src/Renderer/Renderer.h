@@ -43,6 +43,7 @@ private:
 	// TODO: These are temporary...
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
+	GeometryInstance_t	m_Cube3{};
 };
 
 extern Renderer* g_pRenderer;

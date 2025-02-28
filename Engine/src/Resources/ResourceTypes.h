@@ -12,7 +12,7 @@
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
 
-typedef uint32_t TextureHandle_t;
+typedef const uint32_t TextureHandle_t;
 
 class Texture
 {
