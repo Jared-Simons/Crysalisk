@@ -461,12 +461,6 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 		// We need to recreate our swapchain.
 		m_Swapchain.RecreateSwapchain((*this), m_Swapchain);
 
-		// NOTE: We have to recreate our shader as well because we are not yet using any level of dynamic rendering.
-		// This means that our existing pipeline would be using the old swapchain's viewport information, which can
-		// only be updated by recreating the shader. (We will eventually implement dynamic rendering though).
-		DestroyDefaultShader(m_DefaultShader);
-		CreateDefaultShader(m_DefaultShader);
-
 		m_bWindowResized = false;
 		return true;
 	}
@@ -499,6 +493,24 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	renderpassInfo.pClearValues = clearColors;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// Set our dynamic state.
+	// TODO: Should this be with the pipeline bind?
+	VkViewport viewport{};
+	viewport.x = 0;
+	viewport.y = 0;
+	viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
+	viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+	
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = m_Swapchain.m_SwapchainExtent;
+
+	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	// Update our matrices.
 	Matrix4x4 model{};
@@ -569,12 +581,6 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		vkDeviceWaitIdle(m_Device.m_Device);
 		// We need to recreate our swapchain.
 		m_Swapchain.RecreateSwapchain((*this), m_Swapchain);
-
-		// NOTE: We have to recreate our shader as well because we are not yet using any level of dynamic rendering.
-		// This means that our existing pipeline would be using the old swapchain's viewport information, which can
-		// only be updated by recreating the shader. (We will eventually implement dynamic rendering though).
-		DestroyDefaultShader(m_DefaultShader);
-		CreateDefaultShader(m_DefaultShader);
 
 		m_bWindowResized = false;
 		return;
@@ -990,6 +996,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 	viewportState.pNext = nullptr;
 	viewportState.flags = 0;
+	VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
 	VkViewport viewport{};
 	viewport.x = 0;
@@ -1053,6 +1060,11 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	colorBlend.blendConstants[2] = 0.0f;
 	colorBlend.blendConstants[3] = 0.0f;
 
+	// Dynamic pipeline state
+	VkPipelineDynamicStateCreateInfo dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+	dynamicStateInfo.dynamicStateCount = 2;
+	dynamicStateInfo.pDynamicStates = dynamicState;
+
 	// Descriptor set layout
 	// Uniform buffer
 	VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -1077,9 +1089,6 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	layoutInfo.flags = 0;
 	layoutInfo.bindingCount = 2;
 	layoutInfo.pBindings = bindings;
-
-	// TODO: We need to create these separately because for whatever crazy dumb reason, they won't create properly at the same time...
-	// (I'm probably just missing something very obvious :(. )
 	VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &layoutInfo, nullptr, &pOutShader.m_DescriptorSetLayouts));
 
 	// Pipeline layout
@@ -1111,7 +1120,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pDepthStencilState = &depthStencil;
 	pipelineInfo.pColorBlendState = &colorBlend;
-	pipelineInfo.pDynamicState = nullptr; // No dynamic state for now.
+	pipelineInfo.pDynamicState = &dynamicStateInfo;
 	pipelineInfo.layout = pOutShader.m_PipelineLayout;
 	pipelineInfo.renderPass = m_MainRenderPass.m_Handle; // Just using the singular renderpass for now.
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
