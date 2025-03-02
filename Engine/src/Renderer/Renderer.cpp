@@ -93,9 +93,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	m_RendererBackend->DrawGeometry(m_Cube1);
-	m_RendererBackend->DrawGeometry(m_Cube2);
-	m_RendererBackend->DrawGeometry(m_Cube3);
+	m_RendererBackend->DrawGeometry(m_Cube1, *g_pTextureSystem->GetTextureFromHandle(m_Cube1.pTexture));
+	m_RendererBackend->DrawGeometry(m_Cube2, *g_pTextureSystem->GetTextureFromHandle(m_Cube2.pTexture));
+	m_RendererBackend->DrawGeometry(m_Cube3, *g_pTextureSystem->GetTextureFromHandle(m_Cube3.pTexture));
 
 	m_RendererBackend->EndFrame(pRenderData);
 

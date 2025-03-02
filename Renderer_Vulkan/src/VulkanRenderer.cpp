@@ -587,7 +587,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	}
 }
 
-void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
+void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pTexture)
 {
 	if (m_bResizingFramebuffer)
 	{
@@ -606,7 +606,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
 
 	// Bind instance descriptor set.
-	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pGeometry.pTexture->GetInternalData())->m_DescriptorSetIndex : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
+	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData())->m_DescriptorSetIndex : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Issue the draw.
@@ -678,7 +678,8 @@ void CVulkanRenderer::ReleaseTextureResources(Texture& pTexture)
 
 	if (!pInternalData)
 	{
-		LOG_ERROR("Failed to get Vulkan data when freeing texture. Texture release failed.");
+		LOG_ERROR("Failed to get Vulkan data when freeing texture '%s'. Texture release failed.", pTexture.GetName());
+		return;
 	}
 
 	// Make sure we do not render anymore...

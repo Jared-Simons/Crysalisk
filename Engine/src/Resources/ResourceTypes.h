@@ -23,11 +23,12 @@ enum TextureFlags_t
 class Texture
 {
 public:
-	void	SetInternalTextureData(void* pInternalData) { m_pInternalData = pInternalData; }
-	void*	GetInternalData() const { return m_pInternalData; } // TODO: I don't like this :(
-	int32_t	GetWidth() const { return width; }
-	int32_t GetHeight() const { return height; }
-	int32_t GetNumChannels() const { return numChannels; }
+	inline void	SetInternalTextureData(void* pInternalData) { m_pInternalData = pInternalData; }
+	inline void*	GetInternalData() const { return m_pInternalData; } // TODO: I don't like this :(
+	inline int32_t	GetWidth() const { return width; }
+	inline int32_t GetHeight() const { return height; }
+	inline int32_t GetNumChannels() const { return numChannels; }
+	inline const char* GetName() const { return pszTextureName; }
 
 private:
 	int32_t width;
@@ -55,5 +56,5 @@ struct GeometryInstance_t
 	int indexDataSize{};
 	int indexDataOffset{};
 
-	Texture* pTexture{};
+	TextureHandle_t pTexture{};
 };
