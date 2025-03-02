@@ -34,6 +34,8 @@ public:
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
 
+	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
+
 	bool			CreateDefaultTextures();
 	void			DestroyDefaultTextures();
 
@@ -57,6 +59,7 @@ private:
 
 	// Default textures:
 	TextureLookup* m_pDefaultTextureLookup{ nullptr };
+	TextureLookup* m_pWhiteTextureLookup{ nullptr };
 };
 
 // Texture System Context.
@@ -271,56 +274,106 @@ bool CTextureSystem::CreateDefaultTextures()
 	LOG_INFO("Creating default textures");
 
 	// Default diffuse texture
-	Texture* defaultDiffuseTexture = nullptr;
-	int texIdx = 0;
-
-	// Get an entry into the hashmap.
-	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultTextureName);
-	CAssert(newTextureLookup != nullptr);
-
-	// Get at the first free texture.
-	for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 	{
-		if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+		Texture* defaultDiffuseTexture = nullptr;
+		int texIdx = 0;
+
+		// Get an entry into the hashmap.
+		TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultTextureName);
+		CAssert(newTextureLookup != nullptr);
+
+		// Get at the first free texture.
+		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 		{
-			// Found one!
-			defaultDiffuseTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-			break;
+			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+			{
+				// Found one!
+				defaultDiffuseTexture = &m_TextureDictionary.m_TextureArray[texIdx];
+				break;
+			}
 		}
-	}
-	CAssert(defaultDiffuseTexture != nullptr);
+		CAssert(defaultDiffuseTexture != nullptr);
 
-	defaultDiffuseTexture->pszTextureName = StringDuplicate("_DefaultDiffuse");
-	defaultDiffuseTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
+		defaultDiffuseTexture->pszTextureName = StringDuplicate(kszDefaultTextureName);
+		defaultDiffuseTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
-	byte	defaultTexturePixels[8][8][4];
-	memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-	for (int rowIdx = 0; rowIdx < 8; rowIdx++)
-	{
-		for (int colIdx = 0; colIdx < 8; colIdx++)
+		byte	defaultTexturePixels[8][8][4];
+		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
-			defaultTexturePixels[rowIdx][colIdx][0] = 0;
-			defaultTexturePixels[rowIdx][colIdx][1] = 0;
-			defaultTexturePixels[rowIdx][colIdx][2] = ((rowIdx % 2) == 0) ? (((colIdx % 2) == 0) ? 255 : 0) : (((colIdx % 2) == 0) ? 0 : 255);
-			defaultTexturePixels[rowIdx][colIdx][3] = 255;
+			for (int colIdx = 0; colIdx < 8; colIdx++)
+			{
+				defaultTexturePixels[rowIdx][colIdx][0] = 0;
+				defaultTexturePixels[rowIdx][colIdx][1] = 0;
+				defaultTexturePixels[rowIdx][colIdx][2] = ((rowIdx % 2) == 0) ? (((colIdx % 2) == 0) ? 255 : 0) : (((colIdx % 2) == 0) ? 0 : 255);
+				defaultTexturePixels[rowIdx][colIdx][3] = 255;
+			}
 		}
-	}
-	byte* pPixelData = defaultTexturePixels[0][0];
+		byte* pPixelData = defaultTexturePixels[0][0];
 
-	defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
-	if (!g_pRenderer->AcquireTextureResources(*defaultDiffuseTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
+		if (!g_pRenderer->AcquireTextureResources(*defaultDiffuseTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		{
+			LOG_ERROR("Failed to create default diffuse texture.");
+			return false;
+		}
+
+		if (newTextureLookup->TextureIndex == kInvalidID_U32)
+			newTextureLookup->TextureIndex = texIdx;
+
+		m_pDefaultTextureLookup = newTextureLookup;
+	}
+
+	// Default white texture
 	{
-		LOG_ERROR("Failed to create default diffuse texture.");
-		return false;
+		Texture* defaultWhiteTexture = nullptr;
+		int texIdx = 0;
+
+		// Get an entry into the hashmap.
+		TextureLookup* defaultWhiteTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultWhiteTextureName);
+		CAssert(defaultWhiteTextureLookup != nullptr);
+
+		// Get at the first free texture.
+		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+		{
+			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+			{
+				// Found one!
+				defaultWhiteTexture = &m_TextureDictionary.m_TextureArray[texIdx];
+				break;
+			}
+		}
+		CAssert(defaultWhiteTexture != nullptr);
+
+		defaultWhiteTexture->pszTextureName = StringDuplicate(kszDefaultWhiteTextureName);
+		defaultWhiteTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
+
+		byte	defaultTexturePixels[8][8][4];
+		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		{
+			for (int colIdx = 0; colIdx < 8; colIdx++)
+			{
+				defaultTexturePixels[rowIdx][colIdx][0] = 255;
+				defaultTexturePixels[rowIdx][colIdx][1] = 255;
+				defaultTexturePixels[rowIdx][colIdx][2] = 255;
+				defaultTexturePixels[rowIdx][colIdx][3] = 255;
+			}
+		}
+		byte* pPixelData = defaultTexturePixels[0][0];
+
+		defaultWhiteTexture->width = defaultWhiteTexture->height = 8;
+		if (!g_pRenderer->AcquireTextureResources(*defaultWhiteTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		{
+			LOG_ERROR("Failed to create default diffuse texture.");
+			return false;
+		}
+
+		if (defaultWhiteTextureLookup->TextureIndex == kInvalidID_U32)
+			defaultWhiteTextureLookup->TextureIndex = texIdx;
+
+		m_pWhiteTextureLookup = defaultWhiteTextureLookup;
 	}
-
-
-	defaultDiffuseTexture->pszTextureName = StringDuplicate(kszDefaultTextureName);
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32)
-		newTextureLookup->TextureIndex = texIdx;
-
-	m_pDefaultTextureLookup = newTextureLookup;
 
 	return true;
 }
@@ -336,4 +389,11 @@ void CTextureSystem::DestroyDefaultTextures()
 
 	if (pDefaultTexture->pszTextureName)
 		StringFree(pDefaultTexture->pszTextureName);
+
+	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
+	g_pRenderer->ReleaseTextureResources(*pDefaultWhiteTexture);
+	pDefaultWhiteTexture->m_pInternalData = nullptr;
+
+	if (pDefaultWhiteTexture->pszTextureName)
+		StringFree(pDefaultWhiteTexture->pszTextureName);
 }
