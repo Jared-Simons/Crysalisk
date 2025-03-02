@@ -509,7 +509,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	// Update our matrices.
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
-	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
+	model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
 	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
 	m_UniformData.View = s_MainCamera.GetViewMatrix();
