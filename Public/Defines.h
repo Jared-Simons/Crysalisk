@@ -91,6 +91,7 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 
 // Invalid IDs
 const unsigned int kInvalidID_U8 = 255;
+const unsigned int kInvalidID_U32 = 4294967294;
 
 // Utility Functions
 

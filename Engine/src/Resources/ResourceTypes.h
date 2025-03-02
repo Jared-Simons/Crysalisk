@@ -12,7 +12,13 @@
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
 
-typedef const uint32_t TextureHandle_t;
+using TextureHandle_t = uint32_t;
+using TextureFlags = uint8_t;
+
+enum TextureFlags_t
+{
+	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01
+};
 
 class Texture
 {
@@ -27,6 +33,8 @@ private:
 	int32_t width;
 	int32_t height;
 	int32_t numChannels; // TODO: Image format
+	char* pszTextureName{ nullptr };
+	TextureFlags textureFlags{ 0 };
 	void* m_pInternalData{ nullptr };
 
 	friend class CTextureSystem;

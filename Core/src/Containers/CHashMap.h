@@ -56,8 +56,8 @@ namespace Utl {
 
 		Value& operator[](Key pKey)
 		{
-			Key hashedKey = SimpleHash(pKey, m_Capacity);
-			return (*m_pValues)[hashedKey];
+			int hashedKey = SimpleHash_StringToInt(pKey, m_Capacity);
+			return m_pValues[hashedKey];
 		}
 
 		/*Value operator[](const Key& pKey)
@@ -66,7 +66,7 @@ namespace Utl {
 			return m_pData[pKey];
 		}*/
 
-		int Insert(Key key)
+		Value* Insert(Key key)
 		{
 			// TODO: We need a generic function here
 			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
@@ -75,7 +75,7 @@ namespace Utl {
 			// TODO: Check for collisions.
 			m_pKeys[hashedValue] = key;
 
-			return hashedValue;
+			return &m_pValues[hashedValue];
 		}
 
 		// TODO: This currently invalidates the whole container... fix this!
@@ -84,6 +84,12 @@ namespace Utl {
 			m_pKeys = (Key*)g_pMemoryManager->Allocate(sizeof(Key) * nNewCapacity);
 			m_pValues = (Value*)g_pMemoryManager->Allocate(sizeof(Value) * nNewCapacity);
 			m_Capacity = nNewCapacity;
+		}
+
+		// This allows us to access our elements in an array like manner.
+		Value& ValueElementAt(int index)
+		{
+			return m_pValues[index];
 		}
 
 	private:

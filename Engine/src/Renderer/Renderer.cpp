@@ -138,9 +138,9 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	// Acquire texture
-	m_Cube1.pTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container69.jpg"); // Note: This texture doesn't exist. We're using it to make sure the texture system can handle non-existent images.
-	m_Cube2.pTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container.jpg");
-	m_Cube3.pTexture = g_pTextureSystem->LoadTexture("Assets/Textures/container2.png");
+	m_Cube1.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container69.jpg"); // Note: This texture doesn't exist. We're using it to make sure the texture system can handle non-existent images.
+	m_Cube2.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
+	m_Cube3.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container2.png");
 
 	return true;
 }
