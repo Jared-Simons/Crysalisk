@@ -9,14 +9,17 @@ vec2 positions[3] = vec2[](
 // Vertex input
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) in vec3 inNormal;
 
 layout(location = 1) out vec2 outTexCoord;
+layout(location = 2) out vec3 outNormal;
+layout(location = 3) out vec3 outFragPos;
 
 layout(set = 0, binding = 0) uniform GlobalUniformBuffer 
 {
 	mat4 projection;
 	mat4 view;
-	mat4 reserved0;
+	vec3 viewPos;
 	mat4 reserved1;
 } global_ubo;
 
@@ -27,6 +30,9 @@ layout(push_constant) uniform push_constants
 
 void main()
 {
-	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 	outTexCoord = fragTexCoord;
+	outNormal = mat3(transpose(inverse(u_PushConstants.model))) * inNormal;
+	outFragPos = vec3(u_PushConstants.model * vec4(inPosition, 1.0));
+
+	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }

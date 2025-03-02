@@ -22,7 +22,7 @@ struct GlobalUniformObject_t
 {
 	Matrix4x4	Projection;
 	Matrix4x4	View;
-	Matrix4x4	Reserved0; // Here for alignment.
+	Vector3D	ViewPos;
 	Matrix4x4	Reserved1; 
 };
 

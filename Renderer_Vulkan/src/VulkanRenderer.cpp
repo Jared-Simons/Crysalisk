@@ -510,11 +510,13 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
 	model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -100.0f));
+	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
 	m_UniformData.View = s_MainCamera.GetViewMatrix();
 	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
 	m_UniformData.Projection.data[5] *= -1;
+
+	m_UniformData.ViewPos = s_MainCamera.vecPosition;
 
 	// Copy to the GPU.
 	void* pUniformData;
@@ -945,7 +947,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	vertexBindingDescription.stride = sizeof(Vertex3D);
 	vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-	VkVertexInputAttributeDescription vertexAttributeDescriptions[2]{};
+	VkVertexInputAttributeDescription vertexAttributeDescriptions[3]{};
 	vertexAttributeDescriptions[0].location = 0;	// Vertex position
 	vertexAttributeDescriptions[0].binding = 0;
 	vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -956,9 +958,14 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	vertexAttributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
 	vertexAttributeDescriptions[1].offset = offsetof(Vertex3D, TexCoord);
 
+	vertexAttributeDescriptions[2].location = 2;	// Normal
+	vertexAttributeDescriptions[2].binding = 0;
+	vertexAttributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vertexAttributeDescriptions[2].offset = offsetof(Vertex3D, Normal);
+
 	vertexInputState.vertexBindingDescriptionCount = 1;
 	vertexInputState.pVertexBindingDescriptions = &vertexBindingDescription;
-	vertexInputState.vertexAttributeDescriptionCount = 2;
+	vertexInputState.vertexAttributeDescriptionCount = 3;
 	vertexInputState.pVertexAttributeDescriptions = vertexAttributeDescriptions;
 
 	// Input assembly state
@@ -1052,7 +1059,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	uboLayoutBinding.descriptorCount = 1;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uboLayoutBinding.pImmutableSamplers = nullptr;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	// Sampler
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};

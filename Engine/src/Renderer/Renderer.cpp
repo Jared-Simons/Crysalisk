@@ -95,7 +95,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	// Render our temp geometry.
 	m_RendererBackend->DrawGeometry(m_Cube1, *g_pTextureSystem->GetTextureFromHandle(m_Cube1.pTexture));
 	m_RendererBackend->DrawGeometry(m_Cube2, *g_pTextureSystem->GetTextureFromHandle(m_Cube2.pTexture));
-	m_RendererBackend->DrawGeometry(m_Cube3, *g_pTextureSystem->GetTextureFromHandle(m_Cube3.pTexture));
+	//m_RendererBackend->DrawGeometry(m_Cube3, *g_pTextureSystem->GetTextureFromHandle(m_Cube3.pTexture));
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -115,8 +115,8 @@ void Renderer::ReleaseTextureResources(Texture& pTexture)
 
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 0 }, 32, 32, 32);
-	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, -50 }, 32, 32, 32);
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50 }, 20, 20, 20);
+	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 32, 32, 32);
 
 	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig, m_Cube1))
@@ -130,17 +130,17 @@ bool Renderer::CreateTempGeometry()
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
 	}
-
+	/*
 	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig3, m_Cube3))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
-	}
+	}*/
 
 	// Acquire texture
-	m_Cube1.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container69.jpg"); // Note: This texture doesn't exist. We're using it to make sure the texture system can handle non-existent images.
+	m_Cube1.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/TestDevTexture.png");
 	m_Cube2.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
-	m_Cube3.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container2.png");
+	//m_Cube3.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container2.png");
 
 	return true;
 }

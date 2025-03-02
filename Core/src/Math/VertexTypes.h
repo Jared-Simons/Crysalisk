@@ -20,4 +20,5 @@ public:
 	Vector3D Pos;
 	Vector3D Color;
 	Vector2D TexCoord;
+	Vector3D Normal;
 };
