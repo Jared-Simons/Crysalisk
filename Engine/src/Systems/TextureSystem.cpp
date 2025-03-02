@@ -248,6 +248,7 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture, bool bForceRelease
 //-------------------------------------------------------------------------
 // Same as above, except this goes right to the texture array, skipping the lookup in the hashmap.
 // This is used so that we don't need to get the table lookup on shutdown, when we just want to release all texture resources anyways.
+// NOTE THAT THIS WILL FREE RESOURCES WITH NO REGARD TO REF. COUNTING!!!
 //-------------------------------------------------------------------------
 void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease)
 {
@@ -255,35 +256,11 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.textureFlags & TEXTURE_FLAG_DEFAULT_TEXTURE)
 		return;
 
-	// Get the texture lookup.
-	TextureLookup* pTexLookup = &m_TextureDictionary.m_TextureHashmap[pTexture.pszTextureName];
-	if (!pTexLookup || pTexLookup->TextureIndex == kInvalidID_U32)
-	{
-		LOG_ERROR("Texture '%s' failed to release resources. Texture dictionary is likely corrupt!", pTexture.pszTextureName);
-		return;
-	}
+	g_pRenderer->ReleaseTextureResources(pTexture);
+	if (pTexture.pszTextureName)
+		StringFree(pTexture.pszTextureName);
 
-	// Decrement reference count.
-	pTexLookup->ReferenceCount--;
-	LOG_VERBOSE("Released texture '%s', reference count is now %d", pTexture.pszTextureName, pTexLookup->ReferenceCount);
-
-	// Release resources if necessary.
-	if ((pTexLookup->ReferenceCount <= 0 && pTexLookup->AutoRelease == true) || bForceRelease)
-	{
-		if (bForceRelease)
-		{
-			LOG_DEBUG("Texture '%s''s reference count has reached %d, but is being force-released. Releasing resources.", pTexture.pszTextureName, pTexLookup->ReferenceCount);
-		}
-		else
-		{
-			LOG_DEBUG("Texture '%s''s reference count has reached %d, and is set to auto-release. Releasing resources.", pTexture.pszTextureName, pTexLookup->ReferenceCount);
-		}
-		g_pRenderer->ReleaseTextureResources(pTexture);
-		if (pTexture.pszTextureName)
-			StringFree(pTexture.pszTextureName);
-
-		pTexture.m_pInternalData = nullptr;
-	}
+	pTexture.m_pInternalData = nullptr;
 }
 
 //-------------------------------------------------------------------------
