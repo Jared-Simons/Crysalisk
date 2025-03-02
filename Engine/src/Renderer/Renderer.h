@@ -19,6 +19,8 @@ struct RendererConfig_t
 	const char* szApplicationName;
 	void* pHWnd;
 	Platform::ISysModule* pRendererBackendDLL;
+
+	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
 };
 
 class Renderer

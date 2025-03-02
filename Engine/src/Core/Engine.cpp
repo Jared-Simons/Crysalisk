@@ -138,6 +138,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
 	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
 	rendererConfig.pRendererBackendDLL = pRendererModule;
+	rendererConfig.MaxTextures = 2049;
 
 	if (!g_pRenderer->Initialize(rendererConfig))
 	{
@@ -148,6 +149,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Texture manager.
 	TextureSystemConfig_t textureSysConfig{};
 	textureSysConfig.MaxTextures = 2049;
+	CAssert(rendererConfig.MaxTextures == textureSysConfig.MaxTextures);
 	if (!g_pTextureSystem->Initialize(textureSysConfig))
 	{
 		LOG_ERROR("Failed to initialize texture system! Application cannot continue.");

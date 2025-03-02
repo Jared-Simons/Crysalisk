@@ -15,7 +15,6 @@
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
 #include <Platform/InterfaceRegistry.h>
-#include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 #include <Resources/GeometryGenerator.h>
 #include <Resources/ResourceTypes.h>
@@ -353,6 +352,18 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// Allocate resources for our image data.
+	m_pInternalTextureData = (VulkanTextureInternal*)g_pMemoryManager->Allocate(sizeof(VulkanTextureInternal) * pConfig.MaxTextures);
+
+	// Invalidate all entries.
+	for (int idx = 0; idx < pConfig.MaxTextures; idx++)
+	{
+		m_pInternalTextureData[idx].m_Generation = kInvalidID_U8;
+	}
+
+	// Save off our configuration.
+	m_RendererConfig = pConfig;
+
 	// Register for input events.
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
@@ -370,15 +381,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Make sure none of our resources are in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
 
-	// Destroy the temp texture, if it exists.
-	// THIS IS TEMPORARY
-	if (m_TestTexture.m_Image.m_Image != VK_NULL_HANDLE)
-	{
-		VulkanImage::DestroyImage((*this), m_TestTexture.m_Image);
-		m_TestTexture.m_DescriptorSetIndex = kInvalidID_U8;
-		m_TestTexture.m_Generation = kInvalidID_U8;
-	}
-
 	// Destroy our temp geometry.
 	// THIS IS TEMPORARY
 	DestroyDefaultGeometry();
@@ -386,6 +388,9 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Destroy our default shader.
 	// THIS IS TEMPORARY
 	DestroyDefaultShader(m_DefaultShader);
+
+	// Free internal texture data.
+	g_pMemoryManager->Free(m_pInternalTextureData);
 
 	// Descriptor Pool
 	vkDestroyDescriptorPool(m_Device.m_Device, m_DescriptorPool, nullptr);
@@ -611,7 +616,24 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
 bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
 {
 	// Allocate space for Vulkan texture data.
-	VulkanTextureInternal* pInternalData = new VulkanTextureInternal;
+	VulkanTextureInternal* pInternalData = nullptr;
+
+	// Look for a free texture slot.
+	for (int idx = 0; idx < m_RendererConfig.MaxTextures; idx++)
+	{
+		if (m_pInternalTextureData[idx].m_Generation == kInvalidID_U8)
+		{
+			// Found one!
+			pInternalData = &m_pInternalTextureData[idx];
+			break;
+		}
+	}
+
+	if (!pInternalData)
+	{
+		LOG_ERROR("No more free texture slots in Vulkan backend! Aborting texture creation!");
+		return false;
+	}
 
 	if (!VulkanImage::CreateImage((*this), pTexture.GetWidth(), pTexture.GetHeight(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
 	{

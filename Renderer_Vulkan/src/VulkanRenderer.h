@@ -9,6 +9,7 @@
 #include <Renderer/IRendererBackend.h>
 
 #include <Core/Clock.h>
+#include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 
 #include "VulkanTypes.h"
@@ -72,10 +73,12 @@ public:
 
 	// Temp shader
 	VulkanShaderInternal m_DefaultShader{};
-	VulkanTextureInternal m_TestTexture{};
 
 	// Descriptor Pool
 	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
+
+	// Internal Vulkan texture tata
+	VulkanTextureInternal* m_pInternalTextureData;
 
 	// Temp geometry buffer
 	VulkanBuffer		m_GeometryVertexBuffer{};
@@ -90,6 +93,7 @@ public:
 	unsigned int	m_ImageIndex{ 0 };
 	bool		m_bWindowResized{ false };
 	bool		m_bResizingFramebuffer{ false };
+	RendererConfig_t	m_RendererConfig{};
 	Clock		m_RendererClock{};
 };
 

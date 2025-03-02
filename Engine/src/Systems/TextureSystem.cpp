@@ -90,7 +90,7 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	if (!pszTextureName)
 	{
 		LOG_ERROR("CTextureSystem::LoadTexture() requires a path to the texture to load! Returning default texture.");
-		return 0; // TODO: Default.
+		return &m_DefaultDiffuseTexture;
 	}
 
 	// Get at the first free texture.
@@ -107,7 +107,7 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	if (!newTexture)
 	{
 		LOG_ERROR("Could not load texture '%s' because all texture slots were full, returning default texture.", pszTextureName);
-		return 0; // TODO: Default texture.
+		return &m_DefaultDiffuseTexture;
 	}
 
 	// Load up the image
@@ -116,7 +116,7 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	if (!pPixelData)
 	{
 		LOG_ERROR("Failed to load texture '%s'. Returning default texture.", pszTextureName); // TODO: Failure reason?
-		return 0; // TODO: Default texture.
+		return &m_DefaultDiffuseTexture; 
 	}
 
 	// Send the data off to the renderer to be uploaded to the GPU.
@@ -124,7 +124,7 @@ Texture* CTextureSystem::LoadTexture(const char* pszTextureName)
 	{
 		LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
 		stbi_image_free(pPixelData);
-		return 0; // TODO: Defaulte texture.
+		return &m_DefaultDiffuseTexture;
 	}
 
 	// Free the original pixel data.
