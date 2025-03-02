@@ -83,9 +83,6 @@ public:
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
 
-	// Temp textures
-	VulkanImage	m_DefaultTexture{};
-
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
 	double		m_flDeltaTime{ 0.0f };

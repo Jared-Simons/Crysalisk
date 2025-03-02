@@ -30,8 +30,7 @@ IRendererBackend* g_pRendererBackend = &s_VulkanContext;
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers);
 static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expectedExtensions);
 
-// TODO: Move this to a texture manager.
-static bool CreateDefaultTextures(CVulkanRenderer& pRenderingContext);
+// TODO: Shader system.
 static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture);
 static void	ReleaseShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture);
 
@@ -333,12 +332,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
-	if (!CreateDefaultTextures(*this))
-	{
-		LOG_ERROR("Failed to create default textures. Renderer initialization failed!");
-		return false;
-	}
-
 	// Create our default shader.
 	// THIS IS TEMPORARY
 	if (!CreateDefaultShader(m_DefaultShader))
@@ -385,10 +378,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 		m_TestTexture.m_DescriptorSetIndex = kInvalidID_U8;
 		m_TestTexture.m_Generation = kInvalidID_U8;
 	}
-
-	// Default texture
-	// THIS IS TEMPORARY
-	VulkanImage::DestroyImage((*this), m_DefaultTexture);
 
 	// Destroy our temp geometry.
 	// THIS IS TEMPORARY
@@ -612,7 +601,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry)
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
 
 	// Bind instance descriptor set.
-	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pGeometry.pTexture->GetInternalData())->m_DescriptorSetIndex : 0;
+	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pGeometry.pTexture->GetInternalData())->m_DescriptorSetIndex : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Issue the draw.
@@ -781,38 +770,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	}
 
 	return VK_FALSE;
-}
-
-static bool CreateDefaultTextures(CVulkanRenderer& pRenderingContext)
-{
-	byte	defaultTexturePixels[8][8][4];
-	memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-	for (int rowIdx = 0; rowIdx < 8; rowIdx++)
-	{
-		for (int colIdx = 0; colIdx < 8; colIdx++)
-		{
-			defaultTexturePixels[rowIdx][colIdx][0] = 0;
-			defaultTexturePixels[rowIdx][colIdx][1] = 0;
-			defaultTexturePixels[rowIdx][colIdx][2] = ((rowIdx % 2) == 0) ? (((colIdx % 2) == 0) ? 255 : 0) : (((colIdx % 2) == 0) ? 0 : 255);
-			defaultTexturePixels[rowIdx][colIdx][3] = 255;
-		}
-	}
-
-	// Create the image to hold the data.
-	if (!VulkanImage::CreateImage(pRenderingContext, 8, 8, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pRenderingContext.m_DefaultTexture))
-	{
-		LOG_ERROR("Failed to create default diffuse texture!");
-		return false;
-	}
-
-	// Upload the pixel data to the GPU.
-	if (!pRenderingContext.m_DefaultTexture.WriteDataToImage(pRenderingContext, 8, 8, *defaultTexturePixels[0]))
-	{
-		LOG_ERROR("Failed to upload default texture data!");
-		return false;
-	}
-
-	return true;
 }
 
 static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture)
@@ -1173,10 +1130,9 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 		bufferInfo.offset = 0;
 		bufferInfo.range = sizeof(GlobalUniformObject_t);
 
+		// TODO: Do we want global textures?
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_DefaultTexture.m_View;
-		imageInfo.sampler = m_DefaultTexture.m_Sampler;
 
 		VkWriteDescriptorSet descriptorWrites[2]{};
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -1195,7 +1151,8 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(m_Device.m_Device, 2, descriptorWrites, 0, nullptr);
+		// NOTE: Only writing to the global uniform buffer for now.
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
 	}
 
 	// Bump this to 1, as that's where instance level descriptors start...

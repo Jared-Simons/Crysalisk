@@ -24,10 +24,15 @@ public:
 	virtual Texture*		LoadTexture(const char* pszTextureName) override;
 	virtual void			ReleaseTexture(Texture& pTexture) override;
 
+	bool			CreateDefaultTextures();
+
 private:
 	TextureSystemConfig_t	m_Config{};
 	Utl::CHashMap<const char*, TextureHandle_t>	m_TextureHashmap{};
 	Texture* m_TextureArray{ nullptr };
+
+	// Default textures:
+	Texture m_DefaultDiffuseTexture;
 };
 
 static CTextureSystem s_TextureSystem;
@@ -40,6 +45,12 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 
 	// Allocate memory for our texture array.
 	m_TextureArray = (Texture*)g_pMemoryManager->Allocate(sizeof(Texture) * m_Config.MaxTextures);
+
+	if (!CreateDefaultTextures())
+	{
+		LOG_ERROR("Failed to create default textures!");
+		return false;
+	}
 
 	LOG_INFO("Texture system initialized! (Max textures: %d)", config.MaxTextures);
 
@@ -57,6 +68,9 @@ void CTextureSystem::Shutdown()
 			m_TextureArray[idx].m_pInternalData = nullptr;
 		}
 	}
+
+	// Release default textures.
+	ReleaseTexture(m_DefaultDiffuseTexture);
 
 	g_pMemoryManager->Free(m_TextureArray);
 }
@@ -126,4 +140,33 @@ void CTextureSystem::ReleaseTexture(Texture& pTexture)
 {
 	// TODO: Implement.
 	g_pRenderer->ReleaseTextureResources(pTexture);
+}
+
+bool CTextureSystem::CreateDefaultTextures()
+{
+	LOG_INFO("Creating default textures");
+
+	// Default diffuse texture
+	byte	defaultTexturePixels[8][8][4];
+	memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+	for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+	{
+		for (int colIdx = 0; colIdx < 8; colIdx++)
+		{
+			defaultTexturePixels[rowIdx][colIdx][0] = 0;
+			defaultTexturePixels[rowIdx][colIdx][1] = 0;
+			defaultTexturePixels[rowIdx][colIdx][2] = ((rowIdx % 2) == 0) ? (((colIdx % 2) == 0) ? 255 : 0) : (((colIdx % 2) == 0) ? 0 : 255);
+			defaultTexturePixels[rowIdx][colIdx][3] = 255;
+		}
+	}
+	byte* pPixelData = defaultTexturePixels[0][0];
+
+	m_DefaultDiffuseTexture.width = m_DefaultDiffuseTexture.height = 8;
+	if (!g_pRenderer->AcquireTextureResources(m_DefaultDiffuseTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+	{
+		LOG_ERROR("Failed to create default diffuse texture.");
+		return false;
+	}
+
+	return true;
 }
