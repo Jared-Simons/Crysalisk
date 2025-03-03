@@ -20,7 +20,7 @@ layout(set = 0, binding = 1) uniform sampler2D samplers[1];
 void main()
 {
 	// Ambient light.
-	vec3 dirLightPos = vec3(60.0, 40.0, 0.0);
+	vec3 dirLightPos = vec3(-60.0, 200.0, 0.0);
 	vec3 lightColor = vec3(1.0, 1.0, 1.0);
 	float ambientStrength = 0.1;
 	vec3 ambient = ambientStrength * lightColor;

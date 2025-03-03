@@ -115,7 +115,7 @@ void Renderer::ReleaseTextureResources(Texture& pTexture)
 
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50 }, 20, 20, 20);
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 50, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
 
