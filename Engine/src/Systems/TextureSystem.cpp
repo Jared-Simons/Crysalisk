@@ -74,12 +74,6 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 	m_Config = config;
 	m_TextureDictionary.m_TextureHashmap.Resize(m_Config.MaxTextures);
 
-	// Invalidate our hashmap entries (TODO: This should probably be a part of the lookup's constructor...)
-	for (int idx = 0; idx < m_Config.MaxTextures; idx++)
-	{
-		m_TextureDictionary.m_TextureHashmap.ValueElementAt(idx).TextureIndex = kInvalidID_U32;
-	}
-
 	// Allocate memory for our texture array.
 	m_TextureDictionary.m_TextureArray = (Texture*)g_pMemoryManager->Allocate(sizeof(Texture) * m_Config.MaxTextures);
 
