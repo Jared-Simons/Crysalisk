@@ -11,6 +11,7 @@
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
 #include <Strings/String_Utils.h>
+#include "Systems/TextureSystem.h"
 
 //-------------------------------------------------------------------------
 // Material System Implementation.
@@ -71,6 +72,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 void CMaterialSystem::Shutdown()
 {
 	delete[] m_MaterialDictionary.m_MaterialArray;
+	LOG_WARN("TODO: IMPLEMENT MATERIAL SYSTEM RESOURCE RELEASE METHOD!!!");
 }
 
 //-------------------------------------------------------------------------
@@ -124,7 +126,22 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		// Parse the material file.
 		MaterialConfig_t newMatConfig = ParseMaterialConfig(const_cast<char*>(pszMaterialName));
-		LOG_WARN("%s", newMatConfig.pszMaterialName);
+
+		// Acquire material resources.
+		// TODO: we'll need to acquire a shader handle here eventually...
+		if (newMatConfig.pszMaterialName != nullptr)
+		{
+			newMaterial->m_szMaterialName = StringDuplicate(newMatConfig.pszMaterialName);
+		}
+		
+		if (newMatConfig.pszDiffuseTextureName != nullptr)
+		{
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName);
+		}
+	}
+	else
+	{
+		newMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialLookup->MaterialIndex];
 	}
 
 	if (!newMaterial)
@@ -132,6 +149,12 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		LOG_ERROR("Failed to load/create material '%s'. Returning default material.", pszMaterialName);
 		return 0; // TODO: Default material.
 	}
+
+	if (newMaterialLookup->MaterialIndex == kInvalidID_U32)
+		newMaterialLookup->MaterialIndex = matIdx;
+
+	newMaterialLookup->ReferenceCount++;
+	newMaterialLookup->AutoRelease = true; // TODO: Configurable.
 
 	LOG_VERBOSE("Successfully acquired material: '%s', at index %d, ref. count: %d", newMaterial->m_szMaterialName, newMaterialLookup->MaterialIndex, newMaterialLookup->ReferenceCount);
 
@@ -143,9 +166,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 //-------------------------------------------------------------------------
 MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 {
-	MaterialConfig_t testConfig{};
-	// NOTE: Don't need to copy these strings because they will still be on the stack from the calling function (and will be freed soon anyways).
-	testConfig.pszMaterialName = pszMaterialFilePath;
+	MaterialConfig_t newMatConfig{};
 
 	// Open the material file.
 	// (after appending the extension to the path).
@@ -155,21 +176,49 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 	{
 		LOG_ERROR("ParseMaterialConfig -> Could not find material file '%s'. Nothing was done.", pszMaterialFilePath);
 		StringFree(formattedPath);
-		return testConfig;
+		return newMatConfig;
 	}
 
 	while (!FileSystem::IsEOF(&matConfigFile))
 	{
 		char currentLine[14000]; // Would be a suprise if this is not enough...
+		size_t currentLineLength{ 0 };
 		size_t bytesRead{ 0 };
+		size_t equalIndex{ 0 };
+		char key[500];
+		char value[500];
 		FileSystem::ReadLine(currentLine, 14000, &bytesRead, &matConfigFile);
+		currentLineLength = StringLength(currentLine);
 
-		LOG_INFO("%s", currentLine);
+		if (currentLineLength <= 0 || currentLine[0] == '#') // Blank line or comment
+			continue;
+
+		equalIndex = StringIndexOf(currentLine, '=');
+		memcpy(key, currentLine, equalIndex);
+		key[equalIndex] = '\0';
+		memcpy(value, &currentLine[equalIndex + 1], bytesRead - equalIndex);
+		value[bytesRead - 1] = '\0';
+
+		if (StringCompare(key, "name"))
+		{
+			newMatConfig.pszMaterialName = StringDuplicate(value);
+		}
+		else if (StringCompare(key, "shader"))
+		{
+			newMatConfig.pszShaderName = StringDuplicate(value);
+		}
+		else if (StringCompare(key, "map_diffuse"))
+		{
+			newMatConfig.pszDiffuseTextureName = StringDuplicate(value);
+		}
+		else
+		{
+			LOG_WARN("Failed to parse material key: '%s'.", key);
+		}
 	}
-	LOG_WARN("EOF REACHED!");
 
 	StringFree(formattedPath);
 	FileSystem::CloseFile(&matConfigFile);
 
-	return testConfig;
+	return newMatConfig;
 }

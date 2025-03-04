@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Strings/String_Utils.h"
 
+#include "Core/Logging.h"
 #include <Memory/MemoryManager.h>
 
 #include <stdio.h>
@@ -38,6 +39,19 @@ bool StringCompare(const char* str1, const char* str2)
 {
 	i32 result = strcmp(str1, str2);
 	return result == 0;
+}
+
+size_t StringIndexOf(const char* pString, char pCharToFind)
+{
+	size_t len = StringLength(pString);
+	for (int idx = 0; idx < len; idx++)
+	{
+		if (pString[idx] == pCharToFind)
+			return idx;
+	}
+
+	LOG_ERROR("Failed to find char '%c' in string '%s'.", pCharToFind, pString);
+	return 0;
 }
 
 char* StringDuplicate(const char* pStrToCopy)

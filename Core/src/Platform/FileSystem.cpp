@@ -132,6 +132,8 @@ bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, Fil
 		return false;
 	}
 
+	*pOutBytesRead = strlen(pBuffer);
+	pBuffer[*pOutBytesRead - 1] = '\0';
 	return true;
 }
 

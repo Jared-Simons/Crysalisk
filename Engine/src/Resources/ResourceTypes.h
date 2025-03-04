@@ -11,6 +11,7 @@
 #include <Containers/CVector.h>
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
+#include <Strings/String_Utils.h>
 
 using TextureHandle_t = uint32_t;
 using TextureFlags = uint8_t;
@@ -45,9 +46,50 @@ using MaterialHandle_t = uint32_t;
 
 struct MaterialConfig_t
 {
-	const char* pszMaterialName{ nullptr };
-	const char* pszShaderName{ nullptr };
-	const char* pszDiffuseTextureName{ nullptr };
+	char* pszMaterialName{ nullptr };
+	char* pszShaderName{ nullptr };
+	char* pszDiffuseTextureName{ nullptr };
+
+	MaterialConfig_t() {}
+
+	MaterialConfig_t(MaterialConfig_t&& pOther) noexcept
+	{
+		if (pOther.pszMaterialName != nullptr)
+		{
+			pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+		}
+
+		if (pOther.pszShaderName != nullptr)
+		{
+			pszShaderName = StringDuplicate(pOther.pszShaderName);
+		}
+
+		if (pOther.pszDiffuseTextureName != nullptr)
+		{
+			pszDiffuseTextureName = StringDuplicate(pOther.pszDiffuseTextureName);
+		}
+	}
+
+	~MaterialConfig_t()
+	{
+		if (pszMaterialName != nullptr)
+		{
+			StringFree(pszMaterialName);
+			pszMaterialName = nullptr;
+		}
+
+		if (pszShaderName != nullptr)
+		{
+			StringFree(pszShaderName);
+			pszShaderName = nullptr;
+		}
+
+		if (pszDiffuseTextureName != nullptr)
+		{
+			StringFree(pszDiffuseTextureName);
+			pszDiffuseTextureName = nullptr;
+		}
+	}
 };
 
 class Material
@@ -74,4 +116,5 @@ struct GeometryInstance_t
 	int indexDataOffset{};
 
 	TextureHandle_t pTexture{};
+	MaterialHandle_t hMaterial{};
 };

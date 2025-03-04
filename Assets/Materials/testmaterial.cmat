@@ -1,6 +1,6 @@
-"Material"
-{
-	"name"="Dev Test Material"
-	"shader"="Shader"
-	"map_diffuse"="TestDevTexture"
-}
+# TODO: Why does there need to be a space at the end of the file?
+# TODO: Need to not explicitly state texture directory.
+# TODO: Need to not explicitly state texture/image extension.
+name=Dev Test Material
+shader=Shader
+map_diffuse=Assets/Textures/TestDevTexture.png 

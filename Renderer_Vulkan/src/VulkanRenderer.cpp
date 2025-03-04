@@ -353,7 +353,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Allocate resources for our image data.
-	m_pInternalTextureData = (VulkanTextureInternal*)g_pMemoryManager->Allocate(sizeof(VulkanTextureInternal) * pConfig.MaxTextures);
+	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
 	// Invalidate all entries.
 	for (int idx = 0; idx < pConfig.MaxTextures; idx++)
@@ -390,7 +390,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	DestroyDefaultShader(m_DefaultShader);
 
 	// Free internal texture data.
-	g_pMemoryManager->Free(m_pInternalTextureData);
+	delete[] m_pInternalTextureData;
 
 	// Descriptor Pool
 	vkDestroyDescriptorPool(m_Device.m_Device, m_DescriptorPool, nullptr);
@@ -615,21 +615,14 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pText
 	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
 }
 
-bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
+bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// Allocate space for Vulkan texture data.
 	VulkanTextureInternal* pInternalData = nullptr;
 
-	// Look for a free texture slot.
-	for (int idx = 0; idx < m_RendererConfig.MaxTextures; idx++)
-	{
-		if (m_pInternalTextureData[idx].m_Generation == kInvalidID_U8)
-		{
-			// Found one!
-			pInternalData = &m_pInternalTextureData[idx];
-			break;
-		}
-	}
+	// We're gonna use the same index as the one on the frontend.
+	pInternalData = &m_pInternalTextureData[internalIndex];
+	CAssert(pInternalData->m_Generation == kInvalidID_U8 && pInternalData->m_Image.m_Image == VK_NULL_HANDLE); // This image must not be in use (or else we most likely have a hash collision)
 
 	if (!pInternalData)
 	{

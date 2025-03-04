@@ -23,6 +23,8 @@ DLL_EXPORT void StringFree(char* pString);
 
 DLL_EXPORT bool StringCompare(const char* str1, const char* str2);
 
+DLL_EXPORT size_t StringIndexOf(const char* pString, char pCharToFind);
+
 // Appends str2 to string 1.
 DLL_EXPORT char* StringConcat(char* str1, char* str2);
 

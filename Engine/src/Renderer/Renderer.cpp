@@ -12,6 +12,7 @@
 #include "Platform/Platform.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/MaterialSystem.h"
 #include "Systems/TextureSystem.h"
 
 // Renderer frontend context.
@@ -102,10 +103,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	return true;
 }
 
-bool Renderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
+bool Renderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// No work to be done here, pass it right through to the backend.
-	return m_RendererBackend->AcquireTextureResources(pTexture, nPixelDataSize, pPixelData);
+	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
 
 void Renderer::ReleaseTextureResources(Texture& pTexture)
@@ -141,6 +142,9 @@ bool Renderer::CreateTempGeometry()
 	m_Cube1.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/TestDevTexture.png");
 	m_Cube2.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
 	m_Cube3.pTexture = g_pTextureSystem->GetDefaultWhiteTexture();
+
+	// Acquire materials
+	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterial("Assets/Materials/testmaterial");
 
 	return true;
 }

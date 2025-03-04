@@ -26,7 +26,7 @@ public:
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, class Texture& pTexture) override;
 
-	virtual bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;

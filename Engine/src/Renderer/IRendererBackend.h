@@ -25,7 +25,7 @@ public:
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, class Texture& pTexture) = 0;
 
-	virtual bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) = 0;
+	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) = 0;
 
 	virtual bool	AcquireGeometryResources(struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;

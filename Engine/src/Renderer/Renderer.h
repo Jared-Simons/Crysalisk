@@ -30,7 +30,7 @@ public:
 	void	Shutdown();
 	bool	Update(struct RenderPacket_t& pRenderData);
 
-	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData);
+	bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void	ReleaseTextureResources(class Texture& pTexture);
 
 	// Temp geometry stuff

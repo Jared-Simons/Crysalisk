@@ -168,7 +168,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 		}
 
 		// Send the data off to the renderer to be uploaded to the GPU.
-		if (!g_pRenderer->AcquireTextureResources(*newTexture, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(*newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
 			stbi_image_free(pPixelData);
@@ -195,7 +195,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 		newTextureLookup->TextureIndex = texIdx;
 	
 	newTextureLookup->ReferenceCount++;
-	newTextureLookup->AutoRelease = true; // TODO: Configurable?
+	newTextureLookup->AutoRelease = true; // TODO: Configurable.
 	
 	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
 	return newTextureLookup->TextureIndex;
@@ -306,7 +306,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultTexturePixels[0][0];
 
 		defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
-		if (!g_pRenderer->AcquireTextureResources(*defaultDiffuseTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(*defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
@@ -357,7 +357,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultTexturePixels[0][0];
 
 		defaultWhiteTexture->width = defaultWhiteTexture->height = 8;
-		if (!g_pRenderer->AcquireTextureResources(*defaultWhiteTexture, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(*defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
