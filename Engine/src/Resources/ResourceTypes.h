@@ -41,6 +41,23 @@ private:
 	friend class CTextureSystem;
 };
 
+using MaterialHandle_t = uint32_t;
+
+struct MaterialConfig_t
+{
+	const char* pszMaterialName{ nullptr };
+	const char* pszShaderName{ nullptr };
+	const char* pszDiffuseTextureName{ nullptr };
+};
+
+class Material
+{
+public:
+	// TODO: Store shader handle here.
+	const char*		m_szMaterialName{ nullptr };
+	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
+};
+
 struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};

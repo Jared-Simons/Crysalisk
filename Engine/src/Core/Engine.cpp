@@ -20,6 +20,7 @@
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
 #include <Strings/String_Utils.h>
+#include "Systems/MaterialSystem.h"
 #include "Systems/TextureSystem.h"
 
 static bool s_bApplicationQuitCalled{ false };
@@ -138,7 +139,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
 	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
 	rendererConfig.pRendererBackendDLL = pRendererModule;
-	rendererConfig.MaxTextures = 2049;
+	rendererConfig.MaxTextures = 4999;
 
 	if (!g_pRenderer->Initialize(rendererConfig))
 	{
@@ -148,13 +149,24 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Texture manager.
 	TextureSystemConfig_t textureSysConfig{};
-	textureSysConfig.MaxTextures = 2049;
+	textureSysConfig.MaxTextures = 4999;
 	CAssert(rendererConfig.MaxTextures == textureSysConfig.MaxTextures);
 	if (!g_pTextureSystem->Initialize(textureSysConfig))
 	{
 		LOG_ERROR("Failed to initialize texture system! Application cannot continue.");
 		return false;
 	}
+
+	// Material system.
+	MaterialSystemConfig_t materialSysConfig{};
+	materialSysConfig.MaxMaterials = 2049;
+	if (!g_pMaterialSystem->Initialize(materialSysConfig))
+	{
+		LOG_ERROR("Failed to initialize material system! Application cannot continue.");
+		return false;
+	}
+
+	MaterialHandle_t testMaterialHandle = g_pMaterialSystem->AcquireMaterial("Assets/Materials/testmaterial");
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempGeometry();
@@ -195,6 +207,7 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	g_pMaterialSystem->Shutdown();
 	g_pTextureSystem->Shutdown();
 
 	g_pRenderer->Shutdown();

@@ -62,7 +62,7 @@ private:
 	TextureLookup* m_pWhiteTextureLookup{ nullptr };
 };
 
-// Texture System Context.
+// Texture System context.
 static CTextureSystem s_TextureSystem;
 ITextureSystem* g_pTextureSystem = &s_TextureSystem;
 
@@ -75,7 +75,7 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 	m_TextureDictionary.m_TextureHashmap.Resize(m_Config.MaxTextures);
 
 	// Allocate memory for our texture array.
-	m_TextureDictionary.m_TextureArray = (Texture*)g_pMemoryManager->Allocate(sizeof(Texture) * m_Config.MaxTextures);
+	m_TextureDictionary.m_TextureArray = (Texture*)new Texture[m_Config.MaxTextures];
 
 	if (!CreateDefaultTextures())
 	{
@@ -105,11 +105,11 @@ void CTextureSystem::Shutdown()
 	// Release default textures.
 	DestroyDefaultTextures();
 
-	g_pMemoryManager->Free(m_TextureDictionary.m_TextureArray);
+	delete[] m_TextureDictionary.m_TextureArray;
 }
 
 //-------------------------------------------------------------------------
-// Loads a texture at the provided path if it hasn't been loaded, otherwise returns a handle to the texture.
+// Loads a texture at the provided path if it hasn't been loaded.
 // Returns a handle to the texture.
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)

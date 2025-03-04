@@ -11,7 +11,7 @@
 
 struct TextureSystemConfig_t
 {
-	size_t	MaxTextures;
+	size_t	MaxTextures{ 0 };
 };
 
 static const char* kszDefaultTextureName = "_DefaultDiffuse";
