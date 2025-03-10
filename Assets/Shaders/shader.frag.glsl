@@ -37,7 +37,7 @@ void main()
 	vec3 diffuse = lightDiffuse * diff * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
 
 	// specular
-	vec3 viewDir = normalize(global_ubo.viewPos);
+	vec3 viewDir = normalize(global_ubo.viewPos - inFragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	vec3 lightSpecular = vec3(1.0);
