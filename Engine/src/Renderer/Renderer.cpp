@@ -94,9 +94,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	m_RendererBackend->DrawGeometry(m_Cube1, *g_pTextureSystem->GetTextureFromHandle(m_Cube1.pTexture));
-	m_RendererBackend->DrawGeometry(m_Cube2, *g_pTextureSystem->GetTextureFromHandle(m_Cube2.pTexture));
-	m_RendererBackend->DrawGeometry(m_Cube3, *g_pTextureSystem->GetTextureFromHandle(m_Cube3.pTexture));
+	m_RendererBackend->DrawGeometry(m_Cube1, m_Cube1.hMaterial);
+	m_RendererBackend->DrawGeometry(m_Cube2, m_Cube2.hMaterial);
+	m_RendererBackend->DrawGeometry(m_Cube3, m_Cube3.hMaterial);
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -143,13 +143,10 @@ bool Renderer::CreateTempGeometry()
 		return false;
 	}
 
-	// Acquire texture
-	m_Cube1.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/TestDevTexture.png");
-	m_Cube2.pTexture = g_pTextureSystem->AcquireTexture("Assets/Textures/container.jpg");
-	m_Cube3.pTexture = g_pTextureSystem->GetDefaultWhiteTexture();
-
 	// Acquire materials
-	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterial("Assets/Materials/testmaterial");
+	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+	m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial2");
+	m_Cube3.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
 
 	return true;
 }

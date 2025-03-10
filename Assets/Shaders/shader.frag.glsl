@@ -46,12 +46,5 @@ void main()
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fragTexCoord);
 
 	vec3 result = (ambient + diffuse + specular) * diffuseSample.xyz;
-	if (instance_ubo.color.y <= 0.00000000000000000000000000001)
-	{
-		outColor = vec4(result, 1.0);
-	}
-	else
-	{
-		outColor = instance_ubo.color;
-	}
+	outColor = vec4(result, 1.0);
 }

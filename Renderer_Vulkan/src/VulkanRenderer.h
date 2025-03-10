@@ -24,7 +24,7 @@ public:
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
-	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, class Texture& pTexture) override;
+	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;

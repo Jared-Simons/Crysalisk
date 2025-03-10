@@ -21,6 +21,7 @@ public:
 	virtual void	Shutdown() = 0;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) = 0;
+	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) = 0;
 };
 
 DLL_EXPORT IMaterialSystem* g_pMaterialSystem;

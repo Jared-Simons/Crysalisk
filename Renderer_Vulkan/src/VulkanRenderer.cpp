@@ -592,7 +592,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	}
 }
 
-void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pTexture)
+void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialReference& pMaterial)
 {
 	if (m_bResizingFramebuffer)
 	{
@@ -610,9 +610,11 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pText
 	// Bind our pipeline.
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
 
-	// Test instance descriptor.
+	int descriptorIndex = (pGeometry.hMaterial.m_iInternalHandle) ? pMaterial.m_iInternalHandle : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
+	
+	// Instance data not needed for now
+	/* Test instance descriptor.
 	{
-		int descriptorIndex = reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData())->m_DescriptorSetIndex;
 		if (descriptorIndex == 6)
 		{
 			double time = (M_SIN(Platform::GetAbsoluteTime()) / 2.0) + 0.5;
@@ -627,10 +629,9 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pText
 			memcpy(pUniformData, &m_InstanceUniformData[descriptorIndex], sizeof(InstanceUniformObject_t));
 			vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
 		}
-	}
+	}*/
 
 	// Bind instance descriptor set.
-	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData())->m_DescriptorSetIndex : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 1, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Issue the draw.
@@ -720,7 +721,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 	}
 
 	// Allocate object descriptor sets.
-	VkDescriptorSetLayout layouts[3] = { pShader->m_GlobalDescriptorLayout, pShader->m_GlobalDescriptorLayout, pShader->m_GlobalDescriptorLayout };
+	VkDescriptorSetLayout layouts[3] = { pShader->m_InstanceDescriptorLayout, pShader->m_InstanceDescriptorLayout, pShader->m_InstanceDescriptorLayout };
 
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = m_DescriptorPool;
@@ -746,9 +747,23 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
 
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
-	}
+		// Second are the images.
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_View;
+		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_Sampler;
 
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].pImageInfo = &imageInfo;
+
+		vkUpdateDescriptorSets(m_Device.m_Device, 2, descriptorWrites, 0, nullptr);
+	}
+	pMaterial.m_iInternalHandle = pShader->m_NextFreeDescriptorSetIndex;
 	// Bump up next free descriptor index.
 	pShader->m_NextFreeDescriptorSetIndex++;
 

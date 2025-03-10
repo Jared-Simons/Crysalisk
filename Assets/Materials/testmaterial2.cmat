@@ -1,0 +1,7 @@
+# TODO: Why does there need to be a space at the end of the file?
+# TODO: Need to not explicitly state texture directory.
+# TODO: Need to not explicitly state texture/image extension.
+name=Dev Test Material 2
+shader=Shader
+map_diffuse=Assets/Textures/container.jpg
+map_specular=Assets/Textures/container2_specular.png 

@@ -24,6 +24,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
+	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) override;
 
 private:
 	MaterialConfig_t			ParseMaterialConfig(char* pszMaterialPathFile);
@@ -166,7 +167,21 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 	LOG_VERBOSE("Successfully acquired material: '%s', at index %d, ref. count: %d", newMaterial->m_szMaterialName, newMaterialLookup->MaterialIndex, newMaterialLookup->ReferenceCount);
 
-	return 0;
+	return newMaterialLookup->MaterialIndex;
+}
+
+//-------------------------------------------------------------------------
+// Loads a material at the provided path if it hasn't been loaded.
+// Returns a reference to the material.
+//-------------------------------------------------------------------------
+MaterialReference CMaterialSystem::AcquireMaterialReference(const char* pszMaterialName)
+{
+	MaterialHandle_t newMaterial = AcquireMaterial(pszMaterialName);
+
+	MaterialReference newRef;
+	newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_iInternalHandle;
+	newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hDiffuseTextureHandle;
+	return newRef;
 }
 
 //-------------------------------------------------------------------------

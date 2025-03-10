@@ -104,7 +104,7 @@ public:
 struct MaterialReference
 {
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
-	TextureHandle_t m_hDefaultTextureHandle{ kInvalidID_U32 };
+	TextureHandle_t m_hDiffuseTextureHandle{ kInvalidID_U32 };
 };
 
 struct GeometryConfig_t
@@ -122,6 +122,5 @@ struct GeometryInstance_t
 	int indexDataSize{};
 	int indexDataOffset{};
 
-	TextureHandle_t pTexture{};
-	MaterialHandle_t hMaterial{};
+	MaterialReference hMaterial;
 };

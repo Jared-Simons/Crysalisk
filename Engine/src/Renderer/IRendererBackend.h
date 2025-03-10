@@ -23,7 +23,7 @@ public:
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
 
-	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, class Texture& pTexture) = 0;
+	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) = 0;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) = 0;
