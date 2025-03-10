@@ -45,12 +45,32 @@ void main()
 	vec3 specular = lightSpecular * spec * texture(samplers[SAMP_SPECULAR], fragTexCoord).rgb;
 
 	vec3 result = ambient + diffuse + specular;
-	if (global_ubo.renderMode == 1)
+	if (global_ubo.renderMode == 0)
 	{
-		outColor = vec4(1.0);
+		outColor = vec4(result, 1.0);
+		return;
 	}
 	else
 	{
-		outColor = vec4(result, 1.0);
+		if (global_ubo.renderMode == 1)
+		{
+			outColor = vec4(ambient, 1.0);
+			return;
+		}
+		else if(global_ubo.renderMode == 2)
+		{
+			outColor = vec4(diffuse, 1.0);
+			return;
+		}
+		else if (global_ubo.renderMode == 3)
+		{
+			outColor = vec4(specular, 1.0);
+			return;
+		}
+		else
+		{
+			outColor = vec4(result, 1.0);
+			return;
+		}
 	}
 }
