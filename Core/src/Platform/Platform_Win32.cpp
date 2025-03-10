@@ -318,6 +318,37 @@ namespace Platform {
 			return KEY_DOWN;
 			break;
 
+		case 0x30:
+			return KEY_0;
+			break;
+		case 0x31:
+			return KEY_1;
+			break;
+		case 0x32:
+			return KEY_2;
+			break;
+		case 0x33:
+			return KEY_3;
+			break;
+		case 0x34:
+			return KEY_4;
+			break;
+		case 0x35:
+			return KEY_5;
+			break;
+		case 0x36:
+			return KEY_6;
+			break;
+		case 0x37:
+			return KEY_7;
+			break;
+		case 0x38:
+			return KEY_8;
+			break;
+		case 0x39:
+			return KEY_9;
+			break;
+
 		case 0x41:
 			return KEY_A;
 			break;

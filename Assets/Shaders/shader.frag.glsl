@@ -10,6 +10,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
+	int	 renderMode;
 } global_ubo;
 
 layout(set = 1, binding = 0) uniform InstanceUniformBuffer
@@ -44,5 +45,12 @@ void main()
 	vec3 specular = lightSpecular * spec * texture(samplers[SAMP_SPECULAR], fragTexCoord).rgb;
 
 	vec3 result = ambient + diffuse + specular;
-	outColor = vec4(result, 1.0);
+	if (global_ubo.renderMode == 1)
+	{
+		outColor = vec4(1.0);
+	}
+	else
+	{
+		outColor = vec4(result, 1.0);
+	}
 }

@@ -111,7 +111,7 @@ void CInputSystem::Update()
 //-------------------------------------------------------------------------
 void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 {
-	if (processedKeyInput != 0)
+	if (processedKeyInput != static_cast<int>(eKeyTable::KEY_UNDEFINED))
 	{
 		EventData_t eventData;
 		eventData.c[0] = processedKeyInput;

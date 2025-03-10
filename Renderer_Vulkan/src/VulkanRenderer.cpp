@@ -517,6 +517,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	m_UniformData.Projection.data[5] *= -1;
 
 	m_UniformData.ViewPos = s_MainCamera.vecPosition;
+	m_UniformData.RenderMode = m_RenderMode;
 
 	// Copy to the GPU.
 	void* pUniformData;
@@ -1343,6 +1344,11 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		LOG_DEBUG("Camera Pos: %.8f, %.8f, %.8f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z);
 		LOG_DEBUG("Camera Ang: %.8f, %.8f", s_MainCamera.Yaw, s_MainCamera.Pitch);
+	}
+	if (data.c[0] >= 0  && data.c[0] <= 9)
+	{
+		LOG_INFO("Rendermode set to: %d", data.c[0]);
+		s_VulkanContext.m_RenderMode = data.c[0];
 	}
 	return false;
 }

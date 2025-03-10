@@ -91,6 +91,7 @@ public:
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
+	int			m_RenderMode{ 0 };
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
 	unsigned int	m_ImageIndex{ 0 };
