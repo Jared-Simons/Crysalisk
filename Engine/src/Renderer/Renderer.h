@@ -33,6 +33,8 @@ public:
 	bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void	ReleaseTextureResources(class Texture& pTexture);
 
+	bool	AcquireMaterialResources(class Material& pMaterial);
+
 	// Temp geometry stuff
 	bool	CreateTempGeometry();
 

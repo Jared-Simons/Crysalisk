@@ -10,6 +10,7 @@
 #include <Containers/CHashMap.h>
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
+#include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/TextureSystem.h"
 
@@ -137,6 +138,13 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
 			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName);
+		}
+
+		// Acquire shader resources.
+		if (!g_pRenderer->AcquireMaterialResources(*newMaterial))
+		{
+			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pszMaterialName);
+			return 0; // TODO: Default texture and release resources.
 		}
 	}
 	else

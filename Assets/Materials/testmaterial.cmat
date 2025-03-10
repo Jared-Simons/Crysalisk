@@ -3,4 +3,5 @@
 # TODO: Need to not explicitly state texture/image extension.
 name=Dev Test Material
 shader=Shader
-map_diffuse=Assets/Textures/TestDevTexture.png 
+map_diffuse=Assets/Textures/container2.png
+map_specular=Assets/Textures/container2_specular.png 

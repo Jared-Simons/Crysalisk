@@ -97,7 +97,14 @@ class Material
 public:
 	// TODO: Store shader handle here.
 	const char*		m_szMaterialName{ nullptr };
+	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
+};
+
+struct MaterialReference
+{
+	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	TextureHandle_t m_hDefaultTextureHandle{ kInvalidID_U32 };
 };
 
 struct GeometryConfig_t

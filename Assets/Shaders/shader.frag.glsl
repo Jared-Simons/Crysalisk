@@ -10,12 +10,16 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
-	mat4 reserved1;
 } global_ubo;
+
+layout(set = 1, binding = 0) uniform InstanceUniformBuffer
+{
+	vec4 color;
+} instance_ubo;
 
 // Instance texture samplers
 const int SAMP_DIFFUSE = 0;
-layout(set = 0, binding = 1) uniform sampler2D samplers[1];
+layout(set = 1, binding = 1) uniform sampler2D samplers[1];
 
 void main()
 {
@@ -42,5 +46,12 @@ void main()
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fragTexCoord);
 
 	vec3 result = (ambient + diffuse + specular) * diffuseSample.xyz;
-	outColor = vec4(result, 1.0);
+	if (instance_ubo.color.y <= 0.00000000000000000000000000001)
+	{
+		outColor = vec4(result, 1.0);
+	}
+	else
+	{
+		outColor = instance_ubo.color;
+	}
 }

@@ -15,12 +15,11 @@ layout(location = 1) out vec2 outTexCoord;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outFragPos;
 
-layout(set = 0, binding = 0) uniform GlobalUniformBuffer 
+layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 {
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
-	mat4 reserved1;
 } global_ubo;
 
 layout(push_constant) uniform push_constants

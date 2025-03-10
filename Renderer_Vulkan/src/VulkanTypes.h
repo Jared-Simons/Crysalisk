@@ -135,7 +135,8 @@ public:
 		byte			m_Generation;
 	};
 
-	VkDescriptorSetLayout	m_DescriptorSetLayouts{};
+	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
+	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 };

@@ -114,6 +114,11 @@ void Renderer::ReleaseTextureResources(Texture& pTexture)
 	m_RendererBackend->ReleaseTextureResources(pTexture);
 }
 
+bool Renderer::AcquireMaterialResources(class Material& pMaterial)
+{
+	return m_RendererBackend->AcquireMaterialResources(pMaterial);
+}
+
 bool Renderer::CreateTempGeometry()
 {
 	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 50, 0, 50 }, 20, 20, 20);

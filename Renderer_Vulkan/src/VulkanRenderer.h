@@ -29,6 +29,8 @@ public:
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
 
+	virtual	bool	AcquireMaterialResources(class Material& pMaterial) override; // TODO: Pass in shader as well
+
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
 	// NOTE: These methods are temporary until we implement a shader system on the front-end to handle this.
@@ -38,8 +40,8 @@ public:
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
 
-// All this stuff can be public because nothing outside of this module should be accessing the backend...
-// Any outside contact with the Vulkan Renderer should go through an IRenderer interface.
+	// All this stuff can be public because nothing outside of this module should be accessing the backend...
+	// Any outside contact with the Vulkan Renderer should go through an IRenderer interface.
 public:
 	// Vulkan Instance
 	VkInstance	m_Instance{ VK_NULL_HANDLE };
@@ -85,6 +87,7 @@ public:
 	VulkanBuffer		m_GeometryIndexBuffer{};
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
+	InstanceUniformObject_t	m_InstanceUniformData[kMaxVulkanInstances];
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };

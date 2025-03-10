@@ -525,6 +525,9 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
 	vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
 
+	// Bind the global descriptor set.
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+
 	// Push our model matrix as well.
 	vkCmdPushConstants(commandBuffer, m_DefaultShader.m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
@@ -607,9 +610,29 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pText
 	// Bind our pipeline.
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
 
+	// Test instance descriptor.
+	{
+		int descriptorIndex = reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData())->m_DescriptorSetIndex;
+		if (descriptorIndex == 6)
+		{
+			double time = (M_SIN(Platform::GetAbsoluteTime()) / 2.0) + 0.5;
+			InstanceUniformObject_t instanceData;
+			Vector4D colorVec{};
+			colorVec.y = time;
+			m_InstanceUniformData[descriptorIndex].Reserved0 = colorVec;
+
+			void* pUniformData;
+			VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(InstanceUniformObject_t) * (descriptorIndex));
+			vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(InstanceUniformObject_t), 0, &pUniformData);
+			memcpy(pUniformData, &m_InstanceUniformData[descriptorIndex], sizeof(InstanceUniformObject_t));
+			vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
+			LOG_INFO("%lf", colorVec.y);
+		}
+	}
+
 	// Bind instance descriptor set.
 	int descriptorIndex = (pGeometry.pTexture) ? reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData())->m_DescriptorSetIndex : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 0, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 1, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Issue the draw.
 	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
@@ -685,6 +708,52 @@ void CVulkanRenderer::ReleaseTextureResources(Texture& pTexture)
 
 	// Release our image resources.
 	VulkanImage::DestroyImage((*this), pInternalData->m_Image);
+}
+
+bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
+{
+	// TODO: Custom shaders.
+	VulkanShaderInternal* pShader = &m_DefaultShader;
+	if (!pShader)
+	{
+		CAssert(0); // TODO: Handle this.
+		return false;
+	}
+
+	// Allocate object descriptor sets.
+	VkDescriptorSetLayout layouts[3] = { pShader->m_GlobalDescriptorLayout, pShader->m_GlobalDescriptorLayout, pShader->m_GlobalDescriptorLayout };
+
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = m_DescriptorPool;
+	allocInfo.descriptorSetCount = (uint32_t)m_MaxImagesInFlight;
+	allocInfo.pSetLayouts = layouts;
+	VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets));
+
+	// Acquire descriptor resources.
+	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	{
+		VkWriteDescriptorSet descriptorWrites[2]{};
+
+		// First descriptor is the uniform buffer.
+		VkDescriptorBufferInfo uniformBufferInfo{};
+		uniformBufferInfo.buffer = m_UniformBuffers[frameIdx].m_Handle;
+		uniformBufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(InstanceUniformObject_t) * (pShader->m_NextFreeDescriptorSetIndex - 1)); // NOTE: we add the global UBO size here because the global uniforms live at the start of the uniform memory block.
+		uniformBufferInfo.range = sizeof(InstanceUniformObject_t);
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
+
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
+	}
+
+	// Bump up next free descriptor index.
+	pShader->m_NextFreeDescriptorSetIndex++;
+
+	return true;
 }
 
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
@@ -792,12 +861,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanShaderInternal& pShader, VulkanTextureInternal& pTexture)
 {
-	VkDescriptorSetLayout layouts[3] = { pShader.m_DescriptorSetLayouts, pShader.m_DescriptorSetLayouts, pShader.m_DescriptorSetLayouts };
+	VkDescriptorSetLayout layouts[3] = { pShader.m_InstanceDescriptorLayout, pShader.m_InstanceDescriptorLayout, pShader.m_InstanceDescriptorLayout };
 
 	// Allocate object descriptor sets.
 	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 	allocInfo.descriptorPool = pRenderingContext.m_DescriptorPool;
-	allocInfo.descriptorSetCount = (uint32_t)pRenderingContext.m_MaxImagesInFlight;
+	allocInfo.descriptorSetCount = 3;
 	allocInfo.pSetLayouts = layouts;
 
 	VK_CHECK(vkAllocateDescriptorSets(pRenderingContext.m_Device.m_Device, &allocInfo, pShader.m_DescriptorSets[pShader.m_NextFreeDescriptorSetIndex].m_DescriptorSets));
@@ -807,7 +876,7 @@ static bool AcquireShaderResources(CVulkanRenderer& pRenderingContext, VulkanSha
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = pRenderingContext.m_UniformBuffers[idx].m_Handle;
-		bufferInfo.offset = (sizeof(InstanceUniformObject_t) * pTexture.m_DescriptorSetIndex);
+		bufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(InstanceUniformObject_t) * pShader.m_NextFreeDescriptorSetIndex);
 		bufferInfo.range = sizeof(InstanceUniformObject_t);
 
 		VkDescriptorImageInfo imageInfo{};
@@ -1062,21 +1131,33 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	VkDescriptorSetLayoutBinding bindings[2] = { uboLayoutBinding, samplerLayoutBinding };
+	VkDescriptorSetLayoutBinding globalBindings[2] = { uboLayoutBinding };
 
-	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.pNext = nullptr;
-	layoutInfo.flags = 0;
-	layoutInfo.bindingCount = 2;
-	layoutInfo.pBindings = bindings;
-	VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &layoutInfo, nullptr, &pOutShader.m_DescriptorSetLayouts));
+	// Global descriptor layout
+	VkDescriptorSetLayoutCreateInfo globalLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	globalLayoutInfo.pNext = nullptr;
+	globalLayoutInfo.flags = 0;
+	globalLayoutInfo.bindingCount = 1;
+	globalLayoutInfo.pBindings = globalBindings;
+	VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &globalLayoutInfo, nullptr, &pOutShader.m_GlobalDescriptorLayout));
+
+	VkDescriptorSetLayoutBinding instanceBindings[2] = { uboLayoutBinding, samplerLayoutBinding };
+
+	// Instance descriptor layout
+	VkDescriptorSetLayoutCreateInfo instanceLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	instanceLayoutInfo.pNext = nullptr;
+	instanceLayoutInfo.flags = 0;
+	instanceLayoutInfo.bindingCount = 2;
+	instanceLayoutInfo.pBindings = instanceBindings;
+	VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &instanceLayoutInfo, nullptr, &pOutShader.m_InstanceDescriptorLayout));
 
 	// Pipeline layout
+	VkDescriptorSetLayout* pDescriptorLayouts[2] = { &pOutShader.m_GlobalDescriptorLayout, &pOutShader.m_InstanceDescriptorLayout };
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.pNext = nullptr;
 	pipelineLayoutInfo.flags = 0;
-	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &pOutShader.m_DescriptorSetLayouts;
+	pipelineLayoutInfo.setLayoutCount = 2;
+	pipelineLayoutInfo.pSetLayouts = *pDescriptorLayouts;
 
 	VkPushConstantRange pushConstant;
 	pushConstant.offset = 0;
@@ -1133,7 +1214,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	Utl::CVector<VkDescriptorSetLayout> layouts(m_MaxImagesInFlight);
 	for (int idx = 0; idx < layouts.Capacity(); idx++)
 	{
-		layouts.PushBack(pOutShader.m_DescriptorSetLayouts);
+		layouts.PushBack(pOutShader.m_GlobalDescriptorLayout);
 	}
 
 	// We allocate our global descriptor sets now
@@ -1188,7 +1269,8 @@ void CVulkanRenderer::DestroyDefaultShader(VulkanShaderInternal& pShader)
 {
 	// We need to free our descriptors in the case that we're about to recreate our shader.
 	vkFreeDescriptorSets(m_Device.m_Device, m_DescriptorPool, m_MaxImagesInFlight, pShader.m_DescriptorSets.Data()->m_DescriptorSets);
-	vkDestroyDescriptorSetLayout(m_Device.m_Device, pShader.m_DescriptorSetLayouts, nullptr);
+	vkDestroyDescriptorSetLayout(m_Device.m_Device, pShader.m_GlobalDescriptorLayout, nullptr);
+	vkDestroyDescriptorSetLayout(m_Device.m_Device, pShader.m_InstanceDescriptorLayout, nullptr);
 
 	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
