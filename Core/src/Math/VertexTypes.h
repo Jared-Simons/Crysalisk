@@ -21,4 +21,6 @@ public:
 	Vector3D Color;
 	Vector2D TexCoord;
 	Vector3D Normal;
+	Vector3D Tangent;
+	Vector3D Bitangent;
 };

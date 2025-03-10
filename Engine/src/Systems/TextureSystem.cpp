@@ -35,6 +35,7 @@ public:
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
 
 	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
+	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
 
 	bool			CreateDefaultTextures();
 	void			DestroyDefaultTextures();
@@ -60,6 +61,7 @@ private:
 	// Default textures:
 	TextureLookup* m_pDefaultTextureLookup{ nullptr };
 	TextureLookup* m_pWhiteTextureLookup{ nullptr };
+	TextureLookup* m_pDefaultSpecularTexture{ nullptr };
 };
 
 // Texture System context.
@@ -369,6 +371,57 @@ bool CTextureSystem::CreateDefaultTextures()
 		m_pWhiteTextureLookup = defaultWhiteTextureLookup;
 	}
 
+	// Default specular texture
+	{
+		Texture* pDefaultSpecularTexture = nullptr;
+		int texIdx = 0;
+
+		// Get an entry into the hashmap.
+		TextureLookup* defaultSpecularTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultSpecularTextureName);
+		CAssert(defaultSpecularTextureLookup != nullptr);
+
+		// Get at the first free texture.
+		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+		{
+			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+			{
+				// Found one!
+				pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[texIdx];
+				break;
+			}
+		}
+		CAssert(pDefaultSpecularTexture != nullptr);
+
+		pDefaultSpecularTexture->pszTextureName = StringDuplicate(kszDefaultSpecularTextureName);
+		pDefaultSpecularTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
+
+		byte	defaultSpecularTexturePixels[8][8][4];
+		memset(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		{
+			for (int colIdx = 0; colIdx < 8; colIdx++)
+			{
+				defaultSpecularTexturePixels[rowIdx][colIdx][0] = 0;
+				defaultSpecularTexturePixels[rowIdx][colIdx][1] = 0;
+				defaultSpecularTexturePixels[rowIdx][colIdx][2] = 0;
+				defaultSpecularTexturePixels[rowIdx][colIdx][3] = 0;
+			}
+		}
+		byte* pPixelData = defaultSpecularTexturePixels[0][0];
+
+		pDefaultSpecularTexture->width = pDefaultSpecularTexture->height = 8;
+		if (!g_pRenderer->AcquireTextureResources(*pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		{
+			LOG_ERROR("Failed to create default specular texture.");
+			return false;
+		}
+
+		if (defaultSpecularTextureLookup->TextureIndex == kInvalidID_U32)
+			defaultSpecularTextureLookup->TextureIndex = texIdx;
+
+		m_pDefaultSpecularTexture = defaultSpecularTextureLookup;
+	}
+
 	return true;
 }
 
@@ -390,4 +443,11 @@ void CTextureSystem::DestroyDefaultTextures()
 
 	if (pDefaultWhiteTexture->pszTextureName)
 		StringFree(pDefaultWhiteTexture->pszTextureName);
+
+	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
+	g_pRenderer->ReleaseTextureResources(*pDefaultSpecularTexture);
+	pDefaultSpecularTexture->m_pInternalData = nullptr;
+
+	if (pDefaultSpecularTexture->pszTextureName)
+		StringFree(pDefaultSpecularTexture->pszTextureName);
 }

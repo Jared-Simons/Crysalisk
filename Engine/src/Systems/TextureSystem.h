@@ -16,6 +16,7 @@ struct TextureSystemConfig_t
 
 static const char* kszDefaultTextureName = "_DefaultDiffuse";
 static const char* kszDefaultWhiteTextureName = "_DefaultWhite";
+static const char* kszDefaultSpecularTextureName = "_DefaultSpecular";
 
 class ITextureSystem
 {
@@ -29,6 +30,7 @@ public:
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) = 0;
 
 	virtual TextureHandle_t		GetDefaultWhiteTexture() = 0;
+	virtual TextureHandle_t		GetDefaultSpecularTexture() = 0;
 };
 
 DLL_EXPORT ITextureSystem* g_pTextureSystem;

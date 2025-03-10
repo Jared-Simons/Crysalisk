@@ -145,6 +145,16 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		{
 			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszSpecularTextureName);
 		}
+		else
+		{
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
+			LOG_VERBOSE("Material '%s' missing specular texture, using default.", pszMaterialName);
+		}
+
+		if (newMatConfig.pszNormalTextureName != nullptr)
+		{
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszNormalTextureName);
+		}
 
 		// Acquire shader resources.
 		if (!g_pRenderer->AcquireMaterialResources(*newMaterial))
@@ -242,6 +252,10 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 		else if (StringCompare(key, "map_specular"))
 		{
 			newMatConfig.pszSpecularTextureName = StringDuplicate(value);
+		}
+		else if (StringCompare(key, "map_normal"))
+		{
+			newMatConfig.pszNormalTextureName = StringDuplicate(value);
 		}
 		else
 		{

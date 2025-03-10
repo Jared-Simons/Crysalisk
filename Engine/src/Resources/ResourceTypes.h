@@ -50,6 +50,7 @@ struct MaterialConfig_t
 	char* pszShaderName{ nullptr };
 	char* pszDiffuseTextureName{ nullptr };
 	char* pszSpecularTextureName{ nullptr };
+	char* pszNormalTextureName{ nullptr };
 
 	MaterialConfig_t() {}
 
@@ -73,6 +74,11 @@ struct MaterialConfig_t
 		if (pOther.pszSpecularTextureName != nullptr)
 		{
 			pszSpecularTextureName = StringDuplicate(pOther.pszSpecularTextureName);
+		}
+
+		if (pOther.pszNormalTextureName != nullptr)
+		{
+			pszNormalTextureName = StringDuplicate(pOther.pszNormalTextureName);
 		}
 	}
 
@@ -101,6 +107,12 @@ struct MaterialConfig_t
 			StringFree(pszSpecularTextureName);
 			pszSpecularTextureName = nullptr;
 		}
+
+		if (pszNormalTextureName != nullptr)
+		{
+			StringFree(pszNormalTextureName);
+			pszNormalTextureName = nullptr;
+		}
 	}
 };
 
@@ -112,6 +124,7 @@ public:
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hSpecularTextureHandle{ kInvalidID_U32 };
+	TextureHandle_t m_hNormalTextureHandle{ kInvalidID_U32 };
 };
 
 struct MaterialReference

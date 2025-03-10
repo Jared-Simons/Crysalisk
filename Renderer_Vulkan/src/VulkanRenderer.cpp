@@ -759,7 +759,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 
 	// TODO: Make this configurable
 	// Diffuse descriptors
-	VkWriteDescriptorSet imageWrites[2]{};
+	VkWriteDescriptorSet imageWrites[3]{};
 	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 	{
 		VkDescriptorImageInfo imageInfo{};
@@ -795,6 +795,25 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 		imageWrites[1].pImageInfo = &imageInfo;
 
 		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[1], 0, nullptr);
+	}
+
+	// Normal descriptors
+	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	{
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_View;
+		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_Sampler;
+
+		imageWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		imageWrites[2].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+		imageWrites[2].dstBinding = 1;
+		imageWrites[2].dstArrayElement = 2;
+		imageWrites[2].descriptorCount = 1;
+		imageWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageWrites[2].pImageInfo = &imageInfo;
+
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[2], 0, nullptr);
 	}
 
 	pMaterial.m_iInternalHandle = pShader->m_NextFreeDescriptorSetIndex;
@@ -1057,7 +1076,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	vertexBindingDescription.stride = sizeof(Vertex3D);
 	vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-	VkVertexInputAttributeDescription vertexAttributeDescriptions[3]{};
+	VkVertexInputAttributeDescription vertexAttributeDescriptions[5]{};
 	vertexAttributeDescriptions[0].location = 0;	// Vertex position
 	vertexAttributeDescriptions[0].binding = 0;
 	vertexAttributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -1073,9 +1092,19 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	vertexAttributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
 	vertexAttributeDescriptions[2].offset = offsetof(Vertex3D, Normal);
 
+	vertexAttributeDescriptions[3].location = 3;	// Tangent
+	vertexAttributeDescriptions[3].binding = 0;
+	vertexAttributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vertexAttributeDescriptions[3].offset = offsetof(Vertex3D, Tangent);
+
+	vertexAttributeDescriptions[4].location = 4;	// Bitangent
+	vertexAttributeDescriptions[4].binding = 0;
+	vertexAttributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+	vertexAttributeDescriptions[4].offset = offsetof(Vertex3D, Bitangent);
+
 	vertexInputState.vertexBindingDescriptionCount = 1;
 	vertexInputState.pVertexBindingDescriptions = &vertexBindingDescription;
-	vertexInputState.vertexAttributeDescriptionCount = 3;
+	vertexInputState.vertexAttributeDescriptionCount = 5;
 	vertexInputState.pVertexAttributeDescriptions = vertexAttributeDescriptions;
 
 	// Input assembly state
@@ -1174,7 +1203,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	// Sampler
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 2; // TODO: No magic numbers! For now, this means diffuse and specular textures.
+	samplerLayoutBinding.descriptorCount = 3; // TODO: No magic numbers! For now, this means diffuse, specular, and normaltextures.
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
