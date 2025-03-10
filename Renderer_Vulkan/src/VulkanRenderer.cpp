@@ -732,7 +732,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 	// Acquire descriptor resources.
 	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 	{
-		VkWriteDescriptorSet descriptorWrites[2]{};
+		VkWriteDescriptorSet descriptorWrites[1]{};
 
 		// First descriptor is the uniform buffer.
 		VkDescriptorBufferInfo uniformBufferInfo{};
@@ -747,22 +747,55 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial)
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
 
-		// Second are the images.
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
+	}
+
+	int imageCount = 0;
+	if (pMaterial.m_hDiffuseTextureHandle != kInvalidID_U32)
+		imageCount++;
+	if (pMaterial.m_hSpecularTextureHandle != kInvalidID_U32)
+		imageCount++;
+
+	// TODO: Make this configurable
+	// Diffuse descriptors
+	VkWriteDescriptorSet imageWrites[2]{};
+	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	{
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_View;
 		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_Sampler;
 
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].pImageInfo = &imageInfo;
+		imageWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		imageWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+		imageWrites[0].dstBinding = 1;
+		imageWrites[0].dstArrayElement = 0;
+		imageWrites[0].descriptorCount = 1;
+		imageWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageWrites[0].pImageInfo = &imageInfo;
 
-		vkUpdateDescriptorSets(m_Device.m_Device, 2, descriptorWrites, 0, nullptr);
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[0], 0, nullptr);
 	}
+
+	// Specular descriptors
+	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	{
+		VkDescriptorImageInfo imageInfo{};
+		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_View;
+		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_Sampler;
+
+		imageWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		imageWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+		imageWrites[1].dstBinding = 1;
+		imageWrites[1].dstArrayElement = 1;
+		imageWrites[1].descriptorCount = 1;
+		imageWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		imageWrites[1].pImageInfo = &imageInfo;
+
+		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[1], 0, nullptr);
+	}
+
 	pMaterial.m_iInternalHandle = pShader->m_NextFreeDescriptorSetIndex;
 	// Bump up next free descriptor index.
 	pShader->m_NextFreeDescriptorSetIndex++;
@@ -1140,7 +1173,7 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	// Sampler
 	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
 	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorCount = 1;
+	samplerLayoutBinding.descriptorCount = 2; // TODO: No magic numbers! For now, this means diffuse and specular textures.
 	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	samplerLayoutBinding.pImmutableSamplers = nullptr;
 	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;

@@ -19,32 +19,30 @@ layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 
 // Instance texture samplers
 const int SAMP_DIFFUSE = 0;
-layout(set = 1, binding = 1) uniform sampler2D samplers[1];
+const int SAMP_SPECULAR = 1;
+layout(set = 1, binding = 1) uniform sampler2D samplers[2];
 
 void main()
 {
-	// Ambient light.
-	vec3 dirLightPos = vec3(-60.0, 200.0, 0.0);
-	vec3 lightColor = vec3(1.0, 1.0, 1.0);
-	float ambientStrength = 0.1;
-	vec3 ambient = ambientStrength * lightColor;
+	// ambient
+	vec3 ambient = vec3(0.2, 0.2, 0.2) * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
 
-	// Diffuse light.
+	// diffuse
 	vec3 normal = normalize(inNormal);
-	vec3 lightDir = normalize(dirLightPos - inFragPos);
+	//vec3 lightPosition = vec3(1.2, 1.0, 2.0);
+	vec3 lightPosition = vec3(0.0, 0.0, 250.0);
+	vec3 lightDir = normalize(lightPosition - inFragPos);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = diff * lightColor;
+	vec3 lightDiffuse = vec3(0.5, 0.5, 0.5);
+	vec3 diffuse = lightDiffuse * diff * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
 
-	// Specular light.
-	float specularStrength = 0.5;
-	vec3 viewDir = normalize(global_ubo.viewPos - inFragPos);
+	// specular
+	vec3 viewDir = normalize(global_ubo.viewPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-	vec3 specular = specularStrength * spec * lightColor;
-	
-	// Diffuse sample.
-	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fragTexCoord);
+	vec3 lightSpecular = vec3(1.0);
+	vec3 specular = lightSpecular * spec * texture(samplers[SAMP_SPECULAR], fragTexCoord).rgb;
 
-	vec3 result = (ambient + diffuse + specular) * diffuseSample.xyz;
+	vec3 result = ambient + diffuse + specular;
 	outColor = vec4(result, 1.0);
 }

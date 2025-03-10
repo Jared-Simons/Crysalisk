@@ -141,6 +141,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName);
 		}
 
+		if (newMatConfig.pszSpecularTextureName != nullptr)
+		{
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszSpecularTextureName);
+		}
+
 		// Acquire shader resources.
 		if (!g_pRenderer->AcquireMaterialResources(*newMaterial))
 		{
@@ -233,6 +238,10 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 		else if (StringCompare(key, "map_diffuse"))
 		{
 			newMatConfig.pszDiffuseTextureName = StringDuplicate(value);
+		}
+		else if (StringCompare(key, "map_specular"))
+		{
+			newMatConfig.pszSpecularTextureName = StringDuplicate(value);
 		}
 		else
 		{
