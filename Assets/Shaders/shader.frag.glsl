@@ -12,6 +12,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
+	vec3 dirLightPos;
 	int	 renderMode;
 } global_ubo;
 
@@ -44,14 +45,13 @@ void main()
 	}
 
 	// ambient
-	vec3 ambient = vec3(0.2, 0.2, 0.2) * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
+	vec3 ambient = vec3(0.5, 0.5, 0.5) * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
 
 	// diffuse
 	//vec3 lightPosition = vec3(1.2, 1.0, 2.0);
-	vec3 lightPosition = vec3(15.0, 30.0, 0.0);
-	vec3 lightDir = normalize(lightPosition - inFragPos);
+	vec3 lightDir = normalize(global_ubo.dirLightPos - inFragPos);
 	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 lightDiffuse = vec3(0.5, 0.5, 0.5);
+	vec3 lightDiffuse = vec3(0.3, 0.5, 1.0);
 	vec3 diffuse = lightDiffuse * diff * texture(samplers[SAMP_DIFFUSE], fragTexCoord).rgb;
 
 	// specular
@@ -87,6 +87,7 @@ void main()
 		else if (global_ubo.renderMode == 4)
 		{
 			outColor = vec4(abs(normal), 1.0);
+			return;
 		}
 		else
 		{

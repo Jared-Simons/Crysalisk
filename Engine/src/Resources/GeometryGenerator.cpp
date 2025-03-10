@@ -36,6 +36,7 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 	return quadConfig;
 }
 
+// TODO: Tangent and bitangent generation here is borked
 GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth)
 {
 	GeometryConfig_t cubeConfig{};

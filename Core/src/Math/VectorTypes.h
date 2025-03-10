@@ -342,6 +342,12 @@ public:
 		, z{ z_ }
 		, w{ w_ } {}
 
+	Vector4D(Vector3D& pOtherVec)
+		: x{ pOtherVec.x }
+		, y{ pOtherVec.y }
+		, z{ pOtherVec.z }
+		, w{ 0 } { }
+
 	void operator+(const float scalar)
 	{
 		x = x + scalar;

@@ -36,6 +36,7 @@ public:
 
 	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
+	virtual TextureHandle_t		GetDefaultNormalTexture() override { return m_pDefaultNormalTexture->TextureIndex; }
 
 	bool			CreateDefaultTextures();
 	void			DestroyDefaultTextures();
@@ -62,6 +63,7 @@ private:
 	TextureLookup* m_pDefaultTextureLookup{ nullptr };
 	TextureLookup* m_pWhiteTextureLookup{ nullptr };
 	TextureLookup* m_pDefaultSpecularTexture{ nullptr };
+	TextureLookup* m_pDefaultNormalTexture{ nullptr };
 };
 
 // Texture System context.
@@ -422,6 +424,57 @@ bool CTextureSystem::CreateDefaultTextures()
 		m_pDefaultSpecularTexture = defaultSpecularTextureLookup;
 	}
 
+	// Default normal texture
+	{
+		Texture* pDefaultNormalTexture = nullptr;
+		int texIdx = 0;
+
+		// Get an entry into the hashmap.
+		TextureLookup* defaultNormalTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultNormalTextureName);
+		CAssert(defaultNormalTextureLookup != nullptr);
+
+		// Get at the first free texture.
+		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+		{
+			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+			{
+				// Found one!
+				pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[texIdx];
+				break;
+			}
+		}
+		CAssert(pDefaultNormalTexture != nullptr);
+
+		pDefaultNormalTexture->pszTextureName = StringDuplicate(kszDefaultNormalTextureName);
+		pDefaultNormalTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
+
+		byte	defaultNormalTexturePixels[8][8][4];
+		memset(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		{
+			for (int colIdx = 0; colIdx < 8; colIdx++)
+			{
+				defaultNormalTexturePixels[rowIdx][colIdx][0] = 0;
+				defaultNormalTexturePixels[rowIdx][colIdx][1] = 0;
+				defaultNormalTexturePixels[rowIdx][colIdx][2] = 255;
+				defaultNormalTexturePixels[rowIdx][colIdx][3] = 255;
+			}
+		}
+		byte* pPixelData = defaultNormalTexturePixels[0][0];
+
+		pDefaultNormalTexture->width = pDefaultNormalTexture->height = 8;
+		if (!g_pRenderer->AcquireTextureResources(*pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		{
+			LOG_ERROR("Failed to create default normal texture.");
+			return false;
+		}
+
+		if (defaultNormalTextureLookup->TextureIndex == kInvalidID_U32)
+			defaultNormalTextureLookup->TextureIndex = texIdx;
+
+		m_pDefaultNormalTexture = defaultNormalTextureLookup;
+	}
+
 	return true;
 }
 
@@ -450,4 +503,12 @@ void CTextureSystem::DestroyDefaultTextures()
 
 	if (pDefaultSpecularTexture->pszTextureName)
 		StringFree(pDefaultSpecularTexture->pszTextureName);
+
+
+	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
+	g_pRenderer->ReleaseTextureResources(*pDefaultNormalTexture);
+	pDefaultNormalTexture->m_pInternalData = nullptr;
+
+	if (pDefaultNormalTexture->pszTextureName)
+		StringFree(pDefaultNormalTexture->pszTextureName);
 }

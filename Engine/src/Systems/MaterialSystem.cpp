@@ -155,6 +155,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		{
 			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszNormalTextureName);
 		}
+		else
+		{
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+			LOG_VERBOSE("Material '%s' missing normal texture, using default.", pszMaterialName);
+		}
 
 		// Acquire shader resources.
 		if (!g_pRenderer->AcquireMaterialResources(*newMaterial))

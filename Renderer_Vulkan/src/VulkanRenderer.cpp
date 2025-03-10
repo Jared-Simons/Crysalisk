@@ -517,7 +517,17 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	m_UniformData.Projection.data[5] *= -1;
 
 	m_UniformData.ViewPos = s_MainCamera.vecPosition;
-	m_UniformData.RenderMode = m_RenderMode;
+
+	if (m_UniformData.RenderMode != m_RenderMode)
+		m_UniformData.RenderMode = m_RenderMode;
+
+	double lightSin = M_SIN(Platform::GetAbsoluteTime());
+	double lightCos = M_COS(Platform::GetAbsoluteTime());
+	m_UniformData.DirLightPos.x = lightCos * 300;
+	m_UniformData.DirLightPos.y = lightSin * 300;
+	m_UniformData.DirLightPos.z = 100.0f;
+
+	//LOG_INFO("%f, %f", m_UniformData.DirLightPos.x, m_UniformData.DirLightPos.z);
 
 	// Copy to the GPU.
 	void* pUniformData;
@@ -1376,8 +1386,30 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	}
 	if (data.c[0] >= 0  && data.c[0] <= 9)
 	{
-		LOG_INFO("Rendermode set to: %d", data.c[0]);
 		s_VulkanContext.m_RenderMode = data.c[0];
+
+		switch (data.c[0])
+		{
+		default:
+		case 0:
+			LOG_INFO("Lighting mode set to default");
+			break;
+		case 1:
+			LOG_INFO("Lighting mode set to ambient only");
+			break;
+		case 2:
+			LOG_INFO("Lighting mode set to diffuse only");
+			break;
+		case 3:
+			LOG_INFO("Lighting mode set to specular only");
+			break;
+		case 4:
+			LOG_INFO("Lighting mode set to normals");
+			break;
+		case 5:
+			LOG_INFO("Lighting mode set to disabled normal maps");
+			break;
+		}
 	}
 	return false;
 }

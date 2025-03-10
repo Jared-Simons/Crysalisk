@@ -145,8 +145,8 @@ bool Renderer::CreateTempGeometry()
 
 	// Acquire materials
 	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
-	m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial2");
+	//m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+	m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial2");
 	m_Cube3.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
 
 	return true;
