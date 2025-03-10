@@ -626,7 +626,6 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, Texture& pText
 			vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(InstanceUniformObject_t), 0, &pUniformData);
 			memcpy(pUniformData, &m_InstanceUniformData[descriptorIndex], sizeof(InstanceUniformObject_t));
 			vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
-			LOG_INFO("%lf", colorVec.y);
 		}
 	}
 
