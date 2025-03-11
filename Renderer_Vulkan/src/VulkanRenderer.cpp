@@ -521,8 +521,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	if (m_UniformData.RenderMode != m_RenderMode)
 		m_UniformData.RenderMode = m_RenderMode;
 
-	double lightSin = M_SIN(Platform::GetAbsoluteTime());
-	double lightCos = M_COS(Platform::GetAbsoluteTime());
+	double lightSin = M_SIN(Platform::GetAbsoluteTime() * 1.5);
+	double lightCos = M_COS(Platform::GetAbsoluteTime() * 1.5);
 	m_UniformData.DirLightPos.x = lightCos * 300;
 	m_UniformData.DirLightPos.y = lightSin * 300;
 	m_UniformData.DirLightPos.z = 100.0f;
