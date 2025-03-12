@@ -10,6 +10,7 @@ struct FSIn
 	vec3 Tangent;
 	vec3 Bitangent;
 	vec3 FragPos;
+	mat3 TBN;
 };
 layout(location = 0) in FSIn fsInput;
 
@@ -38,12 +39,15 @@ mat3 TBN;
 void main()
 {
 	vec3 normal = normalize(fsInput.Normal);
+	vec3 tangentLightPos = fsInput.TBN * global_ubo.dirLightPos;
+	vec3 tangentViewPos = fsInput.TBN * global_ubo.viewPos;
+	vec3 tangentFragPos = fsInput.TBN * fsInput.FragPos;
 	TBN = mat3(fsInput.Tangent, fsInput.Bitangent, normal);
 
 	// Sample the normal map.
 	normal = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
 	normal = normalize(normal * 2.0 - 1.0);
-	normal = normalize(TBN * normal);
+	normal = normalize(fsInput.TBN * normal);
 
 	if (global_ubo.renderMode == 5)
 	{
@@ -55,13 +59,13 @@ void main()
 
 	// diffuse
 	//vec3 lightPosition = vec3(1.2, 1.0, 2.0);
-	vec3 lightDir = normalize(global_ubo.dirLightPos - fsInput.FragPos);
+	vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
 	float diff = max(dot(normal, lightDir), 0.0);
 	vec3 lightDiffuse = vec3(0.3, 0.5, 1.0);
 	vec3 diffuse = lightDiffuse * diff * texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord).rgb;
 
 	// specular
-	vec3 viewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
+	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 	vec3 lightSpecular = vec3(1.0);

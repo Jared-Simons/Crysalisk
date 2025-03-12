@@ -5,7 +5,6 @@ layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inTangent;
-layout(location = 4) in vec3 inBitangent;
 
 // NOTE: Must match FSIn in the corresponding fragment shaders.
 struct VSOut
@@ -15,6 +14,7 @@ struct VSOut
 	vec3 Tangent;
 	vec3 Bitangent;
 	vec3 FragPos;
+	mat3 TBN;
 };
 
 layout(location = 0) out VSOut vsOutput;
@@ -38,8 +38,16 @@ void main()
 	vsOutput.TexCoord = fragTexCoord;
 	vsOutput.Normal = mat3(transpose(inverse(u_PushConstants.model))) * inNormal;
 	vsOutput.Tangent = normalize(vec3(u_PushConstants.model * vec4(inTangent, 0.0)));
-	vsOutput.Bitangent = normalize(vec3(u_PushConstants.model * vec4(inBitangent, 0.0)));
+	vsOutput.Bitangent = cross(vsOutput.Normal, vsOutput.Tangent);
 	vsOutput.FragPos = vec3(u_PushConstants.model * vec4(inPosition, 1.0));
+
+	mat3 normalMatrix = transpose(inverse(mat3(u_PushConstants.model)));
+	vec3 tangent = normalize(normalMatrix * inTangent);
+	vec3 normal = normalize(normalMatrix * inNormal);
+	tangent = normalize(tangent - dot(tangent, normal) * normal);
+	vec3 bitangent = cross(normal, tangent);
+
+	vsOutput.TBN = transpose(mat3(tangent, bitangent, normal));
 
 	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }

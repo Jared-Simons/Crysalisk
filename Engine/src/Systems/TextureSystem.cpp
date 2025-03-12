@@ -456,8 +456,8 @@ bool CTextureSystem::CreateDefaultTextures()
 			{
 				defaultNormalTexturePixels[rowIdx][colIdx][0] = 0;
 				defaultNormalTexturePixels[rowIdx][colIdx][1] = 0;
-				defaultNormalTexturePixels[rowIdx][colIdx][2] = 255;
-				defaultNormalTexturePixels[rowIdx][colIdx][3] = 255;
+				defaultNormalTexturePixels[rowIdx][colIdx][2] = 128;
+				defaultNormalTexturePixels[rowIdx][colIdx][3] = 128;
 			}
 		}
 		byte* pPixelData = defaultNormalTexturePixels[0][0];

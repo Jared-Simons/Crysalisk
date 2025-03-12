@@ -204,10 +204,6 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 			cubeConfig.Vertices[(face * 6) + vertIdx].Tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
 			cubeConfig.Vertices[(face * 6) + vertIdx].Tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			cubeConfig.Vertices[(face * 6) + vertIdx].Tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-			cubeConfig.Vertices[(face * 6) + vertIdx].Bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-			cubeConfig.Vertices[(face * 6) + vertIdx].Bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-			cubeConfig.Vertices[(face * 6) + vertIdx].Bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 		}
 
 		// Second triangle
@@ -225,10 +221,6 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
 			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-
-			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-			cubeConfig.Vertices[(face * 6) + 3 + vertIdx].Bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 		}
 	}
 

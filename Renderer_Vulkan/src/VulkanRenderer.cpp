@@ -142,6 +142,11 @@ static Camera_t s_MainCamera;
 
 // END TEMP CAMERA
 
+//-------------------------------------------------------------------------
+// Purpose: Gets opaque pointers to interfaces that will be exposed to the rest of the engine.
+// Input: none.
+// Output: An array of pointers and names to interfaces this library will provide.
+//-------------------------------------------------------------------------
 DLL_EXPORT Utl::CVector<Platform::SystemInterface_t> ObtainInterfaces()
 {
 	Utl::CVector<Platform::SystemInterface_t> interfaces{};
@@ -152,7 +157,12 @@ DLL_EXPORT Utl::CVector<Platform::SystemInterface_t> ObtainInterfaces()
 	return interfaces;
 }
 
-DLL_EXPORT void* ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pInterfaceState)
+//-------------------------------------------------------------------------
+// Purpose: Connect interfaces provided by other libraries and do any work to make sure they're present.
+// Input: pInterfaceState - An array of interfaces to be setup.
+// Output: none.
+//-------------------------------------------------------------------------
+DLL_EXPORT void ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pInterfaceState)
 {
 	// TODO: Grab and assign interfaces needed by this module here!
 	AssignInterfaces(pInterfaceState);
@@ -162,15 +172,21 @@ DLL_EXPORT void* ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pIn
 	{
 		g_pEngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	}
-
-	return g_pRendererBackend;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Returns an opaque pointer to the renderer backend state.
+//-------------------------------------------------------------------------
 DLL_EXPORT void* GetRendererBackendState()
 {
 	return g_pRendererBackend;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Initializes the Vulkan renderer.
+// Input: pConfig - Renderer specific configuration provided by the calling application.
+// Output: bool - Returns true on successful initialization, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 {
 	// Setup Vulkan Instance.
@@ -374,6 +390,11 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Shuts down the Vulkan renderer.
+// Input: none.
+// Output: none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	// TODO: Custom Allocator hooks.
@@ -427,6 +448,11 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroyInstance(m_Instance, nullptr);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Begins a renderer frame.
+// Input: pRenderData - Frame specific render data provided by the application.
+// Output: bool - Returns true on successful start, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 {
 	if (m_bResizingFramebuffer)
@@ -524,8 +550,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	double lightSin = M_SIN(Platform::GetAbsoluteTime() * 1.5);
 	double lightCos = M_COS(Platform::GetAbsoluteTime() * 1.5);
 	m_UniformData.DirLightPos.x = lightCos * 300;
-	m_UniformData.DirLightPos.y = lightSin * 300;
-	m_UniformData.DirLightPos.z = 100.0f;
+	m_UniformData.DirLightPos.z = lightSin * 300;
+	m_UniformData.DirLightPos.y = 100.0f;
 
 	//LOG_INFO("%f, %f", m_UniformData.DirLightPos.x, m_UniformData.DirLightPos.z);
 
@@ -545,6 +571,11 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Ends a renderer frame.
+// Input: pRenderData - Frame specific render data provided by the application.
+// Output: bool - Returns true on successful end, otherwise false.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 {
 	if (m_bResizingFramebuffer)
@@ -584,8 +615,6 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	VkResult imagePresentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
 
 	// Make sure window resizes don't break anything post-presentation.
-	// TODO: Instance descriptor sets are still borked after resize. This is most likely to to do with destroying and recreating our shader, 
-	// we need to re-evaluate this after we setup dynamic rendering.
 	if (imagePresentResult == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		vkDeviceWaitIdle(m_Device.m_Device);
@@ -603,8 +632,15 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Draws geometry. This must happen while a frame is being rendered!
+// Input: pGeometry - The geometry to be rendered.
+//		  pMaterial - The material to be rendered with the geometry.
+// Output: none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialReference& pMaterial)
 {
+	// TODO: Check if the frame is being rendered at all!
 	if (m_bResizingFramebuffer)
 	{
 		return;
@@ -645,10 +681,20 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	// Bind instance descriptor set.
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 1, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
+	// TODO: We should update the model matrix here.
+
 	// Issue the draw.
 	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquire Vulkan specific texture resources.
+// Input: pTexture		 - The texture to acquire resources for.
+//		  internalIndex  - The array index/handle this texture is using.
+//		  nPixelDataSize - The size (in bytes) of the texture's pixel data.
+//		  pPixelData	 - A byte array containing the raw pixel data.
+// Output: bool - Returns true on successful resource acquisition, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// Allocate space for Vulkan texture data.
@@ -697,6 +743,11 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalInd
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan specific texture resources.
+// Input: pTexture - The texture to release resources for.
+// Output: none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseTextureResources(Texture& pTexture)
 {
 	// Make sure the resource isn't in use.
@@ -1107,14 +1158,9 @@ bool CVulkanRenderer::CreateDefaultShader(VulkanShaderInternal& pOutShader)
 	vertexAttributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
 	vertexAttributeDescriptions[3].offset = offsetof(Vertex3D, Tangent);
 
-	vertexAttributeDescriptions[4].location = 4;	// Bitangent
-	vertexAttributeDescriptions[4].binding = 0;
-	vertexAttributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
-	vertexAttributeDescriptions[4].offset = offsetof(Vertex3D, Bitangent);
-
 	vertexInputState.vertexBindingDescriptionCount = 1;
 	vertexInputState.pVertexBindingDescriptions = &vertexBindingDescription;
-	vertexInputState.vertexAttributeDescriptionCount = 5;
+	vertexInputState.vertexAttributeDescriptionCount = 4;
 	vertexInputState.pVertexAttributeDescriptions = vertexAttributeDescriptions;
 
 	// Input assembly state
