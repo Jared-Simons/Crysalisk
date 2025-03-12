@@ -12,7 +12,7 @@
 #include <Math/VectorTypes.h>
 
 //-------------------------------------------------------------------------
-// Purpose: Frame-specific data to be uused in rendering operations.
+// Purpose: Frame-specific data to be used in rendering operations.
 //-------------------------------------------------------------------------
 struct RenderPacket_t
 {
@@ -22,14 +22,18 @@ struct GlobalUniformObject_t
 {
 	Matrix4x4	Projection;
 	Matrix4x4	View;
-	Matrix4x4	Model; // TODO: This should not be global at all.
-	Matrix4x4	Reserved; // Here for alignment.
+	Vector4D	ViewPos;
+	Vector3D	DirLightPos;
+	int			RenderMode;
+	Vector3D	Reserved1; // NOTE: All of these exist so we can be aligned with Instance uniforms in the buffer. (My GPU needs these to be aligned to 64 bytes).
+	Vector3D	Reserved2; 
+	Vector2D	Reserved3;
 };
 
 struct InstanceUniformObject_t
 {
-	Matrix4x4	Reserved0;
-	Matrix4x4	Reserved1;
-	Matrix4x4	Reserved2;
-	Matrix4x4	Reserved3;
+	Vector4D	Reserved0;
+	Vector4D	Reserved1;
+	Vector4D	Reserved2;
+	Vector4D	Reserved3;
 };

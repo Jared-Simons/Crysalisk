@@ -135,14 +135,14 @@ public:
 		byte			m_Generation;
 	};
 
-	VkDescriptorSetLayout	m_DescriptorSetLayouts{};
+	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
+	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 };
 
-class VulkanTextureInternal
+struct VulkanTextureInternal
 {
-public:
 	class VulkanImage	m_Image{};
 	unsigned int		m_DescriptorSetIndex{ 0 };
 	unsigned char		m_Generation{ kInvalidID_U8 };

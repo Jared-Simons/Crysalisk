@@ -9,6 +9,7 @@
 #include <Renderer/IRendererBackend.h>
 
 #include <Core/Clock.h>
+#include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 
 #include "VulkanTypes.h"
@@ -18,22 +19,29 @@
 class CVulkanRenderer : public IRendererBackend
 {
 public:
-	bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
-	void	RendererBackend_Shutdown() override;
-	bool	RendererBackend_Update(struct RenderPacket_t& pRenderData) override;
+	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
+	virtual void	RendererBackend_Shutdown() override;
+	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
+	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
-	bool	AcquireTextureResources(class Texture& pTexture, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+
+	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
+
+	virtual	bool	AcquireMaterialResources(class Material& pMaterial) override; // TODO: Pass in shader as well
+
+	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
 	// NOTE: These methods are temporary until we implement a shader system on the front-end to handle this.
 	bool CreateDefaultShader(VulkanShaderInternal& pOutShader);
 	void DestroyDefaultShader(VulkanShaderInternal& pShader);
 
 	// NOTE: These are also temporary.
-	bool CreateDefaultGeometry(); 
 	void DestroyDefaultGeometry();
 
-// All this stuff can be public because nothing outside of this module should be accessing the backend...
-// Any outside contact with the Vulkan Renderer should go through an IRenderer interface.
+	// All this stuff can be public because nothing outside of this module should be accessing the backend...
+	// Any outside contact with the Vulkan Renderer should go through an IRenderer interface.
 public:
 	// Vulkan Instance
 	VkInstance	m_Instance{ VK_NULL_HANDLE };
@@ -67,26 +75,29 @@ public:
 
 	// Temp shader
 	VulkanShaderInternal m_DefaultShader{};
-	VulkanTextureInternal m_TestTexture{};
 
 	// Descriptor Pool
 	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
+
+	// Internal Vulkan texture tata
+	VulkanTextureInternal* m_pInternalTextureData;
 
 	// Temp geometry buffer
 	VulkanBuffer		m_GeometryVertexBuffer{};
 	VulkanBuffer		m_GeometryIndexBuffer{};
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
-
-	// Temp textures
-	VulkanImage	m_DefaultTexture{};
+	InstanceUniformObject_t	m_InstanceUniformData[kMaxVulkanInstances];
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
+	int			m_RenderMode{ 0 };
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
+	unsigned int	m_ImageIndex{ 0 };
 	bool		m_bWindowResized{ false };
-	bool		m_bMinimized{ false };
+	bool		m_bResizingFramebuffer{ false };
+	RendererConfig_t	m_RendererConfig{};
 	Clock		m_RendererClock{};
 };
 

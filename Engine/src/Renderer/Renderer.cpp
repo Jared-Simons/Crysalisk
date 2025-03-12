@@ -6,14 +6,21 @@
 //=============================================================================
 #include "Renderer/Renderer.h"
 
+#include "Core/Event.h"
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/MaterialSystem.h"
+#include "Systems/TextureSystem.h"
 
 // Renderer frontend context.
 static Renderer s_Renderer;
 Renderer* g_pRenderer = &s_Renderer;
+
+// Event handlers.
+static bool RendererEvent_WindowResized(EventData_t data);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
@@ -51,6 +58,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -73,16 +82,88 @@ void Renderer::Shutdown()
 //-------------------------------------------------------------------------
 bool Renderer::Update(RenderPacket_t& pRenderData)
 {
-	if (!m_RendererBackend->RendererBackend_Update(pRenderData))
+	// If we are currently minimized, do not do anything!
+	if (m_bMinimized)
+	{
+		return true;
+	}
+
+	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
 	}
 
+	// Render our temp geometry.
+	m_RendererBackend->DrawGeometry(m_Cube1, m_Cube1.hMaterial);
+	m_RendererBackend->DrawGeometry(m_Cube2, m_Cube2.hMaterial);
+	m_RendererBackend->DrawGeometry(m_Cube3, m_Cube3.hMaterial);
+
+	m_RendererBackend->EndFrame(pRenderData);
+
 	return true;
 }
 
-bool Renderer::AcquireTextureResources(Texture& pTexture, size_t nPixelDataSize, byte* pPixelData)
+bool Renderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// No work to be done here, pass it right through to the backend.
-	return m_RendererBackend->AcquireTextureResources(pTexture, nPixelDataSize, pPixelData);
+	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
+}
+
+void Renderer::ReleaseTextureResources(Texture& pTexture)
+{
+	m_RendererBackend->ReleaseTextureResources(pTexture);
+}
+
+bool Renderer::AcquireMaterialResources(class Material& pMaterial)
+{
+	return m_RendererBackend->AcquireMaterialResources(pMaterial);
+}
+
+bool Renderer::CreateTempGeometry()
+{
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 50, 0, 50 }, 20, 20, 20);
+	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
+	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
+
+	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig, m_Cube1))
+	{
+		LOG_ERROR("Failed to acquire geometry resources.");
+		return false;
+	}
+
+	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig2, m_Cube2))
+	{
+		LOG_ERROR("Failed to acquire geometry resources.");
+		return false;
+	}
+	
+	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig3, m_Cube3))
+	{
+		LOG_ERROR("Failed to acquire geometry resources.");
+		return false;
+	}
+
+	// Acquire materials
+	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+	//m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+	m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial2");
+	m_Cube3.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+
+	return true;
+}
+
+static bool RendererEvent_WindowResized(EventData_t data)
+{
+	// Handle minimized contexts.
+	if (data.u32[0] == 0 || data.u32[1] == 0)
+	{
+		s_Renderer.SetMinimized(true);
+	}
+	else
+	{
+		s_Renderer.SetMinimized(false);
+	}
+
+	// Let other listeners handle this event.
+	return false;
 }

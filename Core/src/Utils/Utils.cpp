@@ -12,17 +12,17 @@
 #include "Strings/String_Utils.h"
 
 // Hashing function borrowed from "https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/HashFuncExamp.html"
-int SimpleHashToInt(const char* pStr, size_t numElements)
+int SimpleHash_StringToInt(const char* pInput, size_t numElements)
 {
 	int sum = 0;
 	int mul = 1;
 
-	size_t len = StringLength(pStr);
+	size_t len = StringLength(pInput);
 
 	for (int idx = 0; idx < len; idx++)
 	{
 		mul = (idx % 4 == 0) ? 1 : mul * 256;
-		sum += pStr[idx] * mul;
+		sum += pInput[idx] * mul;
 	}
 
 	return static_cast<int>((size_t)M_ABS(sum) % numElements);

@@ -41,23 +41,23 @@ namespace Utl {
 			, m_pValues{ nullptr }
 		{
 			// Allocate space for our data.
-			m_pKeys = (Key*)g_pMemoryManager->Allocate(m_Capacity * m_KeyStride);
-			m_pValues = (Value*)g_pMemoryManager->Allocate(m_Capacity * m_ValueStride);
+			m_pKeys = (Key*)new Key[m_Capacity];
+			m_pValues = (Value*) new Value[m_Capacity];
 		}
 
 		~CHashMap()
 		{
 			if (m_pKeys)
-				g_pMemoryManager->Free(m_pKeys);
+				delete[] m_pKeys;
 
 			if (m_pValues)
-				g_pMemoryManager->Free(m_pValues);
+				delete[] m_pValues;
 		}
 
 		Value& operator[](Key pKey)
 		{
-			Key hashedKey = SimpleHash(pKey, m_Capacity);
-			return (*m_pValues)[hashedKey];
+			int hashedKey = SimpleHash_StringToInt(pKey, m_Capacity);
+			return m_pValues[hashedKey];
 		}
 
 		/*Value operator[](const Key& pKey)
@@ -66,23 +66,32 @@ namespace Utl {
 			return m_pData[pKey];
 		}*/
 
-		int Insert(Key key)
+		Value* Insert(Key key)
 		{
 			// TODO: We need a generic function here
-			Key hashedKey = SimpleHash(value, m_Capacity);
+			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
 			CAssert((hashedValue >= 0 && hashedValue < m_Capacity));
 
 			// TODO: Check for collisions.
-			m_pValues[hashedValue] = value;
+			m_pKeys[hashedValue] = key;
 
-			return hashedValue;
+			return &m_pValues[hashedValue];
 		}
 
 		// TODO: This currently invalidates the whole container... fix this!
 		void Resize(size_t nNewCapacity)
 		{
-			m_pKeys = (Key*)g_pMemoryManager->Allocate(sizeof(Key) * nNewCapacity);
-			m_pValues = (Value*)g_pMemoryManager->Allocate(sizeof(Value) * nNewCapacity);
+			// Allocate space for our data.
+			// TODO: Delete old data.
+			m_pKeys = (Key*)new Key[nNewCapacity];
+			m_pValues = (Value*) new Value[nNewCapacity];
+			m_Capacity = nNewCapacity;
+		}
+
+		// This allows us to access our elements in an array like manner.
+		Value& ValueElementAt(int index)
+		{
+			return m_pValues[index];
 		}
 
 	private:

@@ -83,6 +83,7 @@ bool FileSystem::CloseFile(FileHandle_t* fileHandle)
 		LOG_ERROR("FileSystem->CloseFile() failed to close file '%s'", fileHandle->path);
 		return false;
 	}
+	fileHandle->internalData = nullptr;
 
 	fileHandle->isValid = false;
 	if (fileHandle->path)
@@ -131,6 +132,8 @@ bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, Fil
 		return false;
 	}
 
+	*pOutBytesRead = strlen(pBuffer);
+	pBuffer[*pOutBytesRead - 1] = '\0';
 	return true;
 }
 
@@ -161,5 +164,14 @@ bool FileSystem::ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutByt
 
 	*pOutBytesRead = fread_s(pBuffer, bufferSize, 1, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData));
 
+	return true;
+}
+
+bool FileSystem::IsEOF(FileHandle_t* file)
+{
+	if (!feof((FILE*)file->internalData))
+	{
+		return false;
+	}
 	return true;
 }

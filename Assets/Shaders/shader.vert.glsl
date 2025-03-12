@@ -1,27 +1,53 @@
 #version 450
 
-vec2 positions[3] = vec2[](
-	vec2(0.0, -0.5),
-	vec2(0.5, 0.5),
-	vec2(-0.5, 0.5)
-);
-
 // Vertex input
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec3 inTangent;
 
-layout(location = 1) out vec2 outTexCoord;
+// NOTE: Must match FSIn in the corresponding fragment shaders.
+struct VSOut
+{
+	vec2 TexCoord;
+	vec3 Normal;
+	vec3 Tangent;
+	vec3 Bitangent;
+	vec3 FragPos;
+	mat3 TBN;
+};
 
-layout(set = 0, binding = 0) uniform GlobalUniformBuffer 
+layout(location = 0) out VSOut vsOutput;
+
+layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 {
 	mat4 projection;
 	mat4 view;
-	mat4 model;
-	mat4 reserved;
+	vec3 viewPos;
+	vec3 dirLightPos;
+	int	 renderMode;
 } global_ubo;
+
+layout(push_constant) uniform push_constants
+{
+	mat4 model;
+} u_PushConstants;
 
 void main()
 {
-	gl_Position = global_ubo.projection * global_ubo.view * global_ubo.model * vec4(inPosition, 1.0);
-	outTexCoord = fragTexCoord;
+	vsOutput.TexCoord = fragTexCoord;
+	vsOutput.Normal = mat3(transpose(inverse(u_PushConstants.model))) * inNormal;
+	vsOutput.Tangent = normalize(vec3(u_PushConstants.model * vec4(inTangent, 0.0)));
+	vsOutput.Bitangent = cross(vsOutput.Normal, vsOutput.Tangent);
+	vsOutput.FragPos = vec3(u_PushConstants.model * vec4(inPosition, 1.0));
+
+	mat3 normalMatrix = transpose(inverse(mat3(u_PushConstants.model)));
+	vec3 tangent = normalize(normalMatrix * inTangent);
+	vec3 normal = normalize(normalMatrix * inNormal);
+	tangent = normalize(tangent - dot(tangent, normal) * normal);
+	vec3 bitangent = cross(normal, tangent);
+
+	vsOutput.TBN = transpose(mat3(tangent, bitangent, normal));
+
+	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }
