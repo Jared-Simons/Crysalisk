@@ -76,8 +76,7 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, Vulk
 	renderpassInfo.dependencyCount = 1;
 	renderpassInfo.pDependencies = &dependency;
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, nullptr, &pOutRenderpass.m_Handle));
+	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, pRenderingContext.m_Allocator, &pOutRenderpass.m_Handle));
 
 	
 
@@ -86,7 +85,5 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, Vulk
 
 void VulkanRenderPass::DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass)
 {
-	// TODO: Custom allocator hooks.
-
-	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, nullptr);
+	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, pRenderingContext.m_Allocator);
 }

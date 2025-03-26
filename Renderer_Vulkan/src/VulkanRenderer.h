@@ -29,13 +29,14 @@ public:
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
 
-	virtual	bool	AcquireMaterialResources(class Material& pMaterial) override; // TODO: Pass in shader as well
+	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
+
+	virtual bool	AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
+	virtual void	ReleaseShaderResources(class Shader& pShader) override;
+
+	virtual void	BindShader(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-
-	// NOTE: These methods are temporary until we implement a shader system on the front-end to handle this.
-	bool CreateDefaultShader(VulkanShaderInternal& pOutShader);
-	void DestroyDefaultShader(VulkanShaderInternal& pShader);
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
@@ -47,7 +48,7 @@ public:
 	VkInstance	m_Instance{ VK_NULL_HANDLE };
 
 	// Memory Allocator Hooks - TODO: IMPLEMENT
-	VkAllocationCallbacks m_Allocator{ nullptr };
+	VkAllocationCallbacks* m_Allocator{ nullptr };
 
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger{ VK_NULL_HANDLE };
@@ -80,17 +81,21 @@ public:
 	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
 
 	// Internal Vulkan texture tata
-	VulkanTextureInternal* m_pInternalTextureData;
+	VulkanTextureInternal* m_pInternalTextureData{ nullptr };
+
+	// Internal shader data
+	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
+	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
 
 	// Temp geometry buffer
 	VulkanBuffer		m_GeometryVertexBuffer{};
 	VulkanBuffer		m_GeometryIndexBuffer{};
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
-	InstanceUniformObject_t	m_InstanceUniformData[kMaxVulkanInstances];
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
+	bool		m_bCurrentlyRendering[3]{ false };
 	int			m_RenderMode{ 0 };
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
@@ -104,7 +109,8 @@ public:
 extern IRendererBackend* g_pRendererBackend;
 
 // Some platform specific utilities.
-namespace Platform {
+namespace Platform 
+{
 	const char* GetVulkanPlatformExtension();
 	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pHWnd);
 }

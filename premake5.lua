@@ -30,6 +30,7 @@ project "Core"
 	{
 		C4302,	---'type-cast' truncation (primary for void* casts)
 		C4244,	--- type conversion (possible loss of data)
+		C4267,  --- type-conversion (possible loss of data)
 	}
 	
 	includedirs
@@ -60,7 +61,8 @@ project "Core"
 		
 		defines
 		{
-			PLAT_WINDOWS
+			PLAT_WINDOWS,
+			"DLLNAME=\"Core.dll\""
 		}
 	
 		postbuildcommands
@@ -101,6 +103,7 @@ project "Engine"
 	{
 		C4302,	---'type-cast' truncation (primary for void* casts)
 		C4244,	--- type conversion (possible loss of data)
+		C4267,  --- type-conversion (possible loss of data)
 	}
 	
 	includedirs
@@ -130,7 +133,8 @@ project "Engine"
 		
 		defines
 		{
-			PLAT_WINDOWS
+			PLAT_WINDOWS,
+			"DLLNAME=\"Engine.dll\""
 		}
 	
 		postbuildcommands
@@ -171,6 +175,7 @@ project "Interfaces"
 	{
 		C4302,	---'type-cast' truncation (primary for void* casts)
 		C4244,	--- type conversion (possible loss of data)
+		C4267,  --- type-conversion (possible loss of data)
 	}
 	
 	includedirs
@@ -229,7 +234,8 @@ project "Testapp"
 
 	disablewarnings
 	{
-		C4302	---'type-cast' truncation (primary for void* casts).
+		C4302,	---'type-cast' truncation (primary for void* casts).
+		C4267,  --- type-conversion (possible loss of data)
 	}
 	
 	files
@@ -257,7 +263,8 @@ project "Testapp"
 		
 		defines
 		{
-			PLAT_WINDOWS
+			PLAT_WINDOWS,
+			"DLLNAME=\"Testapp.exe\""
 		}
 
 		links
@@ -298,6 +305,7 @@ project "Renderer_Vulkan"
 	{
 		C4302,	---'type-cast' truncation (primary for void* casts)
 		C4244,	--- type conversion (possible loss of data)
+		C4267,  --- type-conversion (possible loss of data)
 		C4190,  --- stop warning about C-compatible interfaces, we need this now for our interface registry, but this should be fixed in the future.
 	}
 	
@@ -333,7 +341,8 @@ project "Renderer_Vulkan"
 		
 		defines
 		{
-			PLAT_WINDOWS
+			PLAT_WINDOWS,
+			"DLLNAME=\"Renderer_Vulkan.dll\""
 		}
 	
 		postbuildcommands
@@ -365,7 +374,8 @@ project "UnitTest"
 
 	disablewarnings
 	{
-		C4302	---'type-cast' truncation (primary for void* casts).
+		C4302,	---'type-cast' truncation (primary for void* casts).
+		C4267,  --- type-conversion (possible loss of data)
 	}
 	
 	files
@@ -394,7 +404,8 @@ project "UnitTest"
 		
 		defines
 		{
-			PLAT_WINDOWS
+			PLAT_WINDOWS,
+			"DLLNAME=\"UnitTest.exe\""
 		}
 		
 		postbuildcommands

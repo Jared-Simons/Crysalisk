@@ -7,12 +7,14 @@
 #include "Renderer/Renderer.h"
 
 #include "Core/Event.h"
+#include "Core/Input.h"
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
 // Renderer frontend context.
@@ -21,9 +23,14 @@ Renderer* g_pRenderer = &s_Renderer;
 
 // Event handlers.
 static bool RendererEvent_WindowResized(EventData_t data);
+static bool RendererEvent_KeyPressed(EventData_t data);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
+
+// TEMP!
+ShaderHandle_t testShaderHandle = kInvalidID_U32;
+// END TEMP!
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the Renderer frontend and backend.
@@ -42,7 +49,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	// TODO: This is still not great. Would probably be better to use the IRendererBackend interface or something to get at the state.
+	// Get an opaque pointer to the renderer backend.
 	m_RendererBackend = (IRendererBackend*)getRendererBackend();
 
 	if (m_RendererBackend != nullptr)
@@ -59,6 +66,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
+	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
@@ -94,9 +102,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	m_RendererBackend->DrawGeometry(m_Cube1, m_Cube1.hMaterial);
-	m_RendererBackend->DrawGeometry(m_Cube2, m_Cube2.hMaterial);
-	m_RendererBackend->DrawGeometry(m_Cube3, m_Cube3.hMaterial);
+	DrawGeometry(m_Cube1);
+	DrawGeometry(m_Cube2);
+	DrawGeometry(m_Cube3);
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -114,9 +122,32 @@ void Renderer::ReleaseTextureResources(Texture& pTexture)
 	m_RendererBackend->ReleaseTextureResources(pTexture);
 }
 
-bool Renderer::AcquireMaterialResources(class Material& pMaterial)
+bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
 {
-	return m_RendererBackend->AcquireMaterialResources(pMaterial);
+	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
+}
+
+bool Renderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pShaderConfig)
+{
+	return m_RendererBackend->AcquireShaderResources(pShader, pShaderConfig);
+}
+
+void Renderer::ReleaseShaderResources(Shader& pShader)
+{
+	return m_RendererBackend->ReleaseShaderResources(pShader);
+}
+
+void Renderer::BindShader(Shader& pShader)
+{
+	m_RendererBackend->BindShader(pShader);
+}
+
+void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
+{
+	// Acquire the default material if our own material's resources aren't yet available.
+	MaterialReference& pMaterial = (pGeometry.hMaterial.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial;
+
+	m_RendererBackend->DrawGeometry(pGeometry, pMaterial);
 }
 
 bool Renderer::CreateTempGeometry()
@@ -144,10 +175,14 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	// Acquire materials
-	m_Cube1.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
-	m_Cube2.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	m_Cube3.hMaterial = g_pMaterialSystem->AcquireMaterialReference("Assets/Materials/testmaterial");
+	m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
+	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
+	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
+	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial3");
+
+	// TEMP SHADER TEST CODE
+	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
+	// END TEMP
 
 	return true;
 }
@@ -162,6 +197,18 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	else
 	{
 		s_Renderer.SetMinimized(false);
+	}
+
+	// Let other listeners handle this event.
+	return false;
+}
+
+static bool RendererEvent_KeyPressed(EventData_t data)
+{
+	if (*data.c == 'T' && s_Renderer.m_Cube2.hMaterial.m_iInternalHandle == kInvalidID_U32)
+	{
+		LOG_DEBUG("Loading test material.");
+		s_Renderer.m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
 	}
 
 	// Let other listeners handle this event.

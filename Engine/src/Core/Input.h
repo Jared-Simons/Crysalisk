@@ -29,7 +29,7 @@ struct MouseState_t
 	// The position of the cursor on the screen.
 	float m_XPos;
 	float m_YPos;
-	bool m_MouseButtons[MAX_MOUSE_BUTTONS / 2];	// Divide by 2 to account for button up/down	TODO: Maybe pack these into an 8 bit integer? CURRENT IMPLEMENTATION WILL EVENTUALLY CAUSE AN ERROR!!!
+	unsigned int m_MouseFlags;
 };
 
 //-------------------------------------------------------------------------
@@ -43,7 +43,8 @@ public:
 	virtual void	Update() = 0;
 
 	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed) = 0;
-	virtual void	ProcessMouseInput(const float mouseXPos, const float mouseYPos, byte mouseButtonFlags, bool pressed) = 0;
+	virtual void	ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) = 0;
+	virtual void	ProcessMousePositionInput(const float mouseXPos, const float mouseYPos) = 0;
 
 	virtual bool	IsKeyPressed(const int key) const = 0;
 };
@@ -58,4 +59,5 @@ ENGINE_API extern IInputSystem* g_pInputSystem_Internal;
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
 void API_ProcessKeyInput(int processedKeyInput, bool pressed);
-void API_ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags);
+void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed);
+void API_ProcessMouseMoveInput(const float mouseXPos, const float mouseYPos);

@@ -1,0 +1,7 @@
+# TODO: Why does there need to be a space at the end of the file?
+# TODO: Need to not explicitly state texture directory.
+# TODO: Need to not explicitly state texture/image extension.
+name=Dev Test Material 3
+shader=Core.Phong
+map_diffuse=Assets/Textures/TestDevTexture.png
+ 

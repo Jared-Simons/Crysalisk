@@ -68,7 +68,8 @@ namespace Platform {
 		inline WindowParams_t GetParams() const { return m_WindowParams; }
 		inline void SetInternalHandle(HWND hWnd) { m_HWND = hWnd; }
 		inline virtual void SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) override { m_KeyEventCallback = callback; }
-		inline virtual void SetMouseEventCallback(Platform_MouseEventCallback callback) override { m_MouseEventCallback = callback; }
+		inline virtual void SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) override { m_MouseButtonEventCallback = callback; }
+		inline virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) override { m_MouseMoveEventCallback = callback; }
 		inline virtual void SetWindowResizeCallback(Platform_WindowResizedCallback callback) override { m_WindowResizeEventCallback = callback; }
 
 	private:
@@ -78,7 +79,8 @@ namespace Platform {
 	// TODO: Make these private (and handle these events per window).
 	public:
 		Platform_KeyboardEventCallback m_KeyEventCallback; // TODO: Make this an array so multiple contexts can register as listeners.
-		Platform_MouseEventCallback m_MouseEventCallback;
+		Platform_MouseButtonEventCallback m_MouseButtonEventCallback;
+		Platform_MouseMoveEventCallback m_MouseMoveEventCallback;
 		Platform_WindowResizedCallback m_WindowResizeEventCallback;
 	};
 
@@ -262,9 +264,9 @@ namespace Platform {
 				int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 				bool pressed = (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN);
 
-				if (s_pMainWindow && s_pMainWindow->m_MouseEventCallback)
+				if (s_pMainWindow && s_pMainWindow->m_MouseButtonEventCallback)
 				{
-					s_pMainWindow->m_MouseEventCallback(0, 0, processedMouseCode);
+					s_pMainWindow->m_MouseButtonEventCallback(processedMouseCode, pressed);
 				}
 			}
 			break;
@@ -438,22 +440,16 @@ namespace Platform {
 		switch (uMsg)
 		{
 		case 513:
-			return MOUSE_BUTTON_LEFTDOWN;
-			break;
 		case 514:
-			return MOUSE_BUTTON_LEFTUP;
+			return MOUSE_BUTTON_LEFT;
 			break;
 		case 516:
-			return MOUSE_BUTTON_RIGHTDOWN;
-			break;
 		case 517:
-			return MOUSE_BUTTON_RIGHTUP;
+			return MOUSE_BUTTON_RIGHT;
 			break;
 		case 519:
-			return MOUSE_BUTTON_MIDDLEDOWN;
-			break;
 		case 520:
-			return MOUSE_BUTTON_MIDDLEUP;
+			return MOUSE_BUTTON_MIDDLE;
 			break;
 		default:
 			return MOUSE_BUTTON_UNDEFINED;
@@ -472,9 +468,9 @@ namespace Platform {
 			mouseYPos = HIWORD(lParam);
 		}
 
-		if (s_pMainWindow && s_pMainWindow->m_MouseEventCallback)
+		if (s_pMainWindow && s_pMainWindow->m_MouseButtonEventCallback)
 		{
-			s_pMainWindow->m_MouseEventCallback(mouseXPos, mouseYPos, NULL);
+			s_pMainWindow->m_MouseMoveEventCallback(mouseXPos, mouseYPos);
 		}
 
 		return true;
@@ -579,13 +575,23 @@ namespace Platform {
 		}
 
 		CSysModule* pNewModule = new CSysModule;
-		pNewModule->m_Module = LoadLibraryA(pModulePath); // TODO: Check with and without dll extension.
+		pNewModule->m_Module = LoadLibraryA(pModulePath);
 
 		if (!pNewModule->m_Module)
 		{
-			LOG_ERROR("Failed to load '%s.dll'. LoadSysModule returning nullptr.", pModulePath);
-			delete pNewModule;
-			return nullptr;
+			// Try to append the .dll extension to the path and load again.
+			char formattedPath[512];
+			StringFormat("%s.%s", pModulePath, "dll", formattedPath);
+
+			pNewModule->m_Module = LoadLibraryA(formattedPath);
+
+			// If we still have nothing then there's probably no module here.
+			if (!pNewModule->m_Module)
+			{
+				LOG_ERROR("Failed to load '%s.dll'. LoadSysModule returning nullptr.", pModulePath);
+				delete pNewModule;
+				return nullptr;
+			}
 		}
 
 		// Attempt to get the module's 'ObtainInterfaces' function to get shared interfaces
@@ -604,9 +610,7 @@ namespace Platform {
 			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pModulePath);
 		}
 
-		// TODO: Strip module path tree and extension from path string.
-		// I.E. "bin/Renderer_Vulkan.dll" should become "Renderer_Vulkan".
-		pNewModule->m_szModuleName = _strdup(pModulePath);
+		pNewModule->m_szModuleName = StringDuplicate(pModulePath);
 
 		// Register this module.
 		s_ModuleRegistry.PushBack(pNewModule);
@@ -619,7 +623,6 @@ namespace Platform {
 		::AssignInterfaces(GetRegisteredInterfaces());
 	}
 
-	// TODO: Make this more configurable (i.e. Able to continue, or abort)
 	bool DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable)
 	{
 		int messageBoxResult = 0;

@@ -68,18 +68,14 @@ enum eKeyTable
 
 //-------------------------------------------------------------------------
 // Mouse Button Table
-// TODO: Make this work with bitflags.
 //-------------------------------------------------------------------------
 enum eMouseButtonTable
 {
-	MOUSE_BUTTON_UNDEFINED = -1,
+	MOUSE_BUTTON_UNDEFINED = 0,
 
-	MOUSE_BUTTON_LEFTDOWN = 1,
-	MOUSE_BUTTON_LEFTUP = 2,
-	MOUSE_BUTTON_RIGHTDOWN = 3,
-	MOUSE_BUTTON_RIGHTUP = 4,
-	MOUSE_BUTTON_MIDDLEDOWN = 5,
-	MOUSE_BUTTON_MIDDLEUP = 6,
+	MOUSE_BUTTON_LEFT = 0x1,
+	MOUSE_BUTTON_RIGHT = 0x2,
+	MOUSE_BUTTON_MIDDLE = 0x4,
 
 	MAX_MOUSE_BUTTONS
 };
@@ -135,9 +131,6 @@ static const char* e_MouseButtonTable_Strings[MAX_MOUSE_BUTTONS] = {
 	"UNDEFINED",
 
 	"LEFT",
-	"LEFT",
 	"RIGHT",
-	"RIGHT",
-	"MIDDLE",
 	"MIDDLE",
 };

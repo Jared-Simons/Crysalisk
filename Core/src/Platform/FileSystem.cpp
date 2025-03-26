@@ -13,6 +13,7 @@
 
 #include <stdio.h>	// Needed for FILE type
 #include <string>
+#include <io.h>
 
 FileHandle_t::~FileHandle_t()
 {
@@ -95,6 +96,11 @@ bool FileSystem::CloseFile(FileHandle_t* fileHandle)
 	return true;
 }
 
+bool FileSystem::FileExists(const char* pszFileName)
+{
+	return _access(pszFileName, 0) == 0;
+}
+
 size_t FileSystem::FileSize(FileHandle_t* fileHandle)
 {
 	if (!fileHandle || !fileHandle->isValid)
@@ -174,4 +180,12 @@ bool FileSystem::IsEOF(FileHandle_t* file)
 		return false;
 	}
 	return true;
+}
+
+void FileSystem::WriteLine(char* pBuffer, FileHandle_t* file)
+{
+	if (pBuffer && file)
+	{
+		fputs(pBuffer, (FILE*)file->internalData);
+	}
 }

@@ -21,6 +21,7 @@
 #include "Resources/GeometryGenerator.h"
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
+#include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
 static bool s_bApplicationQuitCalled{ false };
@@ -75,6 +76,14 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
 		Platform::DisplayMessageBox(nullptr, "Memory manager failed to initialize! Application cannot continue.", "Engine Error", false);
+		return false;
+	}
+
+	// Logger.
+	if (!g_pLog->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
+	{
+		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
+		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
 
@@ -140,6 +149,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
 	rendererConfig.pRendererBackendDLL = pRendererModule;
 	rendererConfig.MaxTextures = 4999;
+	rendererConfig.MaxPipelines = 300;
 
 	if (!g_pRenderer->Initialize(rendererConfig))
 	{
@@ -157,16 +167,26 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Shader system.
+	ShaderSystemConfig_t shaderSysConfig{};
+	shaderSysConfig.MaxShaders = 197;
+	if (!g_pShaderSystem->Initialize(shaderSysConfig))
+	{
+		LOG_ERROR("Failed to initialize shader system! Application cannot continue.");
+		return false;
+	}
+
 	// Material system.
 	MaterialSystemConfig_t materialSysConfig{};
 	materialSysConfig.MaxMaterials = 2049;
-	if (!g_pMaterialSystem->Initialize(materialSysConfig))
+	if (!g_pMaterialSystemInternal->Initialize(materialSysConfig))
 	{
 		LOG_ERROR("Failed to initialize material system! Application cannot continue.");
 		return false;
 	}
 
-	MaterialHandle_t testMaterialHandle = g_pMaterialSystem->AcquireMaterial("Assets/Materials/testmaterial");
+	MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
+	//ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Assets/Shaders/CoreShader.cshadercfg");
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempGeometry();
@@ -207,7 +227,8 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
-	g_pMaterialSystem->Shutdown();
+	g_pMaterialSystemInternal->Shutdown();
+	g_pShaderSystem->Shutdown();
 	g_pTextureSystem->Shutdown();
 
 	g_pRenderer->Shutdown();
@@ -222,6 +243,7 @@ void CEngine::Shutdown()
 	Platform::ShutdownPlatformLayer();
 	g_pInputSystem->Shutdown();
 	g_pEngineEvents->Shutdown();
+	g_pLog->Shutdown();
 	g_pMemoryManager->Shutdown();
 }
 
@@ -337,6 +359,11 @@ bool ReturnInterfacesToRegistry()
 	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
 	inputSystem.szSystemName = StringDuplicate("input_system");
 	Platform::RegisterInterface(inputSystem);
+
+	Platform::SystemInterface_t materialSystem{};
+	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
+	materialSystem.szSystemName = StringDuplicate("material_system");
+	Platform::RegisterInterface(materialSystem);
 
 	return true;
 }

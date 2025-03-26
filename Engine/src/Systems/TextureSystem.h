@@ -30,6 +30,7 @@ public:
 
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) = 0;
 
+	virtual TextureHandle_t		GetDefaultDiffuseTexture() = 0;
 	virtual TextureHandle_t		GetDefaultWhiteTexture() = 0;
 	virtual TextureHandle_t		GetDefaultSpecularTexture() = 0;
 	virtual TextureHandle_t		GetDefaultNormalTexture() = 0;

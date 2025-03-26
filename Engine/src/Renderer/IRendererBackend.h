@@ -28,7 +28,12 @@ public:
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) = 0;
 
-	virtual	bool	AcquireMaterialResources(class Material& pMaterial) = 0;
+	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) = 0;
+
+	virtual bool	AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) = 0;
+	virtual void	ReleaseShaderResources(class Shader& pShader) = 0;
+
+	virtual void	BindShader(class Shader& pShader) = 0;
 
 	virtual bool	AcquireGeometryResources(struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 };

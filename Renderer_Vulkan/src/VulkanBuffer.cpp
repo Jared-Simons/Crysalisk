@@ -17,8 +17,7 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, uint32_t buf
 	bufferInfo.usage = bufferUsage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	// TODO: Custom allocator hooks
-	VK_CHECK(vkCreateBuffer(pRenderingContext.m_Device.m_Device, &bufferInfo, nullptr, &pOutBuffer.m_Handle));
+	VK_CHECK(vkCreateBuffer(pRenderingContext.m_Device.m_Device, &bufferInfo, pRenderingContext.m_Allocator, &pOutBuffer.m_Handle));
 
 	// Get buffer memory
 	VkMemoryRequirements memoryRequirements{};
@@ -28,8 +27,7 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, uint32_t buf
 	allocInfo.allocationSize = memoryRequirements.size;
 	allocInfo.memoryTypeIndex = pRenderingContext.m_Device.FindMemoryType(memoryRequirements.memoryTypeBits, memoryProperties);
 	
-	// TODO: Custom allocator hooks
-	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &allocInfo, nullptr, &pOutBuffer.m_Memory));
+	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &allocInfo, pRenderingContext.m_Allocator, &pOutBuffer.m_Memory));
 
 	vkBindBufferMemory(pRenderingContext.m_Device.m_Device, pOutBuffer.m_Handle, pOutBuffer.m_Memory, 0);
 
@@ -41,10 +39,9 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, uint32_t buf
 
 void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer)
 {
-	// TODO: Custom allocator hooks
-	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer.m_Memory, nullptr);
+	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer.m_Memory, pRenderingContext.m_Allocator);
 
-	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer.m_Handle, nullptr);
+	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer.m_Handle, pRenderingContext.m_Allocator);
 }
 
 bool VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData)

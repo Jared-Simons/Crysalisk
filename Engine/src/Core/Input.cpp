@@ -26,7 +26,8 @@ public:
 
 	// Input processing.
 	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
-	void		ProcessMouseInput(const float mouseXPos, const float mouseYPos, byte mouseButtonFlags, bool pressed) override;
+	void		ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) override;
+	void		ProcessMousePositionInput(const float mouseXPos, const float mouseYPos) override;
 
 	bool		IsKeyPressed(const int key) const override;
 
@@ -38,6 +39,8 @@ private:
 
 	// Current mouse state.
 	MouseState_t m_MouseState;
+	// Mouse state from the previous frame.
+	MouseState_t m_PrevMouseState;
 
 	// Should the keys state be updated? (Was a key pressed this frame?)
 	bool		m_KeyStateDirty;
@@ -67,14 +70,12 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
 	// setup m_MouseState table
 	m_MouseState.m_XPos = 0.0f;
 	m_MouseState.m_YPos = 0.0f;
-	for (int i = 0; i < MAX_MOUSE_BUTTONS / 2; i++)
-	{
-		m_MouseState.m_MouseButtons[i] = false;
-	}
+	m_MouseState.m_MouseFlags = 0;
 
 	// Register our callbacks with the platform layer.
 	pEngineWindow.SetKeyboardEventCallback(API_ProcessKeyInput);
-	pEngineWindow.SetMouseEventCallback(API_ProcessMouseInput);
+	pEngineWindow.SetMouseButtonEventCallback(API_ProcessMouseButtonInput);
+	pEngineWindow.SetMouseMoveEventCallback(API_ProcessMouseMoveInput);
 
 	LOG_INFO("Input System Initialized!");
 
@@ -96,10 +97,10 @@ void CInputSystem::Update()
 {
 	if (m_KeyStateDirty)
 	{
-		// FIXME: We need to be saving off mouse state as well...
 		Platform::MemoryCopy(m_PrevKeysState, m_KeysState, sizeof(KeyState_t));
 		m_KeyStateDirty = false;
 	}
+	Platform::MemoryCopy(&m_PrevMouseState, &m_MouseState, sizeof(MouseState_t));
 }
 
 //-------------------------------------------------------------------------
@@ -143,74 +144,66 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 //		   pressed: True if the processed buttons are pressed, otherwise false.
 // Output - void.
 //-------------------------------------------------------------------------
-void CInputSystem::ProcessMouseInput(const float mouseXPos, const float mouseYPos, byte mouseButtonFlags, bool pressed)
+void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 {
-	if (mouseXPos != 0 && mouseYPos != 0)
+	if (pressed)
 	{
-		m_MouseState.m_XPos = mouseXPos;
-		m_MouseState.m_YPos = mouseYPos;
-		
-		// Fire off an event.
-		EventData_t eventData;
-		eventData.f32[0] = mouseXPos;
-		eventData.f32[1] = mouseYPos;
+		m_MouseState.m_MouseFlags = mouseButtonFlags;
 
-		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
-	}
-
-	if (mouseButtonFlags != 0 && pressed)
-	{
-		switch (mouseButtonFlags)
+		if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_LEFT)
 		{
-		case 1:
-			m_MouseState.m_MouseButtons[0] = true;
-			break;
-
-		case 3:
-			m_MouseState.m_MouseButtons[1] = true;
-			break;
-
-		case 5:
-			m_MouseState.m_MouseButtons[2] = true;
-			break;
-
-		default:
-			LOG_ERROR("Error processing mouse button input!");
-			break;
+			LOG_INFO("Left Mouse Button pressed.");
+		}
+		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
+		{
+			LOG_INFO("Right Mouse Button pressed.");
+		}
+		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
+		{
+			LOG_INFO("Middle Mouse Button pressed.");
 		}
 
 		EventData_t eventData;
-		eventData.u16[0] = mouseButtonFlags;
-
+		eventData.u32[0] = mouseButtonFlags;
 		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
-
-	if (mouseButtonFlags != 0 && !pressed)
+	else
 	{
-		switch (mouseButtonFlags)
+		if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_LEFT)
 		{
-		case 2:
-			m_MouseState.m_MouseButtons[0] = false;
-			break;
-
-		case 4:
-			m_MouseState.m_MouseButtons[1] = false;
-			break;
-
-		case 6:
-			m_MouseState.m_MouseButtons[2] = false;
-			break;
-
-		default:
-			LOG_ERROR("Error processing mouse button input!");
-			break;
+			LOG_INFO("Left Mouse Button released.");
+		}
+		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
+		{
+			LOG_INFO("Right Mouse Button released.");
+		}
+		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
+		{
+			LOG_INFO("Middle Mouse Button released.");
 		}
 
+		// Zero out the pressed mouse buttons.
+		m_MouseState.m_MouseFlags = 0;
+
 		EventData_t eventData;
-		eventData.u16[0] = mouseButtonFlags;
+		eventData.u32[0] = mouseButtonFlags;
 
 		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
+}
+
+void CInputSystem::ProcessMousePositionInput(const float mouseXPos, const float mouseYPos)
+{
+	m_MouseState.m_XPos = mouseXPos;
+	m_MouseState.m_YPos = mouseYPos;
+
+	// Fire off an event.
+	EventData_t eventData;
+	eventData.f32[0] = mouseXPos;
+	eventData.f32[1] = mouseYPos;
+
+	g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
+	return;
 }
 
 //-------------------------------------------------------------------------
@@ -234,7 +227,12 @@ void API_ProcessKeyInput(int processedKeyInput, bool pressed)
 	g_pInputSystem_Internal->ProcessKeyInput(processedKeyInput, pressed);
 }
 
-void API_ProcessMouseInput(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags)
+void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed)
 {
-	g_pInputSystem_Internal->ProcessMouseInput(mouseXPos, mouseYPos, mouseButtonFlags, false);
+	g_pInputSystem_Internal->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
+}
+
+void API_ProcessMouseMoveInput(const float mouseXPos, const float mouseYPos)
+{
+	g_pInputSystem_Internal->ProcessMousePositionInput(mouseXPos, mouseYPos);
 }

@@ -31,6 +31,7 @@
 // Engine System Interfaces
 static class IEventSystem* g_pEngineEvents{ nullptr };
 static class IInputSystem* g_pInputSystem{ nullptr };
+static class IMaterialSystem* g_pMaterialSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: A function to be implemented by the consuming library.
@@ -67,10 +68,16 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 			g_pInputSystem = (IInputSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
+
+		if (StringCompare(appInterfaces[i].szSystemName, "material_system"))
+		{
+			g_pMaterialSystem = (IMaterialSystem*)appInterfaces[i].pSystemAddr;
+			continue;
+		}
 	}
 
 	if (g_pEngineEvents != nullptr && g_pInputSystem != nullptr)
 	{
-		LOG_INFO("Interfaces connected!");
+		LOG_INFO("'%s' - Interfaces connected!", DLLNAME);
 	}
 }

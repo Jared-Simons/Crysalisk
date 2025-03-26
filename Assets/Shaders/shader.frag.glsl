@@ -25,6 +25,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 
 layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 {
+	int shininess;
 	vec4 color;
 } instance_ubo;
 
@@ -67,7 +68,7 @@ void main()
 	// specular
 	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
 	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), instance_ubo.shininess);
 	vec3 lightSpecular = vec3(1.0);
 	vec3 specular = lightSpecular * spec * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
 

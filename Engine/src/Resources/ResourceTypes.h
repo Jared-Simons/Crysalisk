@@ -11,6 +11,7 @@
 #include <Containers/CVector.h>
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
+#include <Renderer/RendererTypes.h>
 #include <Strings/String_Utils.h>
 
 using TextureHandle_t = uint32_t;
@@ -19,6 +20,16 @@ using TextureFlags = uint8_t;
 enum TextureFlags_t
 {
 	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01
+};
+
+enum class eTextureType
+{
+	UNDEFINED = -1,
+	DIFFUSE,
+	SPECULAR,
+	NORMAL,
+
+	MAX_TEXTURE_TYPES,
 };
 
 class Texture
@@ -42,12 +53,39 @@ private:
 	friend class CTextureSystem;
 };
 
+enum ShaderTopologyType
+{
+	UNDEFINED = 0,
+	LINE_LIST = 1,
+	TRIANGLE_LIST = 2,
+};
+
+using ShaderHandle_t = uint32_t;
+
+struct ShaderConfig_t
+{
+	const char* pszShaderName{ nullptr };
+	int			numShaderStages{ 0 };
+	const char** pszShaderStageFileNames{ nullptr };
+	unsigned int eTopologyTypes{ UNDEFINED };
+	Utl::CVector<VertexAttribute_t> vertexAttributes{};
+	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
+};
+
+class Shader
+{
+public:
+	const char*		m_szShaderName{ nullptr };
+	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+};
+
 using MaterialHandle_t = uint32_t;
 
 struct MaterialConfig_t
 {
 	char* pszMaterialName{ nullptr };
 	char* pszShaderName{ nullptr };
+	unsigned int iShiniess{ kInvalidID_U32 };
 	char* pszDiffuseTextureName{ nullptr };
 	char* pszSpecularTextureName{ nullptr };
 	char* pszNormalTextureName{ nullptr };
@@ -65,6 +103,8 @@ struct MaterialConfig_t
 		{
 			pszShaderName = StringDuplicate(pOther.pszShaderName);
 		}
+
+		iShiniess = pOther.iShiniess;
 
 		if (pOther.pszDiffuseTextureName != nullptr)
 		{
@@ -119,9 +159,10 @@ struct MaterialConfig_t
 class Material
 {
 public:
-	// TODO: Store shader handle here.
-	const char*		m_szMaterialName{ nullptr };
+	const char* m_szMaterialName{ nullptr };
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
+	unsigned int	m_iShininess{ kInvalidID_U32 };
 	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hSpecularTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hNormalTextureHandle{ kInvalidID_U32 };
@@ -130,6 +171,7 @@ public:
 struct MaterialReference
 {
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hDiffuseTextureHandle{ kInvalidID_U32 };
 };
 

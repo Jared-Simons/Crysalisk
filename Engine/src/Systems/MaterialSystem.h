@@ -22,6 +22,8 @@ public:
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) = 0;
 	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) = 0;
+
+	virtual MaterialReference	GetDefaultMaterialReference() = 0;
 };
 
-DLL_EXPORT IMaterialSystem* g_pMaterialSystem;
+DLL_EXPORT IMaterialSystem* g_pMaterialSystemInternal;

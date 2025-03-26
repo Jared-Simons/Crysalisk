@@ -14,11 +14,14 @@
 class Vertex3D
 {
 public:
+	Vertex3D()
+		: Pos{}, TexCoord{}, Normal{}, Tangent{} {}
+
 	Vertex3D(Vector3D&& inPos, Vector3D&& inColor, Vector2D&& intexCoord)
-		: Pos{ inPos }, Color{ inColor }, TexCoord{ intexCoord } {}
+		: Pos{ inPos }, TexCoord{ intexCoord } {}
 
 	Vector3D Pos;
-	Vector3D Color;
+	//Vector3D Color;
 	Vector2D TexCoord;
 	Vector3D Normal;
 	Vector3D Tangent;

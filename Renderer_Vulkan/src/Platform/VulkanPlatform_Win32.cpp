@@ -28,8 +28,7 @@ namespace Platform {
 		surfaceCreateInfo.hinstance = GetModuleHandleA(0);
 		surfaceCreateInfo.hwnd = static_cast<HWND>(pHWnd);
 
-		// TODO: Custom allocator hooks
-		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, nullptr, &pRenderingContext.m_Surface));
+		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, pRenderingContext.m_Allocator, &pRenderingContext.m_Surface));
 		
 		LOG_DEBUG("Vulkan surface created");
 		return true;

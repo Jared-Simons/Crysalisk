@@ -19,7 +19,6 @@ namespace Platform {
 
 	void CleanupInterfaceRegistry()
 	{
-		// TODO: Cleanup the strings if necessary...
 	}
 
 }

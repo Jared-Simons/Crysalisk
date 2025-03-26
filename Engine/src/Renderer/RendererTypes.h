@@ -10,6 +10,7 @@
 
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
+#include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
 // Purpose: Frame-specific data to be used in rendering operations.
@@ -30,10 +31,49 @@ struct GlobalUniformObject_t
 	Vector2D	Reserved3;
 };
 
-struct InstanceUniformObject_t
+struct MaterialInstanceData_t
 {
-	Vector4D	Reserved0;
+	int			Shininess;
+	Vector3D	Reserved0;
 	Vector4D	Reserved1;
 	Vector4D	Reserved2;
 	Vector4D	Reserved3;
+};
+
+enum class VertexType_t
+{
+	Undefined,
+	Int32,
+	Vector2,
+	Vector3,
+	Vector4,
+	Matrix4x4,
+	Texture,
+};
+
+struct VertexAttribute_t
+{
+	const char* szName;
+	VertexType_t type;
+
+	VertexAttribute_t()
+		: szName{ nullptr }
+		, type{ VertexType_t::Undefined } {}
+
+	// TODO: String cleanup
+};
+
+enum class eShaderUniformUpdateFrequency
+{
+	GLOBAL,
+	OBJECT,
+	PER_DRAW
+};
+
+struct ShaderUniformConfig_t
+{
+	const char* szName;
+	VertexType_t eType;
+	eShaderUniformUpdateFrequency eFrequency;
+	int iArraySize;
 };

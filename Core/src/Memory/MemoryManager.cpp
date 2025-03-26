@@ -8,7 +8,6 @@
 
 #include "Platform/Platform.h"
 
-//  TODO: This is TEMPORARY!
 #include <malloc.h>
 #include <string.h>
 
@@ -32,9 +31,7 @@ IMemoryManager* g_pMemoryManager = &s_pMemoryManager;
 bool IMemoryManager::CreateMemorySystem(ApplicationMemoryConfiguration_t config)
 {
 	// Allocate the block of memory from the OS.
-	// TODO: Enable this when we move the platform code to Core.dll
-	//byte* pMemoryBlock = reinterpret_cast<byte*>(Platform::MemoryAllocate(config.totalMemoryBudget));
-	byte* pMemoryBlock = reinterpret_cast<byte*>(malloc(config.totalMemoryBudget));
+	byte* pMemoryBlock = reinterpret_cast<byte*>(Platform::MemoryAllocate(config.totalMemoryBudget));
 
 	// Initialize the manager.
 	s_pMemoryManager.Initialize(config, pMemoryBlock);
@@ -52,15 +49,14 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 void CMemoryManager::Shutdown()
 {
 	// Return our memory to the OS.
-	//Platform::MemoryFree(m_pEngineMemory);
-	// TODO: Enable this when we move the platform code to Core.dll
-	free(m_pEngineMemory);
+	Platform::MemoryFree(m_pEngineMemory);
 }
 
 void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
 	void* pMemBlock = malloc(sizeInBytes);
-	memset(pMemBlock, 0, sizeInBytes);
+	if (pMemBlock)
+		memset(pMemBlock, 0, sizeInBytes);
 	return pMemBlock;
 }
 

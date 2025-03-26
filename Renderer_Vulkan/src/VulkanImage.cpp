@@ -24,8 +24,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	imageInfo.usage = usageFlags;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkCreateImage(pRenderingContext.m_Device.m_Device, &imageInfo, nullptr, &pOutImage.m_Image));
+	VK_CHECK(vkCreateImage(pRenderingContext.m_Device.m_Device, &imageInfo, pRenderingContext.m_Allocator, &pOutImage.m_Image));
 
 	// Allocate memory for the image.
 	VkMemoryRequirements imageMemoryRequirements;
@@ -35,8 +34,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	memAllocInfo.allocationSize = imageMemoryRequirements.size;
 	memAllocInfo.memoryTypeIndex = pRenderingContext.m_Device.FindMemoryType(imageMemoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &memAllocInfo, nullptr, &pOutImage.m_Memory));
+	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &memAllocInfo, pRenderingContext.m_Allocator, &pOutImage.m_Memory));
 
 	vkBindImageMemory(pRenderingContext.m_Device.m_Device, pOutImage.m_Image, pOutImage.m_Memory, 0);
 
@@ -51,8 +49,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	viewCreateInfo.subresourceRange.baseArrayLayer = 0;
 	viewCreateInfo.subresourceRange.layerCount = 1;
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewCreateInfo, nullptr, &pOutImage.m_View));
+	VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewCreateInfo, pRenderingContext.m_Allocator, &pOutImage.m_View));
 
 	// Create sampler
 	VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -69,20 +66,17 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkCreateSampler(pRenderingContext.m_Device.m_Device, &samplerCreateInfo, nullptr, &pOutImage.m_Sampler));
+	VK_CHECK(vkCreateSampler(pRenderingContext.m_Device.m_Device, &samplerCreateInfo, pRenderingContext.m_Allocator, &pOutImage.m_Sampler));
 
 	return true;
 }
 
 void VulkanImage::DestroyImage(CVulkanRenderer& pRenderingContext, VulkanImage& pImage)
 {
-	// TODO: Custom allocator hooks.
-
-	vkDestroySampler(pRenderingContext.m_Device.m_Device, pImage.m_Sampler, nullptr);
-	vkDestroyImageView(pRenderingContext.m_Device.m_Device, pImage.m_View, nullptr);
-	vkFreeMemory(pRenderingContext.m_Device.m_Device, pImage.m_Memory, nullptr);
-	vkDestroyImage(pRenderingContext.m_Device.m_Device, pImage.m_Image, nullptr);
+	vkDestroySampler(pRenderingContext.m_Device.m_Device, pImage.m_Sampler, pRenderingContext.m_Allocator);
+	vkDestroyImageView(pRenderingContext.m_Device.m_Device, pImage.m_View, pRenderingContext.m_Allocator);
+	vkFreeMemory(pRenderingContext.m_Device.m_Device, pImage.m_Memory, pRenderingContext.m_Allocator);
+	vkDestroyImage(pRenderingContext.m_Device.m_Device, pImage.m_Image, pRenderingContext.m_Allocator);
 }
 
 bool VulkanImage::TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout)

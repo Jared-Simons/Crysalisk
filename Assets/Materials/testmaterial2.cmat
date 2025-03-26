@@ -2,6 +2,7 @@
 # TODO: Need to not explicitly state texture directory.
 # TODO: Need to not explicitly state texture/image extension.
 name=Dev Test Material 2
-shader=Shader
+shader=Core.Phong
+shininess=32
 map_diffuse=Assets/Textures/container2.png
 map_specular=Assets/Textures/container2_specular.png 

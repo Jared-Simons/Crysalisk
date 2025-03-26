@@ -6,13 +6,19 @@
 //=============================================================================
 #include "Logging.h"
 
+#include "Platform/FileSystem.h"
+
 #include <stdarg.h>
 #include <stdio.h>
 
+// Logging System context.
 static LogSystem s_Log;
 LogSystem* g_pLog = &s_Log;
 
 int LogSystem::m_LogVerbosity = 6;
+
+// File to write logging entries out to.
+FileHandle_t s_LoggerFile{};
 
 // NOTE: This MUST stay aligned with the eLogLevel enum
 static const char* logLevelStrings[6] =
@@ -34,6 +40,12 @@ bool LogSystem::Init(int iLogVerbosity)
 {
 	m_LogVerbosity = iLogVerbosity;
 
+	// Set up our logging file.
+	if (!FileSystem::OpenFile("console.log", FILEMODE_WRITE, false, &s_LoggerFile))
+	{
+		LOG_WARN("LogSystem::Init() -> Failed to create/open file to write logging messages to. Logging entries will not be saved.");
+	}
+
 	return true;
 }
 
@@ -42,6 +54,8 @@ bool LogSystem::Init(int iLogVerbosity)
 //-------------------------------------------------------------------------
 void LogSystem::Shutdown()
 {
+	// Close our logging file.
+	FileSystem::CloseFile(&s_LoggerFile);
 }
 
 //-------------------------------------------------------------------------
@@ -74,6 +88,12 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 	// Prepend channel string to the message
 	char finalOutBuffer[4092];
 	sprintf_s(finalOutBuffer, "%s%s\n", logLevelStrings[logLevel], formattedMessageBuffer);
+
+	// Write the message out to file, if possible.
+	if (s_LoggerFile.isValid)
+	{
+		FileSystem::WriteLine(finalOutBuffer, &s_LoggerFile);
+	}
 
 	Platform::LogMessage(logLevel, finalOutBuffer);
 }

@@ -12,6 +12,7 @@
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
 //-------------------------------------------------------------------------
@@ -26,7 +27,10 @@ public:
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
 	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) override;
 
+	virtual MaterialReference	GetDefaultMaterialReference() override;
+
 private:
+	void						CreateDefaultMaterial();
 	MaterialConfig_t			ParseMaterialConfig(char* pszMaterialPathFile);
 
 private:
@@ -43,14 +47,18 @@ private:
 	{
 		Utl::CHashMap<const char*, MaterialLookup> m_MaterialHashmap{};
 		Material* m_MaterialArray{ nullptr };
+		MaterialInstanceData_t* m_MaterialInstanceData{ nullptr };
 	};
 
 	MaterialDictionary	m_MaterialDictionary{};
+
+	Material			m_DefaultMaterial{};
+	MaterialLookup		m_DefaultMaterialLookup{};
 };
 
 // Material System context.
 static CMaterialSystem s_MaterialSystem;
-IMaterialSystem* g_pMaterialSystem = &s_MaterialSystem;
+IMaterialSystem* g_pMaterialSystemInternal = &s_MaterialSystem;
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -62,6 +70,10 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 
 	// Allocate memory for our material array.
 	m_MaterialDictionary.m_MaterialArray = (Material*)new Material[m_Config.MaxMaterials];
+	m_MaterialDictionary.m_MaterialInstanceData = (MaterialInstanceData_t*)new MaterialInstanceData_t[m_Config.MaxMaterials];
+
+	// Default material.
+	CreateDefaultMaterial();
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
@@ -73,6 +85,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 //-------------------------------------------------------------------------
 void CMaterialSystem::Shutdown()
 {
+	delete[] m_MaterialDictionary.m_MaterialInstanceData;
 	delete[] m_MaterialDictionary.m_MaterialArray;
 	LOG_WARN("TODO: IMPLEMENT MATERIAL SYSTEM RESOURCE RELEASE METHOD!!!");
 }
@@ -99,8 +112,17 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		return 0; // TODO: Default material.
 	}
 
+	// Parse the material file.
+	MaterialConfig_t newMatConfig = ParseMaterialConfig(const_cast<char*>(pszMaterialName));
+
+	if (newMatConfig.pszMaterialName == nullptr)
+	{
+		LOG_ERROR("Failed to load material '%s'. Returning default.", pszMaterialName);
+		return kInvalidID_U32;
+	}
+
 	// Get an entry into the hashmap.
-	MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pszMaterialName);
+	MaterialLookup* newMaterialLookup = &m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
 	if (!newMaterialLookup)
 	{
 		LOG_ERROR("Failed to find free space for a new material in the material hashmap, returning default.");
@@ -125,9 +147,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pszMaterialName);
 			return 0; // TODO: Default material.
 		}
-
-		// Parse the material file.
-		MaterialConfig_t newMatConfig = ParseMaterialConfig(const_cast<char*>(pszMaterialName));
+		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
 
 		// Acquire material resources.
 		// TODO: we'll need to acquire a shader handle here eventually...
@@ -135,6 +155,21 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		{
 			newMaterial->m_szMaterialName = StringDuplicate(newMatConfig.pszMaterialName);
 		}
+
+		if (newMatConfig.pszShaderName != nullptr)
+		{
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMatConfig.pszShaderName);
+		}
+
+		if (newMatConfig.iShiniess != kInvalidID_U32)
+		{
+			newMaterial->m_iShininess = newMatConfig.iShiniess;
+		}
+		else
+		{
+			newMaterial->m_iShininess = 8; // A decent default.
+		}
+		pMatInstanceData.Shininess = newMaterial->m_iShininess;
 		
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
@@ -162,7 +197,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		}
 
 		// Acquire shader resources.
-		if (!g_pRenderer->AcquireMaterialResources(*newMaterial))
+		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pszMaterialName);
 			return 0; // TODO: Default texture and release resources.
@@ -199,9 +234,62 @@ MaterialReference CMaterialSystem::AcquireMaterialReference(const char* pszMater
 	MaterialHandle_t newMaterial = AcquireMaterial(pszMaterialName);
 
 	MaterialReference newRef;
+
+	if (newMaterial == kInvalidID_U32)
+	{
+		// Return default material.
+		return GetDefaultMaterialReference();
+	}
+
 	newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_iInternalHandle;
+	newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hShaderHandle;
 	newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hDiffuseTextureHandle;
 	return newRef;
+}
+
+//-------------------------------------------------------------------------
+// Returns a reference to the default texture.
+//-------------------------------------------------------------------------
+MaterialReference CMaterialSystem::GetDefaultMaterialReference()
+{
+	MaterialReference defaultMaterialRef{};
+
+	defaultMaterialRef.m_iInternalHandle = m_DefaultMaterial.m_iInternalHandle;
+	defaultMaterialRef.m_hShaderHandle = m_DefaultMaterial.m_hShaderHandle;
+	defaultMaterialRef.m_hDiffuseTextureHandle = m_DefaultMaterial.m_hDiffuseTextureHandle;
+
+	return defaultMaterialRef;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+void CMaterialSystem::CreateDefaultMaterial()
+{
+	m_DefaultMaterial.m_szMaterialName = StringDuplicate("_DefaultMaterial");
+	m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");
+	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem->GetDefaultDiffuseTexture();
+	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
+	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+	MaterialInstanceData_t defaultInstanceData{};
+	defaultInstanceData.Shininess = 32;
+
+	int matIdx = 0;
+	Material* pNewMaterial = nullptr;
+	for (matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx)
+	{
+		if (m_MaterialDictionary.m_MaterialArray[matIdx].m_iInternalHandle == kInvalidID_U32)
+		{
+			pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+			break;
+		}
+	}
+
+	MaterialLookup* newMaterialLookup = &m_MaterialDictionary.m_MaterialHashmap[m_DefaultMaterial.m_szMaterialName];
+	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
+	newMaterialLookup->MaterialIndex = matIdx;
+
+	g_pRenderer->AcquireMaterialResources(m_DefaultMaterial, defaultInstanceData);
 }
 
 //-------------------------------------------------------------------------
@@ -249,6 +337,10 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 		else if (StringCompare(key, "shader"))
 		{
 			newMatConfig.pszShaderName = StringDuplicate(value);
+		}
+		else if (StringCompare(key, "shininess"))
+		{
+			newMatConfig.iShiniess = String_ATOI(value);
 		}
 		else if (StringCompare(key, "map_diffuse"))
 		{

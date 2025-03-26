@@ -83,8 +83,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, Vulkan
 	swapchainCreateInfo.clipped = VK_TRUE;
 	swapchainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	// TODO: Custom allocator hooks
-	VK_CHECK(vkCreateSwapchainKHR(pRenderingContext.m_Device.m_Device, &swapchainCreateInfo, nullptr, &pOutSwapchain.m_Handle));
+	VK_CHECK(vkCreateSwapchainKHR(pRenderingContext.m_Device.m_Device, &swapchainCreateInfo, pRenderingContext.m_Allocator, &pOutSwapchain.m_Handle));
 
 	// Cache off relevant formats.
 	pOutSwapchain.m_SwapchainImageFormat = swapchainCreateInfo.imageFormat;
@@ -114,8 +113,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, Vulkan
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
-		// TODO: Custom allocator hooks.
-		VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewInfo, nullptr, &pOutSwapchain.m_SwapchainImageViews[imageIdx]));
+		VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewInfo, pRenderingContext.m_Allocator, &pOutSwapchain.m_SwapchainImageViews[imageIdx]));
 	}
 
 	// Query our device for possible depth formats.
@@ -135,20 +133,19 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, Vulkan
 
 void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
-	// TODO: Custom allocator hooks
 	for (int imageIdx = 0; imageIdx < pSwapchain.m_Framebuffers.Capacity(); imageIdx++)
 	{
-		vkDestroyFramebuffer(pRenderingContext.m_Device.m_Device, pSwapchain.m_Framebuffers[imageIdx], nullptr);
+		vkDestroyFramebuffer(pRenderingContext.m_Device.m_Device, pSwapchain.m_Framebuffers[imageIdx], pRenderingContext.m_Allocator);
 	}
 
 	VulkanImage::DestroyImage(pRenderingContext, pSwapchain.m_DepthImage);
 
 	for (int imageIdx = 0; imageIdx < pSwapchain.m_SwapchainImageViews.Capacity(); imageIdx++)
 	{
-		vkDestroyImageView(pRenderingContext.m_Device.m_Device, pSwapchain.m_SwapchainImageViews[imageIdx], nullptr);
+		vkDestroyImageView(pRenderingContext.m_Device.m_Device, pSwapchain.m_SwapchainImageViews[imageIdx], pRenderingContext.m_Allocator);
 	}
 
-	vkDestroySwapchainKHR(pRenderingContext.m_Device.m_Device, pSwapchain.m_Handle, nullptr);
+	vkDestroySwapchainKHR(pRenderingContext.m_Device.m_Device, pSwapchain.m_Handle, pRenderingContext.m_Allocator);
 }
 
 bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
@@ -170,8 +167,7 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 		framebufferInfo.height = pRenderingContext.m_Swapchain.m_SwapchainExtent.height;
 		framebufferInfo.layers = 1;
 
-		// TODO: Custom allocator hooks.
-		VK_CHECK(vkCreateFramebuffer(pRenderingContext.m_Device.m_Device, &framebufferInfo, nullptr, &pSwapchain.m_Framebuffers[imageIdx]));
+		VK_CHECK(vkCreateFramebuffer(pRenderingContext.m_Device.m_Device, &framebufferInfo, pRenderingContext.m_Allocator, &pSwapchain.m_Framebuffers[imageIdx]));
 	}
 
 	return true;

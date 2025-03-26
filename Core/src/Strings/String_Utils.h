@@ -8,16 +8,14 @@
 
 #include <Defines.h>
 
-// TODO: Does this need to be included here? Would much rather have this in the .cpp file...
-#include <stdarg.h>
-
 DLL_EXPORT size_t StringLength(const char* str);
 
 DLL_EXPORT void StringFormat(const char* format, const char* str1, const char* str2, char* outString);
 
-DLL_EXPORT void StringFormat_V(const char* format, const char* str1, char* outString, ...);
+DLL_EXPORT void StringFormat_V(const char* format, char* outString, ...);
 
 DLL_EXPORT char* StringDuplicate(const char* pStringToCopy);
+DLL_EXPORT char* StringDuplicate_N(const char* pStrToCopy, int bytesToCopy);
 
 DLL_EXPORT void StringFree(char* pString);
 
@@ -28,5 +26,9 @@ DLL_EXPORT size_t StringIndexOf(const char* pString, char pCharToFind);
 // Appends str2 to string 1.
 DLL_EXPORT char* StringConcat(char* str1, char* str2);
 
-DLL_EXPORT i32 String_ATOI(const char c);
+// Strips all instances of 'c' from pStr.
+// NOTE: This must be freed by the caller.
+DLL_EXPORT char* StringStrip(char* pStr, char c);
+
+DLL_EXPORT int String_ATOI(const char* c);
 

@@ -109,8 +109,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	deviceCreateInfo.enabledExtensionCount = static_cast<unsigned int>(requiredExtensions.Count());
 	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.Data();
 
-	// TODO: Custom allocator hooks.
-	VK_CHECK(vkCreateDevice(pOutDevice.m_PhysicalDevice, &deviceCreateInfo, nullptr, &pOutDevice.m_Device));
+	VK_CHECK(vkCreateDevice(pOutDevice.m_PhysicalDevice, &deviceCreateInfo, pRenderingContext.m_Allocator, &pOutDevice.m_Device));
 	LOG_DEBUG("Vulkan logical device created");
 
 	// Obtain queue handles.
@@ -130,8 +129,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 
 void VulkanDevice::DestroyDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pDevice)
 {
-	// TODO: Custom allocator hooks.
-	vkDestroyDevice(pDevice.m_Device, nullptr);
+	vkDestroyDevice(pDevice.m_Device, pRenderingContext.m_Allocator);
 }
 
 uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)

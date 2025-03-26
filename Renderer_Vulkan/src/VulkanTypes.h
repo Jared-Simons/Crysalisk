@@ -125,18 +125,25 @@ public:
 class VulkanShaderInternal
 {
 public:
+	size_t		m_Generation{ kInvalidID_U32 };
 	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
 
-	class VulkanDescriptorSetState
+	struct VulkanDescriptorSetLayoutState
 	{
-	public:
+		VkDescriptorSetLayout			m_Layout;
+		eShaderUniformUpdateFrequency	m_FrequencyLevel;
+	};
+
+	struct VulkanDescriptorSetState
+	{
 		VkDescriptorSet m_DescriptorSets[3];
 		byte			m_Generation;
 	};
 
 	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
 	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
+	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 };

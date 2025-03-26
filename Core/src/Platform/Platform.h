@@ -23,7 +23,8 @@ namespace Platform {
 	// Platform Layer Message Callbacks.
 	//-------------------------------------------------------------------------
 	typedef void (*Platform_KeyboardEventCallback)(const int processedKeyInput, bool pressed);
-	typedef void (*Platform_MouseEventCallback)(const float mouseXPos, const float mouseYPos, unsigned int mouseButtonFlags);
+	typedef void (*Platform_MouseButtonEventCallback)(unsigned int mouseButtonFlags, bool bPressed);
+	typedef void (*Platform_MouseMoveEventCallback)(const float mouseXPos, const float mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
 	class IPlatformWindow
@@ -35,7 +36,8 @@ namespace Platform {
 		virtual void*	GetInternalHandle() = 0;
 
 		virtual void	SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) = 0;
-		virtual void	SetMouseEventCallback(Platform_MouseEventCallback callback) = 0;
+		virtual void	SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) = 0;
+		virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) = 0;
 		virtual void	SetWindowResizeCallback(Platform_WindowResizedCallback callback) = 0;
 	};
 

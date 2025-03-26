@@ -34,5 +34,4 @@ public:
 
 extern IEngine* g_pEngine;
 
-// TODO: Temporary until interfaces are working
 ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
