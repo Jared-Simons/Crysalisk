@@ -52,8 +52,6 @@ private:
 	EngineConfig_t	m_engineConfig;
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
-
-public:
 };
 
 // Engine context.

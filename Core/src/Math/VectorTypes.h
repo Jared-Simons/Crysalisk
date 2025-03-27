@@ -320,6 +320,11 @@ public:
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
 		return outVector;
 	}
+
+	inline Vector2D AsVector2D()
+	{
+		return Vector2D(x, y);
+	}
 };
 
 

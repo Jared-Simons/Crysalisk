@@ -57,6 +57,7 @@ public:
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};
+	GeometryInstance_t	m_SponzaModel;
 };
 
 extern Renderer* g_pRenderer;

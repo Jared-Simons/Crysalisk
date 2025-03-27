@@ -351,13 +351,13 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Create the temp geometry buffer.
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 108, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry vertex data buffer.");
 		return false;
 	}
 
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 6, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry index data buffer.");
 		return false;
@@ -642,9 +642,14 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
 	// Bind our geometry data.
-	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset };
+	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, offsets);
-	// TODO: Index buffer
+
+	// Bind the index buffer, if necessary
+	if (pGeometry.indexDataOffset != -1)
+	{
+		vkCmdBindIndexBuffer(commandBuffer, m_GeometryIndexBuffer.m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+	}
 
 	// Bind our pipeline.
 	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
@@ -683,13 +688,20 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
 	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
+	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
 	// Push our model matrix as well.
 	vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 	// Issue the draw.
-	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
+	if (pGeometry.indexDataOffset != -1)
+	{
+		vkCmdDrawIndexed(commandBuffer, pGeometry.indexDataSize, 1, pGeometry.indexDataOffset, pGeometry.vertexDataOffset, 0);
+	}
+	else
+	{
+		vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -1432,8 +1444,16 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 {
 	pOutInstance.vertexDataOffset = m_GeometryVertexBuffer.m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Capacity();
-	// TODO: Handle index buffer.
+	
+	pOutInstance.indexDataOffset = m_GeometryIndexBuffer.m_BytesAllocated;
+	pOutInstance.indexDataSize = pGeometryConfig.Indices.Capacity();
+
 	m_GeometryVertexBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Capacity() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	if (pGeometryConfig.Indices.Capacity() != 0) // TODO: Better check could be used here.
+	{
+		m_GeometryIndexBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Capacity() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+	}
 
 	return true;
 }

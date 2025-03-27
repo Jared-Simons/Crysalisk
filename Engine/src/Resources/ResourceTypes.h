@@ -185,10 +185,10 @@ struct GeometryConfig_t
 // TODO: This is temporary and should NOT stick around
 struct GeometryInstance_t
 {
-	int	vertexCount{};
-	int vertexDataOffset{};
-	int indexDataSize{};
-	int indexDataOffset{};
+	int	vertexCount{ -1 };
+	int vertexDataOffset{ -1 };
+	int indexDataSize{ -1 };
+	int indexDataOffset{ -1 };
 
 	MaterialReference hMaterial;
 };

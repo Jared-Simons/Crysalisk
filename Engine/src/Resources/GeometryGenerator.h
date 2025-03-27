@@ -15,3 +15,11 @@ public:
 	static GeometryConfig_t CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight);
 	static GeometryConfig_t CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth);
 };
+
+class IModelLoader
+{
+public:
+	virtual GeometryConfig_t CreateConfigFromFile(const char* pszFilePath) = 0;
+};
+
+extern IModelLoader* g_pOBJLoader;

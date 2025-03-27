@@ -6,6 +6,12 @@
 //=============================================================================
 #include "GeometryGenerator.h"
 
+#include <Containers/CVector.h>
+#include <Core/Logging.h>
+#include <Math/VertexTypes.h>
+#include <Platform/FileSystem.h>
+#include <Strings/String_Utils.h>
+
 GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight)
 {
 	GeometryConfig_t quadConfig{};
@@ -28,6 +34,7 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 	quadConfig.Vertices[4].TexCoord = { 1.0f, 1.0f };
 	quadConfig.Vertices[5].TexCoord = { 0.0f, 1.0f };
 
+	// TODO: This needs normal and tangent generation as well!
 	/*for (int i = 0; i < 6; i++)
 	{
 		LOG_DEBUG("%.3f, %.3f, %.3f", quadConfig.Vertices[i].Pos.x, quadConfig.Vertices[i].Pos.y, quadConfig.Vertices[i].Pos.z);
@@ -225,4 +232,202 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 	}
 
 	return cubeConfig;
+}
+
+class OBJModelLoader : public IModelLoader
+{
+public:
+	virtual GeometryConfig_t CreateConfigFromFile(const char* pszFilePath) override;
+};
+
+// TODO: This should be part of a resource system!
+// We should not be accessing this directly!
+static OBJModelLoader s_OBJLoader;
+IModelLoader* g_pOBJLoader = &s_OBJLoader;
+
+GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
+{
+	// Make sure the file exists!
+	if (!FileSystem::FileExists(pszFilePath))
+	{
+		LOG_ERROR("Failed to find model '%s' to load! Nothing was done.", pszFilePath);
+		return GeometryConfig_t{};
+	}
+
+	FileHandle_t OBJFileHandle;
+	if (!FileSystem::OpenFile(pszFilePath, eFileMode::FILEMODE_READ, false, &OBJFileHandle))
+	{
+		return GeometryConfig_t{};
+	}
+
+	// Parse the file's data.
+	GeometryConfig_t OBJConfig{};
+	Utl::CVector<Vector3D>	vertexPositions{};
+	Utl::CVector<Vector3D>	vertexNormals{};
+	Utl::CVector<Vector3D>	vertexTexCoords{};
+	Utl::CVector<uint32_t>	vertexIndices{};
+	Utl::CVector<uint32_t>	normalIndices{};
+	Utl::CVector<uint32_t>	texCoordIndices{};
+
+	char szCurrentLine[kScratchStringBufferLength]{};
+	char pFirstChar{};
+	char pSecondChar{};
+	size_t currLine{ 0 };
+	size_t bytesRead{ 0 };
+
+	while (!FileSystem::IsEOF(&OBJFileHandle))
+	{
+		FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &OBJFileHandle);
+
+		pFirstChar = szCurrentLine[0];
+		pSecondChar = szCurrentLine[1];
+
+		// TODO: Handle materiallib file.
+
+		switch (pFirstChar)
+		{
+		case '#':	// Skip comments.
+		case 0:		// And blank lines
+			continue;
+
+		case 'v':
+		{
+			switch (pSecondChar)
+			{
+				case ' ':	// Vertex position.
+				{
+					// NOTE: Right now we are expecting 3-component vectors from our OBJ files.
+					Vector3D newVertex{};
+					char pCurrValue[512];
+					
+					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+					newVertex.x = String_ATOF(pCurrValue);
+
+					currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newVertex.y = String_ATOF(pCurrValue);
+
+					currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newVertex.z = String_ATOF(pCurrValue);
+
+					vertexPositions.PushBack(newVertex);
+					break;
+				}
+
+				case 'n':	// Vertex normal.
+				{
+					Vector3D newNormal{};
+					char pCurrValue[512];
+
+					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+					newNormal.x = String_ATOF(pCurrValue);
+
+					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newNormal.y = String_ATOF(pCurrValue);
+
+					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newNormal.z = String_ATOF(pCurrValue);
+
+					vertexNormals.PushBack(newNormal);
+					break;
+				}
+
+				case 't':	// Vertex texcoords.
+				{
+					Vector3D newTexCoord{};
+					char pCurrValue[512];
+
+					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+					newTexCoord.x = String_ATOF(pCurrValue);
+
+					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newTexCoord.y = String_ATOF(pCurrValue);
+
+					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+					newTexCoord.z = String_ATOF(pCurrValue);
+
+					vertexTexCoords.PushBack(newTexCoord);
+					break;
+				}
+			}
+
+			break;
+
+		case 'f':	// Vertex Indices, these are processed in groups of 3.
+				{
+				char szCurrValue[512];
+				unsigned int currIndex{ 2 };
+				unsigned int slashIndex{ 0 };
+				for (int idx = 0; idx < 4; idx++)
+				{
+					// Position indices first.
+					StringTrim(&szCurrentLine[currIndex], szCurrValue);
+					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
+
+					if (slashIndex == kInvalidID_U32)
+					{
+						// No more data on this line, break out.
+						break;
+					}
+
+					szCurrValue[slashIndex] = 0;
+					vertexIndices.PushBack(String_ATOI(szCurrValue));
+
+					// Texcoords next.
+					currIndex += slashIndex + 1;
+					StringTrim(&szCurrentLine[currIndex], szCurrValue);
+					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
+					szCurrValue[slashIndex] = 0;
+					texCoordIndices.PushBack(String_ATOI(szCurrValue));
+
+					// Normals next.
+					currIndex += slashIndex + 1;
+					int currValLength = StringTrim(&szCurrentLine[currIndex], szCurrValue);
+					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
+					szCurrValue[currValLength - 1] = 0;
+					normalIndices.PushBack(String_ATOI(szCurrValue));
+
+					currIndex += currValLength;
+				}
+
+				break;
+			}
+		}
+
+		default:
+			//LOG_WARN("We have unfinished business in the OBJ Loader!");
+			break;
+		}
+
+		currLine++;
+	}
+
+	OBJConfig.Vertices.Resize(vertexPositions.Count());
+	OBJConfig.Indices.Resize(vertexIndices.Count());
+
+	// Pool together all the data into our own config.
+	for (int idx = 0; idx < vertexPositions.Count(); idx++)
+	{
+		OBJConfig.Vertices[idx].Pos = vertexPositions[idx];
+	}
+
+	for (int idx = 0; idx < vertexNormals.Count(); idx++)
+	{
+		OBJConfig.Vertices[idx].Normal = vertexNormals[idx];
+	}
+
+	for (int idx = 0; idx < vertexTexCoords.Count(); idx++)
+	{
+		OBJConfig.Vertices[idx].TexCoord = vertexTexCoords[idx].AsVector2D();
+	}
+
+	for (int idx = 0; idx < vertexIndices.Count(); idx++)
+	{
+		OBJConfig.Indices[idx] = vertexIndices[idx];
+		//LOG_INFO("%d", OBJConfig.Indices[idx]);
+	}
+
+	FileSystem::CloseFile(&OBJFileHandle);
+
+	// NOTE: This is a bit heavy to return by value, no?
+	return OBJConfig;
 }

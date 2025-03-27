@@ -102,9 +102,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	DrawGeometry(m_Cube1);
-	DrawGeometry(m_Cube2);
-	DrawGeometry(m_Cube3);
+	//DrawGeometry(m_Cube1);
+	//DrawGeometry(m_Cube2);
+	//DrawGeometry(m_Cube3);
+
+	DrawGeometry(m_SponzaModel);
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -183,6 +185,10 @@ bool Renderer::CreateTempGeometry()
 	// TEMP SHADER TEST CODE
 	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
 	// END TEMP
+
+	// Load a test model.
+	GeometryConfig_t sponzaConfig = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+	m_RendererBackend->AcquireGeometryResources(sponzaConfig, m_SponzaModel);
 
 	return true;
 }
