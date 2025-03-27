@@ -192,3 +192,8 @@ struct GeometryInstance_t
 
 	MaterialReference hMaterial;
 };
+
+struct Mesh
+{
+	Utl::CVector<GeometryInstance_t> m_Geometries{};
+};

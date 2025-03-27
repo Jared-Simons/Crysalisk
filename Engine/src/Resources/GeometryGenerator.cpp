@@ -12,6 +12,8 @@
 #include <Platform/FileSystem.h>
 #include <Strings/String_Utils.h>
 
+#include <stdio.h> // for scanf()
+
 GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight)
 {
 	GeometryConfig_t quadConfig{};
@@ -262,12 +264,12 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 	// Parse the file's data.
 	GeometryConfig_t OBJConfig{};
-	Utl::CVector<Vector3D>	vertexPositions{};
-	Utl::CVector<Vector3D>	vertexNormals{};
-	Utl::CVector<Vector3D>	vertexTexCoords{};
-	Utl::CVector<uint32_t>	vertexIndices{};
-	Utl::CVector<uint32_t>	normalIndices{};
-	Utl::CVector<uint32_t>	texCoordIndices{};
+	Utl::CVector<Vector3D> vertices{};
+	Utl::CVector<Vector3D> normals{};
+	Utl::CVector<Vector2D> texCoords{};
+	Utl::CVector<uint32_t> vertexIndices{};
+	Utl::CVector<uint32_t> normalIndices{};
+	Utl::CVector<uint32_t> texCoordIndices{};
 
 	char szCurrentLine[kScratchStringBufferLength]{};
 	char pFirstChar{};
@@ -291,106 +293,86 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			continue;
 
 		case 'v':
-		{
+			{
 			switch (pSecondChar)
 			{
 				case ' ':	// Vertex position.
-				{
-					// NOTE: Right now we are expecting 3-component vectors from our OBJ files.
-					Vector3D newVertex{};
-					char pCurrValue[512];
-					
-					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
-					newVertex.x = String_ATOF(pCurrValue);
-
-					currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newVertex.y = String_ATOF(pCurrValue);
-
-					currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newVertex.z = String_ATOF(pCurrValue);
-
-					vertexPositions.PushBack(newVertex);
-					break;
-				}
-
-				case 'n':	// Vertex normal.
-				{
-					Vector3D newNormal{};
-					char pCurrValue[512];
-
-					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
-					newNormal.x = String_ATOF(pCurrValue);
-
-					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newNormal.y = String_ATOF(pCurrValue);
-
-					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newNormal.z = String_ATOF(pCurrValue);
-
-					vertexNormals.PushBack(newNormal);
-					break;
-				}
-
-				case 't':	// Vertex texcoords.
-				{
-					Vector3D newTexCoord{};
-					char pCurrValue[512];
-
-					int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
-					newTexCoord.x = String_ATOF(pCurrValue);
-
-					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newTexCoord.y = String_ATOF(pCurrValue);
-
-					currValLength = StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
-					newTexCoord.z = String_ATOF(pCurrValue);
-
-					vertexTexCoords.PushBack(newTexCoord);
-					break;
-				}
-			}
-
-			break;
-
-		case 'f':	// Vertex Indices, these are processed in groups of 3.
-				{
-				char szCurrValue[512];
-				unsigned int currIndex{ 2 };
-				unsigned int slashIndex{ 0 };
-				for (int idx = 0; idx < 4; idx++)
-				{
-					// Position indices first.
-					StringTrim(&szCurrentLine[currIndex], szCurrValue);
-					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
-
-					if (slashIndex == kInvalidID_U32)
 					{
-						// No more data on this line, break out.
+						// NOTE: Right now we are expecting 3-component vectors from our OBJ files.
+						Vector3D newVertex{};
+						char pCurrValue[512];
+					
+						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						newVertex.x = String_ATOF(pCurrValue);
+
+						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						newVertex.y = String_ATOF(pCurrValue);
+
+						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						newVertex.z = String_ATOF(pCurrValue);
+
+						vertices.PushBack(newVertex);
 						break;
 					}
 
-					szCurrValue[slashIndex] = 0;
-					vertexIndices.PushBack(String_ATOI(szCurrValue));
+				case 'n':	// Vertex normal.
+					{
+						// NOTE: Right now we are expecting 3-component vectors from our OBJ files.
+						Vector3D newNormal{};
+						char pCurrValue[512];
+					
+						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						newNormal.x = String_ATOF(pCurrValue);
 
-					// Texcoords next.
-					currIndex += slashIndex + 1;
-					StringTrim(&szCurrentLine[currIndex], szCurrValue);
-					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
-					szCurrValue[slashIndex] = 0;
-					texCoordIndices.PushBack(String_ATOI(szCurrValue));
+						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						newNormal.y = String_ATOF(pCurrValue);
 
-					// Normals next.
-					currIndex += slashIndex + 1;
-					int currValLength = StringTrim(&szCurrentLine[currIndex], szCurrValue);
-					slashIndex = StringIndexOf(&szCurrentLine[currIndex], '/');
-					szCurrValue[currValLength - 1] = 0;
-					normalIndices.PushBack(String_ATOI(szCurrValue));
+						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						newNormal.z = String_ATOF(pCurrValue);
 
-					currIndex += currValLength;
+						normals.PushBack(newNormal);
+						break;
+					}
+
+				case 't':	// Texture coord.
+					{
+						// NOTE: Right now we are expecting 3-component vectors from our OBJ files.
+						Vector2D newTexCoord{};
+						char pCurrValue[512];
+					
+						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						newTexCoord.x = String_ATOF(pCurrValue);
+
+						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						newTexCoord.y = String_ATOF(pCurrValue);
+
+						texCoords.PushBack(newTexCoord);
+						break;
+					}
 				}
-
-				break;
+			break;
 			}
+
+		case 'f':	// Polygon 'face'.
+		{
+			uint32_t vertexIndex[3]{};
+			uint32_t texCoordIndex[3]{};
+			uint32_t normalIndex[3]{};
+
+			int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2]);
+			CAssert(elements == 9);
+
+			vertexIndices.PushBack(vertexIndex[0]);
+			vertexIndices.PushBack(vertexIndex[1]);
+			vertexIndices.PushBack(vertexIndex[2]);
+			texCoordIndices.PushBack(texCoordIndex[0]);
+			texCoordIndices.PushBack(texCoordIndex[1]);
+			texCoordIndices.PushBack(texCoordIndex[2]);
+			normalIndices.PushBack(normalIndex[0]);
+			normalIndices.PushBack(normalIndex[1]);
+			normalIndices.PushBack(normalIndex[2]);
+
+			break;
 		}
 
 		default:
@@ -401,32 +383,24 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		currLine++;
 	}
 
-	OBJConfig.Vertices.Resize(vertexPositions.Count());
-	OBJConfig.Indices.Resize(vertexIndices.Count());
+	FileSystem::CloseFile(&OBJFileHandle);
 
-	// Pool together all the data into our own config.
-	for (int idx = 0; idx < vertexPositions.Count(); idx++)
-	{
-		OBJConfig.Vertices[idx].Pos = vertexPositions[idx];
-	}
-
-	for (int idx = 0; idx < vertexNormals.Count(); idx++)
-	{
-		OBJConfig.Vertices[idx].Normal = vertexNormals[idx];
-	}
-
-	for (int idx = 0; idx < vertexTexCoords.Count(); idx++)
-	{
-		OBJConfig.Vertices[idx].TexCoord = vertexTexCoords[idx].AsVector2D();
-	}
-
+	// Process the data.
 	for (int idx = 0; idx < vertexIndices.Count(); idx++)
 	{
-		OBJConfig.Indices[idx] = vertexIndices[idx];
-		//LOG_INFO("%d", OBJConfig.Indices[idx]);
-	}
+		Vertex3D newVertex;
 
-	FileSystem::CloseFile(&OBJFileHandle);
+		uint32_t vertexIndex = vertexIndices[idx];
+		newVertex.Pos = vertices[vertexIndex - 1];
+
+		uint32_t texCoordIndex = texCoordIndices[idx];
+		newVertex.TexCoord = texCoords[texCoordIndex - 1];
+
+		uint32_t normalIndex = normalIndices[idx];
+		newVertex.Normal = normals[normalIndex - 1];
+
+		OBJConfig.Vertices.PushBack(newVertex);
+	}
 
 	// NOTE: This is a bit heavy to return by value, no?
 	return OBJConfig;

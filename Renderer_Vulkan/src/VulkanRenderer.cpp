@@ -533,7 +533,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	m_UniformData.View = s_MainCamera.GetViewMatrix();
-	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
+	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
 	m_UniformData.Projection.data[5] *= -1;
 
 	m_UniformData.ViewPos = s_MainCamera.vecPosition;
@@ -646,7 +646,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, offsets);
 
 	// Bind the index buffer, if necessary
-	if (pGeometry.indexDataOffset != -1)
+	if (pGeometry.indexDataOffset != 0)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, m_GeometryIndexBuffer.m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}
@@ -687,6 +687,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	// Update our matrices.
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
+	model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
 	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
 	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
@@ -694,7 +695,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 	// Issue the draw.
-	if (pGeometry.indexDataOffset != -1)
+	if (pGeometry.indexDataOffset != 0)
 	{
 		vkCmdDrawIndexed(commandBuffer, pGeometry.indexDataSize, 1, pGeometry.indexDataOffset, pGeometry.vertexDataOffset, 0);
 	}
