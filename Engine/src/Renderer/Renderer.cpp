@@ -106,7 +106,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	//DrawGeometry(m_Cube2);
 	//DrawGeometry(m_Cube3);
 
-	DrawGeometry(m_SponzaModel);
+	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	{
+		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
+	}
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -142,6 +145,11 @@ void Renderer::ReleaseShaderResources(Shader& pShader)
 void Renderer::BindShader(Shader& pShader)
 {
 	m_RendererBackend->BindShader(pShader);
+}
+
+void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
 }
 
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
@@ -187,8 +195,7 @@ bool Renderer::CreateTempGeometry()
 	// END TEMP
 
 	// Load a test model.
-	GeometryConfig_t sponzaConfig = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
-	m_RendererBackend->AcquireGeometryResources(sponzaConfig, m_SponzaModel);
+	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
 	return true;
 }

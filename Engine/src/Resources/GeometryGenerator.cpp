@@ -10,6 +10,7 @@
 #include <Core/Logging.h>
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
+#include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 
 #include <stdio.h> // for scanf()
@@ -233,13 +234,15 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 		}
 	}
 
+	cubeConfig.Vertices.SetCount(36);
+
 	return cubeConfig;
 }
 
 class OBJModelLoader : public IModelLoader
 {
 public:
-	virtual GeometryConfig_t CreateConfigFromFile(const char* pszFilePath) override;
+	virtual Mesh CreateConfigFromFile(const char* pszFilePath) override;
 };
 
 // TODO: This should be part of a resource system!
@@ -247,22 +250,23 @@ public:
 static OBJModelLoader s_OBJLoader;
 IModelLoader* g_pOBJLoader = &s_OBJLoader;
 
-GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
+Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 {
 	// Make sure the file exists!
 	if (!FileSystem::FileExists(pszFilePath))
 	{
 		LOG_ERROR("Failed to find model '%s' to load! Nothing was done.", pszFilePath);
-		return GeometryConfig_t{};
+		//return GeometryConfig_t{};
 	}
 
 	FileHandle_t OBJFileHandle;
 	if (!FileSystem::OpenFile(pszFilePath, eFileMode::FILEMODE_READ, false, &OBJFileHandle))
 	{
-		return GeometryConfig_t{};
+		//return GeometryConfig_t{};
 	}
 
 	// Parse the file's data.
+	Mesh newMesh{};
 	GeometryConfig_t OBJConfig{};
 	Utl::CVector<Vector3D> vertices{};
 	Utl::CVector<Vector3D> normals{};
@@ -271,11 +275,17 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 	Utl::CVector<uint32_t> normalIndices{};
 	Utl::CVector<uint32_t> texCoordIndices{};
 
+	Utl::CVector<uint32_t> drawingIndices{};
+	int currIndex{ 0 };
+
+	bool bBuildingPolygonList = false;
+
 	char szCurrentLine[kScratchStringBufferLength]{};
 	char pFirstChar{};
 	char pSecondChar{};
-	size_t currLine{ 0 };
+	size_t currLine{ 1 };
 	size_t bytesRead{ 0 };
+	int groups{ 0 };
 
 	while (!FileSystem::IsEOF(&OBJFileHandle))
 	{
@@ -286,11 +296,62 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		// TODO: Handle materiallib file.
 
+		if (bBuildingPolygonList && (pFirstChar != 'f' && pFirstChar != 's' && pFirstChar != 'u' && pFirstChar != '#'))
+		{
+			GeometryConfig_t currentConfig{};
+			// Flush the polygon list to the renderer and start a new config.
+			if (groups > -1 && groups < 1)
+			{
+				// There was an active group that needs to be flushed to a config.
+				for (int idx = 0; idx < vertexIndices.Count() - 1; idx++)
+				{
+					Vertex3D newVertex;
+
+					uint32_t vertexIndex = vertexIndices[idx];
+					newVertex.Pos = vertices[vertexIndex - 1];
+
+					uint32_t texCoordIndex = texCoordIndices[idx];
+					newVertex.TexCoord = texCoords[texCoordIndex - 1];
+
+					uint32_t normalIndex = normalIndices[idx];
+					newVertex.Normal = normals[normalIndex - 1];
+
+					currentConfig.Vertices.PushBack(newVertex);
+				}
+
+				// Also tack on our indices.
+				// TODO: Figure this thing out
+				//currentConfig.Indices = drawingIndices;
+
+				// Acquire the geometry resources.
+				size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
+				g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
+			}
+			bBuildingPolygonList = false;
+			groups++;
+
+			// Clear existing data.
+			//vertices.Clear();
+			//normals.Clear();
+			//texCoords.Clear();
+			vertexIndices.Clear();
+			normalIndices.Clear();
+			texCoordIndices.Clear();
+			drawingIndices.Clear();
+			currIndex = 0;
+		}
+
 		switch (pFirstChar)
 		{
 		case '#':	// Skip comments.
 		case 0:		// And blank lines
-			continue;
+			break;
+
+		case 'g':
+			{
+				bBuildingPolygonList = true;				
+				break;
+			}
 
 		case 'v':
 			{
@@ -355,12 +416,12 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		case 'f':	// Polygon 'face'.
 		{
-			uint32_t vertexIndex[3]{};
-			uint32_t texCoordIndex[3]{};
-			uint32_t normalIndex[3]{};
+			uint32_t vertexIndex[4]{};
+			uint32_t texCoordIndex[4]{};
+			uint32_t normalIndex[4]{};
 
-			int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2]);
-			CAssert(elements == 9);
+			int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2], &vertexIndex[3], &texCoordIndex[3], &normalIndex[3]);
+			CAssert(elements == 9 || elements == 12);
 
 			vertexIndices.PushBack(vertexIndex[0]);
 			vertexIndices.PushBack(vertexIndex[1]);
@@ -372,6 +433,31 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			normalIndices.PushBack(normalIndex[1]);
 			normalIndices.PushBack(normalIndex[2]);
 
+			if (elements > 9)
+			{
+				vertexIndices.PushBack(vertexIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				normalIndices.PushBack(normalIndex[3]);
+				for (int idx = 0; idx < 4; idx++)
+				{
+					drawingIndices.PushBack(currIndex + 0);
+					drawingIndices.PushBack(currIndex + 1);
+					drawingIndices.PushBack(currIndex + 3);
+					drawingIndices.PushBack(currIndex + 1);
+					drawingIndices.PushBack(currIndex + 2);
+					drawingIndices.PushBack(currIndex + 3);
+					currIndex += 4;
+				}
+			}
+			else
+			{
+				for (int idx = 0; idx < 3; idx++)
+				{
+					drawingIndices.PushBack(currIndex);
+					currIndex++;
+				}
+			}
+
 			break;
 		}
 
@@ -382,26 +468,10 @@ GeometryConfig_t OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		currLine++;
 	}
+	LOG_INFO("%d", groups);
 
 	FileSystem::CloseFile(&OBJFileHandle);
 
-	// Process the data.
-	for (int idx = 0; idx < vertexIndices.Count(); idx++)
-	{
-		Vertex3D newVertex;
-
-		uint32_t vertexIndex = vertexIndices[idx];
-		newVertex.Pos = vertices[vertexIndex - 1];
-
-		uint32_t texCoordIndex = texCoordIndices[idx];
-		newVertex.TexCoord = texCoords[texCoordIndex - 1];
-
-		uint32_t normalIndex = normalIndices[idx];
-		newVertex.Normal = normals[normalIndex - 1];
-
-		OBJConfig.Vertices.PushBack(newVertex);
-	}
-
 	// NOTE: This is a bit heavy to return by value, no?
-	return OBJConfig;
+	return newMesh;
 }

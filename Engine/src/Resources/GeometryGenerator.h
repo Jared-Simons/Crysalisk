@@ -19,7 +19,7 @@ public:
 class IModelLoader
 {
 public:
-	virtual GeometryConfig_t CreateConfigFromFile(const char* pszFilePath) = 0;
+	virtual Mesh CreateConfigFromFile(const char* pszFilePath) = 0;
 };
 
 extern IModelLoader* g_pOBJLoader;

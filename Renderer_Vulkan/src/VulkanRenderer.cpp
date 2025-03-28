@@ -351,13 +351,13 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Create the temp geometry buffer.
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 20 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryVertexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry vertex data buffer.");
 		return false;
 	}
 
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 20 * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryIndexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry index data buffer.");
 		return false;
@@ -1444,17 +1444,46 @@ void CVulkanRenderer::BindShader(Shader& pShader)
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	pOutInstance.vertexDataOffset = m_GeometryVertexBuffer.m_BytesAllocated;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Capacity();
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
 	
 	pOutInstance.indexDataOffset = m_GeometryIndexBuffer.m_BytesAllocated;
-	pOutInstance.indexDataSize = pGeometryConfig.Indices.Capacity();
+	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
 
-	m_GeometryVertexBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Capacity() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
-	if (pGeometryConfig.Indices.Capacity() != 0) // TODO: Better check could be used here.
+	// Create a staging buffer for transfer to the GPU.
+	VulkanBuffer stagingBuffer{};
+	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+
+	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	// Copy over to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.size = stagingBuffer.m_BufferSize;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryVertexBuffer.m_Handle, 1, &copyRegion);
+
+	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+	// TODO: Handle index buffers as well...
+	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
 	{
-		m_GeometryIndexBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Capacity() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+
+		copyRegion.size = stagingBuffer.m_BufferSize;
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryIndexBuffer.m_Handle, 1, &copyRegion);
+
+		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 	}
+
+	m_GeometryVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	m_GeometryIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
 
 	return true;
 }
