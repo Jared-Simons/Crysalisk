@@ -240,6 +240,30 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 	return cubeConfig;
 }
 
+void MeshGenerator::GenerateTangentData(GeometryConfig_t& pConfig)
+{
+	size_t triCount = pConfig.Vertices.Count() / 3;
+	for (int triIdx = 0; triIdx < triCount; triIdx++)
+	{
+		Vector3D position1 = pConfig.Vertices[(triIdx * 3) + 0].Pos;
+		Vector3D position2 = pConfig.Vertices[(triIdx * 3) + 1].Pos;
+		Vector3D position3 = pConfig.Vertices[(triIdx * 3) + 2].Pos;
+
+		Vector3D edge1 = position2 - position1;
+		Vector3D edge2 = position3 - position1;
+		Vector2D dUV1 = pConfig.Vertices[(triIdx * 3) + 1].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
+		Vector2D dUV2 = pConfig.Vertices[(triIdx * 3) + 2].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
+
+		float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+		for (int vertIdx = 0; vertIdx < 3; vertIdx++)
+		{
+			pConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
+			pConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);
+			pConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.z = f * (dUV2.y * edge1.z - dUV1.y * edge2.z);
+		}
+	}
+}
+
 class OBJModelLoader : public IModelLoader
 {
 public:
@@ -318,6 +342,9 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 				currentConfig.Vertices.PushBack(newVertex);
 			}
+
+			// Generate our tangent data.
+			MeshGenerator::GenerateTangentData(currentConfig);
 
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
