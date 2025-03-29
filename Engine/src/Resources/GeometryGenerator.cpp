@@ -275,9 +275,6 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 	Utl::CVector<uint32_t> normalIndices{};
 	Utl::CVector<uint32_t> texCoordIndices{};
 
-	Utl::CVector<uint32_t> drawingIndices{};
-	int currIndex{ 0 };
-
 	bool bBuildingPolygonList = false;
 
 	char szCurrentLine[kScratchStringBufferLength]{};
@@ -296,49 +293,37 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		// TODO: Handle materiallib file.
 
-		if (bBuildingPolygonList && (pFirstChar != 'f' && pFirstChar != 's' && pFirstChar != 'u' && pFirstChar != '#'))
+		if (bBuildingPolygonList && pFirstChar == 'o')
 		{
 			GeometryConfig_t currentConfig{};
 			// Flush the polygon list to the renderer and start a new config.
-			if (groups > -1 && groups < 1)
+			// There was an active group that needs to be flushed to a config.
+			for (int idx = 0; idx < vertexIndices.Count() - 1; idx++)
 			{
-				// There was an active group that needs to be flushed to a config.
-				for (int idx = 0; idx < vertexIndices.Count() - 1; idx++)
-				{
-					Vertex3D newVertex;
+				Vertex3D newVertex;
 
-					uint32_t vertexIndex = vertexIndices[idx];
-					newVertex.Pos = vertices[vertexIndex - 1];
+				uint32_t vertexIndex = vertexIndices[idx];
+				newVertex.Pos = vertices[vertexIndex - 1];
 
-					uint32_t texCoordIndex = texCoordIndices[idx];
-					newVertex.TexCoord = texCoords[texCoordIndex - 1];
+				uint32_t texCoordIndex = texCoordIndices[idx];
+				newVertex.TexCoord = texCoords[texCoordIndex - 1];
 
-					uint32_t normalIndex = normalIndices[idx];
-					newVertex.Normal = normals[normalIndex - 1];
+				uint32_t normalIndex = normalIndices[idx];
+				newVertex.Normal = normals[normalIndex - 1];
 
-					currentConfig.Vertices.PushBack(newVertex);
-				}
-
-				// Also tack on our indices.
-				// TODO: Figure this thing out
-				//currentConfig.Indices = drawingIndices;
-
-				// Acquire the geometry resources.
-				size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
-				g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
+				currentConfig.Vertices.PushBack(newVertex);
 			}
+
+			// Acquire the geometry resources.
+			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
+			g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
 			bBuildingPolygonList = false;
 			groups++;
 
 			// Clear existing data.
-			//vertices.Clear();
-			//normals.Clear();
-			//texCoords.Clear();
 			vertexIndices.Clear();
 			normalIndices.Clear();
 			texCoordIndices.Clear();
-			drawingIndices.Clear();
-			currIndex = 0;
 		}
 
 		switch (pFirstChar)
@@ -348,6 +333,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			break;
 
 		case 'g':
+		case 'o':
 			{
 				bBuildingPolygonList = true;				
 				break;
@@ -432,31 +418,6 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			normalIndices.PushBack(normalIndex[0]);
 			normalIndices.PushBack(normalIndex[1]);
 			normalIndices.PushBack(normalIndex[2]);
-
-			if (elements > 9)
-			{
-				vertexIndices.PushBack(vertexIndex[3]);
-				texCoordIndices.PushBack(texCoordIndex[3]);
-				normalIndices.PushBack(normalIndex[3]);
-				for (int idx = 0; idx < 4; idx++)
-				{
-					drawingIndices.PushBack(currIndex + 0);
-					drawingIndices.PushBack(currIndex + 1);
-					drawingIndices.PushBack(currIndex + 3);
-					drawingIndices.PushBack(currIndex + 1);
-					drawingIndices.PushBack(currIndex + 2);
-					drawingIndices.PushBack(currIndex + 3);
-					currIndex += 4;
-				}
-			}
-			else
-			{
-				for (int idx = 0; idx < 3; idx++)
-				{
-					drawingIndices.PushBack(currIndex);
-					currIndex++;
-				}
-			}
 
 			break;
 		}
