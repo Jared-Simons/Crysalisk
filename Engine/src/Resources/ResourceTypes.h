@@ -85,7 +85,7 @@ struct MaterialConfig_t
 {
 	char* pszMaterialName{ nullptr };
 	char* pszShaderName{ nullptr };
-	unsigned int iShiniess{ kInvalidID_U32 };
+	float flShininess{ 1 };
 	char* pszDiffuseTextureName{ nullptr };
 	char* pszSpecularTextureName{ nullptr };
 	char* pszNormalTextureName{ nullptr };
@@ -104,7 +104,7 @@ struct MaterialConfig_t
 			pszShaderName = StringDuplicate(pOther.pszShaderName);
 		}
 
-		iShiniess = pOther.iShiniess;
+		flShininess = pOther.flShininess;
 
 		if (pOther.pszDiffuseTextureName != nullptr)
 		{
@@ -179,7 +179,7 @@ struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};
 	Utl::CVector<uint32_t> Indices{};
-	const char* pTextureName{};
+	MaterialReference MaterialReference{};
 };
 
 // TODO: This is temporary and should NOT stick around

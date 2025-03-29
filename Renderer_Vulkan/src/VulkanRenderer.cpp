@@ -783,7 +783,11 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 	// Get at our shader.
 	// TODO: What to do if this shader's resources have not been loaded yet.
 	// (We probably shouldn't get in here if that's the case)
-	CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
+	if (pMaterial.m_hShaderHandle == kInvalidID_U32)
+	{
+		pMaterial.m_hShaderHandle = 0; // TODO: Default shader handle or something.
+	}
+	//CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
 	VulkanShaderInternal* pShader = &m_pInternalShaderData[pMaterial.m_hShaderHandle];
 	if (!pShader)
 	{

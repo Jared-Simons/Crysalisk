@@ -12,6 +12,7 @@
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/MaterialSystem.h"
 
 #include <stdio.h> // for scanf()
 
@@ -243,6 +244,9 @@ class OBJModelLoader : public IModelLoader
 {
 public:
 	virtual Mesh CreateConfigFromFile(const char* pszFilePath) override;
+
+private:
+	void		ParseMaterialLibFile(const char* pszFilePath);
 };
 
 // TODO: This should be part of a resource system!
@@ -274,6 +278,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 	Utl::CVector<uint32_t> vertexIndices{};
 	Utl::CVector<uint32_t> normalIndices{};
 	Utl::CVector<uint32_t> texCoordIndices{};
+	char* szCurrentMaterialName{};
 
 	bool bBuildingPolygonList = false;
 
@@ -316,6 +321,16 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
+
+			// Acquire material resources.
+			if (szCurrentMaterialName != nullptr)
+			{
+				newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+
+				StringFree(szCurrentMaterialName);
+				szCurrentMaterialName = nullptr;
+			}
+
 			g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
 			bBuildingPolygonList = false;
 			groups++;
@@ -422,6 +437,26 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			break;
 		}
 
+		case 'u':	// Material // TODO: Make this check better.
+		{
+			size_t spaceIndex = StringIndexOf(szCurrentLine, ' ');
+			szCurrentMaterialName = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+			break;
+		}
+
+		case 'm':	// Material Lib file. // TODO: Make this check better.
+		{
+			char* mtlLibPath{};
+			size_t pathLength = StringLength(pszFilePath);
+			mtlLibPath = StringDuplicate_N(pszFilePath, pathLength - 4);
+			mtlLibPath = StringConcat(mtlLibPath, ".mtl");
+
+			ParseMaterialLibFile(mtlLibPath);
+
+			StringFree(mtlLibPath);
+			break;
+		}
+
 		default:
 			//LOG_WARN("We have unfinished business in the OBJ Loader!");
 			break;
@@ -435,4 +470,112 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 	// NOTE: This is a bit heavy to return by value, no?
 	return newMesh;
+}
+
+void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
+{
+	FileHandle_t fileHandle{};
+	if (!FileSystem::OpenFile(pszFilePath, eFileMode::FILEMODE_READ, false, &fileHandle))
+	{
+		LOG_ERROR("Failed to find/open OBJ material library file '%s.'", pszFilePath);
+		return;
+	}
+
+	char szCurrentLine[kScratchStringBufferLength]{};
+	char pFirstChar{};
+	char pSecondChar{};
+	size_t currLine{ 1 };
+	size_t bytesRead{ 0 };
+	int groups{ 0 };
+	char* pKey;
+	char* pValue;
+
+	MaterialConfig_t currentMaterialConfig{};
+
+	size_t spaceIndex{ 0 };
+
+	while (!FileSystem::IsEOF(&fileHandle))
+	{
+		FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &fileHandle);
+
+		szCurrentLine[bytesRead] = 0;
+		spaceIndex = StringIndexOf(szCurrentLine, ' ');
+		pFirstChar = szCurrentLine[0];
+		pSecondChar = szCurrentLine[1];
+
+		if (spaceIndex != kInvalidID_U32)
+		{
+			pKey = StringDuplicate_N(szCurrentLine, spaceIndex);
+			pValue = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+		}
+
+		switch (pFirstChar)
+		{
+		case '#':	// Skip comments.
+		case 0:		// And blank lines
+			break;
+
+		case 'n':
+		case 'N':
+			{
+				switch (pSecondChar)
+				{
+					case 'e':
+					{
+						if (currentMaterialConfig.pszMaterialName != nullptr)
+						{
+							// A config currently exists, acquire it's resources now.
+							if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+							{
+								LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
+							}
+						}
+						//LOG_INFO("New Material '%s'.", &szCurrentLine[spaceIndex]);
+						currentMaterialConfig.pszMaterialName = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+
+						break;
+					}
+
+					case 's':	// Specular exponent.
+					{
+						currentMaterialConfig.flShininess = String_ATOF(&szCurrentLine[spaceIndex]);
+						break;
+					}
+				}
+				break;
+			}
+
+		case 'm':
+			{
+				switch (pSecondChar)
+				{
+					case 'a':
+					{
+						if (StringCompare(pKey, "map_Kd"))
+						{
+							currentMaterialConfig.pszDiffuseTextureName = StringDuplicate(pValue);
+						}
+
+						break;
+					}
+					break;
+				}
+				
+				break;
+			}
+
+		default:
+			break;
+		}
+
+		if (spaceIndex != kInvalidID_U32)
+		{
+			StringFree(pKey);
+			StringFree(pValue);
+		}
+
+		currLine++;
+	}
+
+	FileSystem::CloseFile(&fileHandle);
 }
