@@ -482,6 +482,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
 
 		m_bWindowResized = false;
+		m_bCurrentlyRendering[m_ImageIndex] = false;
 		return true;
 	}
 	else if (imageAcquireResult != VK_SUCCESS && imageAcquireResult != VK_SUBOPTIMAL_KHR)
@@ -612,6 +613,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
 
 		m_bWindowResized = false;
+		m_bCurrentlyRendering[m_ImageIndex] = false;
 		return;
 	}
 	else if (imagePresentResult != VK_SUCCESS && imagePresentResult != VK_SUBOPTIMAL_KHR)
