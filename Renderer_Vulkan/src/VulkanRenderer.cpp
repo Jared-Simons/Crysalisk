@@ -49,7 +49,7 @@ struct Camera_t
 	
 	float	Yaw{ -90.0f };
 	float	Pitch{ 0.0f };
-	float	MoveSpeed{ 2.5f };
+	float	MoveSpeed{ 6.0f };
 	float	TurnSpeed{ 0.5f };
 
 	inline Matrix4x4 GetViewMatrix()
@@ -75,7 +75,7 @@ struct Camera_t
 	void UpdateCameraData(double deltaTime)
 	{
 		float velocity = (float)(2.5f * deltaTime);
-		const float cameraSpeedMultiplier = 50.0;
+		const float cameraSpeedMultiplier = 100.0;
 		const float cameraRotationSpeedMultipler = 50.0f;
 
 		if (g_pInputSystem->IsKeyPressed(KEY_W))
@@ -543,8 +543,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	double lightSin = M_SIN(Platform::GetAbsoluteTime() * 1.5);
 	double lightCos = M_COS(Platform::GetAbsoluteTime() * 1.5);
-	m_UniformData.DirLightPos.x = lightCos * 300;
-	m_UniformData.DirLightPos.z = lightSin * 300;
+	m_UniformData.DirLightPos.x = lightCos * 450;
+	m_UniformData.DirLightPos.z = lightSin * 450;
 	m_UniformData.DirLightPos.y = 100.0f;
 
 	//LOG_INFO("%f, %f", m_UniformData.DirLightPos.x, m_UniformData.DirLightPos.z);
@@ -839,6 +839,16 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
 
 		// Copy over the material instance data.
+
+		if (pMaterialInstanceData.vecDiffuseColor.x < 1.0f)
+			pMaterialInstanceData.vecDiffuseColor.x = 1.0f;
+
+		if (pMaterialInstanceData.vecDiffuseColor.y < 1.0f)
+			pMaterialInstanceData.vecDiffuseColor.y = 1.0f;
+
+		if (pMaterialInstanceData.vecDiffuseColor.z < 1.0f)
+			pMaterialInstanceData.vecDiffuseColor.z = 1.0f;
+
 		void* pUniformData;
 		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
 		vkMapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);

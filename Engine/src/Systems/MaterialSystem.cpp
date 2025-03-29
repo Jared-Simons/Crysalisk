@@ -342,7 +342,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
 			LOG_VERBOSE("Material '%s' missing normal texture, using default.", pConfig.pszMaterialName);
 		}
-
+		pMatInstanceData.vecDiffuseColor = pConfig.vecDiffuseColor;
 		// Acquire shader resources.
 		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
 		{

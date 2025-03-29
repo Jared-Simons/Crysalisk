@@ -26,7 +26,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 {
 	int shininess;
-	vec4 color;
+	vec3 color;
 } instance_ubo;
 
 // Instance texture samplers

@@ -90,6 +90,8 @@ struct MaterialConfig_t
 	char* pszSpecularTextureName{ nullptr };
 	char* pszNormalTextureName{ nullptr };
 
+	Vector3D vecDiffuseColor{};
+
 	MaterialConfig_t() {}
 
 	MaterialConfig_t(MaterialConfig_t&& pOther) noexcept

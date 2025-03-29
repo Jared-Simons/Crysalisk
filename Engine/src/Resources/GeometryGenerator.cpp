@@ -556,6 +556,8 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 							{
 								LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
 							}
+							//currentMaterialConfig.~MaterialConfig_t();
+							currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 						}
 						//LOG_INFO("New Material '%s'.", &szCurrentLine[spaceIndex]);
 						currentMaterialConfig.pszMaterialName = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
@@ -588,6 +590,20 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 					break;
 				}
 				
+				break;
+			}
+
+		case 'K':
+			{
+				switch (pSecondChar)
+				{
+					case 'd':
+					{
+						sscanf(szCurrentLine, "Kd %f %f %f\n", &currentMaterialConfig.vecDiffuseColor.x, &currentMaterialConfig.vecDiffuseColor.y, &currentMaterialConfig.vecDiffuseColor.z);
+						break;
+					}
+				}
+
 				break;
 			}
 
