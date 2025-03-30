@@ -327,7 +327,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			GeometryConfig_t currentConfig{};
 			// Flush the polygon list to the renderer and start a new config.
 			// There was an active group that needs to be flushed to a config.
-			for (int idx = 0; idx < vertexIndices.Count() - 1; idx++)
+			for (int idx = 0; idx < vertexIndices.Count(); idx++)
 			{
 				Vertex3D newVertex;
 
@@ -491,7 +491,48 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		currLine++;
 	}
-	LOG_INFO("%d", groups);
+
+	// Once we hit the end of the line, flush the last config and make sure it gets it's resources.
+	if (bBuildingPolygonList)
+	{
+		GeometryConfig_t currentConfig{};
+		// Flush the polygon list to the renderer and start a new config.
+		// There was an active group that needs to be flushed to a config.
+		for (int idx = 0; idx < vertexIndices.Count(); idx++)
+		{
+			Vertex3D newVertex;
+
+			uint32_t vertexIndex = vertexIndices[idx];
+			newVertex.Pos = vertices[vertexIndex - 1];
+
+			uint32_t texCoordIndex = texCoordIndices[idx];
+			newVertex.TexCoord = texCoords[texCoordIndex - 1];
+
+			uint32_t normalIndex = normalIndices[idx];
+			newVertex.Normal = normals[normalIndex - 1];
+
+			currentConfig.Vertices.PushBack(newVertex);
+		}
+
+		// Generate our tangent data.
+		MeshGenerator::GenerateTangentData(currentConfig);
+
+		// Acquire the geometry resources.
+		size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
+
+		// Acquire material resources.
+		if (szCurrentMaterialName != nullptr)
+		{
+			newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+
+			StringFree(szCurrentMaterialName);
+			szCurrentMaterialName = nullptr;
+		}
+
+		g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
+		bBuildingPolygonList = false;
+		groups++;
+	}
 
 	FileSystem::CloseFile(&OBJFileHandle);
 
