@@ -349,6 +349,19 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
 
+			// Check for duplicate vertices
+			// TODO: IMPLEMENT
+			/*for (int idx = 0; idx < currentConfig.Vertices.Count(); idx++)
+			{
+				for (int currIdx = 0; currIdx < currentConfig.Vertices.Count(); currIdx++)
+				{
+					if (currentConfig.Vertices[currIdx] == currentConfig.Vertices[idx])
+					{
+						LOG_DEBUG("Duplicate vertices found! (%d/%d)", currIdx, idx);
+					}
+				}
+			}*/
+
 			// Acquire material resources.
 			if (szCurrentMaterialName != nullptr)
 			{
