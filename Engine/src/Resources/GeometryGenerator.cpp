@@ -322,7 +322,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		// TODO: Handle materiallib file.
 
-		if (bBuildingPolygonList && pFirstChar == 'o')
+		if (bBuildingPolygonList && (pFirstChar == 'o' || pFirstChar == 'g') && vertexIndices.Count() > 3)
 		{
 			GeometryConfig_t currentConfig{};
 			// Flush the polygon list to the renderer and start a new config.
@@ -625,6 +625,10 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 						{
 							currentMaterialConfig.pszDiffuseTextureName = StringDuplicate(pValue);
 						}
+						else if (StringCompare(pKey, "map_Disp"))
+						{
+							currentMaterialConfig.pszNormalTextureName = StringDuplicate(pValue);
+						}
 
 						break;
 					}
@@ -640,7 +644,7 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 				{
 					case 'd':
 					{
-						sscanf(szCurrentLine, "Kd %f %f %f\n", &currentMaterialConfig.vecDiffuseColor.x, &currentMaterialConfig.vecDiffuseColor.y, &currentMaterialConfig.vecDiffuseColor.z);
+						//sscanf(szCurrentLine, "Kd %f %f %f\n", &currentMaterialConfig.vecDiffuseColor.x, &currentMaterialConfig.vecDiffuseColor.y, &currentMaterialConfig.vecDiffuseColor.z);
 						break;
 					}
 				}
@@ -660,6 +664,14 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 
 		currLine++;
 	}
+
+	// Flush the last config and acquire it's resources.
+	if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+	{
+		LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
+	}
+	//currentMaterialConfig.~MaterialConfig_t();
+	currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 
 	FileSystem::CloseFile(&fileHandle);
 }

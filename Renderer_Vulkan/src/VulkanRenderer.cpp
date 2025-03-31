@@ -841,16 +841,6 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
 
 		// Copy over the material instance data.
-
-		if (pMaterialInstanceData.vecDiffuseColor.x < 1.0f)
-			pMaterialInstanceData.vecDiffuseColor.x = 1.0f;
-
-		if (pMaterialInstanceData.vecDiffuseColor.y < 1.0f)
-			pMaterialInstanceData.vecDiffuseColor.y = 1.0f;
-
-		if (pMaterialInstanceData.vecDiffuseColor.z < 1.0f)
-			pMaterialInstanceData.vecDiffuseColor.z = 1.0f;
-
 		void* pUniformData;
 		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
 		vkMapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);

@@ -378,8 +378,6 @@ MaterialReference CMaterialSystem::AcquireMaterialInternal(const char* pszMateri
 	MaterialReference newRef{};
 	if (pLookup.MaterialIndex != kInvalidID_U32 && m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_iInternalHandle != kInvalidID_U32)
 	{
-		pLookup.ReferenceCount++;
-
 		newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_iInternalHandle;
 		newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hShaderHandle;
 		newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hDiffuseTextureHandle;

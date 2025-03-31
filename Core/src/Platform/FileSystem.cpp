@@ -134,7 +134,6 @@ bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, Fil
 	// Read the contents of the line into the buffer
 	if (fgets(pBuffer, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData)) == 0)
 	{
-		LOG_ERROR("FileSystem->ReadLine() Failed to read line to buffer");
 		return false;
 	}
 
