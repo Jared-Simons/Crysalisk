@@ -97,6 +97,45 @@ char* StringConcat(char* str1, char* str2)
 	return newString;
 }
 
+int StringTrim(char* pStr, char* pOutString)
+{
+	char* szTrimmedString; // TODO: check for this length.
+
+	int strLength = StringLength(pStr);
+
+	int startIndex = -1;
+	int endIndex = -1;
+
+	for (int idx = 0; idx < strLength; idx++)
+	{
+		if (pStr[idx] != ' ' && startIndex == -1)
+		{
+			// Set the start index.
+			startIndex = idx;
+		}
+
+		if ((pStr[idx] == ' ' || pStr[idx] == 0) && startIndex != -1)
+		{
+			// Set the end index.
+			endIndex = idx;
+		}
+
+		if (startIndex != -1 && endIndex != -1)
+			break;
+	}
+
+	if (endIndex == -1)
+	{
+		endIndex = strLength + 1;
+	}
+
+	int newStringLength = endIndex - startIndex + 1;
+
+	memcpy(pOutString, &pStr[startIndex], newStringLength);
+	pOutString[newStringLength] = 0;
+	return newStringLength;
+}
+
 char* StringStrip(char* pStr, char c)
 {
 	if (!pStr)
@@ -141,4 +180,10 @@ int String_ATOI(const char* c)
 	}
 
 	return result;
+}
+
+// TODO: Our own version of this would be nice.
+float String_ATOF(const char* c)
+{
+	return atof(c);
 }

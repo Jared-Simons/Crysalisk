@@ -27,6 +27,9 @@ public:
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
 	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) override;
 
+	virtual MaterialHandle_t	AcquireMaterialFromConfig(MaterialConfig_t& pConfig) override;
+	virtual MaterialReference	AcquireMaterialInternal(const char* pszMaterialName) override;
+
 	virtual MaterialReference	GetDefaultMaterialReference() override;
 
 private:
@@ -109,7 +112,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	if (!pszMaterialName)
 	{
 		LOG_ERROR("CMaterialSystem::AcquireMaterial() requires a path to the material to load! Returning default material.");
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
 	// Parse the material file.
@@ -126,7 +129,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	if (!newMaterialLookup)
 	{
 		LOG_ERROR("Failed to find free space for a new material in the material hashmap, returning default.");
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex; 
 	}
 
 	if (newMaterialLookup->MaterialIndex == kInvalidID_U32) // This material does not exist in the hashmap yet.
@@ -145,7 +148,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		if (!newMaterial)
 		{
 			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pszMaterialName);
-			return 0; // TODO: Default material.
+			return m_DefaultMaterialLookup.MaterialIndex;
 		}
 		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
 
@@ -161,9 +164,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMatConfig.pszShaderName);
 		}
 
-		if (newMatConfig.iShiniess != kInvalidID_U32)
+		if (newMatConfig.flShininess != kInvalidID_U32)
 		{
-			newMaterial->m_iShininess = newMatConfig.iShiniess;
+			newMaterial->m_iShininess = newMatConfig.flShininess;
 		}
 		else
 		{
@@ -244,7 +247,147 @@ MaterialReference CMaterialSystem::AcquireMaterialReference(const char* pszMater
 	newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_iInternalHandle;
 	newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hShaderHandle;
 	newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hDiffuseTextureHandle;
+
 	return newRef;
+}
+
+MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pConfig)
+{
+	Material* newMaterial = nullptr;
+	int matIdx = 0;
+
+	// Make sure our state is ready to go.
+	if (!m_MaterialDictionary.m_MaterialArray)
+	{
+		LOG_WARN("CMaterialSystem::AcquireMaterial() called before material system was initialized! Returning NULL handle.");
+		return 0;
+	}
+
+	if (pConfig.pszMaterialName == nullptr)
+	{
+		LOG_ERROR("Failed to load material '%s'. Returning default.", pConfig.pszMaterialName);
+		return m_DefaultMaterialLookup.MaterialIndex;
+	}
+
+	// Get an entry into the hashmap.
+	MaterialLookup* newMaterialLookup = &m_MaterialDictionary.m_MaterialHashmap[pConfig.pszMaterialName];
+	if (!newMaterialLookup)
+	{
+		LOG_ERROR("Failed to find free space for a new material in the material hashmap, returning default.");
+		return m_DefaultMaterialLookup.MaterialIndex;
+	}
+
+	if (newMaterialLookup->MaterialIndex == kInvalidID_U32) // This material does not exist in the hashmap yet.
+	{
+		// Get at the first free material.
+		for (matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx++)
+		{
+			// Our heuristic for finding a free texture right now is that the material name is null and the diffuse texture is invalid.
+			if (!m_MaterialDictionary.m_MaterialArray[matIdx].m_szMaterialName && m_MaterialDictionary.m_MaterialArray[matIdx].m_hDiffuseTextureHandle == kInvalidID_U32)
+			{
+				newMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+				break;
+			}
+		}
+
+		if (!newMaterial)
+		{
+			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pConfig.pszMaterialName);
+			return m_DefaultMaterialLookup.MaterialIndex;
+		}
+		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
+
+		// Acquire material resources.
+		if (pConfig.pszMaterialName != nullptr)
+		{
+			newMaterial->m_szMaterialName = StringDuplicate(pConfig.pszMaterialName);
+		}
+
+		if (pConfig.pszShaderName != nullptr)
+		{
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(pConfig.pszShaderName);
+		}
+
+		if (pConfig.flShininess != kInvalidID_U32)
+		{
+			newMaterial->m_iShininess = pConfig.flShininess;
+		}
+		else
+		{
+			newMaterial->m_iShininess = 8; // A decent default.
+		}
+		pMatInstanceData.Shininess = newMaterial->m_iShininess;
+
+		if (pConfig.pszDiffuseTextureName != nullptr)
+		{
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszDiffuseTextureName);
+		}
+
+		if (pConfig.pszSpecularTextureName != nullptr)
+		{
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszSpecularTextureName);
+		}
+		else
+		{
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
+			LOG_VERBOSE("Material '%s' missing specular texture, using default.", pConfig.pszMaterialName);
+		}
+
+		if (pConfig.pszNormalTextureName != nullptr)
+		{
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszNormalTextureName);
+		}
+		else
+		{
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+			LOG_VERBOSE("Material '%s' missing normal texture, using default.", pConfig.pszMaterialName);
+		}
+		pMatInstanceData.vecDiffuseColor = pConfig.vecDiffuseColor;
+		// Acquire shader resources.
+		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
+		{
+			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pConfig.pszMaterialName);
+			return m_DefaultMaterialLookup.MaterialIndex; // TODO: Release resources.
+		}
+	}
+	else
+	{
+		newMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialLookup->MaterialIndex];
+	}
+
+	if (!newMaterial)
+	{
+		LOG_ERROR("Failed to load/create material '%s'. Returning default material.", pConfig.pszMaterialName);
+		return m_DefaultMaterialLookup.MaterialIndex;
+	}
+
+	if (newMaterialLookup->MaterialIndex == kInvalidID_U32)
+		newMaterialLookup->MaterialIndex = matIdx;
+
+	newMaterialLookup->ReferenceCount++;
+	newMaterialLookup->AutoRelease = true; // TODO: Configurable.
+
+	LOG_VERBOSE("Successfully acquired material: '%s', at index %d, ref. count: %d", newMaterial->m_szMaterialName, newMaterialLookup->MaterialIndex, newMaterialLookup->ReferenceCount);
+
+	return newMaterialLookup->MaterialIndex;
+}
+
+MaterialReference CMaterialSystem::AcquireMaterialInternal(const char* pszMaterialName)
+{
+	MaterialLookup& pLookup = m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
+	MaterialReference newRef{};
+	if (pLookup.MaterialIndex != kInvalidID_U32 && m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_iInternalHandle != kInvalidID_U32)
+	{
+		newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_iInternalHandle;
+		newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hShaderHandle;
+		newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hDiffuseTextureHandle;
+		return newRef;
+	}
+	else
+	{
+		LOG_ERROR("Failed to find internal reference for material '%s'.", pszMaterialName);
+		return GetDefaultMaterialReference();
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -340,7 +483,7 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 		}
 		else if (StringCompare(key, "shininess"))
 		{
-			newMatConfig.iShiniess = String_ATOI(value);
+			newMatConfig.flShininess = String_ATOI(value);
 		}
 		else if (StringCompare(key, "map_diffuse"))
 		{

@@ -10,6 +10,9 @@
 
 #include "Math/MathLib.h"
 
+// Vector elements must be within this range to be considered 'equal'.
+const float kVectorElementEpsilon = 0.000000001f;
+
 class Vector2D
 {
 public:
@@ -39,6 +42,12 @@ public:
 		outVector.x = x - scalar;
 		outVector.y = y - scalar;
 		return outVector;
+	}
+
+	bool operator==(const Vector2D& pOther)
+	{
+		return ((x - pOther.x) < kVectorElementEpsilon &&
+				(y - pOther.y) < kVectorElementEpsilon);
 	}
 
 	Vector2D operator*(const float scalar)
@@ -167,6 +176,13 @@ public:
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ } {}
+
+	bool operator==(const Vector3D& pOther)
+	{
+		return ((x - pOther.x) < kVectorElementEpsilon &&
+				(y - pOther.y) < kVectorElementEpsilon &&
+				(z - pOther.z) < kVectorElementEpsilon);
+	}
 
 	Vector3D operator+(const float scalar)
 	{
@@ -319,6 +335,11 @@ public:
 		outVector.y = vecA.z * vecB.x - vecA.x * vecB.z;
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
 		return outVector;
+	}
+
+	inline Vector2D AsVector2D()
+	{
+		return Vector2D(x, y);
 	}
 };
 

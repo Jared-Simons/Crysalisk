@@ -135,6 +135,9 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 		return m_pDefaultTextureLookup->TextureIndex;
 	}
 
+	// We need to flip standard images.
+	stbi_set_flip_vertically_on_load(true);
+
 	// Get an entry into the hashmap.
 	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
 

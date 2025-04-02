@@ -41,6 +41,7 @@ public:
 
 	void			BindShader(class Shader& pShader);
 
+	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			DrawGeometry(GeometryInstance_t& pGeometry);
 
 	// Temp geometry stuff
@@ -57,6 +58,7 @@ public:
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};
+	Mesh	m_SponzaModel;
 };
 
 extern Renderer* g_pRenderer;

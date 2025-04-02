@@ -34,8 +34,8 @@ struct GlobalUniformObject_t
 struct MaterialInstanceData_t
 {
 	int			Shininess;
-	Vector3D	Reserved0;
-	Vector4D	Reserved1;
+	Vector3D	vecDiffuseColor;
+	Vector4D	Reserved0;
 	Vector4D	Reserved2;
 	Vector4D	Reserved3;
 };

@@ -102,6 +102,8 @@ namespace Utl {
 
 			m_pValues = (T*)g_pMemoryManager->Allocate(pOtherVector.m_ValueStride * pOtherVector.m_Count);
 			memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+
+			return *this;
 		}
 
 		//--------------------------------------------------
@@ -180,15 +182,10 @@ namespace Utl {
 		//--------------------------------------------------
 		void Clear()
 		{
-			for (int index = 0; index < m_Capacity; index++)
-			{
-				// Invalidate all data.
-				// This will nullify pointers and zero out primitive types.
-				if (m_pValues[index])
-				{
-					m_pValues[index] = 0;
-				}
-			}
+			delete[] m_pValues;
+			m_pValues = nullptr;
+			m_Capacity = 0;
+			m_Count = 0;
 		}
 
 		//--------------------------------------------------
@@ -253,7 +250,8 @@ namespace Utl {
 			memcpy(pNewArray, m_pValues, m_ValueStride * m_Count);
 
 			// Free the old memory, and assign the new memory.
-			g_pMemoryManager->Free(m_pValues);
+			if (m_pValues)
+				g_pMemoryManager->Free(m_pValues);
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 
 			// Construct the new elements.
@@ -272,6 +270,7 @@ namespace Utl {
 
 		// Returns the current number of elements in the vector.
 		inline size_t Count() const { return m_Count; }
+		inline void	  SetCount(size_t count) { m_Count = count; }
 
 		// Returns the number of bytes between elements in the vector.
 		inline size_t Stride() const { return m_ValueStride; }

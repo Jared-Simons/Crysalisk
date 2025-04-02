@@ -49,7 +49,7 @@ struct Camera_t
 	
 	float	Yaw{ -90.0f };
 	float	Pitch{ 0.0f };
-	float	MoveSpeed{ 2.5f };
+	float	MoveSpeed{ 6.0f };
 	float	TurnSpeed{ 0.5f };
 
 	inline Matrix4x4 GetViewMatrix()
@@ -75,7 +75,7 @@ struct Camera_t
 	void UpdateCameraData(double deltaTime)
 	{
 		float velocity = (float)(2.5f * deltaTime);
-		const float cameraSpeedMultiplier = 50.0;
+		const float cameraSpeedMultiplier = 100.0;
 		const float cameraRotationSpeedMultipler = 50.0f;
 
 		if (g_pInputSystem->IsKeyPressed(KEY_W))
@@ -351,13 +351,13 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Create the temp geometry buffer.
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 108, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryVertexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 5 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryVertexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry vertex data buffer.");
 		return false;
 	}
 
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 6, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_GeometryIndexBuffer))
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 5 * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryIndexBuffer))
 	{
 		LOG_ERROR("Failed to create geometry index data buffer.");
 		return false;
@@ -482,6 +482,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
 
 		m_bWindowResized = false;
+		m_bCurrentlyRendering[m_ImageIndex] = false;
 		return true;
 	}
 	else if (imageAcquireResult != VK_SUCCESS && imageAcquireResult != VK_SUBOPTIMAL_KHR)
@@ -533,7 +534,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	m_UniformData.View = s_MainCamera.GetViewMatrix();
-	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 1000.0f);
+	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
 	m_UniformData.Projection.data[5] *= -1;
 
 	m_UniformData.ViewPos = s_MainCamera.vecPosition;
@@ -543,8 +544,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	double lightSin = M_SIN(Platform::GetAbsoluteTime() * 1.5);
 	double lightCos = M_COS(Platform::GetAbsoluteTime() * 1.5);
-	m_UniformData.DirLightPos.x = lightCos * 300;
-	m_UniformData.DirLightPos.z = lightSin * 300;
+	m_UniformData.DirLightPos.x = lightCos * 450;
+	m_UniformData.DirLightPos.z = lightSin * 450;
 	m_UniformData.DirLightPos.y = 100.0f;
 
 	//LOG_INFO("%f, %f", m_UniformData.DirLightPos.x, m_UniformData.DirLightPos.z);
@@ -612,6 +613,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
 
 		m_bWindowResized = false;
+		m_bCurrentlyRendering[m_ImageIndex] = false;
 		return;
 	}
 	else if (imagePresentResult != VK_SUCCESS && imagePresentResult != VK_SUBOPTIMAL_KHR)
@@ -642,9 +644,14 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
 	// Bind our geometry data.
-	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, offsets);
-	// TODO: Index buffer
+	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, &offsets[0]);
+
+	// Bind the index buffer, if necessary
+	if (pGeometry.indexDataOffset != 0)
+	{
+		vkCmdBindIndexBuffer(commandBuffer, m_GeometryIndexBuffer.m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+	}
 
 	// Bind our pipeline.
 	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_Pipeline);
@@ -682,14 +689,22 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	// Update our matrices.
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
+	model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
 	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-	model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
+	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
 	// Push our model matrix as well.
 	vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 	// Issue the draw.
-	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
+	if (pGeometry.indexDataOffset != 0)
+	{
+		vkCmdDrawIndexed(commandBuffer, pGeometry.indexDataSize, 1, pGeometry.indexDataOffset, pGeometry.vertexDataOffset, 0);
+	}
+	else
+	{
+		vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -770,7 +785,11 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 	// Get at our shader.
 	// TODO: What to do if this shader's resources have not been loaded yet.
 	// (We probably shouldn't get in here if that's the case)
-	CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
+	if (pMaterial.m_hShaderHandle == kInvalidID_U32)
+	{
+		pMaterial.m_hShaderHandle = 0; // TODO: Default shader handle or something.
+	}
+	//CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
 	VulkanShaderInternal* pShader = &m_pInternalShaderData[pMaterial.m_hShaderHandle];
 	if (!pShader)
 	{
@@ -1431,9 +1450,47 @@ void CVulkanRenderer::BindShader(Shader& pShader)
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	pOutInstance.vertexDataOffset = m_GeometryVertexBuffer.m_BytesAllocated;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Capacity();
-	// TODO: Handle index buffer.
-	m_GeometryVertexBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Capacity() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+	
+	pOutInstance.indexDataOffset = m_GeometryIndexBuffer.m_BytesAllocated;
+	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Create a staging buffer for transfer to the GPU.
+	VulkanBuffer stagingBuffer{};
+	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+
+	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	// Copy over to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.size = stagingBuffer.m_BufferSize;
+	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryVertexBuffer.m_Handle, 1, &copyRegion);
+
+	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+	// TODO: Handle index buffers as well...
+	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
+	{
+		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+
+		copyRegion.size = stagingBuffer.m_BufferSize;
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryIndexBuffer.m_Handle, 1, &copyRegion);
+
+		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+	}
+
+	m_GeometryVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	m_GeometryIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
 
 	return true;
 }

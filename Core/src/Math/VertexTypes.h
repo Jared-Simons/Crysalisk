@@ -20,6 +20,14 @@ public:
 	Vertex3D(Vector3D&& inPos, Vector3D&& inColor, Vector2D&& intexCoord)
 		: Pos{ inPos }, TexCoord{ intexCoord } {}
 
+	bool operator==(const Vertex3D& pOther)
+	{
+		return ((Pos == pOther.Pos),
+				(TexCoord == pOther.TexCoord),
+				(Normal == pOther.Normal),
+				(Tangent == pOther.Tangent));
+	}
+
 	Vector3D Pos;
 	//Vector3D Color;
 	Vector2D TexCoord;
