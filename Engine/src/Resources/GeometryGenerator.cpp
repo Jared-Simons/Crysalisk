@@ -271,6 +271,8 @@ public:
 
 private:
 	void		ParseMaterialLibFile(const char* pszFilePath);
+
+	void		WriteOBJToBinaryFile(Utl::CVector<GeometryConfig_t>& pConfigs, const char* pszOBJPath);
 };
 
 // TODO: This should be part of a resource system!
@@ -295,7 +297,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 	// Parse the file's data.
 	Mesh newMesh{};
-	GeometryConfig_t OBJConfig{};
+	Utl::CVector<GeometryConfig_t> newConfigs{};
 	Utl::CVector<Vector3D> vertices{};
 	Utl::CVector<Vector3D> normals{};
 	Utl::CVector<Vector2D> texCoords{};
@@ -319,8 +321,6 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		pFirstChar = szCurrentLine[0];
 		pSecondChar = szCurrentLine[1];
-
-		// TODO: Handle materiallib file.
 
 		if (bBuildingPolygonList && (pFirstChar == 'o' || pFirstChar == 'g') && vertexIndices.Count() > 3)
 		{
@@ -348,6 +348,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
+			newConfigs.PushBack(currentConfig);
 
 			// Check for duplicate vertices
 			// TODO: IMPLEMENT
@@ -497,8 +498,11 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			break;
 		}
 
+		case 's':	// Smoothing groups.
+			break;	// Nothing for now.
+
 		default:
-			//LOG_WARN("We have unfinished business in the OBJ Loader!");
+			LOG_WARN("We have unfinished business in the OBJ Loader!");
 			break;
 		}
 
@@ -545,9 +549,14 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		g_pRenderer->AcquireGeometryResources(currentConfig, newMesh.m_Geometries[newGeometryIndex]);
 		bBuildingPolygonList = false;
 		groups++;
+		newConfigs.PushBack(currentConfig);
 	}
 
 	FileSystem::CloseFile(&OBJFileHandle);
+
+	// TODO: Implement me!
+	//LOG_INFO("Writing '%s' out to binary file.", pszFilePath);
+	//WriteOBJToBinaryFile(newConfigs, pszFilePath);
 
 	// NOTE: This is a bit heavy to return by value, no?
 	return newMesh;
@@ -687,4 +696,21 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 	currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 
 	FileSystem::CloseFile(&fileHandle);
+}
+
+void OBJModelLoader::WriteOBJToBinaryFile(Utl::CVector<GeometryConfig_t>& pConfigs, const char* pszOBJPath)
+{
+	char* pNewFilePath = StringDuplicate(pszOBJPath);
+	size_t pathLength = StringLength(pNewFilePath);
+	pNewFilePath[pathLength - 4] = 0;
+	StringFormat("%s.%s", pNewFilePath, "cmodel_c", pNewFilePath);
+
+	FileHandle_t newFileHandle{};
+	if (!FileSystem::OpenFile(pNewFilePath, eFileMode::FILEMODE_WRITE, true, &newFileHandle))
+	{
+		LOG_ERROR("Failed to write '%s' to binary file.", pNewFilePath);
+		return;
+	}
+
+	FileSystem::CloseFile(&newFileHandle);
 }

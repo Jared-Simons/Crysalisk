@@ -66,7 +66,8 @@ bool FileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBina
 
 	pOutFileHandle->fileAccessMode = fileMode;
 	pOutFileHandle->isValid = true;
-	pOutFileHandle->path = StringDuplicate(filePath);
+	//pOutFileHandle->path = StringDuplicate(filePath);
+	pOutFileHandle->path = const_cast<char*>(filePath);
 
 	return true;
 }
@@ -89,7 +90,7 @@ bool FileSystem::CloseFile(FileHandle_t* fileHandle)
 	fileHandle->isValid = false;
 	if (fileHandle->path)
 	{
-		StringFree(fileHandle->path);
+		//StringFree(fileHandle->path);
 		fileHandle->path = nullptr;
 	}
 

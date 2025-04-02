@@ -112,7 +112,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	if (!pszMaterialName)
 	{
 		LOG_ERROR("CMaterialSystem::AcquireMaterial() requires a path to the material to load! Returning default material.");
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
 	// Parse the material file.
@@ -129,7 +129,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	if (!newMaterialLookup)
 	{
 		LOG_ERROR("Failed to find free space for a new material in the material hashmap, returning default.");
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex; 
 	}
 
 	if (newMaterialLookup->MaterialIndex == kInvalidID_U32) // This material does not exist in the hashmap yet.
@@ -148,7 +148,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		if (!newMaterial)
 		{
 			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pszMaterialName);
-			return 0; // TODO: Default material.
+			return m_DefaultMaterialLookup.MaterialIndex;
 		}
 		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
 
@@ -247,6 +247,7 @@ MaterialReference CMaterialSystem::AcquireMaterialReference(const char* pszMater
 	newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_iInternalHandle;
 	newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hShaderHandle;
 	newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[newMaterial].m_hDiffuseTextureHandle;
+
 	return newRef;
 }
 
@@ -265,7 +266,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 	if (pConfig.pszMaterialName == nullptr)
 	{
 		LOG_ERROR("Failed to load material '%s'. Returning default.", pConfig.pszMaterialName);
-		return kInvalidID_U32;
+		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
 	// Get an entry into the hashmap.
@@ -273,7 +274,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 	if (!newMaterialLookup)
 	{
 		LOG_ERROR("Failed to find free space for a new material in the material hashmap, returning default.");
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
 	if (newMaterialLookup->MaterialIndex == kInvalidID_U32) // This material does not exist in the hashmap yet.
@@ -292,12 +293,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 		if (!newMaterial)
 		{
 			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pConfig.pszMaterialName);
-			return 0; // TODO: Default material.
+			return m_DefaultMaterialLookup.MaterialIndex;
 		}
 		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
 
 		// Acquire material resources.
-		// TODO: we'll need to acquire a shader handle here eventually...
 		if (pConfig.pszMaterialName != nullptr)
 		{
 			newMaterial->m_szMaterialName = StringDuplicate(pConfig.pszMaterialName);
@@ -347,7 +347,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pConfig.pszMaterialName);
-			return 0; // TODO: Default texture and release resources.
+			return m_DefaultMaterialLookup.MaterialIndex; // TODO: Release resources.
 		}
 	}
 	else
@@ -358,7 +358,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 	if (!newMaterial)
 	{
 		LOG_ERROR("Failed to load/create material '%s'. Returning default material.", pConfig.pszMaterialName);
-		return 0; // TODO: Default material.
+		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
 	if (newMaterialLookup->MaterialIndex == kInvalidID_U32)
