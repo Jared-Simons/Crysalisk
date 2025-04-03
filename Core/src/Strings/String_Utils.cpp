@@ -57,7 +57,8 @@ size_t StringIndexOf(const char* pString, char pCharToFind)
 char* StringDuplicate(const char* pStrToCopy)
 {
 	u64 strLength = StringLength(pStrToCopy);
-	char* stringCopy = reinterpret_cast<char*>(g_pMemoryManager->Allocate(strLength + 1));
+	//char* stringCopy = reinterpret_cast<char*>(g_pMemoryManager->Allocate(strLength + 1));
+	char* stringCopy = new char[strLength + 1];
 	memcpy(stringCopy, pStrToCopy, strLength + 1);
 	stringCopy[strLength] = 0;
 
@@ -69,7 +70,7 @@ char* StringDuplicate_N(const char* pStrToCopy, int bytesToCopy)
 {
 	char* stringCopy = new char[bytesToCopy + 1];
 	memcpy(stringCopy, pStrToCopy, bytesToCopy + 1);
-	stringCopy[bytesToCopy] = '\0';
+	stringCopy[bytesToCopy] = 0;
 
 	// NOTE: The caller is responsible for freeing this memory.
 	return stringCopy;
@@ -80,7 +81,7 @@ void StringFree(char* pString)
 	if (pString)
 	{
 		u64 strLength = StringLength(pString);
-		g_pMemoryManager->Free(reinterpret_cast<void*>(pString));
+		delete[] pString;
 	}
 }
 

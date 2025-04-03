@@ -190,6 +190,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	g_pRenderer->CreateTempGeometry();
 
 	LOG_INFO("Engine Finished Initialization");
+
+	// Print memory state
+	g_pMemoryManager->PrintMemoryStats();
 	
 	return true;
 }

@@ -6,10 +6,18 @@
 //=============================================================================
 #include "MemoryManager.h"
 
+#include "Core/Logging.h"
 #include "Platform/Platform.h"
 
 #include <malloc.h>
 #include <string.h>
+
+struct AllocHeader_t
+{
+	int	AllocSize{ 0 };
+};
+
+const int kAllocHeaderSize = sizeof(AllocHeader_t);
 
 class CMemoryManager : public IMemoryManager
 {
@@ -20,9 +28,12 @@ public:
 	virtual void*	Allocate(size_t sizeInBytes) override;
 	virtual void	Free(void* pMemBlock) override;
 
+	virtual void	PrintMemoryStats() override;
+
 private:
 	ApplicationMemoryConfiguration_t m_MemoryConfig;
-	void* m_pEngineMemory;
+	size_t		m_iNumBytesAllocated{ 0 };
+	void*		m_pEngineMemory;
 };
 
 static CMemoryManager s_pMemoryManager;
@@ -54,14 +65,31 @@ void CMemoryManager::Shutdown()
 
 void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
-	void* pMemBlock = malloc(sizeInBytes);
-	if (pMemBlock)
+	//void* pMemBlock = malloc(sizeInBytes + sizeof(AllocHeader_t));
+	AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>(malloc(sizeInBytes + sizeof(AllocHeader_t)));
+	void* pMemBlock = reinterpret_cast<void*>((uint8_t*)pAllocHeader + kAllocHeaderSize);
+	if (pAllocHeader)
+	{
+		pAllocHeader->AllocSize = sizeInBytes;
+		m_iNumBytesAllocated += sizeInBytes;
 		memset(pMemBlock, 0, sizeInBytes);
+	}
 	return pMemBlock;
 }
 
 void CMemoryManager::Free(void* pMemBlock)
 {
 	if (pMemBlock)
-		free(pMemBlock);
+	{
+		// Get at the memory header
+		AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>((uint8_t*)pMemBlock - kAllocHeaderSize);
+		m_iNumBytesAllocated -= pAllocHeader->AllocSize;
+
+		free(pAllocHeader);
+	}
+}
+
+void CMemoryManager::PrintMemoryStats()
+{
+	LOG_INFO("Bytes Allocated: %d", m_iNumBytesAllocated);
 }
