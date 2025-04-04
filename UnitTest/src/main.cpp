@@ -43,10 +43,10 @@ int main()
 
 	size_t offset1 = freelist.Allocate(10);
 	size_t offset2 = freelist.Allocate(50);
-	size_t offset3 = freelist.Allocate(20);
+	//size_t offset3 = freelist.Allocate(20);
 
 	freelist.Free(10, offset1);
-	freelist.Free(20, offset3);
+	freelist.Free(50, offset2);
 	size_t offset4 = freelist.Allocate(5);
 
 	free(freelistBlock);

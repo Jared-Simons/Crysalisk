@@ -45,6 +45,7 @@ namespace Utl
 	private:
 
 		FreeListNode_t* GetNewNode();
+		void			ReleaseNodeBackToFreelist(FreeListNode_t* pNode);
 
 	private:
 		FreeListNode_t* m_pNodeArray{ nullptr };
@@ -145,10 +146,21 @@ namespace Utl
 			// At this point, the previous node should be the closest free range of memory to us, so append ourselves there!
 			CAssert(pPreviousNode);
 
-			if (pPreviousNode->Offset + offset == pCurrentNode->Offset)
+			if (pPreviousNode->Offset + pPreviousNode->Size == offset)
 			{
 				// The blocks of memory are contiguous! No need for a new node here.
-				// TODO: IMPLEMENT!
+				pPreviousNode->Size += size;
+
+				// Check the next node to see if it's contiguous with the new combined node.
+				if (pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
+				{
+					// We're contiguous, time to join!
+					pPreviousNode->Size += pCurrentNode->Size;
+					pPreviousNode->pNextNode = nullptr;
+
+					// Release the node back to the list of empty nodes!
+					ReleaseNodeBackToFreelist(pCurrentNode);
+				}
 			}
 			else
 			{
@@ -176,5 +188,12 @@ namespace Utl
 		}
 
 		CAssert(0); // TODO: HANDLE THIS
+	}
+
+	void CFreeList::ReleaseNodeBackToFreelist(FreeListNode_t* pNode)
+	{
+		CAssert(pNode);
+		pNode->Offset = pNode->Size = 0;
+		pNode->pNextNode = nullptr;
 	}
 }
