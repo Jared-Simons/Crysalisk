@@ -6,6 +6,9 @@
 //=============================================================================
 #include <Defines.h>
 
+#include <Containers/CFreeList.h> // TODO: REMOVE THESE!
+#include <malloc.h>
+
 #include <Core/Clock.h>
 #include "Containers/CVectorTests.h"
 
@@ -32,6 +35,22 @@ int main()
 
 	//gpMemorySystem->PrintMemoryStats();
 	LOG_VERBOSE("\n\n\n\n\n");*/
+
+	Utl::CFreeList freelist(200);
+	size_t freelistRequirement = freelist.GetInternalMemoryRequirement();
+	void* freelistBlock = malloc(freelistRequirement);
+	freelist.Init(freelistBlock);
+
+	size_t offset1 = freelist.Allocate(10);
+	size_t offset2 = freelist.Allocate(50);
+	size_t offset3 = freelist.Allocate(20);
+
+	freelist.Free(10, offset1);
+	freelist.Free(20, offset3);
+	size_t offset4 = freelist.Allocate(5);
+
+	free(freelistBlock);
+
 	PerformUnitTests();
 
 	return 0;

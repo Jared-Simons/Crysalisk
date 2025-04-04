@@ -7,7 +7,6 @@
 
 #include "Engine.h"
 
-#include <Containers/CFreeList.h>
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
 #include <Core/Event.h>
@@ -194,7 +193,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
-	Utl::CFreeList freelist(memoryConfig.totalMemoryBudget);
 	
 	return true;
 }
