@@ -6,7 +6,8 @@
 //=============================================================================
 #include <Defines.h>
 
-#include <Containers/CFreeList.h> // TODO: REMOVE THESE!
+//#include <Containers/CFreeList.h> // TODO: REMOVE THESE!
+#include <Memory/DynamicAllocator.h>
 #include <malloc.h>
 
 #include <Core/Clock.h>
@@ -36,20 +37,23 @@ int main()
 	//gpMemorySystem->PrintMemoryStats();
 	LOG_VERBOSE("\n\n\n\n\n");*/
 
-	Utl::CFreeList freelist(200);
-	size_t freelistRequirement = freelist.GetInternalMemoryRequirement();
-	void* freelistBlock = malloc(freelistRequirement);
-	freelist.Init(freelistBlock);
+	/*void* pMemoryBlock = malloc(sizeof(int) * 20);
+	Utl::DynamicAllocator dynamicAllocator{};
+	dynamicAllocator.InitAllocatorInternals(sizeof(int) * 20, pMemoryBlock);
+	size_t freelistMemoryRequirement = dynamicAllocator.GetInternalFreelistMemoryRequirement();
+	void* pFreelistBlock = malloc(freelistMemoryRequirement);
 
-	size_t offset1 = freelist.Allocate(10);
-	size_t offset2 = freelist.Allocate(50);
-	//size_t offset3 = freelist.Allocate(20);
+	dynamicAllocator.InitFreelist(pFreelistBlock);
 
-	freelist.Free(10, offset1);
-	freelist.Free(50, offset2);
-	size_t offset4 = freelist.Allocate(5);
+	void* pBlock1 = dynamicAllocator.Allocate(sizeof(int));
+	int* pInt = (int*)pBlock1;
+	*pInt = 100;
+	LOG_INFO("%d", *pInt);
 
-	free(freelistBlock);
+	dynamicAllocator.Free(pBlock1);
+
+	free(pFreelistBlock);
+	free(pMemoryBlock);*/
 
 	PerformUnitTests();
 

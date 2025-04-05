@@ -7,17 +7,11 @@
 #include "MemoryManager.h"
 
 #include "Core/Logging.h"
+#include "Memory/DynamicAllocator.h"
 #include "Platform/Platform.h"
 
 #include <malloc.h>
 #include <string.h>
-
-struct AllocHeader_t
-{
-	int	AllocSize{ 0 };
-};
-
-const int kAllocHeaderSize = sizeof(AllocHeader_t);
 
 class CMemoryManager : public IMemoryManager
 {
@@ -33,6 +27,8 @@ public:
 private:
 	ApplicationMemoryConfiguration_t m_MemoryConfig;
 	size_t		m_iNumBytesAllocated{ 0 };
+	Utl::DynamicAllocator	m_MemoryAllocator;
+
 	void*		m_pEngineMemory;
 };
 
@@ -54,6 +50,9 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 {
 	m_pEngineMemory = pMemBlock;
 
+	// Setup our internal memory allocator.
+	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
+
 	return true;
 }
 
@@ -66,14 +65,19 @@ void CMemoryManager::Shutdown()
 void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
 	//void* pMemBlock = malloc(sizeInBytes + sizeof(AllocHeader_t));
-	AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>(malloc(sizeInBytes + sizeof(AllocHeader_t)));
+	/*AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>(malloc(sizeInBytes + sizeof(AllocHeader_t)));
 	void* pMemBlock = reinterpret_cast<void*>((uint8_t*)pAllocHeader + kAllocHeaderSize);
 	if (pAllocHeader)
 	{
-		pAllocHeader->AllocSize = sizeInBytes;
+		pAllocHeader->Size = sizeInBytes;
 		m_iNumBytesAllocated += sizeInBytes;
 		memset(pMemBlock, 0, sizeInBytes);
-	}
+	}*/
+
+	void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
+	m_iNumBytesAllocated += sizeInBytes;
+	memset(pMemBlock, 0, sizeInBytes);
+
 	return pMemBlock;
 }
 
@@ -81,11 +85,14 @@ void CMemoryManager::Free(void* pMemBlock)
 {
 	if (pMemBlock)
 	{
-		// Get at the memory header
+		/* Get at the memory header
 		AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>((uint8_t*)pMemBlock - kAllocHeaderSize);
-		m_iNumBytesAllocated -= pAllocHeader->AllocSize;
+		m_iNumBytesAllocated -= pAllocHeader->Size;
 
-		free(pAllocHeader);
+		free(pAllocHeader); */
+
+		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+		m_iNumBytesAllocated -= bytesFreed;
 	}
 }
 
