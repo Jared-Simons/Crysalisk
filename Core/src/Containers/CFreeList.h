@@ -72,6 +72,23 @@ namespace Utl
 						pCurrentNode->Offset += size;
 						break;
 					}
+					else
+					{
+						// This node is just large enough to hold the data with none leftover.
+						// Just return the node to the list.
+						retDataOffset = pCurrentNode->Offset;
+
+						if (m_HeadNode == pCurrentNode)
+						{
+							// We need to set the head node to the next one.
+							m_HeadNode = pCurrentNode->pNextNode;
+						}
+						else
+						{
+							//CAssert(0); // TODO: We need to handle the case of resetting the head node with no data leftover.
+						}
+						ReleaseNodeBackToFreelist(pCurrentNode);
+					}
 				}
 
 				pPreviousNode = pCurrentNode;
@@ -129,15 +146,24 @@ namespace Utl
 					pPreviousNode->Size += size;
 
 					// Check the next node to see if it's contiguous with the new combined node.
-					if (pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
+					if (offset + size == pCurrentNode->Offset)
 					{
 						// We're contiguous, time to join!
-						pPreviousNode->Size += pCurrentNode->Size;
-						pPreviousNode->pNextNode = nullptr;
-
-						// Release the node back to the list of empty nodes!
-						ReleaseNodeBackToFreelist(pCurrentNode);
+						pCurrentNode->Size += size;
+						pCurrentNode->Offset = offset;
+						pCurrentNode->pNextNode = nullptr;
 					}
+
+					// Join the previous node with this new one.
+					pPreviousNode->Size += pCurrentNode->Size;
+					pPreviousNode->pNextNode = pCurrentNode->pNextNode;
+					ReleaseNodeBackToFreelist(pCurrentNode);
+				}
+				else if (offset + size == pCurrentNode->Offset)
+				{
+					// In this case, the current range of memory is contiguous with the node after it, combine them into one node!
+					pCurrentNode->Size += size;
+					pCurrentNode->Offset = offset;
 				}
 				else
 				{
