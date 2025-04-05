@@ -78,7 +78,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Logger.
-	if (!g_pLog->InitFreelist((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
+	if (!g_pLog->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);

@@ -25,7 +25,7 @@ enum class eLogLevel
 class CORE_API LogSystem
 {
 public:
-	bool	InitFreelist(int iLogVerbosity);
+	bool	Init(int iLogVerbosity);
 	void	Shutdown();
 
 	void	LogMessage(eLogLevel level, const char* message, ...);

@@ -36,14 +36,14 @@ static const char* logLevelStrings[6] =
 // Input - none.
 // Output - bool: Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
-bool LogSystem::InitFreelist(int iLogVerbosity)
+bool LogSystem::Init(int iLogVerbosity)
 {
 	m_LogVerbosity = iLogVerbosity;
 
 	// Set up our logging file.
 	if (!FileSystem::OpenFile("console.log", FILEMODE_WRITE, false, &s_LoggerFile))
 	{
-		LOG_WARN("LogSystem::InitFreelist() -> Failed to create/open file to write logging messages to. Logging entries will not be saved.");
+		LOG_WARN("LogSystem::Init() -> Failed to create/open file to write logging messages to. Logging entries will not be saved.");
 	}
 
 	return true;
