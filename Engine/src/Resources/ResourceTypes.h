@@ -66,7 +66,7 @@ struct ShaderConfig_t
 {
 	const char* pszShaderName{ nullptr };
 	int			numShaderStages{ 0 };
-	const char** pszShaderStageFileNames{ nullptr };
+	Utl::CVector<char*> pszShaderStageFileNames{};
 	unsigned int eTopologyTypes{ UNDEFINED };
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};

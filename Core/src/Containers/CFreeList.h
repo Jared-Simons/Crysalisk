@@ -32,8 +32,8 @@ namespace Utl
 		// Custom placement delete
 		// TODO: IMPLEMENT!
 
-		void	SetNumBytesToTrack(size_t bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = m_iNumBytesTracked / sizeof(FreeListNode_t); }
-		size_t	GetInternalMemoryRequirement() const { return sizeof(FreeListNode_t) * m_iNumFreelistNodes; }
+		void	SetNumBytesToTrack(size_t bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = bytesToTrack / (sizeof(void*) * sizeof(FreeListNode_t)); }
+		size_t	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes; }
 		void	InitFreelist(void* pMemory)
 		{
 			CAssert(pMemory);
@@ -85,9 +85,11 @@ namespace Utl
 						}
 						else
 						{
-							//CAssert(0); // TODO: We need to handle the case of resetting the head node with no data leftover.
+							// Attach the next node to the previous one.
+							pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 						}
 						ReleaseNodeBackToFreelist(pCurrentNode);
+						return retDataOffset; // Early return here since pCurrentNode will be nullified.
 					}
 				}
 
@@ -144,20 +146,7 @@ namespace Utl
 				{
 					// The blocks of memory are contiguous! No need for a new node here.
 					pPreviousNode->Size += size;
-
-					// Check the next node to see if it's contiguous with the new combined node.
-					if (offset + size == pCurrentNode->Offset)
-					{
-						// We're contiguous, time to join!
-						pCurrentNode->Size += size;
-						pCurrentNode->Offset = offset;
-						pCurrentNode->pNextNode = nullptr;
-					}
-
-					// Join the previous node with this new one.
-					pPreviousNode->Size += pCurrentNode->Size;
-					pPreviousNode->pNextNode = pCurrentNode->pNextNode;
-					ReleaseNodeBackToFreelist(pCurrentNode);
+					return;
 				}
 				else if (offset + size == pCurrentNode->Offset)
 				{
@@ -177,6 +166,16 @@ namespace Utl
 					pPreviousNode->pNextNode = pNewNode;
 					return;
 				}
+			}
+
+			// Defragment the freelist here
+			while (pPreviousNode && pCurrentNode &&
+				pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
+			{
+				LOG_INFO("NEED TO COMPACT!");
+				pPreviousNode->Size += pCurrentNode->Size;
+				pPreviousNode->pNextNode = pCurrentNode->pNextNode;
+				ReleaseNodeBackToFreelist(pCurrentNode);
 			}
 		}
 

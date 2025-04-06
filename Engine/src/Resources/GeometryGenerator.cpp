@@ -346,6 +346,11 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			// Generate our tangent data.
 			MeshGenerator::GenerateTangentData(currentConfig);
 
+			if (currLine == 41006 || currLine == 32479)
+			{
+				CAssert(0);
+			}
+
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
 			newConfigs.PushBack(currentConfig);

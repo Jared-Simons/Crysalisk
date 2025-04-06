@@ -9,6 +9,7 @@
 
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
+#include <Core/Clock.h>
 #include <Core/Event.h>
 #include <Core/Input.h>
 #include <Core/Logging.h>
@@ -65,11 +66,14 @@ IEngine* g_pEngine = &s_Engine;
 //-------------------------------------------------------------------------
 bool CEngine::Initialize(EngineConfig_t engineConfig)
 {
+	Clock initializationClock{};
+	initializationClock.Start();
+
 	m_engineConfig = engineConfig;
 
 	// Stand up our memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(1);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(5);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -189,10 +193,11 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Create temporary geometry.
 	g_pRenderer->CreateTempGeometry();
 
-	LOG_INFO("Engine Finished Initialization");
-
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
+
+	initializationClock.Update();
+	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 	
 	return true;
 }

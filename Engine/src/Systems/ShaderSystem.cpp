@@ -27,7 +27,7 @@ public:
 	virtual void	BindShader(ShaderHandle_t hShader) override;
 
 private:
-	ShaderConfig_t	ParseShaderConfigurationFromFile(const char* pszFilePath);
+	void			ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
 	VertexType_t	ParseVertexTypeFromString(const char* pszType);
 
 private:
@@ -154,16 +154,17 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		newShader->m_iInternalHandle = shaderIdx;
 
 		// Parse the shader configuration.
-		ShaderConfig_t newShaderConfiguration = ParseShaderConfigurationFromFile(formattedShaderPath);
+		ShaderConfig_t newShaderConfig{};
+		ParseShaderConfigurationFromFile(formattedShaderPath, newShaderConfig);
 		
 		// Acquire shader resources.
-		if (newShaderConfiguration.pszShaderName != nullptr)
+		if (newShaderConfig.pszShaderName != nullptr)
 		{
-			newShader->m_szShaderName = StringDuplicate(newShaderConfiguration.pszShaderName);
+			newShader->m_szShaderName = StringDuplicate(newShaderConfig.pszShaderName);
 		}
 
 		// Acquire renderer resources.
-		if (!g_pRenderer->AcquireShaderResources(*newShader, newShaderConfiguration))
+		if (!g_pRenderer->AcquireShaderResources(*newShader, newShaderConfig))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for shader '%s'. Returning default shader.", pszShaderName);
 			// TODO: Free resources and return default shader.
@@ -191,18 +192,19 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 //-------------------------------------------------------------------------
 // TODO: Documentation pls.
 //-------------------------------------------------------------------------
-ShaderConfig_t CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath)
+void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig)
 {
-	ShaderConfig_t newShaderConfig{};
-
 	// Open the file
 	FileHandle_t shaderConfigFile{};
 	if (!FileSystem::OpenFile(pszFilePath, eFileMode::FILEMODE_READ, false, &shaderConfigFile))
 	{
 		LOG_ERROR("ParseShaderConfigurationFromFile -> Could not open file '%s'. Nothing was done.", pszFilePath);
 		FileSystem::CloseFile(&shaderConfigFile);
-		return newShaderConfig;
 	}
+
+	// TODO: We're resizing explicitly here because for whatever reason, something in memory allocation (during this resize) is stomping the memory that holds the names of the modules.
+	// This needs to be fixed in at the allocator level.
+	pOutShaderConfig.uniformConfigs.Resize(10);
 
 	// Parse the file's contents.
 	while (!FileSystem::IsEOF(&shaderConfigFile))
@@ -228,34 +230,34 @@ ShaderConfig_t CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFi
 
 		if (StringCompare(key, "name"))
 		{
-			newShaderConfig.pszShaderName = StringStrip(value, *"\""); // Strip the quotes out of the value
+			pOutShaderConfig.pszShaderName = StringStrip(value, *"\""); // Strip the quotes out of the value
 		}
 		else if (StringCompare(key, "num_shader_stages"))
 		{
-			newShaderConfig.numShaderStages = String_ATOI(value);
-			newShaderConfig.pszShaderStageFileNames = new const char* [newShaderConfig.numShaderStages];
+			pOutShaderConfig.numShaderStages = String_ATOI(value);
+			pOutShaderConfig.pszShaderStageFileNames.Resize(pOutShaderConfig.numShaderStages);
 		}
 		else if (StringCompare(key, "vertex_file") || StringCompare(key, "fragment_file"))
 		{
 			int newIdx = 0;
-			for (newIdx = 0; newIdx < newShaderConfig.numShaderStages; newIdx++)
+			for (newIdx = 0; newIdx < pOutShaderConfig.numShaderStages; newIdx++)
 			{
-				if (newShaderConfig.pszShaderStageFileNames[newIdx] == nullptr)
+				if (pOutShaderConfig.pszShaderStageFileNames[newIdx] == nullptr)
 					break;
 			}
 
-			newShaderConfig.pszShaderStageFileNames[newIdx] = StringStrip(value, *"\""); // Strip the quotes out of the value
+			pOutShaderConfig.pszShaderStageFileNames.PushBack(StringStrip(value, *"\"")); // Strip the quotes out of the value
 		}
 		else if (StringCompare(key, "topology_type"))
 		{
 			if (StringCompare(value, "line_list"))
 			{
-				newShaderConfig.eTopologyTypes |= LINE_LIST;
+				pOutShaderConfig.eTopologyTypes |= LINE_LIST;
 			}
 
 			if (StringCompare(value, "triangle_list"))
 			{
-				newShaderConfig.eTopologyTypes |= TRIANGLE_LIST;
+				pOutShaderConfig.eTopologyTypes |= TRIANGLE_LIST;
 			}
 		}
 		else if (StringCompare(key, "attribute")) // Vertex attribute
@@ -271,7 +273,7 @@ ShaderConfig_t CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFi
 			// Next the type.
 			currentAttribute.type = ParseVertexTypeFromString(currentChar);
 
-			newShaderConfig.vertexAttributes.PushBack(currentAttribute);
+			pOutShaderConfig.vertexAttributes.PushBack(currentAttribute);
 		}
 		else if (StringCompare(key, "uniform"))
 		{
@@ -331,7 +333,7 @@ ShaderConfig_t CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFi
 			int updateLevel = String_ATOI(currentChar);
 			newUniform.eFrequency = (eShaderUniformUpdateFrequency)String_ATOI(currentChar);
 
-			newShaderConfig.uniformConfigs.PushBack(newUniform);
+			pOutShaderConfig.uniformConfigs.PushBack(newUniform);
 		}
 		else
 		{
@@ -340,8 +342,6 @@ ShaderConfig_t CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFi
 	}
 
 	FileSystem::CloseFile(&shaderConfigFile);
-
-	return newShaderConfig;
 }
 
 VertexType_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)

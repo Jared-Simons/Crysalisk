@@ -55,8 +55,11 @@ namespace Utl {
 			, m_ValueStride{ pOtherVector.m_ValueStride }
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
 		{
-			m_pValues = (T*)g_pMemoryManager->Allocate(pOtherVector.m_ValueStride * pOtherVector.m_Count);
-			memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+			if (m_Capacity > 0)
+			{
+				m_pValues = (T*)g_pMemoryManager->Allocate(pOtherVector.m_ValueStride * pOtherVector.m_Count);
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+			}
 		}
 
 		//--------------------------------------------------
@@ -81,7 +84,7 @@ namespace Utl {
 		~CVector()
 		{
 			// TODO: Custom allocators.
-			if (m_pValues)
+			if (m_pValues && m_Capacity > 0)
 				g_pMemoryManager->Free(m_pValues);
 			m_pValues = nullptr;
 

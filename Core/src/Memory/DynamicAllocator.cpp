@@ -24,7 +24,9 @@ namespace Utl
 		{
 			// Initialize the freelist now.
 			m_FreeList.InitFreelist(pMemoryBlock);
-			m_pMemoryBlock = reinterpret_cast<uint8_t*>(m_pMemoryBlock) + sizeof(m_FreeList);
+			size_t freelistArraySize = m_FreeList.GetInternalMemoryRequirement();
+			m_pMemoryBlock = reinterpret_cast<uint8_t*>(m_pMemoryBlock) + freelistArraySize;
+			m_FreeList.SetNumBytesToTrack(pSizeInBytes - freelistArraySize);
 		}
 	}
 
