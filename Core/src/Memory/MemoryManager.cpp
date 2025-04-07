@@ -22,10 +22,12 @@ public:
 	virtual void*	Allocate(size_t sizeInBytes) override;
 	virtual void	Free(void* pMemBlock) override;
 
+	virtual bool		IsInitialized() const override { return m_bInitialized; }
 	virtual void	PrintMemoryStats() override;
 
 private:
 	ApplicationMemoryConfiguration_t m_MemoryConfig;
+	bool		m_bInitialized{ false };
 	size_t		m_iNumBytesAllocated{ 0 };
 	Utl::DynamicAllocator	m_MemoryAllocator;
 
@@ -52,12 +54,14 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 
 	// Setup our internal memory allocator.
 	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
+	m_bInitialized = true;
 
 	return true;
 }
 
 void CMemoryManager::Shutdown()
 {
+	m_bInitialized = false;
 	// Return our memory to the OS.
 	Platform::MemoryFree(m_pEngineMemory);
 }
@@ -83,7 +87,7 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 
 void CMemoryManager::Free(void* pMemBlock)
 {
-	if (pMemBlock)
+	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
 	{
 		/* Get at the memory header
 		AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>((uint8_t*)pMemBlock - kAllocHeaderSize);

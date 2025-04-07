@@ -28,6 +28,7 @@ public:
 	virtual void*		Allocate(size_t sizeInBytes) = 0;	// TODO: Memory-Tagging?
 	virtual void		Free(void* pMemBlock) = 0;
 
+	virtual bool		IsInitialized() const = 0;
 	virtual void		PrintMemoryStats() = 0;
 };
 

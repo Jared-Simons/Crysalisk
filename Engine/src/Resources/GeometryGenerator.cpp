@@ -297,7 +297,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 	// Parse the file's data.
 	Mesh newMesh{};
-	Utl::CVector<GeometryConfig_t> newConfigs{};
+	Utl::CVector<GeometryConfig_t> newConfigs(512);
 	Utl::CVector<Vector3D> vertices{};
 	Utl::CVector<Vector3D> normals{};
 	Utl::CVector<Vector2D> texCoords{};
@@ -345,11 +345,6 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 			// Generate our tangent data.
 			MeshGenerator::GenerateTangentData(currentConfig);
-
-			if (currLine == 41006 || currLine == 32479)
-			{
-				CAssert(0);
-			}
 
 			// Acquire the geometry resources.
 			size_t newGeometryIndex = newMesh.m_Geometries.PushBack(GeometryInstance_t{});
