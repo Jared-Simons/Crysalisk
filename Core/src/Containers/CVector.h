@@ -43,7 +43,7 @@ namespace Utl {
 		{
 			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
-			m_pValues = (T*)g_pMemoryManager->Allocate(m_ValueStride * initialCapacity);
+			m_pValues = new T[initialCapacity];
 		}
 
 		//--------------------------------------------------
@@ -84,8 +84,8 @@ namespace Utl {
 		~CVector()
 		{
 			// TODO: Custom allocators.
-			if (m_pValues && m_Capacity > 0)
-				g_pMemoryManager->Free(m_pValues);
+			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
+				delete[] m_pValues;
 			m_pValues = nullptr;
 
 			m_Count = 0;
@@ -103,7 +103,7 @@ namespace Utl {
 			m_ValueStride = pOtherVector.m_ValueStride;
 			m_ResizeFactor = pOtherVector.m_ResizeFactor;
 
-			m_pValues = (T*)g_pMemoryManager->Allocate(pOtherVector.m_ValueStride * pOtherVector.m_Count);
+			m_pValues = new T[pOtherVector.m_Count];
 			memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
 
 			return *this;
@@ -246,7 +246,7 @@ namespace Utl {
 			}
 
 			// Allocate some new memory.
-			void* pNewArray = g_pMemoryManager->Allocate(newCapacity * m_ValueStride);
+			void* pNewArray = new T[newCapacity];
 			CAssert(pNewArray);
 
 			// Copy the current array over.
@@ -254,15 +254,8 @@ namespace Utl {
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues)
-				g_pMemoryManager->Free(m_pValues);
+				delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
-
-			// Construct the new elements.
-			// FIXME: MAKE THIS WORK!
-			/*for (int index = m_Count - 1; index < newCapacity; index++)
-			{
-				m_pData[index] = new (m_pData + (m_Stride * index)) T;
-			}*/
 
 			// Bump up our capacity!
 			m_Capacity = newCapacity;
