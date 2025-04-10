@@ -58,6 +58,6 @@ namespace Utl
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);
 
-		return pHeader->Size;
+		return (int)pHeader->Size;
 	}
 }

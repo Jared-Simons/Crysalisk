@@ -164,9 +164,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMatConfig.pszShaderName);
 		}
 
-		if (newMatConfig.flShininess != kInvalidID_U32)
+		if (newMatConfig.iShininess != kInvalidID_U32)
 		{
-			newMaterial->m_iShininess = newMatConfig.flShininess;
+			newMaterial->m_iShininess = newMatConfig.iShininess;
 		}
 		else
 		{
@@ -308,9 +308,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(pConfig.pszShaderName);
 		}
 
-		if (pConfig.flShininess != kInvalidID_U32)
+		if (pConfig.iShininess != kInvalidID_U32)
 		{
-			newMaterial->m_iShininess = pConfig.flShininess;
+			newMaterial->m_iShininess = pConfig.iShininess;
 		}
 		else
 		{
@@ -483,7 +483,7 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 		}
 		else if (StringCompare(key, "shininess"))
 		{
-			newMatConfig.flShininess = String_ATOI(value);
+			newMatConfig.iShininess = String_ATOI(value);
 		}
 		else if (StringCompare(key, "map_diffuse"))
 		{

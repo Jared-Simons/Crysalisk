@@ -66,7 +66,7 @@ public:
 class VulkanBuffer
 {
 public:
-	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, uint32_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer);
+	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer);
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
 
 	bool			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);

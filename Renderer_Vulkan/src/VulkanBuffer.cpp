@@ -8,12 +8,12 @@
 
 #include <Math/VertexTypes.h>
 
-bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, uint32_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer)
+bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer)
 {
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	bufferInfo.pNext = nullptr;
 	bufferInfo.flags = 0;
-	bufferInfo.size = bufferSize;
+	bufferInfo.size = (VkDeviceSize)bufferSize;
 	bufferInfo.usage = bufferUsage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 

@@ -55,7 +55,7 @@ namespace Utl
 
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
-			int retDataOffset = 0;
+			size_t retDataOffset = 0;
 
 			// Search the freelist for an available block of memory.
 			while (pCurrentNode != nullptr)
@@ -192,6 +192,7 @@ namespace Utl
 			}
 
 			CAssert(0); // TODO: HANDLE THIS
+			return nullptr;
 		}
 
 		void ReleaseNodeBackToFreelist(FreeListNode_t* pNode)

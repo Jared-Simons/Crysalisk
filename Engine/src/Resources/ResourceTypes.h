@@ -85,7 +85,7 @@ struct MaterialConfig_t
 {
 	char* pszMaterialName{ nullptr };
 	char* pszShaderName{ nullptr };
-	float flShininess{ 1 };
+	int   iShininess{ 1 };
 	char* pszDiffuseTextureName{ nullptr };
 	char* pszSpecularTextureName{ nullptr };
 	char* pszNormalTextureName{ nullptr };
@@ -106,7 +106,7 @@ struct MaterialConfig_t
 			pszShaderName = StringDuplicate(pOther.pszShaderName);
 		}
 
-		flShininess = pOther.flShininess;
+		iShininess = pOther.iShininess;
 
 		if (pOther.pszDiffuseTextureName != nullptr)
 		{
@@ -187,10 +187,10 @@ struct GeometryConfig_t
 // TODO: This is temporary and should NOT stick around
 struct GeometryInstance_t
 {
-	int	vertexCount{ -1 };
-	int vertexDataOffset{ -1 };
-	int indexDataSize{ -1 };
-	int indexDataOffset{ -1 };
+	size_t vertexCount{ kInvalidID_U64 };
+	size_t vertexDataOffset{ kInvalidID_U64 };
+	size_t indexDataSize{ kInvalidID_U64 };
+	size_t indexDataOffset{ kInvalidID_U64 };
 
 	MaterialReference hMaterial;
 };

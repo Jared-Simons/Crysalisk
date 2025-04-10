@@ -405,7 +405,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newVertex{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newVertex.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -424,7 +424,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newNormal{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newNormal.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -443,7 +443,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector2D newTexCoord{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newTexCoord.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -462,7 +462,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			uint32_t texCoordIndex[4]{};
 			uint32_t normalIndex[4]{};
 
-			int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2], &vertexIndex[3], &texCoordIndex[3], &normalIndex[3]);
+			int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2], &vertexIndex[3], &texCoordIndex[3], &normalIndex[3]);
 			CAssert(elements == 9 || elements == 12);
 
 			vertexIndices.PushBack(vertexIndex[0]);
@@ -630,7 +630,7 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 
 					case 's':	// Specular exponent.
 					{
-						currentMaterialConfig.flShininess = String_ATOF(&szCurrentLine[spaceIndex]);
+						currentMaterialConfig.iShininess = String_ATOI(&szCurrentLine[spaceIndex]);
 						break;
 					}
 				}

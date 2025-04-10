@@ -112,7 +112,7 @@ namespace Utl {
 		//--------------------------------------------------
 		// Array indexing.
 		//--------------------------------------------------
-		inline T& ElementAt(int index) const
+		inline T& ElementAt(size_t index) const
 		{
 			CASSERTMSG(index >= 0 && index < m_Capacity, "Attempted to index CVector data out of bounds!");
 
@@ -127,12 +127,12 @@ namespace Utl {
 		//--------------------------------------------------
 		// Same as above, for ease of use.
 		//--------------------------------------------------
-		inline T& operator[](int index)
+		inline T& operator[](size_t index)
 		{
 			return ElementAt(index);
 		}
 
-		inline T& operator[](int index) const
+		inline T& operator[](size_t index) const
 		{
 			return ElementAt(index);
 		}

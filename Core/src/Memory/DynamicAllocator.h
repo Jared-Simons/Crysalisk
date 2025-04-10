@@ -10,8 +10,8 @@
 
 struct AllocHeader_t
 {
-	int	Size{ 0 };
-	int	Offset{ 0 };
+	size_t	Size{ 0 };
+	size_t	Offset{ 0 };
 };
 
 const int kAllocHeaderSize = sizeof(AllocHeader_t);
