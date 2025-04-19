@@ -1,21 +1,11 @@
 Features to be developed:
 - Setup the Vulkan renderer to handle dynamic data (i.e. whatever texture/geometry data one wants to use)
-- Implement Texture/Material Systems
-- Implement Geometry System
 - Implement some form of camera system
-
-- Create an engine subsystem base class? (And add systems to a systems manager?)
-   - Also investigate subsystem creation, possibly cleanup system factory functions.
-
-Chores:
-- Setup new memory manager with custom allocators.
-- We need a way to register callbacks between dlls. I.E. The Platform Layer in Core.dll needs a way to be able to fire events in the Engine.dll. The Platform layer in Core.dll also needs a way to communicate with the Input system in the Engine.dll.
-
-- Revamp Math Library
-	
-- Completely overhaul the logging system, it needs to be consolidated for simplified for the time being.
-
-- Need a way to log messages without the 'log level' label placed before the message (Possibly expose here?)
-
-- Vulkan texture data needs to be exposed to the front end
-- Unloading textures in use causes validation errors, but we may need to swap out textures, find a fix.
+- Transparent Materials!
+- Multiple Materials per mesh
+- OBJ faces with 5 vertices (Valve maps give us these...)
+	- Determining the front face/index order of n-gons
+- Support for blended materials
+- Frustum-culling
+- Mip-mapping
+- Anti-aliasing

@@ -1,5 +1,7 @@
 #include <Memory/MemoryManager.h>
 
+#include <Core/Assertions.h>
+
 void* operator new(size_t size)
 {
 	void* pMemBlock = g_pMemoryManager->Allocate(size);
@@ -8,7 +10,7 @@ void* operator new(size_t size)
 
 void operator delete(void* pMemBlock)
 {
-	if (pMemBlock)
+	if (pMemBlock && g_pMemoryManager->IsInitialized())
 		g_pMemoryManager->Free(pMemBlock);
 }
 
@@ -20,6 +22,6 @@ void* operator new[](size_t size)
 
 void operator delete[](void* pMemBlock)
 {
-	if (pMemBlock)
+	if (pMemBlock && g_pMemoryManager->IsInitialized())
 		g_pMemoryManager->Free(pMemBlock);
 }

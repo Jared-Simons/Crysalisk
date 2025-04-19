@@ -53,8 +53,8 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 
 	// Create sampler
 	VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	samplerCreateInfo.magFilter = VK_FILTER_NEAREST; // TODO: MAKE THIS CONFIGRABLE!!!
-	samplerCreateInfo.minFilter = VK_FILTER_NEAREST;
+	samplerCreateInfo.magFilter = VK_FILTER_LINEAR; // TODO: MAKE THIS CONFIGRABLE!!!
+	samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
 	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;

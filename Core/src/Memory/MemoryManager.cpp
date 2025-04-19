@@ -6,6 +6,8 @@
 //=============================================================================
 #include "MemoryManager.h"
 
+#include "Core/Logging.h"
+#include "Memory/DynamicAllocator.h"
 #include "Platform/Platform.h"
 
 #include <malloc.h>
@@ -20,9 +22,16 @@ public:
 	virtual void*	Allocate(size_t sizeInBytes) override;
 	virtual void	Free(void* pMemBlock) override;
 
+	virtual bool		IsInitialized() const override { return m_bInitialized; }
+	virtual void	PrintMemoryStats() override;
+
 private:
 	ApplicationMemoryConfiguration_t m_MemoryConfig;
-	void* m_pEngineMemory;
+	bool		m_bInitialized{ false };
+	size_t		m_iNumBytesAllocated{ 0 };
+	Utl::DynamicAllocator	m_MemoryAllocator;
+
+	void*		m_pEngineMemory;
 };
 
 static CMemoryManager s_pMemoryManager;
@@ -43,25 +52,55 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 {
 	m_pEngineMemory = pMemBlock;
 
+	// Setup our internal memory allocator.
+	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
+	m_bInitialized = true;
+
 	return true;
 }
 
 void CMemoryManager::Shutdown()
 {
+	m_bInitialized = false;
 	// Return our memory to the OS.
 	Platform::MemoryFree(m_pEngineMemory);
 }
 
 void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
-	void* pMemBlock = malloc(sizeInBytes);
-	if (pMemBlock)
+	//void* pMemBlock = malloc(sizeInBytes + sizeof(AllocHeader_t));
+	/*AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>(malloc(sizeInBytes + sizeof(AllocHeader_t)));
+	void* pMemBlock = reinterpret_cast<void*>((uint8_t*)pAllocHeader + kAllocHeaderSize);
+	if (pAllocHeader)
+	{
+		pAllocHeader->Size = sizeInBytes;
+		m_iNumBytesAllocated += sizeInBytes;
 		memset(pMemBlock, 0, sizeInBytes);
+	}*/
+
+	void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
+	m_iNumBytesAllocated += sizeInBytes;
+	memset(pMemBlock, 0, sizeInBytes);
+
 	return pMemBlock;
 }
 
 void CMemoryManager::Free(void* pMemBlock)
 {
-	if (pMemBlock)
-		free(pMemBlock);
+	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
+	{
+		/* Get at the memory header
+		AllocHeader_t* pAllocHeader = reinterpret_cast<AllocHeader_t*>((uint8_t*)pMemBlock - kAllocHeaderSize);
+		m_iNumBytesAllocated -= pAllocHeader->Size;
+
+		free(pAllocHeader); */
+
+		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+		m_iNumBytesAllocated -= bytesFreed;
+	}
+}
+
+void CMemoryManager::PrintMemoryStats()
+{
+	LOG_INFO("Bytes Allocated: %d", m_iNumBytesAllocated);
 }

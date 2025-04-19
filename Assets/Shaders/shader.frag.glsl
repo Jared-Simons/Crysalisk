@@ -60,10 +60,11 @@ void main()
 
 	// diffuse
 	//vec3 lightPosition = vec3(1.2, 1.0, 2.0);
+	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
 	vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
 	float diff = max(dot(normal, lightDir), 0.0);
 	vec3 lightDiffuse = vec3(0.3, 0.5, 1.0);
-	vec3 diffuse = lightDiffuse * diff * texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord).rgb;
+	vec3 diffuse = lightDiffuse * diff * diffuseSample.rgb;
 
 	// specular
 	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
@@ -75,34 +76,36 @@ void main()
 	vec3 result = ambient + diffuse + specular;
 	if (global_ubo.renderMode == 0)
 	{
-		outColor = vec4(result, 1.0);
+		outColor = vec4(result, diffuseSample.a);
 		return;
 	}
 	else
 	{
 		if (global_ubo.renderMode == 1)
 		{
-			outColor = vec4(ambient, 1.0);
+			outColor = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
 			return;
 		}
-		else if(global_ubo.renderMode == 2)
+		else if (global_ubo.renderMode == 2)
 		{
-			outColor = vec4(diffuse, 1.0);
+			vec3 white = vec3(1.0);
+			outColor = vec4((white * diff), diffuseSample.a);
 			return;
 		}
 		else if (global_ubo.renderMode == 3)
 		{
-			outColor = vec4(specular, 1.0);
+			outColor = vec4(specular, diffuseSample.a);
 			return;
 		}
 		else if (global_ubo.renderMode == 4)
 		{
-			outColor = vec4(abs(normal), 1.0);
+			outColor = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
+			outColor.a = diffuseSample.a;
 			return;
 		}
-		else
+		else if (global_ubo.renderMode == 5)
 		{
-			outColor = vec4(result, 1.0);
+			outColor = vec4(abs(normal), diffuseSample.a);
 			return;
 		}
 	}

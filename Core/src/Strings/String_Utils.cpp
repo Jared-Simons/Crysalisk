@@ -7,11 +7,12 @@
 #include "Strings/String_Utils.h"
 
 #include "Core/Logging.h"
-#include <Memory/MemoryManager.h>
 
-#include <stdio.h>
 #include <string>
 #include <stdarg.h>
+
+#pragma warning( push ) // TODO: Get rid of this
+#pragma warning( disable: 4996 )
 
 size_t StringLength(const char* str)
 {
@@ -38,11 +39,11 @@ void StringFormat_V(const char* format, char* outString, ...)
 
 bool StringCompare(const char* str1, const char* str2)
 {
-	i32 result = strcmp(str1, str2);
+	int result = strcmp(str1, str2);
 	return result == 0;
 }
 
-size_t StringIndexOf(const char* pString, char pCharToFind)
+unsigned int StringIndexOf(const char* pString, char pCharToFind)
 {
 	size_t len = StringLength(pString);
 	for (int idx = 0; idx < len; idx++)
@@ -56,8 +57,8 @@ size_t StringIndexOf(const char* pString, char pCharToFind)
 
 char* StringDuplicate(const char* pStrToCopy)
 {
-	u64 strLength = StringLength(pStrToCopy);
-	char* stringCopy = reinterpret_cast<char*>(g_pMemoryManager->Allocate(strLength + 1));
+	size_t strLength = StringLength(pStrToCopy);
+	char* stringCopy = new char[strLength + 1];
 	memcpy(stringCopy, pStrToCopy, strLength + 1);
 	stringCopy[strLength] = 0;
 
@@ -65,11 +66,11 @@ char* StringDuplicate(const char* pStrToCopy)
 	return stringCopy;
 }
 
-char* StringDuplicate_N(const char* pStrToCopy, int bytesToCopy)
+char* StringDuplicate_N(const char* pStrToCopy, size_t bytesToCopy)
 {
 	char* stringCopy = new char[bytesToCopy + 1];
 	memcpy(stringCopy, pStrToCopy, bytesToCopy + 1);
-	stringCopy[bytesToCopy] = '\0';
+	stringCopy[bytesToCopy] = 0;
 
 	// NOTE: The caller is responsible for freeing this memory.
 	return stringCopy;
@@ -79,8 +80,8 @@ void StringFree(char* pString)
 {
 	if (pString)
 	{
-		u64 strLength = StringLength(pString);
-		g_pMemoryManager->Free(reinterpret_cast<void*>(pString));
+		size_t strLength = StringLength(pString);
+		delete[] pString;
 	}
 }
 
@@ -93,18 +94,19 @@ char* StringConcat(char* str1, char* str2)
 	char* newString = new char[len1 + len2 + 1];
 	strcpy(newString, str1);
 	strcpy(newString + len1, str2);
+	
 	newString[len1 + len2] = '\0'; // Null terminator
 	return newString;
 }
 
-int StringTrim(char* pStr, char* pOutString)
+size_t StringTrim(char* pStr, char* pOutString)
 {
-	char* szTrimmedString; // TODO: check for this length.
+	char* szTrimmedString{};
 
-	int strLength = StringLength(pStr);
+	size_t strLength = StringLength(pStr);
 
-	int startIndex = -1;
-	int endIndex = -1;
+	size_t startIndex = -1;
+	size_t endIndex = -1;
 
 	for (int idx = 0; idx < strLength; idx++)
 	{
@@ -129,7 +131,7 @@ int StringTrim(char* pStr, char* pOutString)
 		endIndex = strLength + 1;
 	}
 
-	int newStringLength = endIndex - startIndex + 1;
+	size_t newStringLength = endIndex - startIndex + 1;
 
 	memcpy(pOutString, &pStr[startIndex], newStringLength);
 	pOutString[newStringLength] = 0;
@@ -170,20 +172,28 @@ char* StringStrip(char* pStr, char c)
 
 int String_ATOI(const char* c)
 {
-	int result{ 0 };
+	/*int result{0};
 	int curPower = 0;
 	size_t stringLength = StringLength(c);
+	unsigned int dotIndex = StringIndexOf(c, '.');
+
+	if (dotIndex != kInvalidID_U32)
+		stringLength = dotIndex;
 
 	for (int idx = 0; idx < stringLength; idx++)
 	{
 		result = result * 10 + (c[idx] - '0');
 	}
 
-	return result;
+	return result;*/ // TODO: Fix this!
+
+	return atoi(c);
 }
 
 // TODO: Our own version of this would be nice.
 float String_ATOF(const char* c)
 {
-	return atof(c);
+	return static_cast<float>(atof(c));
 }
+
+#pragma warning( pop )

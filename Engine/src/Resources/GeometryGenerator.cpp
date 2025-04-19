@@ -297,7 +297,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 	// Parse the file's data.
 	Mesh newMesh{};
-	Utl::CVector<GeometryConfig_t> newConfigs{};
+	Utl::CVector<GeometryConfig_t> newConfigs(1024); // TODO: Something in CVector's resize method is stomping on memory. If this thing needs to resize, it might completely ruin memory that comes before it. THIS NEEDS TO BE FIXED!
 	Utl::CVector<Vector3D> vertices{};
 	Utl::CVector<Vector3D> normals{};
 	Utl::CVector<Vector2D> texCoords{};
@@ -314,6 +314,9 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 	size_t currLine{ 1 };
 	size_t bytesRead{ 0 };
 	int groups{ 0 };
+	//const int debugGroupLimit{ 109 };
+	const int debugGroupLimit{ 1024 };
+	int duplicateVertexCount{ 0 };
 
 	while (!FileSystem::IsEOF(&OBJFileHandle))
 	{
@@ -322,7 +325,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		pFirstChar = szCurrentLine[0];
 		pSecondChar = szCurrentLine[1];
 
-		if (bBuildingPolygonList && (pFirstChar == 'o' || pFirstChar == 'g') && vertexIndices.Count() > 3)
+		if (bBuildingPolygonList && (pFirstChar == 'o' || pFirstChar == 'g') && vertexIndices.Count() > 3 && groups <= debugGroupLimit)
 		{
 			GeometryConfig_t currentConfig{};
 			// Flush the polygon list to the renderer and start a new config.
@@ -358,7 +361,8 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 				{
 					if (currentConfig.Vertices[currIdx] == currentConfig.Vertices[idx])
 					{
-						LOG_DEBUG("Duplicate vertices found! (%d/%d)", currIdx, idx);
+						//LOG_DEBUG("Duplicate vertices found! (%d/%d)", currIdx, idx);
+						duplicateVertexCount++;
 					}
 				}
 			}*/
@@ -405,7 +409,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newVertex{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newVertex.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -424,7 +428,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newNormal{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newNormal.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -443,7 +447,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector2D newTexCoord{};
 						char pCurrValue[512];
 					
-						int currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
 						newTexCoord.x = String_ATOF(pCurrValue);
 
 						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
@@ -458,22 +462,106 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 
 		case 'f':	// Polygon 'face'.
 		{
-			uint32_t vertexIndex[4]{};
-			uint32_t texCoordIndex[4]{};
-			uint32_t normalIndex[4]{};
+			uint32_t vertexIndex[6]{};
+			uint32_t texCoordIndex[6]{};
+			uint32_t normalIndex[6]{};
 
-			int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2], &vertexIndex[3], &texCoordIndex[3], &normalIndex[3]);
-			CAssert(elements == 9 || elements == 12);
+			int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &texCoordIndex[0], &normalIndex[0], &vertexIndex[1], &texCoordIndex[1], &normalIndex[1], &vertexIndex[2], &texCoordIndex[2], &normalIndex[2], &vertexIndex[3], &texCoordIndex[3], &normalIndex[3], &vertexIndex[4], &texCoordIndex[4], &normalIndex[4], &vertexIndex[5], &texCoordIndex[5], &normalIndex[5]);
+			
+			CAssert(elements == 9 || elements == 12 || elements == 15 || elements == 18);
 
-			vertexIndices.PushBack(vertexIndex[0]);
-			vertexIndices.PushBack(vertexIndex[1]);
-			vertexIndices.PushBack(vertexIndex[2]);
-			texCoordIndices.PushBack(texCoordIndex[0]);
-			texCoordIndices.PushBack(texCoordIndex[1]);
-			texCoordIndices.PushBack(texCoordIndex[2]);
-			normalIndices.PushBack(normalIndex[0]);
-			normalIndices.PushBack(normalIndex[1]);
-			normalIndices.PushBack(normalIndex[2]);
+			if (elements == 9)
+			{
+				vertexIndices.PushBack(vertexIndex[0]);
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[2]);
+				texCoordIndices.PushBack(texCoordIndex[0]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[2]);
+				normalIndices.PushBack(normalIndex[0]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[2]);
+			} 
+			else if (elements == 12)
+			{
+				vertexIndices.PushBack(vertexIndex[0]);
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[0]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				normalIndices.PushBack(normalIndex[0]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[3]);
+
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[2]);
+				vertexIndices.PushBack(vertexIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[2]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[2]);
+				normalIndices.PushBack(normalIndex[3]);
+			}
+			else if (elements == 18)
+			{
+				vertexIndices.PushBack(vertexIndex[0]);
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[2]);
+				texCoordIndices.PushBack(texCoordIndex[0]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[2]);
+				normalIndices.PushBack(normalIndex[0]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[2]);
+
+				vertexIndices.PushBack(vertexIndex[3]);
+				vertexIndices.PushBack(vertexIndex[4]);
+				vertexIndices.PushBack(vertexIndex[5]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[4]);
+				texCoordIndices.PushBack(texCoordIndex[5]);
+				normalIndices.PushBack(normalIndex[3]);
+				normalIndices.PushBack(normalIndex[4]);
+				normalIndices.PushBack(normalIndex[5]);
+			}
+			else if (elements == 15)
+			{
+				vertexIndices.PushBack(vertexIndex[0]);
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[4]);
+				texCoordIndices.PushBack(texCoordIndex[0]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[4]);
+				normalIndices.PushBack(normalIndex[0]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[4]);
+
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[3]);
+				vertexIndices.PushBack(vertexIndex[4]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[4]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[3]);
+				normalIndices.PushBack(normalIndex[4]);
+				
+				vertexIndices.PushBack(vertexIndex[1]);
+				vertexIndices.PushBack(vertexIndex[2]);
+				vertexIndices.PushBack(vertexIndex[3]);
+				texCoordIndices.PushBack(texCoordIndex[1]);
+				texCoordIndices.PushBack(texCoordIndex[2]);
+				texCoordIndices.PushBack(texCoordIndex[3]);
+				normalIndices.PushBack(normalIndex[1]);
+				normalIndices.PushBack(normalIndex[2]);
+				normalIndices.PushBack(normalIndex[3]);
+			}
+			else
+			{
+				CAssert(0);
+			}
 
 			break;
 		}
@@ -510,7 +598,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 	}
 
 	// Once we hit the end of the line, flush the last config and make sure it gets it's resources.
-	if (bBuildingPolygonList)
+	if (bBuildingPolygonList && groups < debugGroupLimit)
 	{
 		GeometryConfig_t currentConfig{};
 		// Flush the polygon list to the renderer and start a new config.
@@ -551,6 +639,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		groups++;
 		newConfigs.PushBack(currentConfig);
 	}
+	//LOG_INFO("Number of duplicate vertices: %d", duplicateVertexCount);
 
 	FileSystem::CloseFile(&OBJFileHandle);
 
@@ -630,7 +719,7 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 
 					case 's':	// Specular exponent.
 					{
-						currentMaterialConfig.flShininess = String_ATOF(&szCurrentLine[spaceIndex]);
+						currentMaterialConfig.iShininess = String_ATOI(&szCurrentLine[spaceIndex]);
 						break;
 					}
 				}

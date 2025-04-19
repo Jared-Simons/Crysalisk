@@ -19,7 +19,8 @@ using TextureFlags = uint8_t;
 
 enum TextureFlags_t
 {
-	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01
+	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01,
+	TEXTURE_FLAG_IS_TRANSPARENT = 0x02,
 };
 
 enum class eTextureType
@@ -41,6 +42,7 @@ public:
 	inline int32_t GetHeight() const { return height; }
 	inline int32_t GetNumChannels() const { return numChannels; }
 	inline const char* GetName() const { return pszTextureName; }
+	inline TextureFlags GetFlags() const { return textureFlags; }
 
 private:
 	int32_t width;
@@ -66,7 +68,7 @@ struct ShaderConfig_t
 {
 	const char* pszShaderName{ nullptr };
 	int			numShaderStages{ 0 };
-	const char** pszShaderStageFileNames{ nullptr };
+	Utl::CVector<char*> pszShaderStageFileNames{};
 	unsigned int eTopologyTypes{ UNDEFINED };
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
@@ -85,7 +87,7 @@ struct MaterialConfig_t
 {
 	char* pszMaterialName{ nullptr };
 	char* pszShaderName{ nullptr };
-	float flShininess{ 1 };
+	int   iShininess{ 1 };
 	char* pszDiffuseTextureName{ nullptr };
 	char* pszSpecularTextureName{ nullptr };
 	char* pszNormalTextureName{ nullptr };
@@ -106,7 +108,7 @@ struct MaterialConfig_t
 			pszShaderName = StringDuplicate(pOther.pszShaderName);
 		}
 
-		flShininess = pOther.flShininess;
+		iShininess = pOther.iShininess;
 
 		if (pOther.pszDiffuseTextureName != nullptr)
 		{
@@ -165,6 +167,7 @@ public:
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	unsigned int	m_iShininess{ kInvalidID_U32 };
+	bool			m_bIsTransparent{ false };
 	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hSpecularTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hNormalTextureHandle{ kInvalidID_U32 };
@@ -175,6 +178,7 @@ struct MaterialReference
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hDiffuseTextureHandle{ kInvalidID_U32 };
+	bool			m_bIsTransparent{ false };
 };
 
 struct GeometryConfig_t
@@ -187,10 +191,10 @@ struct GeometryConfig_t
 // TODO: This is temporary and should NOT stick around
 struct GeometryInstance_t
 {
-	int	vertexCount{ -1 };
-	int vertexDataOffset{ -1 };
-	int indexDataSize{ -1 };
-	int indexDataOffset{ -1 };
+	size_t vertexCount{ kInvalidID_U64 };
+	size_t vertexDataOffset{ kInvalidID_U64 };
+	size_t indexDataSize{ kInvalidID_U64 };
+	size_t indexDataOffset{ kInvalidID_U64 };
 
 	MaterialReference hMaterial;
 };
