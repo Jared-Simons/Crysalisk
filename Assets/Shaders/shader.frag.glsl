@@ -88,7 +88,8 @@ void main()
 		}
 		else if (global_ubo.renderMode == 2)
 		{
-			outColor = vec4(diffuse, diffuseSample.a);
+			vec3 white = vec3(1.0);
+			outColor = vec4((white * diff), diffuseSample.a);
 			return;
 		}
 		else if (global_ubo.renderMode == 3)
