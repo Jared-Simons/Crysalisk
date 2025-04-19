@@ -96,6 +96,24 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		return true;
 	}
 
+	// TODO: Make this work with an allocator.
+	Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
+	Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
+
+	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	{
+		if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
+		{
+			// If not transparent, add them to the list!
+			pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+		}
+		else
+		{
+			// Otherwise, add it to the transparent list to be sorted prior to drawing.
+			pTransparentGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+		}
+	}
+
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
@@ -106,9 +124,18 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	//DrawGeometry(m_Cube2);
 	//DrawGeometry(m_Cube3);
 
-	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	// Render the opaque geometry first.
+	for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 	{
-		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
+		DrawGeometry(*pOpaqueGeometries[idx]);
+	}
+
+	// TODO: Sort the transparent geometries from farthest to closest to the camera.
+
+	// Render the sorted transparent geometries.
+	for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
+	{
+		DrawGeometry(*pTransparentGeometries[idx]);
 	}
 
 	m_RendererBackend->EndFrame(pRenderData);
@@ -185,19 +212,23 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	// Acquire materials
-	m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
+	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial3");
+	//m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial3");
 
 	// TEMP SHADER TEST CODE
 	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
 	// END TEMP
 
 	// Load a test model.
+	LOG_DEBUG("Bytes allocated before model loading:");
+	g_pMemoryManager->PrintMemoryStats();
 	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
+	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
+	LOG_DEBUG("Bytes allocated after model loading:");
 
 	return true;
 }

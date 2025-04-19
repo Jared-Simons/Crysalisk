@@ -1,5 +1,7 @@
 #include <Memory/MemoryManager.h>
 
+#include <Core/Assertions.h>
+
 void* operator new(size_t size)
 {
 	void* pMemBlock = g_pMemoryManager->Allocate(size);

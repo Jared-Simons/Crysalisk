@@ -19,7 +19,8 @@ using TextureFlags = uint8_t;
 
 enum TextureFlags_t
 {
-	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01
+	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01,
+	TEXTURE_FLAG_IS_TRANSPARENT = 0x02,
 };
 
 enum class eTextureType
@@ -41,6 +42,7 @@ public:
 	inline int32_t GetHeight() const { return height; }
 	inline int32_t GetNumChannels() const { return numChannels; }
 	inline const char* GetName() const { return pszTextureName; }
+	inline TextureFlags GetFlags() const { return textureFlags; }
 
 private:
 	int32_t width;
@@ -165,6 +167,7 @@ public:
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	unsigned int	m_iShininess{ kInvalidID_U32 };
+	bool			m_bIsTransparent{ false };
 	TextureHandle_t	m_hDiffuseTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t	m_hSpecularTextureHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hNormalTextureHandle{ kInvalidID_U32 };
@@ -175,6 +178,7 @@ struct MaterialReference
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	TextureHandle_t m_hDiffuseTextureHandle{ kInvalidID_U32 };
+	bool			m_bIsTransparent{ false };
 };
 
 struct GeometryConfig_t

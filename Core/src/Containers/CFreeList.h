@@ -89,6 +89,7 @@ namespace Utl
 							pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 						}
 						ReleaseNodeBackToFreelist(pCurrentNode);
+						CAssert(retDataOffset != 0);
 						return retDataOffset; // Early return here since pCurrentNode will be nullified.
 					}
 				}
@@ -104,7 +105,7 @@ namespace Utl
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
 
-			if (m_HeadNode->Offset > offset)
+			if (m_HeadNode->Offset >= offset)	// >= because the offset could just be 0, if we're freeing the first range of the memory block.
 			{
 				// This node comes before the current headnode in the data block.
 				// Make this the new head node!
@@ -146,6 +147,24 @@ namespace Utl
 				{
 					// The blocks of memory are contiguous! No need for a new node here.
 					pPreviousNode->Size += size;
+					return;
+				}
+				else if (pCurrentNode == nullptr)
+				{
+					LOG_ERROR("CFreeList::Free -> Unable to free memory block with offset %d and size %d, memory leak is likely.", offset, size);
+					return;
+				}
+				else if (pCurrentNode == nullptr && pPreviousNode->Offset + size < offset)
+				{
+					// This block comes after the current free ranges, but not directly after.
+					// There needs to be a new node appended at the very end of the freelist!
+					FreeListNode_t* pNewNode = GetNewNode();
+					CAssert(pNewNode);
+					pPreviousNode->pNextNode = pNewNode;
+					pNewNode->Offset = offset;
+					pNewNode->Size = size;
+
+					// Early return is okay, there should be nothing new to compact here.
 					return;
 				}
 				else if (offset + size == pCurrentNode->Offset)

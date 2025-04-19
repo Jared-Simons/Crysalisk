@@ -175,6 +175,30 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 			return m_pDefaultTextureLookup->TextureIndex;
 		}
 
+		// Check the image data for transparency.
+		byte* pCurrentPixel = pPixelData;
+
+		for (int x = 0; x < newTexture->width; x++)
+		{
+			// If we're already marked as transparent, break out.
+			if ((newTexture->textureFlags & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
+				break;
+
+			for (int y = 0; y < newTexture->height; y++)
+			{
+				byte alpha = pCurrentPixel[3];
+				if (alpha < 255)
+				{
+					// This texture is transparent, mark it as such.
+					newTexture->textureFlags |= TEXTURE_FLAG_IS_TRANSPARENT;
+					break;
+				}
+
+				pCurrentPixel += 4; // 4 bytes forward to the next pixel
+				int myBreakpoint = 0;
+			}
+		}
+
 		// Send the data off to the renderer to be uploaded to the GPU.
 		if (!g_pRenderer->AcquireTextureResources(*newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
 		{

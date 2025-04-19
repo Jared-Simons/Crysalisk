@@ -57,7 +57,7 @@ namespace Utl {
 		{
 			if (m_Capacity > 0)
 			{
-				m_pValues = new T[pOtherVector.m_Count];
+				m_pValues = new T[m_Capacity];
 				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
 			}
 		}
@@ -84,9 +84,11 @@ namespace Utl {
 		~CVector()
 		{
 			// TODO: Custom allocators.
+			static int timesCalled{ 0 };
 			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
 				delete[] m_pValues;
 			m_pValues = nullptr;
+			timesCalled++;
 
 			m_Count = 0;
 			m_Capacity = 0;
@@ -103,7 +105,7 @@ namespace Utl {
 			m_ValueStride = pOtherVector.m_ValueStride;
 			m_ResizeFactor = pOtherVector.m_ResizeFactor;
 
-			m_pValues = new T[pOtherVector.m_Count];
+			m_pValues = new T[m_Capacity];
 			memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
 
 			return *this;

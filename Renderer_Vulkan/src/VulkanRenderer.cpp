@@ -382,6 +382,8 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
 	s_MainCamera.RecalculateCameraVectors();
+	// TEMP CAMERA POSITION
+	//s_MainCamera.vecPosition = { 3072, 464, -5660 };
 
 	m_RendererClock.Start();
 
@@ -542,13 +544,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	if (m_UniformData.RenderMode != m_RenderMode)
 		m_UniformData.RenderMode = m_RenderMode;
 
-	float lightSin = (float)M_SIN(Platform::GetAbsoluteTime() * 1.5);
-	float lightCos = (float)M_COS(Platform::GetAbsoluteTime() * 1.5);
-	m_UniformData.DirLightPos.x = lightCos * 450;
-	m_UniformData.DirLightPos.z = lightSin * 450;
-	m_UniformData.DirLightPos.y = 100.0f;
-
-	//LOG_INFO("%f, %f", m_UniformData.DirLightPos.x, m_UniformData.DirLightPos.z);
+	m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
 
 	// Copy to the GPU.
 	void* pUniformData;
@@ -689,7 +685,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	// Update our matrices.
 	Matrix4x4 model{};
 	model = Matrix4x4(1.0f);
-	model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
+	//model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
 	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
 	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
@@ -1132,20 +1128,19 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 
 	// Color blend state
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+	colorBlendAttachment.blendEnable = VK_TRUE;
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.blendEnable = VK_FALSE;
+	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 	VkPipelineColorBlendStateCreateInfo colorBlend{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-	colorBlend.pNext = nullptr;
-	colorBlend.flags = 0;
 	colorBlend.logicOpEnable = VK_FALSE;
 	colorBlend.attachmentCount = 1;
-	colorBlend.attachmentCount = 1;
 	colorBlend.pAttachments = &colorBlendAttachment;
-	colorBlend.blendConstants[0] = 0.0f;
-	colorBlend.blendConstants[1] = 0.0f;
-	colorBlend.blendConstants[2] = 0.0f;
-	colorBlend.blendConstants[3] = 0.0f;
 
 	// Dynamic pipeline state
 	VkPipelineDynamicStateCreateInfo dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
@@ -1610,22 +1605,23 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		{
 		default:
 		case 0:
-			LOG_INFO("Lighting mode set to default");
+			s_VulkanContext.m_RenderMode = 0;
+			LOG_INFO("Lighting mode set to default.");
 			break;
 		case 1:
-			LOG_INFO("Lighting mode set to ambient only");
+			LOG_INFO("Lighting mode set to fullbright.");
 			break;
 		case 2:
-			LOG_INFO("Lighting mode set to diffuse only");
+			LOG_INFO("Lighting mode set to diffuse lighting.");
 			break;
 		case 3:
-			LOG_INFO("Lighting mode set to specular only");
+			LOG_INFO("Lighting mode set to specular lighting.");
 			break;
 		case 4:
-			LOG_INFO("Lighting mode set to normals");
+			LOG_INFO("Lighting mode set to normals - tangent space.");
 			break;
 		case 5:
-			LOG_INFO("Lighting mode set to disabled normal maps");
+			LOG_INFO("Lighting mode set to normals.");
 			break;
 		}
 	}

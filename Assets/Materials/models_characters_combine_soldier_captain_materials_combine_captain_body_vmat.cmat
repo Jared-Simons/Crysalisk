@@ -1,0 +1,7 @@
+# TODO: Why does there need to be a space at the end of the file?
+# TODO: Need to not explicitly state texture directory.
+# TODO: Need to not explicitly state texture/image extension.
+name=Combine Captain Body
+shader=Core.Phong
+map_diffuse=Assets/Textures/Models/combine_captain_body_color_psd_635d0665.png
+map_normal=Assets/Textures/Models/combine_captain_body_normal_psd_4fc60050.png 

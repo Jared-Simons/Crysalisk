@@ -177,6 +177,10 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
 			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName);
+
+			// If the diffuse texture is transparent, mark the material as transparent.
+			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
+				newMaterial->m_bIsTransparent = true;
 		}
 
 		if (newMatConfig.pszSpecularTextureName != nullptr)
@@ -321,6 +325,10 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 		if (pConfig.pszDiffuseTextureName != nullptr)
 		{
 			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszDiffuseTextureName);
+
+			// If the diffuse texture is transparent, mark the material as transparent.
+			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
+				newMaterial->m_bIsTransparent = true;
 		}
 
 		if (pConfig.pszSpecularTextureName != nullptr)
@@ -381,6 +389,7 @@ MaterialReference CMaterialSystem::AcquireMaterialInternal(const char* pszMateri
 		newRef.m_iInternalHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_iInternalHandle;
 		newRef.m_hShaderHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hShaderHandle;
 		newRef.m_hDiffuseTextureHandle = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_hDiffuseTextureHandle;
+		newRef.m_bIsTransparent = m_MaterialDictionary.m_MaterialArray[pLookup.MaterialIndex].m_bIsTransparent;
 		return newRef;
 	}
 	else
