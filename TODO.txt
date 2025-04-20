@@ -9,3 +9,5 @@ Features to be developed:
 - Frustum-culling
 - Mip-mapping
 - Anti-aliasing
+- Shader system needs to be able to read shader stages with more flexibility.
+	- e.g. core.UI.frag.spv is NOT valid, but UI.frag.spv is.

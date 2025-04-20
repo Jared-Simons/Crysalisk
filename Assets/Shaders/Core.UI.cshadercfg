@@ -1,0 +1,25 @@
+name="Core.UI"
+num_shader_stages=2
+vertex_file="UI.vert.spv"
+fragment_file="UI.frag.spv"
+topology_type=triangle_list
+
+# Vertex attributes
+# attribute=Name,type
+# NOTE: The order these are listed in must match the order they're declared in the vertex shader!
+attribute=position,vec2
+attribute=color,vec4
+attribute=texcoord,vec2
+
+# Uniforms
+# uniform=Name,Type,Descriptor Level
+uniform=projection,mat4,0
+uniform=view,mat4,0
+uniform=viewPos,vec3,0
+uniform=dirLightPos,vec3,0
+uniform=renderMode,int,0
+uniform=shininess,int,1
+uniform=color,vec3,1
+uniform=textures,texture[3],1
+uniform=model,mat4,2
+ 

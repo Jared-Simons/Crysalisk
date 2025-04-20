@@ -36,4 +36,5 @@ public:
 	virtual void	BindShader(class Shader& pShader) = 0;
 
 	virtual bool	AcquireGeometryResources(struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
+	virtual bool	AcquireGeometryResources(struct GeometryConfig2D_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 };

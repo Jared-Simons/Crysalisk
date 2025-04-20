@@ -115,7 +115,7 @@ public:
 class VulkanRenderPass
 {
 public:
-	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pOutRenderpass);
+	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
 	static void DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass);
 
 public:

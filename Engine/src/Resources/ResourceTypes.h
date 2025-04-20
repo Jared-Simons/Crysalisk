@@ -197,6 +197,13 @@ struct MaterialReference
 	bool			m_bIsTransparent{ false };
 };
 
+struct GeometryConfig2D_t
+{
+	Utl::CVector<Vertex2D> Vertices{};
+	Utl::CVector<uint32_t> Indices{};
+	MaterialReference MaterialReference{};
+};
+
 struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};

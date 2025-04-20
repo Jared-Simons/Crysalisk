@@ -37,6 +37,7 @@ public:
 	virtual void	BindShader(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual bool	AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
@@ -65,6 +66,9 @@ public:
 	// Main Renderpass
 	VulkanRenderPass m_MainRenderPass{};
 
+	// UI Renderpass
+	VulkanRenderPass m_UIRenderPass{};
+
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };
 	Utl::CVector<VulkanCommandBuffer> m_GraphicsCommandBuffers{};
@@ -87,11 +91,15 @@ public:
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
 
-	// Temp geometry buffer
+	// Temp geometry buffers
 	VulkanBuffer		m_GeometryVertexBuffer{};
 	VulkanBuffer		m_GeometryIndexBuffer{};
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
+
+	// UI geometry buffers
+	VulkanBuffer		m_UIVertexBuffer{};
+	VulkanBuffer		m_UIIndexBuffer{};
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };

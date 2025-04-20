@@ -300,10 +300,16 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Main Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, m_MainRenderPass))
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, true, m_MainRenderPass))
 	{
 		LOG_ERROR("Failed to initialize main Vulkan Renderpass. Renderer initialization failed!");
 		return false;
+	}
+
+	// UI Renderpass
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, false, m_UIRenderPass))
+	{
+		LOG_ERROR("Failed to initialize UI Vulkan Renderpass. Renderer initialization failed!");
 	}
 
 	// Swapchain Framebuffers
@@ -363,6 +369,19 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// UI geometry buffers.
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex2D) * 1 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_UIVertexBuffer))
+	{
+		LOG_ERROR("Failed to create UI vertex data buffer.");
+		return false;
+	}
+
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 1 * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_UIIndexBuffer))
+	{
+		LOG_ERROR("Failed to create UI index data buffer.");
+		return false;
+	}
+
 	// Allocate resources for our image data.
 	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
@@ -419,6 +438,9 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroyFence(m_Device.m_Device, m_InFlightFence, m_Allocator);
 	vkDestroySemaphore(m_Device.m_Device, m_RenderFinishedSemaphore, m_Allocator);
 	vkDestroySemaphore(m_Device.m_Device, m_ImageAvailableSemaphore, m_Allocator);
+
+	// UI Renderpass
+	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_UIRenderPass);
 
 	// Main Renderpass
 	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_MainRenderPass);
@@ -573,6 +595,36 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
 
+	// TODO: We're rendering UI tests here, THIS SHOULD NOT BE HERE EVENTUALLY!!!
+	{
+		VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+		renderpassInfo.renderPass = m_UIRenderPass.m_Handle;
+		renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
+		renderpassInfo.renderArea.offset = { 0, 0 };
+		renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
+
+		VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
+		renderpassInfo.clearValueCount = 2;
+		renderpassInfo.pClearValues = clearColors;
+
+		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		// Render our test text.
+		VkDeviceSize offsets[1] = { 0 };
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, offsets);
+
+		// Bind our pipeline.
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
+		m_CurrentlyBoundShaderIndex = 1;
+
+		// Bind instance descriptor set.
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[4].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
+
+		vkCmdDraw(commandBuffer, 72, 1, 0, 0);
+
+		vkCmdEndRenderPass(commandBuffer);
+	}
+
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
 
@@ -680,15 +732,7 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 
 	// Bind instance descriptor set.
 	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 1, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	
-	if (pGeometry.vertexDataOffset == 0)
-	{
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	}
-	else
-	{
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	}
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Update our matrices.
 	Matrix4x4 model{};
@@ -1496,6 +1540,54 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 	return true;
 }
 
+bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	pOutInstance.vertexDataOffset = m_UIVertexBuffer.m_BytesAllocated;
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+
+	pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
+	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Create a staging buffer for transfer to the GPU.
+	VulkanBuffer stagingBuffer{};
+	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+
+	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	// Copy over to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.size = stagingBuffer.m_BufferSize;
+	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_UIVertexBuffer.m_Handle, 1, &copyRegion);
+
+	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+	// TODO: Handle index buffers as well...
+	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
+	{
+		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+
+		copyRegion.size = stagingBuffer.m_BufferSize;
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_UIIndexBuffer.m_Handle, 1, &copyRegion);
+
+		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+	}
+
+	m_UIVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	m_UIIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+
+	return true;
+}
+
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
 {
 	LOG_DEBUG("Querying Vulkan validation layer support");
@@ -1640,4 +1732,6 @@ void CVulkanRenderer::DestroyDefaultGeometry()
 {
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryIndexBuffer);
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryVertexBuffer);
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UIIndexBuffer);
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UIVertexBuffer);
 }

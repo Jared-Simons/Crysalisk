@@ -197,9 +197,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// Font test.
-	g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
-
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
 	//ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Assets/Shaders/CoreShader.cshadercfg");
 

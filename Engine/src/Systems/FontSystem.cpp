@@ -26,7 +26,9 @@ class CFontSystem : public IFontSystem
 	virtual bool	Initialize(FontSystemConfig_t config) override;
 	virtual void	Shutdown() override;
 
-	virtual bool	AcquireFontResources(const char* pFontPath) override;
+	virtual FontHandle_t	AcquireFontResources(const char* pFontPath) override;
+
+	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) override;
 
 private:
 	FontSystemConfig_t m_Config{};
@@ -81,7 +83,7 @@ void CFontSystem::Shutdown()
 //-------------------------------------------------------------------------
 // Loads a font at the provided path if it hasn't been loaded.
 //-------------------------------------------------------------------------
-bool CFontSystem::AcquireFontResources(const char* pFontPath)
+FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 {
 	Font* newFont = nullptr;
 	int fontIdx = 0;
@@ -180,13 +182,85 @@ bool CFontSystem::AcquireFontResources(const char* pFontPath)
 		// TODO: We need to get a material for now because that's the ONLY way the Vulkan renderer can set up the descriptor sets.
 		// This should not be the case for fonts! This will need to change asap.
 		MaterialConfig_t newFontConfig{};
-		newFontConfig.pszDiffuseTextureName = (char*)pFontPath;
+		newFontConfig.pszDiffuseTextureName = StringDuplicate(pFontPath);
 		newFontConfig.pszMaterialName = StringDuplicate("NewFontMaterialPogchampandwhatnot");
-		newFontConfig.pszShaderName = StringDuplicate("Core.Phong"); // TODO: UI SHADER
+		newFontConfig.pszShaderName = StringDuplicate("Core.UI");
 		MaterialHandle_t newMaterial = g_pMaterialSystemInternal->AcquireMaterialFromConfig(newFontConfig);
+
+		// Delete the original pixel buffer.
+		delete[] pFontPixelBuffer;
 	}
 
+	return fontIdx;
+}
 
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHandle_t hFont)
+{
+	GeometryConfig2D_t newConfig{};
 
-	return true;
+	// TODO: Make this configurable
+	int order[6] = { 0, 1, 2, 0, 2, 3 };
+	float pixelScale = 2.0 / 600; // 600 is the default height of the window we create.
+	float size = 1.0f;
+	Vector2D position = { -0.8f, 0.4f };
+
+	// TODO: Check for invalid fonts.
+
+	// Get the internal font data.
+	TrueTypeFontInternalData_t* pInternalFontData = reinterpret_cast<TrueTypeFontInternalData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalData);
+	CAssert(pInternalFontData != nullptr);
+
+	// Get all the specific glyph data.
+	stbtt_packedchar* pPackedChars = pInternalFontData->packedChar;
+	stbtt_aligned_quad* pAlignedQuads = pInternalFontData->alignedQuads;
+	size_t stringLength = StringLength(pText);
+	newConfig.Vertices.Resize(stringLength * 4);
+
+	size_t currentAdvance{ 0 };
+
+	for (int idx = 0; idx < stringLength; idx++)
+	{
+		stbtt_packedchar* pCurrentPackedChar = &pPackedChars[pText[idx] - kCodePointOfFirstChar];
+		stbtt_aligned_quad* pCurrentAlignedQuad = &pAlignedQuads[pText[idx] - kCodePointOfFirstChar];
+
+		Vector2D currentGlyphSize =
+		{
+			(pCurrentPackedChar->x1 - pCurrentPackedChar->x0) * pixelScale * size,
+			(pCurrentPackedChar->y1 - pCurrentPackedChar->y0) * pixelScale * size
+		};
+
+		Vector2D currentGlyphBBBottomLeft =
+		{
+			position.x + (pCurrentPackedChar->xoff * pixelScale * size),
+			position.y - (pCurrentPackedChar->yoff + pCurrentPackedChar->y1 - pCurrentPackedChar->y0) * pixelScale * size
+		};
+
+		// Generate the vertex data.
+		Vertex2D glyphVertices[4];
+		glyphVertices[0].Pos = {currentGlyphBBBottomLeft.x + currentGlyphSize.x, currentGlyphSize.y};
+		glyphVertices[0].TexCoord = {pCurrentAlignedQuad->s1, pCurrentAlignedQuad->t0};
+
+		glyphVertices[1].Pos = {currentGlyphBBBottomLeft.x, currentGlyphBBBottomLeft.y + currentGlyphSize.y};
+		glyphVertices[1].TexCoord = {pCurrentAlignedQuad->s0, pCurrentAlignedQuad->t0};
+
+		glyphVertices[2].Pos = {currentGlyphBBBottomLeft.x, currentGlyphBBBottomLeft.y};
+		glyphVertices[2].TexCoord = {pCurrentAlignedQuad->s0, pCurrentAlignedQuad->t1};
+
+		glyphVertices[3].Pos = {currentGlyphBBBottomLeft.x + currentGlyphSize.x, currentGlyphBBBottomLeft.y};
+		glyphVertices[3].TexCoord = {pCurrentAlignedQuad->s1, pCurrentAlignedQuad->t1};
+
+		for (int glyphIdx = 0; glyphIdx < 6; glyphIdx++)
+		{
+			Vertex2D currentVertex;
+			currentVertex.Pos = glyphVertices[order[glyphIdx]].Pos;
+			currentVertex.Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
+			currentVertex.TexCoord = glyphVertices[order[glyphIdx]].TexCoord;
+			newConfig.Vertices.PushBack(currentVertex);
+		}
+
+		// Push up the advance offset.
+		currentAdvance += pCurrentPackedChar->xadvance * pixelScale * size;
+	}
+
+	return newConfig;
 }

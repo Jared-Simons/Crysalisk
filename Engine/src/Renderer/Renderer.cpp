@@ -13,6 +13,7 @@
 #include "Platform/Platform.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
@@ -120,7 +121,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	DrawGeometry(m_Cube1);
+	//DrawGeometry(m_Cube1);
 	//DrawGeometry(m_Cube2);
 	//DrawGeometry(m_Cube3);
 
@@ -179,6 +180,11 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
 }
 
+void Renderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
+}
+
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 {
 	// Acquire the default material if our own material's resources aren't yet available.
@@ -229,6 +235,13 @@ bool Renderer::CreateTempGeometry()
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
 	LOG_DEBUG("Bytes allocated after model loading:");
+
+	// Font test.
+	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
+
+	// Acquire geometry resources for this text.
+	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("Test Text!!!", testFont);
+	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
 
 	return true;
 }
