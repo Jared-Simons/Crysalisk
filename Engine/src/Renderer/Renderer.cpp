@@ -120,7 +120,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	// Render our temp geometry.
-	//DrawGeometry(m_Cube1);
+	DrawGeometry(m_Cube1);
 	//DrawGeometry(m_Cube2);
 	//DrawGeometry(m_Cube3);
 

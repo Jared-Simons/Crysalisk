@@ -25,6 +25,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName) override;
+	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) override;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture, bool bForceRelease) override;
 
 			// This variant exists to free textures in the array without having to access the hashmap from the calling function. This really only exists to easily clear the textures on shutdown.
@@ -229,6 +230,92 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 	newTextureLookup->ReferenceCount++;
 	newTextureLookup->AutoRelease = true; // TODO: Configurable.
 	
+	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
+	return newTextureLookup->TextureIndex;
+}
+
+//-------------------------------------------------------------------------
+// Takes already created pixel data and wraps it in a texture object.
+// This returns a handle to that texture.
+//-------------------------------------------------------------------------
+TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData)
+{
+	Texture* newTexture = nullptr;
+	int texIdx = 0;
+
+	// Make sure our state is ready to go.
+	if (!m_TextureDictionary.m_TextureArray)
+	{
+		LOG_WARN("CTextureSystem::WrapTextureInternal() called before texture system was initialized! Returning NULL handle.");
+		return 0; // TODO: Invalid ID.
+	}
+
+	if (!pszTextureName)
+	{
+		LOG_ERROR("CTextureSystem::WrapTextureInternal() requires a path to the texture to load! Returning default texture.");
+		return m_pDefaultTextureLookup->TextureIndex;
+	}
+
+	// We need to flip standard images.
+	stbi_set_flip_vertically_on_load(true);
+
+	// Get an entry into the hashmap.
+	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
+
+	if (!newTextureLookup)
+	{
+		LOG_ERROR("Failed to find free space for new texture in texture hashmap, returning default.");
+		return m_pDefaultTextureLookup->TextureIndex;
+	}
+
+	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
+	{
+		// Get at the first free texture.
+		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+		{
+			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+			{
+				// Found one!
+				newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
+				break;
+			}
+		}
+
+		if (!newTexture)
+		{
+			LOG_ERROR("Could not load texture '%s' because all texture slots were full, returning default texture.", pszTextureName);
+			return m_pDefaultTextureLookup->TextureIndex;
+		}
+		newTexture->width = iTexWidth;
+		newTexture->height = iTexHeight;
+		newTexture->numChannels = 1; // TODO: Configurable.
+
+		// Send the data off to the renderer to be uploaded to the GPU.
+		if (!g_pRenderer->AcquireTextureResources(*newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
+		{
+			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
+			return m_pDefaultTextureLookup->TextureIndex;
+		}
+
+		newTexture->pszTextureName = StringDuplicate(pszTextureName);
+	}
+	else
+	{
+		newTexture = &m_TextureDictionary.m_TextureArray[newTextureLookup->TextureIndex];
+	}
+
+	if (!newTexture)
+	{
+		LOG_ERROR("Failed to find resources to load/create texture '%s'. Returning default texture.", pszTextureName);
+		return m_pDefaultTextureLookup->TextureIndex;
+	}
+
+	if (newTextureLookup->TextureIndex == kInvalidID_U32)
+		newTextureLookup->TextureIndex = texIdx;
+
+	newTextureLookup->ReferenceCount++;
+	newTextureLookup->AutoRelease = true; // TODO: Configurable.
+
 	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
 	return newTextureLookup->TextureIndex;
 }

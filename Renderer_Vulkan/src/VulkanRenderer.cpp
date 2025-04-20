@@ -680,7 +680,15 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 
 	// Bind instance descriptor set.
 	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_DefaultShader.m_PipelineLayout, 1, 1, &m_DefaultShader.m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+	
+	if (pGeometry.vertexDataOffset == 0)
+	{
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+	}
+	else
+	{
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+	}
 
 	// Update our matrices.
 	Matrix4x4 model{};

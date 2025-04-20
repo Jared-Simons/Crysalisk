@@ -62,6 +62,22 @@ enum ShaderTopologyType
 	TRIANGLE_LIST = 2,
 };
 
+using FontHandle_t = uint32_t;
+
+struct FontAtlas_t
+{
+	size_t	Width;
+	size_t	Height;
+};
+
+class Font
+{
+public:
+	FontAtlas_t m_Atlas{};
+	void* m_pInternalData{ nullptr };
+	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
+};
+
 using ShaderHandle_t = uint32_t;
 
 struct ShaderConfig_t
