@@ -30,5 +30,5 @@ void main()
 	vsOutput.Color = inColor;
 	vsOutput.TexCoord = fragTexCoord;
 	
-	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0, 1.0);
+	gl_Position = (global_ubo.projection * vec4(inPosition, 1.0, 1.0));
 }

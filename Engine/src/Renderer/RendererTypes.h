@@ -40,6 +40,11 @@ struct MaterialInstanceData_t
 	Vector4D	Reserved3;
 };
 
+struct TextShaderGlobalUBO_t
+{
+	Matrix4x4	Projection;
+};
+
 enum class VertexType_t
 {
 	Undefined,

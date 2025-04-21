@@ -50,11 +50,6 @@ void main()
 	normal = normalize(normal * 2.0 - 1.0);
 	normal = normalize(fsInput.TBN * normal);
 
-	if (global_ubo.renderMode == 5)
-	{
-		normal = normalize(fsInput.Normal);
-	}
-
 	// ambient
 	vec3 ambient = vec3(0.5, 0.5, 0.5) * texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord).rgb;
 

@@ -94,8 +94,6 @@ public:
 	// Temp geometry buffers
 	VulkanBuffer		m_GeometryVertexBuffer{};
 	VulkanBuffer		m_GeometryIndexBuffer{};
-	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
-	GlobalUniformObject_t	m_UniformData{};
 
 	// UI geometry buffers
 	VulkanBuffer		m_UIVertexBuffer{};

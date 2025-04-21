@@ -253,6 +253,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 		{
 			Vertex2D currentVertex;
 			currentVertex.Pos = glyphVertices[order[glyphIdx]].Pos;
+			currentVertex.Pos.x += currentAdvance; // Push this vertex up by the current character advance.
 			currentVertex.Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
 			currentVertex.TexCoord = glyphVertices[order[glyphIdx]].TexCoord;
 			newConfig.Vertices.PushBack(currentVertex);

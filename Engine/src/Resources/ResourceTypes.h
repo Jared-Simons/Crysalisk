@@ -87,6 +87,7 @@ struct ShaderConfig_t
 	Utl::CVector<char*> pszShaderStageFileNames{};
 	unsigned int eTopologyTypes{ UNDEFINED };
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
+	size_t		vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
 };
 

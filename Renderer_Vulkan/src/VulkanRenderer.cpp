@@ -345,17 +345,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
-	// Set up our global uniform buffers.
-	m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, (sizeof(GlobalUniformObject_t)) + (sizeof(MaterialInstanceData_t) * kMaxVulkanInstances), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_UniformBuffers[idx]))
-		{
-			LOG_ERROR("Failed to create uniform buffer.");
-			return false;
-		}
-	}
-
 	// Create the temp geometry buffer.
 	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 5 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryVertexBuffer))
 	{
@@ -422,10 +411,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Destroy our temp geometry.
 	// THIS IS TEMPORARY
 	DestroyDefaultGeometry();
-
-	// Release uniform buffer resources.
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-		VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UniformBuffers[idx]);
 
 	// Free internal texture/shader data.
 	delete[] m_pInternalShaderData;
@@ -557,23 +542,25 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	m_UniformData.View = s_MainCamera.GetViewMatrix();
-	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
-	m_UniformData.Projection.data[5] *= -1;
+	// TODO: Make this happen on shader binds!!
+	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
+	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
+	pInternalShader.m_UniformData.Projection.data[5] *= -1;
 
-	m_UniformData.ViewPos = s_MainCamera.vecPosition;
+	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
 
-	if (m_UniformData.RenderMode != m_RenderMode)
-		m_UniformData.RenderMode = m_RenderMode;
+	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
+		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
 
-	m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
+	pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
 
 	// Copy to the GPU.
 	void* pUniformData;
 	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
+	vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
 
 	return true;
 }
@@ -610,17 +597,19 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Render our test text.
-		VkDeviceSize offsets[1] = { 0 };
+		/*VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, offsets);
 
 		// Bind our pipeline.
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
 		m_CurrentlyBoundShaderIndex = 1;
 
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+
 		// Bind instance descriptor set.
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[4].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
 
-		vkCmdDraw(commandBuffer, 72, 1, 0, 0);
+		vkCmdDraw(commandBuffer, 72, 1, 0, 0);*/
 
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -873,7 +862,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 
 		// First descriptor is the uniform buffer.
 		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = m_UniformBuffers[frameIdx].m_Handle;
+		uniformBufferInfo.buffer = pShader->m_UniformBuffers[frameIdx].m_Handle;
 		uniformBufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1)); // NOTE: we add the global UBO size here because the global uniforms live at the start of the uniform memory block.
 		uniformBufferInfo.range = sizeof(MaterialInstanceData_t);
 
@@ -889,9 +878,9 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		// Copy over the material instance data.
 		void* pUniformData;
 		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
-		vkMapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
+		vkMapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
 		memcpy(pUniformData, &pMaterialInstanceData, sizeof(MaterialInstanceData_t));
-		vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory);
+		vkUnmapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory);
 	}
 
 	// TODO: Make this configurable
@@ -1097,7 +1086,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 
 	VkVertexInputBindingDescription vertexBindingDescription{};
 	vertexBindingDescription.binding = 0;
-	vertexBindingDescription.stride = sizeof(Vertex3D);
+	vertexBindingDescription.stride = pShaderConfig.vertexStride;
 	vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	Utl::CVector<VkVertexInputAttributeDescription> attributes(pShaderConfig.vertexAttributes.Count());
@@ -1397,6 +1386,17 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 		vkDestroyShaderModule(m_Device.m_Device, shaderModules[idx], m_Allocator);
 	}
 
+	// Set up our global uniform buffers.
+	pInternalShader.m_UniformBuffers.Resize(m_MaxImagesInFlight);
+	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
+	{
+		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, (sizeof(GlobalUniformObject_t)) + (sizeof(MaterialInstanceData_t) * kMaxVulkanInstances), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pInternalShader.m_UniformBuffers[idx]))
+		{
+			LOG_ERROR("Failed to create uniform buffer.");
+			return false;
+		}
+	}
+
 	// Descriptor set resources.
 	int globalDescriptorSetCount = m_MaxImagesInFlight;							// one global descriptor set per frame in flight.
 	int objectDescriptorSetCount = m_MaxImagesInFlight * kMaxVulkanInstances;	// one object descriptor set per frame in flight, enough for kMaxVulkanInstances.
@@ -1424,7 +1424,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 		{
 			// TODO: This should be more configurable.
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_UniformBuffers[idx].m_Handle;
+			bufferInfo.buffer = pInternalShader.m_UniformBuffers[idx].m_Handle;
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(GlobalUniformObject_t);
 
@@ -1466,18 +1466,22 @@ void CVulkanRenderer::ReleaseShaderResources(Shader& pShader)
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
 	
 	vkDeviceWaitIdle(m_Device.m_Device);
-	// TODO: Allocation callbacks
+
+	// Release uniform buffer resources.
+	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader.m_UniformBuffers[idx]);
+
 	if (pInternalShader.m_Pipeline)
-		vkDestroyPipeline(m_Device.m_Device, pInternalShader.m_Pipeline, nullptr);
+		vkDestroyPipeline(m_Device.m_Device, pInternalShader.m_Pipeline, s_VulkanContext.m_Allocator);
 
 	if (pInternalShader.m_PipelineLayout)
-		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader.m_PipelineLayout, nullptr);
+		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader.m_PipelineLayout, s_VulkanContext.m_Allocator);
 
 	for (int idx = 0; idx < pInternalShader.m_DescriptorSetLayouts.Capacity(); idx++)
 	{
 		if (pInternalShader.m_DescriptorSetLayouts[idx].m_Layout)
 		{
-			vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader.m_DescriptorSetLayouts[idx].m_Layout, nullptr);
+			vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader.m_DescriptorSetLayouts[idx].m_Layout, s_VulkanContext.m_Allocator);
 		}
 	}
 }
