@@ -2,7 +2,7 @@
 // Author: Jared Simons
 // Date Created: 4/19/2025
 // 
-// Purpose: The texture manager.
+// Purpose: The font manager.
 //=============================================================================
 #include "FontSystem.h"
 
@@ -149,7 +149,14 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 
 		FileSystem::CloseFile(&ttfFileHandle);
 
+		stbtt_fontinfo fontInfo = {};
 		int fontCount = stbtt_GetNumberOfFonts(fontBytes.Data());
+
+		if (!stbtt_InitFont(&fontInfo, fontBytes.Data(), 0))
+		{
+			// TODO: Logging
+			CAssert(0);
+		}
 
 		// Allocate some memory for our font data.
 		byte* pFontPixelBuffer = new uint8_t[newFont->m_Atlas.Width * newFont->m_Atlas.Height];
@@ -160,8 +167,8 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		// TODO: Configurable
 		float fontSize = 64.0f;
 
-		stbtt_packedchar packedChars[kCharsToIncludeInFontAtlas];
-		stbtt_aligned_quad alignedQuads[kCharsToIncludeInFontAtlas];
+		stbtt_packedchar* packedChars = pInternalData->packedChar;
+		stbtt_aligned_quad* alignedQuads = pInternalData->alignedQuads;
 
 		stbtt_pack_context ctx;
 
@@ -172,6 +179,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		for (int idx = 0; idx < kCharsToIncludeInFontAtlas; idx++)
 		{
 			float unusedX, unusedY;
+			//CAssert(kCodePointOfFirstChar + idx != 'A');
 			stbtt_GetPackedQuad(pInternalData->packedChar, newFont->m_Atlas.Width, newFont->m_Atlas.Height, idx, &unusedX, &unusedY, &pInternalData->alignedQuads[idx], 0);
 		}
 
@@ -183,7 +191,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		// This should not be the case for fonts! This will need to change asap.
 		MaterialConfig_t newFontConfig{};
 		newFontConfig.pszDiffuseTextureName = StringDuplicate(pFontPath);
-		newFontConfig.pszMaterialName = StringDuplicate("NewFontMaterialPogchampandwhatnot");
+		newFontConfig.pszMaterialName = StringDuplicate("NewFontMaterial");
 		newFontConfig.pszShaderName = StringDuplicate("Core.UI");
 		MaterialHandle_t newMaterial = g_pMaterialSystemInternal->AcquireMaterialFromConfig(newFontConfig);
 
@@ -194,74 +202,91 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 	return fontIdx;
 }
 
+// Shoutouts to shreyaspranav for the stb_truetype example! :)
+// https://github.com/shreyaspranav/stb-truetype-example/blob/main/Main.cpp
 GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHandle_t hFont)
 {
+	// TODO: Handle invalid fonts
 	GeometryConfig2D_t newConfig{};
+	newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
 
-	// TODO: Make this configurable
-	int order[6] = { 0, 1, 2, 0, 2, 3 };
-	float pixelScale = 2.0 / 600; // 600 is the default height of the window we create.
-	float size = 1.0f;
-	Vector2D position = { -0.8f, 0.4f };
+	TrueTypeFontInternalData_t* pInternalData = reinterpret_cast<TrueTypeFontInternalData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalData);
+	size_t currVertIndex{ 0 };
 
-	// TODO: Check for invalid fonts.
+	// TODO: Configurable position and size
+	Vector2D position{ -0.8f, 0.0f };
+	float flSize{ 3.0f };
+	float flPixelScale = 2.0f / 600.0f; // 600 is the default window height. TODO: CONFIGURABLE!
+	
+	//int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
+	int vertOrder[6] = { 3, 2, 0, 2, 1, 0 }; // NOTE: We are reversing this because the above order results in a winding that renders the tris away from the camera.
 
-	// Get the internal font data.
-	TrueTypeFontInternalData_t* pInternalFontData = reinterpret_cast<TrueTypeFontInternalData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalData);
-	CAssert(pInternalFontData != nullptr);
-
-	// Get all the specific glyph data.
-	stbtt_packedchar* pPackedChars = pInternalFontData->packedChar;
-	stbtt_aligned_quad* pAlignedQuads = pInternalFontData->alignedQuads;
 	size_t stringLength = StringLength(pText);
-	newConfig.Vertices.Resize(stringLength * 4);
 
-	size_t currentAdvance{ 0 };
-
-	for (int idx = 0; idx < stringLength; idx++)
+	for (int ch = 0; ch < stringLength; ch++)
 	{
-		stbtt_packedchar* pCurrentPackedChar = &pPackedChars[pText[idx] - kCodePointOfFirstChar];
-		stbtt_aligned_quad* pCurrentAlignedQuad = &pAlignedQuads[pText[idx] - kCodePointOfFirstChar];
-
-		Vector2D currentGlyphSize =
+		//CAssert(pText[ch] != '!');
+		// Make sure the character is in the font atlas.
+		if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCharsToIncludeInFontAtlas + kCharsToIncludeInFontAtlas)
 		{
-			(pCurrentPackedChar->x1 - pCurrentPackedChar->x0) * pixelScale * size,
-			(pCurrentPackedChar->y1 - pCurrentPackedChar->y0) * pixelScale * size
-		};
-
-		Vector2D currentGlyphBBBottomLeft =
-		{
-			position.x + (pCurrentPackedChar->xoff * pixelScale * size),
-			position.y - (pCurrentPackedChar->yoff + pCurrentPackedChar->y1 - pCurrentPackedChar->y0) * pixelScale * size
-		};
-
-		// Generate the vertex data.
-		Vertex2D glyphVertices[4];
-		glyphVertices[0].Pos = {currentGlyphBBBottomLeft.x + currentGlyphSize.x, currentGlyphSize.y};
-		glyphVertices[0].TexCoord = {pCurrentAlignedQuad->s1, pCurrentAlignedQuad->t0};
-
-		glyphVertices[1].Pos = {currentGlyphBBBottomLeft.x, currentGlyphBBBottomLeft.y + currentGlyphSize.y};
-		glyphVertices[1].TexCoord = {pCurrentAlignedQuad->s0, pCurrentAlignedQuad->t0};
-
-		glyphVertices[2].Pos = {currentGlyphBBBottomLeft.x, currentGlyphBBBottomLeft.y};
-		glyphVertices[2].TexCoord = {pCurrentAlignedQuad->s0, pCurrentAlignedQuad->t1};
-
-		glyphVertices[3].Pos = {currentGlyphBBBottomLeft.x + currentGlyphSize.x, currentGlyphBBBottomLeft.y};
-		glyphVertices[3].TexCoord = {pCurrentAlignedQuad->s1, pCurrentAlignedQuad->t1};
-
-		for (int glyphIdx = 0; glyphIdx < 6; glyphIdx++)
-		{
-			Vertex2D currentVertex;
-			currentVertex.Pos = glyphVertices[order[glyphIdx]].Pos;
-			currentVertex.Pos.x += currentAdvance; // Push this vertex up by the current character advance.
-			currentVertex.Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-			currentVertex.TexCoord = glyphVertices[order[glyphIdx]].TexCoord;
-			newConfig.Vertices.PushBack(currentVertex);
+			CAssert(0);
+			continue;
 		}
 
-		// Push up the advance offset.
-		currentAdvance += pCurrentPackedChar->xadvance * pixelScale * size;
+		// Get the data that is used in the rendering of this character.
+		stbtt_packedchar* pCurrPackedChar = &pInternalData->packedChar[pText[ch] - kCodePointOfFirstChar];
+		stbtt_aligned_quad* pCurrAlignedQuad = &pInternalData->alignedQuads[pText[ch] - kCodePointOfFirstChar];
+
+		// Scale the units above from pixels by flPixelScale.
+		Vector2D vecGlyphSize =
+		{
+			(pCurrPackedChar->x1 - pCurrPackedChar->x0) * flPixelScale * flSize,
+			(pCurrPackedChar->y1 - pCurrPackedChar->y0) * flPixelScale * flSize
+		};
+
+		Vector2D vecGlyphBoundingBoxBottomLeft =
+		{
+			position.x + (pCurrPackedChar->xoff * flPixelScale * flSize),
+			position.y - (pCurrPackedChar->yoff + pCurrPackedChar->y1 - pCurrPackedChar->y0) * flPixelScale * flSize
+		};
+
+		// The order of vertices of a quad go from top-right, top-left, bottom-left, bottom-right.
+		Vector2D vecGlyphVertices[4] =
+		{
+			{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
+			{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
+			{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y },
+			{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y }
+		};
+
+		Vector2D vecGlyphTexCoords[4] =
+		{
+			{ pCurrAlignedQuad->s1, pCurrAlignedQuad->t0 },
+			{ pCurrAlignedQuad->s0, pCurrAlignedQuad->t0 },
+			{ pCurrAlignedQuad->s0, pCurrAlignedQuad->t1 },
+			{ pCurrAlignedQuad->s1, pCurrAlignedQuad->t1 }
+		};
+
+		// Fill up our vertex config based on the 'orders' array above.
+		// TODO: Index buffers
+		for (int idx = 0; idx < 6; idx++)
+		{
+			//Vertex2D currVertex;
+			newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[vertOrder[idx]];
+			newConfig.Vertices[currVertIndex + idx].Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
+			newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[vertOrder[idx]];
+			//currVertex.Pos = vecGlyphVertices[vertOrder[idx]];
+			//currVertex.Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
+			//currVertex.TexCoord = vecGlyphTexCoords[vertOrder[idx]];
+			//newConfig.Vertices.PushBack(currVertex);
+		}
+
+		currVertIndex += 6;
+
+		// Push the current position forward by the current character's advance.
+		position.x += pCurrPackedChar->xadvance * flPixelScale * flSize;
 	}
+	newConfig.Vertices.SetCount(currVertIndex);
 
 	return newConfig;
 }

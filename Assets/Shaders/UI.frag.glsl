@@ -16,7 +16,10 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 view;
 } global_ubo;
 
+layout(set = 1, binding = 1) uniform sampler2D textMap;
+
 void main()
 {
-	outColor = vec4(1.0);
+	vec4 textSample = texture(textMap, fsInput.TexCoord);
+	outColor = vec4(textSample.rgb, 1.0);
 }

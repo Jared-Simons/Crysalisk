@@ -546,6 +546,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
 	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
 	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
+	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
 	pInternalShader.m_UniformData.Projection.data[5] *= -1;
 
 	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
@@ -597,7 +598,12 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// Render our test text.
-		/*VkDeviceSize offsets[1] = {0};
+		// TODO: NO HARD CODING WITH SHADERS!
+		VulkanShaderInternal& pShader = m_pInternalShaderData[1];
+		VulkanShaderInternal& pOtherShader = m_pInternalShaderData[0];
+		pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+
+		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, offsets);
 
 		// Bind our pipeline.
@@ -606,10 +612,18 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
-		// Bind instance descriptor set.
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[4].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
+		// Copy the global data over.
+		// TODO: DO THIS ON SHADER BIND!
+		void* pUniformData;
+		VkDeviceSize uniformOffset = { 0 };
+		vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+		memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
+		vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
 
-		vkCmdDraw(commandBuffer, 72, 1, 0, 0);*/
+		// Bind instance descriptor set.
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
+
+		vkCmdDraw(commandBuffer, 72, 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 	}

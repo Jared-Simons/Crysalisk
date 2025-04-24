@@ -237,10 +237,10 @@ bool Renderer::CreateTempGeometry()
 	LOG_DEBUG("Bytes allocated after model loading:");
 
 	// Font test.
-	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
+	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 
 	// Acquire geometry resources for this text.
-	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("Test Text!!!", testFont);
+	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("poggers", testFont);
 	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
 
 	return true;
