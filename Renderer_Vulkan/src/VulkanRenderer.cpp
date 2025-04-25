@@ -623,7 +623,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 		// Bind instance descriptor set.
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
 
-		vkCmdDraw(commandBuffer, 72, 1, 0, 0);
+		vkCmdDraw(commandBuffer, 90, 1, 0, 0);
 
 		vkCmdEndRenderPass(commandBuffer);
 	}
@@ -781,7 +781,9 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalInd
 		return false;
 	}
 
-	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
+	// TODO: No hard coding!
+	VkFormat format = internalIndex == 47 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
 	{
 		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
 		return false;
@@ -1388,6 +1390,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 	pipelineInfo.pColorBlendState = &colorBlend;
 	pipelineInfo.pDynamicState = &dynamicStateInfo;
 	pipelineInfo.layout = pInternalShader.m_PipelineLayout;
+	// TODO: Don't hardcode this, we should probably pass this in with the config.
 	pipelineInfo.renderPass = m_MainRenderPass.m_Handle; // Just using the singular renderpass for now.
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 	pipelineInfo.basePipelineIndex = 0;

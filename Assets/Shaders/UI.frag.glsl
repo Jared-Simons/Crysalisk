@@ -20,6 +20,11 @@ layout(set = 1, binding = 1) uniform sampler2D textMap;
 
 void main()
 {
-	vec4 textSample = texture(textMap, fsInput.TexCoord);
-	outColor = vec4(textSample.rgb, 1.0);
+	vec4 textureSample = texture(textMap, fsInput.TexCoord);
+	
+	// If the texture is coming in as a single channel texture, then we need to convert it to a vec4 to make it white,
+	// then we can tint the text accordingly.
+	vec4 textSample = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r);
+	// We use the red channel for alpha blending since we're expecting this to be a single channel texture anyways.
+	outColor = vec4(textSample.rgb, textSample.r) * fsInput.Color;
 }

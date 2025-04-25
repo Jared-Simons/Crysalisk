@@ -240,7 +240,7 @@ bool Renderer::CreateTempGeometry()
 	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 
 	// Acquire geometry resources for this text.
-	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("poggers", testFont);
+	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("Some Test Text!", testFont);
 	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
 
 	return true;

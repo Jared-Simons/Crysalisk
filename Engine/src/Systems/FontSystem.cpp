@@ -214,13 +214,12 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 	size_t currVertIndex{ 0 };
 
 	// TODO: Configurable position and size
-	Vector2D position{ -0.8f, 0.0f };
-	float flSize{ 3.0f };
+	Vector2D position{ -0.9f, -0.9f };
+	float flSize{ 1.0f };
 	float flPixelScale = 2.0f / 600.0f; // 600 is the default window height. TODO: CONFIGURABLE!
 	
-	//int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
-	int vertOrder[6] = { 3, 2, 0, 2, 1, 0 }; // NOTE: We are reversing this because the above order results in a winding that renders the tris away from the camera.
-
+	int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
+	
 	size_t stringLength = StringLength(pText);
 
 	for (int ch = 0; ch < stringLength; ch++)

@@ -3,7 +3,7 @@
 // Vertex input
 layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec4 inColor;
-layout(location = 2) in vec2 fragTexCoord;
+layout(location = 2) in vec2 inTexCoord;
 
 // NOTE: Must match FSIn in the corresponding fragment shaders.
 struct VSOut
@@ -28,7 +28,8 @@ layout(push_constant) uniform push_constants
 void main()
 {
 	vsOutput.Color = inColor;
-	vsOutput.TexCoord = fragTexCoord;
+	vsOutput.TexCoord = inTexCoord;
 	
-	gl_Position = vec4(inPosition.xy, 0.0, 1.0);
+	// Flip the y-coord around
+	gl_Position = vec4(inPosition.x, -inPosition.y, 0.0, 1.0);
 }
