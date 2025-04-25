@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Defines.h"
+#include "RendererTypes.h"
 
 //-------------------------------------------------------------------------
 // Interface for the renderer backend.
@@ -20,10 +21,14 @@ public:
 	// Initialization, shutdown
 	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
+
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
+	virtual bool	StartRenderpass(eKnownRenderpassType renderpassType) = 0;
+	virtual void	EndRenderpass() = 0;
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) = 0;
+	virtual void	RenderTestUI() = 0;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) = 0;

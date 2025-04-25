@@ -21,10 +21,15 @@ class CVulkanRenderer : public IRendererBackend
 public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
+
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
+	virtual bool	StartRenderpass(eKnownRenderpassType renderpassType) override;
+	virtual void	EndRenderpass() override;
+
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+	virtual void	RenderTestUI() override;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;

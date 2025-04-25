@@ -120,6 +120,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		return false;
 	}
 
+	m_RendererBackend->StartRenderpass(eKnownRenderpassType::WORLD);
+
 	// Render our temp geometry.
 	//DrawGeometry(m_Cube1);
 	//DrawGeometry(m_Cube2);
@@ -138,6 +140,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	{
 		DrawGeometry(*pTransparentGeometries[idx]);
 	}
+
+	m_RendererBackend->EndRenderpass();
+
+	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
+
+	// Render the test ui text
+	m_RendererBackend->RenderTestUI();
+
+	m_RendererBackend->EndRenderpass();
 
 	m_RendererBackend->EndFrame(pRenderData);
 

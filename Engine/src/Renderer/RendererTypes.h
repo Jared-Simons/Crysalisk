@@ -77,3 +77,9 @@ struct ShaderUniformConfig_t
 	eShaderUniformUpdateFrequency eFrequency;
 	int iArraySize;
 };
+
+enum class eKnownRenderpassType
+{
+	WORLD,
+	UI
+};

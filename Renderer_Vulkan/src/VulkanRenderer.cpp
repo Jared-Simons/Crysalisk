@@ -511,19 +511,6 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	VK_CHECK(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
 
-	// Start the renderpass and update globals.
-	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
-	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
-	renderpassInfo.renderArea.offset = { 0, 0 };
-	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
-
-	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
-	renderpassInfo.clearValueCount = 2;
-	renderpassInfo.pClearValues = clearColors;
-
-	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 	// Set our dynamic state.
 	// TODO: Should this be with the pipeline bind?
 	VkViewport viewport{};
@@ -581,52 +568,6 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-	vkCmdEndRenderPass(commandBuffer);
-
-	// TODO: We're rendering UI tests here, THIS SHOULD NOT BE HERE EVENTUALLY!!!
-	{
-		VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-		renderpassInfo.renderPass = m_UIRenderPass.m_Handle;
-		renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
-		renderpassInfo.renderArea.offset = { 0, 0 };
-		renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
-
-		VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
-		renderpassInfo.clearValueCount = 2;
-		renderpassInfo.pClearValues = clearColors;
-
-		vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		// Render our test text.
-		// TODO: NO HARD CODING WITH SHADERS!
-		VulkanShaderInternal& pShader = m_pInternalShaderData[1];
-		VulkanShaderInternal& pOtherShader = m_pInternalShaderData[0];
-		pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
-
-		VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, offsets);
-
-		// Bind our pipeline.
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
-		m_CurrentlyBoundShaderIndex = 1;
-
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-
-		// Copy the global data over.
-		// TODO: DO THIS ON SHADER BIND!
-		void* pUniformData;
-		VkDeviceSize uniformOffset = { 0 };
-		vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-		memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
-		vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
-
-		// Bind instance descriptor set.
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
-
-		vkCmdDraw(commandBuffer, 90, 1, 0, 0);
-
-		vkCmdEndRenderPass(commandBuffer);
-	}
 
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
@@ -676,6 +617,45 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 
 	m_bCurrentlyRendering[m_ImageIndex] = false;
 }
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::StartRenderpass(eKnownRenderpassType renderpassType)
+{
+	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	switch (renderpassType)
+	{
+	case eKnownRenderpassType::WORLD:
+		renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
+		break;
+
+	case eKnownRenderpassType::UI:
+		renderpassInfo.renderPass = m_UIRenderPass.m_Handle;
+	}
+
+	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
+	renderpassInfo.renderArea.offset = { 0, 0 };
+	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
+
+	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
+	renderpassInfo.clearValueCount = 2;
+	renderpassInfo.pClearValues = clearColors;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+void CVulkanRenderer::EndRenderpass()
+{
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	vkCmdEndRenderPass(commandBuffer);
+}
+
 
 //-------------------------------------------------------------------------
 // Purpose: Draws geometry. This must happen while a frame is being rendered!
@@ -756,6 +736,42 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	{
 		vkCmdDraw(commandBuffer, (uint32_t)pGeometry.vertexCount, 1, 0, 0);
 	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: This is a test method to render some test!
+//-------------------------------------------------------------------------
+void CVulkanRenderer::RenderTestUI()
+{
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	// Render our test text.
+	// TODO: NO HARD CODING WITH SHADERS!
+	VulkanShaderInternal& pShader = m_pInternalShaderData[1];
+	VulkanShaderInternal& pOtherShader = m_pInternalShaderData[0];
+	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+
+	VkDeviceSize offsets[1] = { 0 };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, offsets);
+
+	// Bind our pipeline.
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
+	m_CurrentlyBoundShaderIndex = 1;
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+
+	// Copy the global data over.
+	// TODO: DO THIS ON SHADER BIND!
+	void* pUniformData;
+	VkDeviceSize uniformOffset = { 0 };
+	vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+
+	// Bind instance descriptor set.
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
+
+	vkCmdDraw(commandBuffer, 90, 1, 0, 0);
 }
 
 //-------------------------------------------------------------------------
