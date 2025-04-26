@@ -62,6 +62,7 @@ public:
 	Mesh	m_SponzaModel;
 
 	GeometryInstance_t	m_FontTest{};
+	GeometryInstance_t	m_FontTest2{};
 };
 
 extern Renderer* g_pRenderer;

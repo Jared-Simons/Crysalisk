@@ -29,7 +29,7 @@ public:
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
-	virtual void	RenderTestUI() override;
+	virtual void	RenderTestUI(GeometryInstance_t& pGeometry) override;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;

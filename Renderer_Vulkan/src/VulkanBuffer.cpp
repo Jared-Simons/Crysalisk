@@ -70,6 +70,14 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 		return kInvalidID_U64;
 	}
 
+	size_t dataOffset = m_BytesAllocated;
+
+	// If we're tracking memory via a freelist, get the memory range from there.
+	if (m_bUsesFreelist)
+	{
+		dataOffset = m_Freelist.Allocate(dataSize);
+	}
+
 	void* pBufferData;
 	vkMapMemory(pRenderingContext.m_Device.m_Device, m_Memory, m_BytesAllocated, dataSize, 0, &pBufferData);
 	memcpy(pBufferData, pData, dataSize);
@@ -79,6 +87,20 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 	m_BytesAllocated += dataSize;
 
 	return outOffset;
+}
+
+void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize)
+{
+	// This only works for buffers that track their memory with a freelist.
+	if (!m_bUsesFreelist)
+	{
+		return;
+	}
+
+	// Mark the range of memory as being 'free' in the freelist.
+	// NOTE: We're not gonna free this range in the buffer for now to avoid mapping/unmapping the block.
+	// It will be up to the renderer to detect this data as being invalid and not using it anymore.
+	m_Freelist.Free(dataSize, dataOffset);
 }
 
 bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer& pRenderingContext, bool bIsPrimary, VulkanCommandBuffer& pOutCommandBuffer)

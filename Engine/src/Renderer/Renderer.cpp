@@ -31,6 +31,7 @@ typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
 ShaderHandle_t testShaderHandle = kInvalidID_U32;
+static bool s_bWhichFontToRender{ false };
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -146,7 +147,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
 	// Render the test ui text
-	//m_RendererBackend->RenderTestUI();
+	m_RendererBackend->RenderTestUI(s_bWhichFontToRender ? m_FontTest2 : m_FontTest);
 
 	m_RendererBackend->EndRenderpass();
 
@@ -255,7 +256,7 @@ bool Renderer::CreateTempGeometry()
 	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
 
 	GeometryConfig2D_t fontConfig2 = g_pFontSystem->AcquireConfigForText("Some more test text!", testFont);
-	g_pRenderer->AcquireGeometryResources(fontConfig2, m_FontTest);
+	g_pRenderer->AcquireGeometryResources(fontConfig2, m_FontTest2);
 
 	return true;
 }
@@ -282,6 +283,10 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		LOG_DEBUG("Loading test material.");
 		s_Renderer.m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
+	}
+	else if (data.c[0] == 'B')
+	{
+		s_bWhichFontToRender = !s_bWhichFontToRender;
 	}
 
 	// Let other listeners handle this event.

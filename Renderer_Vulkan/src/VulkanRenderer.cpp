@@ -738,11 +738,10 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 	}
 }
 
-static bool bWhichTextTest = true;
 //-------------------------------------------------------------------------
 // Purpose: This is a test method to render some test!
 //-------------------------------------------------------------------------
-void CVulkanRenderer::RenderTestUI()
+void CVulkanRenderer::RenderTestUI(GeometryInstance_t& pGeometry)
 {
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
@@ -752,8 +751,8 @@ void CVulkanRenderer::RenderTestUI()
 	VulkanShaderInternal& pOtherShader = m_pInternalShaderData[0];
 	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
 
-	VkDeviceSize offsets[2] = { 0, 2880 };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, &offsets[bWhichTextTest ? 0 : 1]);
+	VkDeviceSize offsets[1] = { pGeometry.vertexDataOffset };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, &offsets[0]);
 
 	// Bind our pipeline.
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
@@ -772,7 +771,7 @@ void CVulkanRenderer::RenderTestUI()
 	// Bind instance descriptor set.
 	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
 
-	vkCmdDraw(commandBuffer, bWhichTextTest ? 90 : 120, 1, 0, 0);
+	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
 }
 
 //-------------------------------------------------------------------------
@@ -799,7 +798,7 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalInd
 	}
 
 	// TODO: No hard coding!
-	VkFormat format = internalIndex == 47 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+	VkFormat format = internalIndex == 68 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
 	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
 	{
 		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
@@ -1580,12 +1579,6 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	pOutInstance.vertexDataOffset = m_UIVertexBuffer.m_BytesAllocated;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
-
-	pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
-	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
-
 	VulkanCommandBuffer cmdBuffer{};
 	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
@@ -1593,7 +1586,11 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConf
 	VulkanBuffer stagingBuffer{};
 	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 
-	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	pOutInstance.vertexDataOffset = stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+
+	pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
+	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
 
 	// Copy over to the device-local buffer.
 	VkBufferCopy copyRegion{};
@@ -1734,10 +1731,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		LOG_DEBUG("Camera Pos: %.8f, %.8f, %.8f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z);
 		LOG_DEBUG("Camera Ang: %.8f, %.8f", s_MainCamera.Yaw, s_MainCamera.Pitch);
-	}
-	else if (data.c[0] == 'V')
-	{
-		bWhichTextTest = !bWhichTextTest;
 	}
 	else if (data.c[0] >= 0  && data.c[0] <= 9)
 	{

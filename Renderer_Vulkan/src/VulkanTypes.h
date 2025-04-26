@@ -71,6 +71,7 @@ public:
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
 
 	size_t			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
+	void			FreeDataRange(class CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize);
 
 public:
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
