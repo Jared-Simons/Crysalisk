@@ -146,7 +146,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
 	// Render the test ui text
-	m_RendererBackend->RenderTestUI();
+	//m_RendererBackend->RenderTestUI();
 
 	m_RendererBackend->EndRenderpass();
 

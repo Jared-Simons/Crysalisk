@@ -684,8 +684,16 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 
 		if (spaceIndex != kInvalidID_U32)
 		{
-			pKey = StringDuplicate_N(szCurrentLine, spaceIndex);
+			// Just in case the newline starts with a '\t'.
+			int startIndex = (szCurrentLine[0] == '\t') ? 1 : 0;
+			pKey = StringDuplicate_N(&szCurrentLine[startIndex], spaceIndex - 1);
 			pValue = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+		}
+
+		if (szCurrentLine[0] == '\t')
+		{
+			pFirstChar = szCurrentLine[1];
+			pSecondChar = szCurrentLine[2];
 		}
 
 		switch (pFirstChar)
@@ -732,11 +740,15 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 				{
 					case 'a':
 					{
-						if (StringCompare(pKey, "map_Kd"))
+						if (StringCompare(pKey, "map_Kd") || StringCompare(pKey, "map_Ka"))
 						{
 							currentMaterialConfig.pszDiffuseTextureName = StringDuplicate(pValue);
 						}
-						else if (StringCompare(pKey, "map_Disp"))
+						else if (StringCompare(pKey, "map_Ks"))
+						{
+							currentMaterialConfig.pszSpecularTextureName = StringDuplicate(pValue);
+						}
+						else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_bump"))
 						{
 							currentMaterialConfig.pszNormalTextureName = StringDuplicate(pValue);
 						}
