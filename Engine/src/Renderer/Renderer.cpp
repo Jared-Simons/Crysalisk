@@ -254,6 +254,9 @@ bool Renderer::CreateTempGeometry()
 	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("Some Test Text!", testFont);
 	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
 
+	GeometryConfig2D_t fontConfig2 = g_pFontSystem->AcquireConfigForText("Some more test text!", testFont);
+	g_pRenderer->AcquireGeometryResources(fontConfig2, m_FontTest);
+
 	return true;
 }
 

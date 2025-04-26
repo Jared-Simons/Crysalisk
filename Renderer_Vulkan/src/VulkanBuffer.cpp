@@ -6,9 +6,10 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
+#include <Containers/CFreeList.h>
 #include <Math/VertexTypes.h>
 
-bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer)
+bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer)
 {
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	bufferInfo.pNext = nullptr;
@@ -26,10 +27,21 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 	VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	allocInfo.allocationSize = memoryRequirements.size;
 	allocInfo.memoryTypeIndex = pRenderingContext.m_Device.FindMemoryType(memoryRequirements.memoryTypeBits, memoryProperties);
-	
+
 	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &allocInfo, pRenderingContext.m_Allocator, &pOutBuffer.m_Memory));
 
 	vkBindBufferMemory(pRenderingContext.m_Device.m_Device, pOutBuffer.m_Handle, pOutBuffer.m_Memory, 0);
+
+	pOutBuffer.m_bUsesFreelist = bUseFreelist;
+	if (bUseFreelist)
+	{
+		// Set up our freelist.
+		pOutBuffer.m_Freelist.SetNumBytesToTrack(bufferSize);
+		// TODO: Add the option to have this memory owned/allocated by the freelist rather than passing it in.
+		size_t freelistMemoryRequirement = pOutBuffer.m_Freelist.GetInternalMemoryRequirement();
+		pOutBuffer.m_pFreelistMemory = new uint8_t[freelistMemoryRequirement];
+		pOutBuffer.m_Freelist.InitFreelist(pOutBuffer.m_pFreelistMemory);
+	}
 
 	pOutBuffer.m_BufferSize = bufferSize;
 	pOutBuffer.m_BytesAllocated = 0;
@@ -39,17 +51,23 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 
 void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer)
 {
-	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer.m_Memory, pRenderingContext.m_Allocator);
+	if (pBuffer.m_pFreelistMemory)
+	{
+		// Release our freelist memory.
+		delete[] pBuffer.m_pFreelistMemory;
+		pBuffer.m_pFreelistMemory = nullptr;
+	}
 
+	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer.m_Memory, pRenderingContext.m_Allocator);
 	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer.m_Handle, pRenderingContext.m_Allocator);
 }
 
-bool VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData)
+size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData)
 {
 	if (dataSize <= 0)
 	{
 		LOG_ERROR("VulkanBuffer::UploadVertexData() -> Requires nonzero size!");
-		return false;
+		return kInvalidID_U64;
 	}
 
 	void* pBufferData;
@@ -57,9 +75,10 @@ bool VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t da
 	memcpy(pBufferData, pData, dataSize);
 	vkUnmapMemory(pRenderingContext.m_Device.m_Device, m_Memory);
 
+	size_t outOffset = m_BytesAllocated;
 	m_BytesAllocated += dataSize;
 
-	return true;
+	return outOffset;
 }
 
 bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer& pRenderingContext, bool bIsPrimary, VulkanCommandBuffer& pOutCommandBuffer)

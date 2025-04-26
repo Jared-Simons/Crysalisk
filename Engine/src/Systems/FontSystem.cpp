@@ -215,7 +215,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 
 	// TODO: Configurable position and size
 	Vector2D position{ -0.9f, -0.9f };
-	float flSize{ 1.0f };
+	float flSize{ 0.75f };
 	float flPixelScale = 2.0f / 600.0f; // 600 is the default window height. TODO: CONFIGURABLE!
 	
 	int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };

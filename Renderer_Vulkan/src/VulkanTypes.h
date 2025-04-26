@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 #include <Containers/CVector.h>
+#include <Containers/CFreeList.h>
 #include <Core/Assertions.h>
 
 #define VK_CHECK(expr)		\
@@ -66,16 +67,19 @@ public:
 class VulkanBuffer
 {
 public:
-	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer);
+	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer);
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
 
-	bool			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
+	size_t			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
 
 public:
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
 	size_t	m_BufferSize{ 0 };
 	size_t	m_BytesAllocated{ 0 };
+	bool			m_bUsesFreelist{ false };
+	Utl::CFreeList	m_Freelist{};
+	void*			m_pFreelistMemory{ nullptr };
 };
 
 class VulkanCommandBuffer
