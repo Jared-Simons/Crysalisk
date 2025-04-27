@@ -358,19 +358,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	// UI geometry buffers.
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex2D) * 1 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, m_UIVertexBuffer))
-	{
-		LOG_ERROR("Failed to create UI vertex data buffer.");
-		return false;
-	}
-
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 1 * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, true, m_UIIndexBuffer))
-	{
-		LOG_ERROR("Failed to create UI index data buffer.");
-		return false;
-	}
-
 	// Allocate resources for our image data.
 	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
@@ -741,18 +728,18 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 //-------------------------------------------------------------------------
 // Purpose: This is a test method to render some test!
 //-------------------------------------------------------------------------
-void CVulkanRenderer::RenderTestUI(GeometryInstance_t& pGeometry)
+void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, GeometryInstance_t& pGeometry)
 {
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
 	// Render our test text.
 	// TODO: NO HARD CODING WITH SHADERS!
 	VulkanShaderInternal& pShader = m_pInternalShaderData[1];
-	VulkanShaderInternal& pOtherShader = m_pInternalShaderData[0];
 	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
 
 	VkDeviceSize offsets[1] = { pGeometry.vertexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_UIVertexBuffer.m_Handle, &offsets[0]);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
 
 	// Bind our pipeline.
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
@@ -1619,24 +1606,39 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 
 bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
+	return true;
+}
+
+bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
+
 	VulkanCommandBuffer cmdBuffer{};
 	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
 	// Create a staging buffer for transfer to the GPU.
 	VulkanBuffer stagingBuffer{};
 	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
 
-	pOutInstance.vertexDataOffset = stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	size_t finalBufferOffset = pInternalBuffer->m_BytesAllocated;
+	// Use the device local buffer's freelist to get the dstOffset.
+	if (pInternalBuffer->m_bUsesFreelist)
+	{
+		finalBufferOffset = pInternalBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+	}
+
+	pOutInstance.vertexDataOffset = finalBufferOffset;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
 
-	pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
-	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+	//pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
+	//pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
 
 	// Copy over to the device-local buffer.
 	VkBufferCopy copyRegion{};
 	copyRegion.size = stagingBuffer.m_BufferSize;
-	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
-	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_UIVertexBuffer.m_Handle, 1, &copyRegion);
+	copyRegion.dstOffset = finalBufferOffset;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalBuffer->m_Handle, 1, &copyRegion);
 
 	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
@@ -1650,17 +1652,25 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConf
 		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
 
-		copyRegion.size = stagingBuffer.m_BufferSize;
-		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_UIIndexBuffer.m_Handle, 1, &copyRegion);
+		//copyRegion.size = stagingBuffer.m_BufferSize;
+		//vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_UIIndexBuffer.m_Handle, 1, &copyRegion);
 
 		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 	}
 
-	m_UIVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
-	m_UIIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+	pInternalBuffer->m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	pInternalBuffer->m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
 
 	return true;
+}
+
+void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry)
+{
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
+
+	// Mark the range in our renderbuffer as being free.
+	pInternalBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * sizeof(Vertex2D)); // TODO: NO HARDCODING HERE!
 }
 
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
@@ -1807,6 +1817,4 @@ void CVulkanRenderer::DestroyDefaultGeometry()
 {
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryIndexBuffer);
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryVertexBuffer);
-	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UIIndexBuffer);
-	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UIVertexBuffer);
 }

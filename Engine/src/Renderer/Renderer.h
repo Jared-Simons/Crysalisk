@@ -43,6 +43,10 @@ public:
 
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
+
+	void			AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
+	void			ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometryInstance);
+
 	void			DrawGeometry(GeometryInstance_t& pGeometry);
 
 	// Temp geometry stuff

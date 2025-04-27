@@ -297,6 +297,7 @@ bool Event_KeyReleased(EventData_t data)
 	if (keycode == 'M')
 	{
 		// TODO: Print Memory Stats
+		g_pMemoryManager->PrintMemoryStats();
 	}
 
 	return true;

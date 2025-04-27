@@ -29,7 +29,7 @@ public:
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
-	virtual void	RenderTestUI(GeometryInstance_t& pGeometry) override;
+	virtual void	RenderTestUI(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
@@ -46,6 +46,9 @@ public:
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+
+	virtual bool	AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual void	ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) override;
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
@@ -102,10 +105,6 @@ public:
 	// Temp geometry buffers
 	VulkanBuffer		m_GeometryVertexBuffer{};
 	VulkanBuffer		m_GeometryIndexBuffer{};
-
-	// UI geometry buffers
-	VulkanBuffer		m_UIVertexBuffer{};
-	VulkanBuffer		m_UIIndexBuffer{};
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };

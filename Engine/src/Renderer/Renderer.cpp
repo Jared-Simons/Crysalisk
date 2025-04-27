@@ -155,7 +155,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
 	// Render the test ui text
-	m_RendererBackend->RenderTestUI(s_bWhichFontToRender ? s_FontTest2.m_Geometry : s_FontTest.m_Geometry);
+	m_RendererBackend->RenderTestUI(m_UIVertexBuffer, s_FontTest.m_Geometry);
 
 	m_RendererBackend->EndRenderpass();
 
@@ -203,6 +203,16 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 void Renderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
+}
+
+void Renderer::AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->AcquireGeometryResources(pRenderBuffer, pGeometryConfig, pOutInstance);
+}
+
+void Renderer::ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometryInstance)
+{
+	m_RendererBackend->ReleaseGeometryResources(pRenderBuffer, pGeometryInstance);
 }
 
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
@@ -261,7 +271,6 @@ bool Renderer::CreateTempGeometry()
 
 	// Acquire geometry resources for this text.
 	s_FontTest.SetText("Some Test Text!");
-	s_FontTest2.SetText("Some more test text!");
 
 	return true;
 }

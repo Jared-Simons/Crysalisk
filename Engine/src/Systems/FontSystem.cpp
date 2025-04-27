@@ -25,9 +25,13 @@ void TextObject::SetText(const char* pszText)
 		StringFree(m_pszText);
 	m_pszText = StringDuplicate(pszText);
 
+	// Make sure to release the old renderer resources.
+	if (m_Geometry.vertexDataOffset != kInvalidID_U64)
+		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_UIVertexBuffer, m_Geometry);
+
 	// Get new geometry for our text.
 	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(m_pszText, m_hFont);
-	g_pRenderer->AcquireGeometryResources(newConfig, m_Geometry);
+	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, newConfig, m_Geometry);
 }
 
 //-------------------------------------------------------------------------
