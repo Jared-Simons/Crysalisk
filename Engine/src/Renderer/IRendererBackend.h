@@ -28,7 +28,7 @@ public:
 	virtual void	EndRenderpass() = 0;
 
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) = 0;
-	virtual void	RenderTestUI(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) = 0;
+	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) = 0;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) = 0;
@@ -46,6 +46,6 @@ public:
 	virtual bool	AcquireGeometryResources(struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 	virtual bool	AcquireGeometryResources(struct GeometryConfig2D_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 
-	virtual bool	AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) = 0;
+	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) = 0;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) = 0;
 };

@@ -31,7 +31,7 @@ void TextObject::SetText(const char* pszText)
 
 	// Get new geometry for our text.
 	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(m_pszText, m_hFont);
-	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, newConfig, m_Geometry);
+	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
 }
 
 //-------------------------------------------------------------------------
@@ -195,7 +195,6 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		for (int idx = 0; idx < kCharsToIncludeInFontAtlas; idx++)
 		{
 			float unusedX, unusedY;
-			//CAssert(kCodePointOfFirstChar + idx != 'A');
 			stbtt_GetPackedQuad(pInternalData->packedChar, newFont->m_Atlas.Width, newFont->m_Atlas.Height, idx, &unusedX, &unusedY, &pInternalData->alignedQuads[idx], 0);
 		}
 
@@ -220,6 +219,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 
 // Shoutouts to shreyaspranav for the stb_truetype example! :)
 // https://github.com/shreyaspranav/stb-truetype-example/blob/main/Main.cpp
+// TODO: Handle escape sequences here
 GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHandle_t hFont)
 {
 	// TODO: Handle invalid fonts
@@ -240,9 +240,8 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 
 	for (int ch = 0; ch < stringLength; ch++)
 	{
-		//CAssert(pText[ch] != '!');
 		// Make sure the character is in the font atlas.
-		if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCharsToIncludeInFontAtlas + kCharsToIncludeInFontAtlas)
+		if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
 		{
 			CAssert(0);
 			continue;
@@ -282,21 +281,21 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 			{ pCurrAlignedQuad->s1, pCurrAlignedQuad->t1 }
 		};
 
-		// Fill up our vertex config based on the 'orders' array above.
-		// TODO: Index buffers
-		for (int idx = 0; idx < 6; idx++)
+		// Set up all of our vertex data.
+		for (int idx = 0; idx < 4; idx++)
 		{
-			//Vertex2D currVertex;
-			newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[vertOrder[idx]];
+			newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[idx];
 			newConfig.Vertices[currVertIndex + idx].Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-			newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[vertOrder[idx]];
-			//currVertex.Pos = vecGlyphVertices[vertOrder[idx]];
-			//currVertex.Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-			//currVertex.TexCoord = vecGlyphTexCoords[vertOrder[idx]];
-			//newConfig.Vertices.PushBack(currVertex);
+			newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[idx];
 		}
 
-		currVertIndex += 6;
+		// Fill up the index config based on the 'orders' array above.
+		for (int idx = 0; idx < 6; idx++)
+		{
+			newConfig.Indices.PushBack(vertOrder[idx] + currVertIndex);
+		}
+
+		currVertIndex += 4;
 
 		// Push the current position forward by the current character's advance.
 		position.x += pCurrPackedChar->xadvance * flPixelScale * flSize;

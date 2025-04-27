@@ -31,10 +31,8 @@ typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
 ShaderHandle_t testShaderHandle = kInvalidID_U32;
-static bool s_bWhichFontToRender{ false };
 
 TextObject	s_FontTest{};
-TextObject	s_FontTest2{};
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -72,6 +70,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_UIVertexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_UIIndexBuffer);
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
@@ -86,6 +85,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 
 	m_RendererBackend->RendererBackend_Shutdown();
@@ -155,7 +155,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
 	// Render the test ui text
-	m_RendererBackend->RenderTestUI(m_UIVertexBuffer, s_FontTest.m_Geometry);
+	m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
 
 	m_RendererBackend->EndRenderpass();
 
@@ -205,9 +205,9 @@ void Renderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, Geo
 	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
 }
 
-void Renderer::AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(pRenderBuffer, pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig, pOutInstance);
 }
 
 void Renderer::ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometryInstance)
@@ -267,7 +267,8 @@ bool Renderer::CreateTempGeometry()
 	LOG_DEBUG("Bytes allocated after model loading:");
 
 	// Font test.
-	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
 
 	// Acquire geometry resources for this text.
 	s_FontTest.SetText("Some Test Text!");
@@ -297,14 +298,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		LOG_DEBUG("Loading test material.");
 		s_Renderer.m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	}
-	else if (data.c[0] == 'B')
-	{
-		//s_bWhichFontToRender = !s_bWhichFontToRender;
-		static const char* testTexts[2] = { "Some Test Text\0", "We changed the text!\0" };
-		static int index = 0;
-		index++;
-		s_FontTest.SetText(testTexts[(index % 2 == 0) ? 0 : 1]);
 	}
 
 	// Let other listeners handle this event.

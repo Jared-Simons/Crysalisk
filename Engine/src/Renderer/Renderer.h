@@ -44,7 +44,7 @@ public:
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 
-	void			AcquireGeometryResources(RenderBuffer& pRenderBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
+	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometryInstance);
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry);
@@ -61,6 +61,7 @@ private:
 	// TODO: These are temporary...
 public:
 	RenderBuffer		m_UIVertexBuffer{};
+	RenderBuffer		m_UIIndexBuffer{};
 
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
