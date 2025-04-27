@@ -62,9 +62,6 @@ public:
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};
 	Mesh	m_SponzaModel;
-
-	GeometryInstance_t	m_FontTest{};
-	GeometryInstance_t	m_FontTest2{};
 };
 
 extern Renderer* g_pRenderer;

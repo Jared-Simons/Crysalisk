@@ -32,6 +32,9 @@ typedef void* (*PFN_GetRendererBackendState)();
 // TEMP!
 ShaderHandle_t testShaderHandle = kInvalidID_U32;
 static bool s_bWhichFontToRender{ false };
+
+TextObject	s_FontTest{};
+TextObject	s_FontTest2{};
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -152,7 +155,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
 	// Render the test ui text
-	m_RendererBackend->RenderTestUI(s_bWhichFontToRender ? m_FontTest2 : m_FontTest);
+	m_RendererBackend->RenderTestUI(s_bWhichFontToRender ? s_FontTest2.m_Geometry : s_FontTest.m_Geometry);
 
 	m_RendererBackend->EndRenderpass();
 
@@ -257,11 +260,8 @@ bool Renderer::CreateTempGeometry()
 	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 
 	// Acquire geometry resources for this text.
-	GeometryConfig2D_t fontConfig = g_pFontSystem->AcquireConfigForText("Some Test Text!", testFont);
-	g_pRenderer->AcquireGeometryResources(fontConfig, m_FontTest);
-
-	GeometryConfig2D_t fontConfig2 = g_pFontSystem->AcquireConfigForText("Some more test text!", testFont);
-	g_pRenderer->AcquireGeometryResources(fontConfig2, m_FontTest2);
+	s_FontTest.SetText("Some Test Text!");
+	s_FontTest2.SetText("Some more test text!");
 
 	return true;
 }
@@ -291,7 +291,11 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	}
 	else if (data.c[0] == 'B')
 	{
-		s_bWhichFontToRender = !s_bWhichFontToRender;
+		//s_bWhichFontToRender = !s_bWhichFontToRender;
+		static const char* testTexts[2] = { "Some Test Text\0", "We changed the text!\0" };
+		static int index = 0;
+		index++;
+		s_FontTest.SetText(testTexts[(index % 2 == 0) ? 0 : 1]);
 	}
 
 	// Let other listeners handle this event.

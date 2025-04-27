@@ -9,6 +9,7 @@
 #include <Containers/CHashMap.h>
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
+#include "Renderer/Renderer.h"
 #include "Systems/TextureSystem.h"
 #include "Systems/MaterialSystem.h" // TODO: REMOVE THIS ASAP!
 
@@ -17,6 +18,17 @@
 
 const uint32_t kCodePointOfFirstChar = 32;
 const uint32_t kCharsToIncludeInFontAtlas = 95;
+
+void TextObject::SetText(const char* pszText)
+{
+	if (m_pszText)
+		StringFree(m_pszText);
+	m_pszText = StringDuplicate(pszText);
+
+	// Get new geometry for our text.
+	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(m_pszText, m_hFont);
+	g_pRenderer->AcquireGeometryResources(newConfig, m_Geometry);
+}
 
 //-------------------------------------------------------------------------
 // Font System Implementation.

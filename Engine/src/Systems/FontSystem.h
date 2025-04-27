@@ -14,6 +14,17 @@ struct FontSystemConfig_t
 	size_t	MaxFonts{ 0 };
 };
 
+class TextObject
+{
+public:
+	void				SetText(const char* pszText);
+
+public:
+	char*			m_pszText;
+	FontHandle_t	m_hFont;
+	GeometryInstance_t	m_Geometry;
+};
+
 class IFontSystem
 {
 public:
