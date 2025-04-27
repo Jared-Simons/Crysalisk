@@ -67,6 +67,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// Set up our renderbuffers
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_UIVertexBuffer);
+
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
@@ -80,6 +83,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
+
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;

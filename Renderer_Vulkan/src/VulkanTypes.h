@@ -9,8 +9,8 @@
 #include <vulkan/vulkan.h>
 
 #include <Containers/CVector.h>
-#include <Containers/CFreeList.h>
 #include <Core/Assertions.h>
+#include <Renderer/RendererTypes.h>
 
 #define VK_CHECK(expr)		\
 	if (expr != VK_SUCCESS)	\
@@ -80,7 +80,7 @@ public:
 	size_t	m_BytesAllocated{ 0 };
 	bool			m_bUsesFreelist{ false };
 	Utl::CFreeList	m_Freelist{};
-	void*			m_pFreelistMemory{ nullptr };
+	void* m_pFreelistMemory{ nullptr };
 };
 
 class VulkanCommandBuffer

@@ -56,6 +56,8 @@ private:
 
 	// TODO: These are temporary...
 public:
+	RenderBuffer		m_UIVertexBuffer{};
+
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};

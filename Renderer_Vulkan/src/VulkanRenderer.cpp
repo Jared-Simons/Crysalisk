@@ -774,6 +774,46 @@ void CVulkanRenderer::RenderTestUI(GeometryInstance_t& pGeometry)
 	vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
 }
 
+static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferUsage usage)
+{
+	switch (usage)
+	{
+	default:
+		return 0;
+	case eRenderBufferUsage::VERTEX:
+		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	case eRenderBufferUsage::INDEX:
+		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	case eRenderBufferUsage::UNIFORM:
+		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	case eRenderBufferUsage::STORAGE:
+		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	}
+}
+
+bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
+{
+	// Allocate our internal buffer.
+	pOutBuffer.m_pInternalData = new VulkanBuffer;
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pOutBuffer.m_pInternalData);
+
+	// Get our converted buffer usage flags
+	VkBufferUsageFlags vkBufferUsage = ConvertGenericBufferUsageToVulkanFormat(bufferUsage);
+
+	// Create the buffer.
+	VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer);
+
+	return true;
+}
+
+void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
+{
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, *pInternalBuffer);
+
+	delete pRenderBuffer.m_pInternalData;
+}
+
 //-------------------------------------------------------------------------
 // Purpose: Acquire Vulkan specific texture resources.
 // Input: pTexture		 - The texture to acquire resources for.

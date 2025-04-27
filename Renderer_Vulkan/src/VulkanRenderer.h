@@ -31,6 +31,9 @@ public:
 	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
 	virtual void	RenderTestUI(GeometryInstance_t& pGeometry) override;
 
+	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
+	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
+
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
 

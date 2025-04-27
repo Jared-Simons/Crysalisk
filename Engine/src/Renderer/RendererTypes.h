@@ -8,6 +8,7 @@
 
 #include "Defines.h"
 
+#include <Containers/CFreeList.h>
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
 #include <Strings/String_Utils.h>
@@ -82,4 +83,18 @@ enum class eKnownRenderpassType
 {
 	WORLD,
 	UI
+};
+
+enum class eRenderBufferUsage
+{
+	VERTEX,
+	INDEX,
+	UNIFORM,
+	STORAGE
+};
+
+class RenderBuffer
+{
+public:
+	void* m_pInternalData{ nullptr };
 };
