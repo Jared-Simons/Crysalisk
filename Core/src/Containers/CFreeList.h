@@ -147,7 +147,8 @@ namespace Utl
 				{
 					// The blocks of memory are contiguous! No need for a new node here.
 					pPreviousNode->Size += size;
-					return;
+
+					// No early return here because we might need to compact our node list.
 				}
 				else if (pCurrentNode == nullptr)
 				{
@@ -191,7 +192,7 @@ namespace Utl
 			while (pPreviousNode && pCurrentNode &&
 				pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
 			{
-				LOG_INFO("NEED TO COMPACT!");
+				//LOG_INFO("NEED TO COMPACT!");
 				pPreviousNode->Size += pCurrentNode->Size;
 				pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 				ReleaseNodeBackToFreelist(pCurrentNode);

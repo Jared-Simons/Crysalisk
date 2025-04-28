@@ -232,7 +232,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 50, 0, 50 }, 20, 20, 20);
+	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
 
@@ -252,7 +252,7 @@ bool Renderer::CreateTempGeometry()
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
-	}
+	}*/
 
 	// Acquire materials
 	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
@@ -285,7 +285,9 @@ bool Renderer::CreateTempGeometry()
 void Renderer::DestroyTempGeometry()
 {
 	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	{
 		m_RendererBackend->ReleaseGeometryResources(m_WorldVertexBuffer, m_WorldIndexBuffer, m_SponzaModel.m_Geometries[idx]);
+	}
 }
 
 static bool RendererEvent_WindowResized(EventData_t data)
