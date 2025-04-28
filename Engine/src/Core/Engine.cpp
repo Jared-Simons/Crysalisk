@@ -28,6 +28,7 @@
 
 static bool s_bApplicationQuitCalled{ false };
 static bool s_bApplicationSuspended{ false };
+bool		s_bLevelGeometryLoaded{ false };
 
 // Engine Event Handlers
 static bool Event_ApplicationQuit(EventData_t data);
@@ -201,7 +202,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	//ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Assets/Shaders/CoreShader.cshadercfg");
 
 	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
+	//g_pRenderer->CreateTempGeometry();
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -298,6 +299,19 @@ bool Event_KeyReleased(EventData_t data)
 	{
 		// TODO: Print Memory Stats
 		g_pMemoryManager->PrintMemoryStats();
+	}
+	else if (keycode == 'L')
+	{
+		if (!s_bLevelGeometryLoaded)
+		{
+			g_pRenderer->CreateTempGeometry();
+			s_bLevelGeometryLoaded = true;
+		}
+		else
+		{
+			s_bLevelGeometryLoaded = false;
+			g_pRenderer->DestroyTempGeometry();
+		}
 	}
 
 	return true;

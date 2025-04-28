@@ -28,7 +28,7 @@ public:
 	virtual bool	StartRenderpass(eKnownRenderpassType renderpassType) override;
 	virtual void	EndRenderpass() override;
 
-	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
 	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
@@ -44,8 +44,7 @@ public:
 
 	virtual void	BindShader(class Shader& pShader) override;
 
-	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-
+	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
@@ -100,10 +99,6 @@ public:
 	// Internal shader data
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
-
-	// Temp geometry buffers
-	VulkanBuffer		m_GeometryVertexBuffer{};
-	VulkanBuffer		m_GeometryIndexBuffer{};
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };

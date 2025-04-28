@@ -69,6 +69,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Set up our renderbuffers
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_WorldIndexBuffer);
+
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_UIIndexBuffer);
 
@@ -87,12 +90,15 @@ void Renderer::Shutdown()
 	LOG_INFO("Shutting Down Renderer");
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
+	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
+	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
 }
 
+extern bool s_bLevelGeometryLoaded;
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pRenderData - Frame-specific data to be used in rendering ops.
@@ -106,24 +112,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		return true;
 	}
 
-	// TODO: Make this work with an allocator.
-	Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
-	Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
-
-	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
-	{
-		if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
-		{
-			// If not transparent, add them to the list!
-			pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
-		}
-		else
-		{
-			// Otherwise, add it to the transparent list to be sorted prior to drawing.
-			pTransparentGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
-		}
-	}
-
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
@@ -131,33 +119,57 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(eKnownRenderpassType::WORLD);
 
-	// Render our temp geometry.
-	//DrawGeometry(m_Cube1);
-	//DrawGeometry(m_Cube2);
-	//DrawGeometry(m_Cube3);
-
-	// Render the opaque geometry first.
-	for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+	if (s_bLevelGeometryLoaded)
 	{
-		DrawGeometry(*pOpaqueGeometries[idx]);
-	}
+		// TODO: Make this work with an allocator.
+		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
+		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
 
-	// TODO: Sort the transparent geometries from farthest to closest to the camera.
+		for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+		{
+			if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
+			{
+				// If not transparent, add them to the list!
+				pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+			}
+			else
+			{
+				// Otherwise, add it to the transparent list to be sorted prior to drawing.
+				pTransparentGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+			}
+		}
 
-	// Render the sorted transparent geometries.
-	for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
-	{
-		DrawGeometry(*pTransparentGeometries[idx]);
+		// Render our temp geometry.
+		//DrawGeometry(m_Cube1);
+		//DrawGeometry(m_Cube2);
+		//DrawGeometry(m_Cube3);
+
+		// Render the opaque geometry first.
+		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+		{
+			DrawGeometry(*pOpaqueGeometries[idx]);
+		}
+
+		// TODO: Sort the transparent geometries from farthest to closest to the camera.
+
+		// Render the sorted transparent geometries.
+		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
+		{
+			DrawGeometry(*pTransparentGeometries[idx]);
+		}
 	}
 
 	m_RendererBackend->EndRenderpass();
 
-	m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
+	if (s_bLevelGeometryLoaded)
+	{
+		m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
 
-	// Render the test ui text
-	m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
+		// Render the test ui text
+		m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
 
-	m_RendererBackend->EndRenderpass();
+		m_RendererBackend->EndRenderpass();
+	}
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -197,7 +209,7 @@ void Renderer::BindShader(Shader& pShader)
 
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometryConfig, pOutInstance);
 }
 
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
@@ -215,7 +227,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 	// Acquire the default material if our own material's resources aren't yet available.
 	MaterialReference& pMaterial = (pGeometry.hMaterial.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial;
 
-	m_RendererBackend->DrawGeometry(pGeometry, pMaterial);
+	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry, pMaterial);
 }
 
 bool Renderer::CreateTempGeometry()
@@ -224,19 +236,19 @@ bool Renderer::CreateTempGeometry()
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
 
-	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig, m_Cube1))
+	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig, m_Cube1))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
 	}
 
-	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig2, m_Cube2))
+	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig2, m_Cube2))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
 	}
 	
-	if (!m_RendererBackend->AcquireGeometryResources(cubeConfig3, m_Cube3))
+	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig3, m_Cube3))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
@@ -262,13 +274,18 @@ bool Renderer::CreateTempGeometry()
 	LOG_DEBUG("Bytes allocated after model loading:");
 
 	// Font test.
-	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
 
 	// Acquire geometry resources for this text.
 	s_FontTest.SetText("Some Test Text!");
 
 	return true;
+}
+
+void Renderer::DestroyTempGeometry()
+{
+	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+		m_RendererBackend->ReleaseGeometryResources(m_WorldVertexBuffer, m_WorldIndexBuffer, m_SponzaModel.m_Geometries[idx]);
 }
 
 static bool RendererEvent_WindowResized(EventData_t data)

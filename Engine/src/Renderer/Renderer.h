@@ -50,6 +50,7 @@ public:
 
 	// Temp geometry stuff
 	bool	CreateTempGeometry();
+	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
 
@@ -59,6 +60,9 @@ private:
 
 	// TODO: These are temporary...
 public:
+	RenderBuffer		m_WorldVertexBuffer{};
+	RenderBuffer		m_WorldIndexBuffer{};
+
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
 
