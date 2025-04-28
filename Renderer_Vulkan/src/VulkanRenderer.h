@@ -45,10 +45,9 @@ public:
 	virtual void	BindShader(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-	virtual bool	AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-	virtual void	ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) override;
+	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();

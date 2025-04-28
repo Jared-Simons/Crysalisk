@@ -1614,11 +1614,10 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 	m_GeometryVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
 	m_GeometryIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
 
-	return true;
-}
+	// Copy over element strides.
+	pOutInstance.vertexDataStride = pGeometryConfig.Vertices.Stride();
+	pOutInstance.indexDataStride = pGeometryConfig.Indices.Stride();
 
-bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
 	return true;
 }
 
@@ -1689,12 +1688,19 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	return true;
 }
 
-void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry)
+void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
-	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
 
 	// Mark the range in our renderbuffer as being free.
-	pInternalBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * sizeof(Vertex2D)); // TODO: NO HARDCODING HERE!
+	pInternalVertexBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * pGeometry.vertexDataStride);
+
+	// Free index data as well (if applicable)
+	if (pGeometry.indexDataSize != kInvalidID_U64)
+	{
+		pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pGeometry.indexDataOffset, pGeometry.indexDataSize * pGeometry.indexDataStride);
+	}
 }
 
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
@@ -1830,7 +1836,16 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 			LOG_INFO("Lighting mode set to normals - tangent space.");
 			break;
 		case 5:
-			LOG_INFO("Lighting mode set to normals.");
+			LOG_INFO("Lighting mode set to normals - world space.");
+			break;
+		case 6:
+			LOG_INFO("Lighting mode set to geometric normal.");
+			break;
+		case 7:
+			LOG_INFO("Lighting mode set to tangent u - world space.");
+			break;
+		case 8:
+			LOG_INFO("Lighting mode set to tangent v - world space.");
 			break;
 		}
 	}

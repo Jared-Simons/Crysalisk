@@ -217,8 +217,10 @@ struct GeometryInstance_t
 {
 	size_t vertexCount{ kInvalidID_U64 };
 	size_t vertexDataOffset{ kInvalidID_U64 };
+	size_t vertexDataStride{ kInvalidID_U64 };
 	size_t indexDataSize{ kInvalidID_U64 };
 	size_t indexDataOffset{ kInvalidID_U64 };
+	size_t indexDataStride{ kInvalidID_U64 };
 
 	MaterialReference hMaterial;
 };

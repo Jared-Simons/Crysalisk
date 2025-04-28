@@ -103,5 +103,20 @@ void main()
 			outColor = vec4(abs(normal), diffuseSample.a);
 			return;
 		}
+		else if (global_ubo.renderMode == 6)
+		{
+			outColor = vec4(abs(normalize(fsInput.Normal)), diffuseSample.a);
+			return;
+		}
+		else if (global_ubo.renderMode == 7)
+		{
+			outColor = vec4(abs(normalize(fsInput.Tangent)), diffuseSample.a);
+			return;
+		}
+		else if (global_ubo.renderMode == 8)
+		{
+			outColor = vec4(abs(normalize(fsInput.Bitangent)), diffuseSample.a);
+			return;
+		}
 	}
 }

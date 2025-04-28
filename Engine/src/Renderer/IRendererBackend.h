@@ -44,8 +44,7 @@ public:
 	virtual void	BindShader(class Shader& pShader) = 0;
 
 	virtual bool	AcquireGeometryResources(struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
-	virtual bool	AcquireGeometryResources(struct GeometryConfig2D_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 
-	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) = 0;
-	virtual void	ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometry) = 0;
+	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) = 0;
+	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) = 0;
 };

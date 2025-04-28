@@ -200,19 +200,14 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
 }
 
-void Renderer::AcquireGeometryResources(GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(pGeometryConfig, pOutInstance);
-}
-
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig, pOutInstance);
 }
 
-void Renderer::ReleaseGeometryResources(RenderBuffer& pRenderBuffer, GeometryInstance_t& pGeometryInstance)
+void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
-	m_RendererBackend->ReleaseGeometryResources(pRenderBuffer, pGeometryInstance);
+	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
