@@ -18,6 +18,7 @@
 //-------------------------------------------------------------------------
 struct RenderPacket_t
 {
+	double DeltaTime;
 };
 
 struct GlobalUniformObject_t

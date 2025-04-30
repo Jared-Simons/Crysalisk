@@ -1,6 +1,8 @@
 Features to be developed:
 - Setup the Vulkan renderer to handle dynamic data (i.e. whatever texture/geometry data one wants to use)
 - Implement some form of camera system
+- There is a memory leak when loading and unloading geometry data.
+- Some bugs wrt materials/descriptors across shaders in the Vulkan renderer.
 - Transparent Materials!
 - Multiple Materials per mesh
 - OBJ faces with 5 vertices (Valve maps give us these...)

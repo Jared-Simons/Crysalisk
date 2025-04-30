@@ -212,9 +212,15 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 
 		// Delete the original pixel buffer.
 		delete[] pFontPixelBuffer;
+		pNewFontLookup->FontIndex = fontIdx;
+	}
+	else
+	{
+		// The font data is already loaded.
+		newFont = &m_FontDictionary.m_FontArray[pNewFontLookup->FontIndex];
 	}
 
-	return fontIdx;
+	return pNewFontLookup->FontIndex;
 }
 
 // Shoutouts to shreyaspranav for the stb_truetype example! :)

@@ -78,6 +78,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
+	// Start the clock now and we'll take the delta time each frame.
+	m_RendererClock.Start();
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -111,6 +114,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	{
 		return true;
 	}
+	// Calculate our delta time.
+	double currentFrameTime = m_RendererClock.GetElapsedTime();
+	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
+	m_flLastFrameTime = currentFrameTime;
 
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{

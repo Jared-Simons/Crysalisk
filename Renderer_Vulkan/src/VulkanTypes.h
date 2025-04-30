@@ -151,6 +151,7 @@ public:
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
+	size_t					m_CurrentRendererFrame{ 0 };
 
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};

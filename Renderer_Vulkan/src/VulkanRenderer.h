@@ -8,7 +8,6 @@
 
 #include <Renderer/IRendererBackend.h>
 
-#include <Core/Clock.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 
@@ -87,9 +86,6 @@ public:
 	VkSemaphore m_RenderFinishedSemaphore{ VK_NULL_HANDLE };
 	VkFence		m_InFlightFence{ VK_NULL_HANDLE };
 
-	// Temp shader
-	VulkanShaderInternal m_DefaultShader{};
-
 	// Descriptor Pool
 	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
 
@@ -107,10 +103,10 @@ public:
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
 	unsigned int	m_ImageIndex{ 0 };
+	size_t		m_CurrentRendererFrame{ 0 };
 	bool		m_bWindowResized{ false };
 	bool		m_bResizingFramebuffer{ false };
 	RendererConfig_t	m_RendererConfig{};
-	Clock		m_RendererClock{};
 };
 
 extern IRendererBackend* g_pRendererBackend;

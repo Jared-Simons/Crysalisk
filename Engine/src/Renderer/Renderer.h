@@ -6,8 +6,9 @@
 //=============================================================================
 #pragma once
 
-#include "Defines.h"
+#include "Core/Clock.h"
 #include "Core/Logging.h"
+#include "Defines.h"
 #include "Resources/ResourceTypes.h"
 
 // Forward Declarations
@@ -57,6 +58,8 @@ public:
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
 	bool	m_bMinimized{ false };
+	Clock	m_RendererClock{};
+	double	m_flLastFrameTime{};
 
 	// TODO: These are temporary...
 public:
