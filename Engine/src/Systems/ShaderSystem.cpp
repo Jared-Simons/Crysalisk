@@ -156,12 +156,24 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		// Parse the shader configuration.
 		ShaderConfig_t newShaderConfig{};
 		ParseShaderConfigurationFromFile(formattedShaderPath, newShaderConfig);
+
+		// TODO: DONT HARDCORE THIS!
+		if (StringCompare(newShaderConfig.pszShaderName, "Core.Phong"))
+		{
+			newShaderConfig.vertexStride = sizeof(Vertex3D);
+		}
+		else
+		{
+			newShaderConfig.vertexStride = sizeof(Vertex2D);
+		}
 		
 		// Acquire shader resources.
 		if (newShaderConfig.pszShaderName != nullptr)
 		{
 			newShader->m_szShaderName = StringDuplicate(newShaderConfig.pszShaderName);
 		}
+
+		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
 
 		// Acquire renderer resources.
 		if (!g_pRenderer->AcquireShaderResources(*newShader, newShaderConfig))

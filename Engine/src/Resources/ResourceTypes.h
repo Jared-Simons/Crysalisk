@@ -62,6 +62,22 @@ enum ShaderTopologyType
 	TRIANGLE_LIST = 2,
 };
 
+using FontHandle_t = uint32_t;
+
+struct FontAtlas_t
+{
+	size_t	Width;
+	size_t	Height;
+};
+
+class Font
+{
+public:
+	FontAtlas_t m_Atlas{};
+	void* m_pInternalData{ nullptr };
+	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
+};
+
 using ShaderHandle_t = uint32_t;
 
 struct ShaderConfig_t
@@ -71,7 +87,9 @@ struct ShaderConfig_t
 	Utl::CVector<char*> pszShaderStageFileNames{};
 	unsigned int eTopologyTypes{ UNDEFINED };
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
+	size_t		vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
+	RendererView	m_RendererView{};
 };
 
 class Shader
@@ -181,6 +199,13 @@ struct MaterialReference
 	bool			m_bIsTransparent{ false };
 };
 
+struct GeometryConfig2D_t
+{
+	Utl::CVector<Vertex2D> Vertices{};
+	Utl::CVector<uint32_t> Indices{};
+	MaterialReference MaterialReference{};
+};
+
 struct GeometryConfig_t
 {
 	Utl::CVector<Vertex3D> Vertices{};
@@ -193,8 +218,10 @@ struct GeometryInstance_t
 {
 	size_t vertexCount{ kInvalidID_U64 };
 	size_t vertexDataOffset{ kInvalidID_U64 };
+	size_t vertexDataStride{ kInvalidID_U64 };
 	size_t indexDataSize{ kInvalidID_U64 };
 	size_t indexDataOffset{ kInvalidID_U64 };
+	size_t indexDataStride{ kInvalidID_U64 };
 
 	MaterialReference hMaterial;
 };

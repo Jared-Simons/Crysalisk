@@ -8,7 +8,6 @@
 
 #include <Renderer/IRendererBackend.h>
 
-#include <Core/Clock.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 
@@ -21,10 +20,21 @@ class CVulkanRenderer : public IRendererBackend
 public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
+
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
-	virtual void	DrawGeometry(struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+	virtual bool	StartRenderpass(RendererView& pRendererView) override;
+	virtual void	EndRenderpass() override;
+
+	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
+
+	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
+	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
+
+	virtual bool	CreateRendererViewInternal(RendererView& pOutView) override;
+	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
@@ -36,7 +46,9 @@ public:
 
 	virtual void	BindShader(class Shader& pShader) override;
 
-	virtual bool	AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
@@ -65,6 +77,9 @@ public:
 	// Main Renderpass
 	VulkanRenderPass m_MainRenderPass{};
 
+	// UI Renderpass
+	VulkanRenderPass m_UIRenderPass{};
+
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };
 	Utl::CVector<VulkanCommandBuffer> m_GraphicsCommandBuffers{};
@@ -73,9 +88,6 @@ public:
 	VkSemaphore	m_ImageAvailableSemaphore{ VK_NULL_HANDLE };
 	VkSemaphore m_RenderFinishedSemaphore{ VK_NULL_HANDLE };
 	VkFence		m_InFlightFence{ VK_NULL_HANDLE };
-
-	// Temp shader
-	VulkanShaderInternal m_DefaultShader{};
 
 	// Descriptor Pool
 	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
@@ -87,12 +99,6 @@ public:
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
 
-	// Temp geometry buffer
-	VulkanBuffer		m_GeometryVertexBuffer{};
-	VulkanBuffer		m_GeometryIndexBuffer{};
-	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
-	GlobalUniformObject_t	m_UniformData{};
-
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
 	bool		m_bCurrentlyRendering[3]{ false };
@@ -100,10 +106,10 @@ public:
 	double		m_flDeltaTime{ 0.0f };
 	double		m_flLastFrameTime{ 0.0f };
 	unsigned int	m_ImageIndex{ 0 };
+	size_t		m_CurrentRendererFrame{ 0 };
 	bool		m_bWindowResized{ false };
 	bool		m_bResizingFramebuffer{ false };
 	RendererConfig_t	m_RendererConfig{};
-	Clock		m_RendererClock{};
 };
 
 extern IRendererBackend* g_pRendererBackend;

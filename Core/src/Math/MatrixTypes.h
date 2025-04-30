@@ -393,4 +393,32 @@ public:
 
 		return newMatrix;
 	}
+
+	static Matrix4x4 Ortho(float left, float right, float bottom, float top, float near, float far)
+	{
+		Matrix4x4 newMatrix(1.0f);
+
+		float lr = 1.0f / (left - right);
+		float bt = 1.0f / (bottom - top);
+		float nf = 1.0f / (near - far);
+
+		newMatrix.data[0] = -2.0f * lr;
+		newMatrix.data[5] = -2.0f * bt;
+		newMatrix.data[10] = nf;
+
+		newMatrix.data[12] = (left + right) * lr;
+		newMatrix.data[13] = (top + bottom) * bt;
+		newMatrix.data[14] = -near * nf;
+		newMatrix.data[15] = 1.0f;
+
+		/*newMatrix.data[0] = 2.0f / (right - left);
+		newMatrix.data[3] = -(right + left) / (right - left);
+		newMatrix.data[5] = 2.0f / (top - bottom);
+		newMatrix.data[7] = -(top + bottom) / (top - bottom);
+		newMatrix.data[10] = -2.0f / (far - near);
+		newMatrix.data[11] = -(far + near) / (far - near);
+		newMatrix.data[15] = 1.0f;*/
+
+		return newMatrix;
+	}
 };

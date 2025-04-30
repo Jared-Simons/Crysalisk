@@ -6,8 +6,9 @@
 //=============================================================================
 #pragma once
 
-#include "Defines.h"
+#include "Core/Clock.h"
 #include "Core/Logging.h"
+#include "Defines.h"
 #include "Resources/ResourceTypes.h"
 
 // Forward Declarations
@@ -42,19 +43,35 @@ public:
 	void			BindShader(class Shader& pShader);
 
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
+
+	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
+	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry);
+
 	void			DrawGeometry(GeometryInstance_t& pGeometry);
 
 	// Temp geometry stuff
 	bool	CreateTempGeometry();
+	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
 	bool	m_bMinimized{ false };
+	Clock	m_RendererClock{};
+	double	m_flLastFrameTime{};
 
 	// TODO: These are temporary...
 public:
+	RendererView		m_SceneView{};
+	RendererView		m_UIView{};
+
+	RenderBuffer		m_WorldVertexBuffer{};
+	RenderBuffer		m_WorldIndexBuffer{};
+
+	RenderBuffer		m_UIVertexBuffer{};
+	RenderBuffer		m_UIIndexBuffer{};
+
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};

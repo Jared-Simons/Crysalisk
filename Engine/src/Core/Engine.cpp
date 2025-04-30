@@ -21,12 +21,14 @@
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
 #include <Strings/String_Utils.h>
+#include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
 static bool s_bApplicationQuitCalled{ false };
 static bool s_bApplicationSuspended{ false };
+bool		s_bLevelGeometryLoaded{ false };
 
 // Engine Event Handlers
 static bool Event_ApplicationQuit(EventData_t data);
@@ -187,11 +189,20 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Font system.
+	FontSystemConfig_t fontSysConfig{};
+	fontSysConfig.MaxFonts = 19;
+	if (!g_pFontSystem->Initialize(fontSysConfig))
+	{
+		LOG_ERROR("Failed to initialize font system! Application cannot continue.");
+		return false;
+	}
+
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
 	//ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Assets/Shaders/CoreShader.cshadercfg");
 
 	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
+	//g_pRenderer->CreateTempGeometry();
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -233,6 +244,7 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
 	g_pTextureSystem->Shutdown();
@@ -286,6 +298,20 @@ bool Event_KeyReleased(EventData_t data)
 	if (keycode == 'M')
 	{
 		// TODO: Print Memory Stats
+		g_pMemoryManager->PrintMemoryStats();
+	}
+	else if (keycode == 'L')
+	{
+		if (!s_bLevelGeometryLoaded)
+		{
+			g_pRenderer->CreateTempGeometry();
+			s_bLevelGeometryLoaded = true;
+		}
+		else
+		{
+			s_bLevelGeometryLoaded = false;
+			g_pRenderer->DestroyTempGeometry();
+		}
 	}
 
 	return true;

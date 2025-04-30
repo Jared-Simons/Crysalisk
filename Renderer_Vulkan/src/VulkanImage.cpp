@@ -144,7 +144,7 @@ bool VulkanImage::WriteDataToImage(class CVulkanRenderer& pRenderingContext, uin
 {
 	// Put the image data into a nice staging buffer.
 	VulkanBuffer stagingBuffer;
-	VulkanBuffer::CreateBuffer(pRenderingContext, width * height * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+	VulkanBuffer::CreateBuffer(pRenderingContext, width * height * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 
 	void* pImageData;
 	vkMapMemory(pRenderingContext.m_Device.m_Device, stagingBuffer.m_Memory, 0, width * height * 4, 0, &pImageData);

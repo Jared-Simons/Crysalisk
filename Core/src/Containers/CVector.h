@@ -105,8 +105,11 @@ namespace Utl {
 			m_ValueStride = pOtherVector.m_ValueStride;
 			m_ResizeFactor = pOtherVector.m_ResizeFactor;
 
-			m_pValues = new T[m_Capacity];
-			memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+			if (m_Capacity > 0)
+			{
+				m_pValues = new T[m_Capacity];
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+			}
 
 			return *this;
 		}

@@ -10,6 +10,7 @@
 
 #include <Containers/CVector.h>
 #include <Core/Assertions.h>
+#include <Renderer/RendererTypes.h>
 
 #define VK_CHECK(expr)		\
 	if (expr != VK_SUCCESS)	\
@@ -66,16 +67,20 @@ public:
 class VulkanBuffer
 {
 public:
-	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, VulkanBuffer& pOutBuffer);
+	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer);
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
 
-	bool			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
+	size_t			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
+	void			FreeDataRange(class CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize);
 
 public:
 	VkBuffer		m_Handle{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
 	size_t	m_BufferSize{ 0 };
 	size_t	m_BytesAllocated{ 0 };
+	bool			m_bUsesFreelist{ false };
+	Utl::CFreeList	m_Freelist{};
+	void* m_pFreelistMemory{ nullptr };
 };
 
 class VulkanCommandBuffer
@@ -115,7 +120,7 @@ public:
 class VulkanRenderPass
 {
 public:
-	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pOutRenderpass);
+	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
 	static void DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass);
 
 public:
@@ -146,6 +151,10 @@ public:
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
+	size_t					m_CurrentRendererFrame{ 0 };
+
+	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
+	GlobalUniformObject_t	m_UniformData{};
 };
 
 struct VulkanTextureInternal

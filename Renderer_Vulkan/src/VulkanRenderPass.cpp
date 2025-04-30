@@ -6,7 +6,7 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
-bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, VulkanRenderPass& pOutRenderpass)
+bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass)
 {
 	// TODO: Make this configurable with some config.
 	Utl::CVector<VkAttachmentDescription> attachments;
@@ -17,11 +17,11 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, Vulk
 	colorAttachment.flags = 0;
 	colorAttachment.format = pRenderingContext.m_Swapchain.m_SwapchainImageFormat;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.loadOp = bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.initialLayout = bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	attachments.PushBack(colorAttachment);
@@ -30,11 +30,11 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, Vulk
 	VkAttachmentDescription depthAttachment{};
 	depthAttachment.format = pRenderingContext.m_Swapchain.m_DepthImageFormat;
 	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.loadOp = bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+	depthAttachment.storeOp = bShouldClear ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE; // TODO: This is a bad heuristic
+	depthAttachment.stencilLoadOp = bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+	depthAttachment.stencilStoreOp = bShouldClear ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE; // TODO: This is a bad heuristic
+	depthAttachment.initialLayout = bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	attachments.PushBack(depthAttachment);
@@ -77,8 +77,6 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, Vulk
 	renderpassInfo.pDependencies = &dependency;
 
 	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, pRenderingContext.m_Allocator, &pOutRenderpass.m_Handle));
-
-	
 
 	return true;
 }

@@ -159,7 +159,6 @@ DLL_EXPORT Utl::CVector<Platform::SystemInterface_t> ObtainInterfaces()
 //-------------------------------------------------------------------------
 DLL_EXPORT void ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pInterfaceState)
 {
-	// TODO: Grab and assign interfaces needed by this module here!
 	AssignInterfaces(pInterfaceState);
 
 	// Register for window resize event.
@@ -300,10 +299,16 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Main Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, m_MainRenderPass))
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, true, m_MainRenderPass))
 	{
 		LOG_ERROR("Failed to initialize main Vulkan Renderpass. Renderer initialization failed!");
 		return false;
+	}
+
+	// UI Renderpass
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, false, m_UIRenderPass))
+	{
+		LOG_ERROR("Failed to initialize UI Vulkan Renderpass. Renderer initialization failed!");
 	}
 
 	// Swapchain Framebuffers
@@ -339,30 +344,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, nullptr, &m_DescriptorPool));
 
-	// Set up our global uniform buffers.
-	m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, (sizeof(GlobalUniformObject_t)) + (sizeof(MaterialInstanceData_t) * kMaxVulkanInstances), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_UniformBuffers[idx]))
-		{
-			LOG_ERROR("Failed to create uniform buffer.");
-			return false;
-		}
-	}
-
-	// Create the temp geometry buffer.
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(Vertex3D) * 5 * 1024 * 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryVertexBuffer))
-	{
-		LOG_ERROR("Failed to create geometry vertex data buffer.");
-		return false;
-	}
-
-	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, sizeof(uint32_t) * 5 * 1024 * 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_GeometryIndexBuffer))
-	{
-		LOG_ERROR("Failed to create geometry index data buffer.");
-		return false;
-	}
-
 	// Allocate resources for our image data.
 	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
@@ -385,8 +366,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// TEMP CAMERA POSITION
 	//s_MainCamera.vecPosition = { 3072, 464, -5660 };
 
-	m_RendererClock.Start();
-
 	return true;
 }
 
@@ -402,11 +381,7 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	// Destroy our temp geometry.
 	// THIS IS TEMPORARY
-	DestroyDefaultGeometry();
-
-	// Release uniform buffer resources.
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-		VulkanBuffer::DestroyBuffer(s_VulkanContext, m_UniformBuffers[idx]);
+	//DestroyDefaultGeometry();
 
 	// Free internal texture/shader data.
 	delete[] m_pInternalShaderData;
@@ -419,6 +394,9 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroyFence(m_Device.m_Device, m_InFlightFence, m_Allocator);
 	vkDestroySemaphore(m_Device.m_Device, m_RenderFinishedSemaphore, m_Allocator);
 	vkDestroySemaphore(m_Device.m_Device, m_ImageAvailableSemaphore, m_Allocator);
+
+	// UI Renderpass
+	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_UIRenderPass);
 
 	// Main Renderpass
 	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_MainRenderPass);
@@ -462,14 +440,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	// Wait for the prior frame to finish it's work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
-	// TODO: There should be a clock at the application level, with a global delta time passed in with the render packet.
-	double currentFrameTime = m_RendererClock.GetElapsedTime();
-	m_flDeltaTime = currentFrameTime - m_flLastFrameTime;
-	m_flLastFrameTime = currentFrameTime;
-
-	s_MainCamera.UpdateCameraData(m_flDeltaTime);
-
-	//LOG_DEBUG("Delta Time: %.8f", currentFrameTime);
+	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Acquire the next swapchain image.
 	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
@@ -504,21 +475,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	VkCommandBufferBeginInfo cmdBufferBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	VK_CHECK(vkBeginCommandBuffer(commandBuffer, &cmdBufferBeginInfo));
 
-	// Start the renderpass and update globals.
-	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
-	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
-	renderpassInfo.renderArea.offset = { 0, 0 };
-	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
-
-	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
-	renderpassInfo.clearValueCount = 2;
-	renderpassInfo.pClearValues = clearColors;
-
-	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
 	// Set our dynamic state.
-	// TODO: Should this be with the pipeline bind?
 	VkViewport viewport{};
 	viewport.x = 0;
 	viewport.y = 0;
@@ -535,23 +492,28 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	m_UniformData.View = s_MainCamera.GetViewMatrix();
-	m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
-	m_UniformData.Projection.data[5] *= -1;
+	// TODO: Make this happen on shader binds!!
+	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
+	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
+	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
+	pInternalShader.m_UniformData.Projection.data[5] *= -1;
 
-	m_UniformData.ViewPos = s_MainCamera.vecPosition;
+	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
 
-	if (m_UniformData.RenderMode != m_RenderMode)
-		m_UniformData.RenderMode = m_RenderMode;
+	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
+		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
 
-	m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
+	pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
 
 	// Copy to the GPU.
 	void* pUniformData;
 	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
+	vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+
+	m_CurrentRendererFrame++;
 
 	return true;
 }
@@ -571,13 +533,12 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-	vkCmdEndRenderPass(commandBuffer);
 
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
 
 	VkSubmitInfo cmdSubmitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore }; // We'll be waiting on the for the image to become available.
+	VkSemaphore waitSemaphores[] = { m_ImageAvailableSemaphore }; // We'll be waiting on this for the image to become available.
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 	cmdSubmitInfo.waitSemaphoreCount = 1;
 	cmdSubmitInfo.pWaitSemaphores = waitSemaphores;
@@ -623,13 +584,47 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 }
 
 //-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
+{
+	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pRendererView.m_pInternalData);
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	renderpassInfo.renderPass = pInternalPass->m_Handle;
+	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
+	renderpassInfo.renderArea.offset = { 0, 0 };
+	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
+
+	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
+	renderpassInfo.clearValueCount = 2;
+	renderpassInfo.pClearValues = clearColors;
+
+	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+void CVulkanRenderer::EndRenderpass()
+{
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	vkCmdEndRenderPass(commandBuffer);
+}
+
+
+//-------------------------------------------------------------------------
 // Purpose: Draws geometry. This must happen while a frame is being rendered!
 // Input: pGeometry - The geometry to be rendered.
 //		  pMaterial - The material to be rendered with the geometry.
 // Output: none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialReference& pMaterial)
+void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, MaterialReference& pMaterial)
 {
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+
 	if (m_bResizingFramebuffer)
 	{
 		return;
@@ -641,12 +636,12 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 
 	// Bind our geometry data.
 	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_GeometryVertexBuffer.m_Handle, &offsets[0]);
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
 
 	// Bind the index buffer, if necessary
 	if (pGeometry.indexDataOffset != 0)
 	{
-		vkCmdBindIndexBuffer(commandBuffer, m_GeometryIndexBuffer.m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}
 
 	// Bind our pipeline.
@@ -704,6 +699,118 @@ void CVulkanRenderer::DrawGeometry(GeometryInstance_t& pGeometry, MaterialRefere
 }
 
 //-------------------------------------------------------------------------
+// Purpose: This is a temporary test method to render some text!
+//-------------------------------------------------------------------------
+void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
+{
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	// Render our test text.
+	// TODO: NO HARD CODING WITH SHADERS!
+	VulkanShaderInternal& pShader = m_pInternalShaderData[1];
+	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+
+	VkDeviceSize offsets[2] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
+	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
+
+	if (pGeometry.indexDataSize > 0)
+	{
+		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+	}
+
+	// Bind our pipeline.
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
+	m_CurrentlyBoundShaderIndex = 1;
+
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+
+	// Copy the global data over.
+	// TODO: DO THIS ON SHADER BIND!
+	void* pUniformData;
+	VkDeviceSize uniformOffset = { 0 };
+	vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+
+	// Bind instance descriptor set.
+	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
+
+	if (pGeometry.indexDataSize > 0)
+	{
+		vkCmdDrawIndexed(commandBuffer, pGeometry.indexDataSize, 1, 0, pGeometry.vertexDataOffset, 0);
+	}
+	else
+	{
+		vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
+	}
+}
+
+static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferUsage usage)
+{
+	switch (usage)
+	{
+	default:
+		return 0;
+	case eRenderBufferUsage::VERTEX:
+		return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	case eRenderBufferUsage::INDEX:
+		return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	case eRenderBufferUsage::UNIFORM:
+		return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	case eRenderBufferUsage::STORAGE:
+		return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	}
+}
+
+bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
+{
+	// Allocate our internal buffer.
+	pOutBuffer.m_pInternalData = new VulkanBuffer;
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pOutBuffer.m_pInternalData);
+
+	// Get our converted buffer usage flags
+	VkBufferUsageFlags vkBufferUsage = ConvertGenericBufferUsageToVulkanFormat(bufferUsage);
+
+	// Create the buffer.
+	VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer);
+
+	return true;
+}
+
+void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
+{
+	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, *pInternalBuffer);
+
+	delete pRenderBuffer.m_pInternalData;
+	pRenderBuffer.m_pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
+{
+	// Allocate our internal renderpass.
+	pOutView.m_pInternalData = new VulkanRenderPass;
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
+
+	return VulkanRenderPass::CreateRenderpass(s_VulkanContext, pOutView.m_bShouldClear, *pInternalPass);
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
+{
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pView.m_pInternalData);
+	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, *pInternalPass);
+
+	delete pView.m_pInternalData;
+	pView.m_pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Acquire Vulkan specific texture resources.
 // Input: pTexture		 - The texture to acquire resources for.
 //		  internalIndex  - The array index/handle this texture is using.
@@ -726,7 +833,9 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalInd
 		return false;
 	}
 
-	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
+	// TODO: No hard coding!
+	VkFormat format = internalIndex == 68 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
+	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
 	{
 		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
 		return false;
@@ -821,7 +930,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 
 		// First descriptor is the uniform buffer.
 		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = m_UniformBuffers[frameIdx].m_Handle;
+		uniformBufferInfo.buffer = pShader->m_UniformBuffers[frameIdx].m_Handle;
 		uniformBufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1)); // NOTE: we add the global UBO size here because the global uniforms live at the start of the uniform memory block.
 		uniformBufferInfo.range = sizeof(MaterialInstanceData_t);
 
@@ -837,9 +946,9 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		// Copy over the material instance data.
 		void* pUniformData;
 		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
-		vkMapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
+		vkMapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
 		memcpy(pUniformData, &pMaterialInstanceData, sizeof(MaterialInstanceData_t));
-		vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[frameIdx].m_Memory);
+		vkUnmapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory);
 	}
 
 	// TODO: Make this configurable
@@ -1045,7 +1154,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 
 	VkVertexInputBindingDescription vertexBindingDescription{};
 	vertexBindingDescription.binding = 0;
-	vertexBindingDescription.stride = sizeof(Vertex3D);
+	vertexBindingDescription.stride = pShaderConfig.vertexStride;
 	vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	Utl::CVector<VkVertexInputAttributeDescription> attributes(pShaderConfig.vertexAttributes.Count());
@@ -1333,6 +1442,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 	pipelineInfo.pColorBlendState = &colorBlend;
 	pipelineInfo.pDynamicState = &dynamicStateInfo;
 	pipelineInfo.layout = pInternalShader.m_PipelineLayout;
+	// TODO: Don't hardcode this, we should probably pass this in with the config.
 	pipelineInfo.renderPass = m_MainRenderPass.m_Handle; // Just using the singular renderpass for now.
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 	pipelineInfo.basePipelineIndex = 0;
@@ -1343,6 +1453,17 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 	for (int idx = 0; idx < pShaderConfig.numShaderStages; idx++)
 	{
 		vkDestroyShaderModule(m_Device.m_Device, shaderModules[idx], m_Allocator);
+	}
+
+	// Set up our global uniform buffers.
+	pInternalShader.m_UniformBuffers.Resize(m_MaxImagesInFlight);
+	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
+	{
+		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, (sizeof(GlobalUniformObject_t)) + (sizeof(MaterialInstanceData_t) * kMaxVulkanInstances), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader.m_UniformBuffers[idx]))
+		{
+			LOG_ERROR("Failed to create uniform buffer.");
+			return false;
+		}
 	}
 
 	// Descriptor set resources.
@@ -1372,7 +1493,7 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 		{
 			// TODO: This should be more configurable.
 			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_UniformBuffers[idx].m_Handle;
+			bufferInfo.buffer = pInternalShader.m_UniformBuffers[idx].m_Handle;
 			bufferInfo.offset = 0;
 			bufferInfo.range = sizeof(GlobalUniformObject_t);
 
@@ -1414,21 +1535,47 @@ void CVulkanRenderer::ReleaseShaderResources(Shader& pShader)
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
 	
 	vkDeviceWaitIdle(m_Device.m_Device);
-	// TODO: Allocation callbacks
+
+	// Release uniform buffer resources.
+	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader.m_UniformBuffers[idx]);
+
 	if (pInternalShader.m_Pipeline)
-		vkDestroyPipeline(m_Device.m_Device, pInternalShader.m_Pipeline, nullptr);
+		vkDestroyPipeline(m_Device.m_Device, pInternalShader.m_Pipeline, s_VulkanContext.m_Allocator);
 
 	if (pInternalShader.m_PipelineLayout)
-		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader.m_PipelineLayout, nullptr);
+		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader.m_PipelineLayout, s_VulkanContext.m_Allocator);
 
 	for (int idx = 0; idx < pInternalShader.m_DescriptorSetLayouts.Capacity(); idx++)
 	{
 		if (pInternalShader.m_DescriptorSetLayouts[idx].m_Layout)
 		{
-			vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader.m_DescriptorSetLayouts[idx].m_Layout, nullptr);
+			vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader.m_DescriptorSetLayouts[idx].m_Layout, s_VulkanContext.m_Allocator);
 		}
 	}
 }
+
+/*
+VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
+	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
+	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
+	pInternalShader.m_UniformData.Projection.data[5] *= -1;
+
+	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
+
+	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
+		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
+
+	pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
+
+	// Copy to the GPU.
+	void* pUniformData;
+	VkDeviceSize uniformOffset = { 0 };
+	vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+	memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
+	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+*/
 
 void CVulkanRenderer::BindShader(Shader& pShader)
 {
@@ -1438,14 +1585,41 @@ void CVulkanRenderer::BindShader(Shader& pShader)
 
 	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader.m_Pipeline);
 	m_CurrentlyBoundShaderIndex = pShader.m_iInternalHandle;
+
+	// If we have not updated our descriptors this frame, take care of that.
+	if (pInternalShader.m_CurrentRendererFrame != m_CurrentRendererFrame)
+	{
+		pInternalShader.m_CurrentRendererFrame = m_CurrentRendererFrame;
+
+		pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+		pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
+		pInternalShader.m_UniformData.Projection.data[5] *= -1;
+
+		pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
+
+		if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
+			pInternalShader.m_UniformData.RenderMode = m_RenderMode;
+
+		pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
+
+		// Copy to the GPU.
+		void* pUniformData;
+		VkDeviceSize uniformOffset = { 0 };
+		vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
+		memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
+		vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+	}
 }
 
-bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	pOutInstance.vertexDataOffset = m_GeometryVertexBuffer.m_BytesAllocated;
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+
+	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
 	
-	pOutInstance.indexDataOffset = m_GeometryIndexBuffer.m_BytesAllocated;
+	pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
 	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
 
 	VulkanCommandBuffer cmdBuffer{};
@@ -1453,15 +1627,25 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 
 	// Create a staging buffer for transfer to the GPU.
 	VulkanBuffer stagingBuffer{};
-	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 
 	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	size_t finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
+	// Use the device local buffer's freelist to get the dstOffset.
+	if (pInternalVertexBuffer->m_bUsesFreelist)
+	{
+		finalBufferOffset = pInternalVertexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+	}
+
+	pOutInstance.vertexDataOffset = finalBufferOffset;
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
 
 	// Copy over to the device-local buffer.
 	VkBufferCopy copyRegion{};
 	copyRegion.size = stagingBuffer.m_BufferSize;
 	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
-	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryVertexBuffer.m_Handle, 1, &copyRegion);
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
 
 	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
@@ -1472,20 +1656,115 @@ bool CVulkanRenderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig
 	{
 		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
-		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer);
+		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
+		if (pInternalIndexBuffer->m_bUsesFreelist)
+		{
+			finalBufferOffset = pInternalIndexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+		}
 
 		copyRegion.size = stagingBuffer.m_BufferSize;
-		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_GeometryIndexBuffer.m_Handle, 1, &copyRegion);
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
 
 		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 	}
 
-	m_GeometryVertexBuffer.m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
-	m_GeometryIndexBuffer.m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+	pInternalVertexBuffer->m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	pInternalIndexBuffer->m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+
+	// Copy over element strides.
+	pOutInstance.vertexDataStride = pGeometryConfig.Vertices.Stride();
+	pOutInstance.indexDataStride = pGeometryConfig.Indices.Stride();
 
 	return true;
+}
+
+bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+{
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Create a staging buffer for transfer to the GPU.
+	VulkanBuffer stagingBuffer{};
+	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+
+	size_t finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
+	// Use the device local buffer's freelist to get the dstOffset.
+	if (pInternalVertexBuffer->m_bUsesFreelist)
+	{
+		finalBufferOffset = pInternalVertexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+	}
+
+	pOutInstance.vertexDataOffset = finalBufferOffset;
+	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+
+	//pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
+	//pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+
+	// Copy over to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.size = stagingBuffer.m_BufferSize;
+	copyRegion.dstOffset = finalBufferOffset;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
+
+	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+	// TODO: Handle index buffers as well...
+	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
+	{
+		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+
+		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
+		if (pInternalIndexBuffer->m_bUsesFreelist)
+		{
+			finalBufferOffset = pInternalIndexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+		}
+
+		pOutInstance.indexDataOffset = finalBufferOffset;
+		pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+
+		copyRegion.size = stagingBuffer.m_BufferSize;
+		copyRegion.dstOffset = finalBufferOffset;
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
+
+		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+	}
+
+	pInternalVertexBuffer->m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
+	pInternalIndexBuffer->m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+
+	// Copy over element strides.
+	pOutInstance.vertexDataStride = pGeometryConfig.Vertices.Stride();
+	pOutInstance.indexDataStride = pGeometryConfig.Indices.Stride();
+
+	return true;
+}
+
+void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
+{
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+
+	// Mark the range in our renderbuffer as being free.
+	pInternalVertexBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * pGeometry.vertexDataStride);
+
+	// Free index data as well (if applicable)
+	if (pGeometry.indexDataSize != kInvalidID_U64)
+	{
+		pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pGeometry.indexDataOffset, pGeometry.indexDataSize * pGeometry.indexDataStride);
+	}
 }
 
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
@@ -1584,7 +1863,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 static bool RendererEvent_WindowResized(EventData_t data)
 {
 	s_VulkanContext.m_bWindowResized = true;
-	s_VulkanContext.m_bWindowResized = true;
 
 	// Let other listeners handle this event.
 	return false;
@@ -1597,7 +1875,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		LOG_DEBUG("Camera Pos: %.8f, %.8f, %.8f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z);
 		LOG_DEBUG("Camera Ang: %.8f, %.8f", s_MainCamera.Yaw, s_MainCamera.Pitch);
 	}
-	if (data.c[0] >= 0  && data.c[0] <= 9)
+	else if (data.c[0] >= 0  && data.c[0] <= 9)
 	{
 		s_VulkanContext.m_RenderMode = data.c[0];
 
@@ -1621,7 +1899,16 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 			LOG_INFO("Lighting mode set to normals - tangent space.");
 			break;
 		case 5:
-			LOG_INFO("Lighting mode set to normals.");
+			LOG_INFO("Lighting mode set to normals - world space.");
+			break;
+		case 6:
+			LOG_INFO("Lighting mode set to geometric normal.");
+			break;
+		case 7:
+			LOG_INFO("Lighting mode set to tangent u - world space.");
+			break;
+		case 8:
+			LOG_INFO("Lighting mode set to tangent v - world space.");
 			break;
 		}
 	}
@@ -1630,6 +1917,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 
 void CVulkanRenderer::DestroyDefaultGeometry()
 {
-	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryIndexBuffer);
-	VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryVertexBuffer);
+	//VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryIndexBuffer);
+	//VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryVertexBuffer);
 }

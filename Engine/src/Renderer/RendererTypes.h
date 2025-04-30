@@ -8,6 +8,7 @@
 
 #include "Defines.h"
 
+#include <Containers/CFreeList.h>
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
 #include <Strings/String_Utils.h>
@@ -17,6 +18,7 @@
 //-------------------------------------------------------------------------
 struct RenderPacket_t
 {
+	double DeltaTime;
 };
 
 struct GlobalUniformObject_t
@@ -76,4 +78,31 @@ struct ShaderUniformConfig_t
 	VertexType_t eType;
 	eShaderUniformUpdateFrequency eFrequency;
 	int iArraySize;
+};
+
+enum class eKnownRenderpassType
+{
+	WORLD,
+	UI
+};
+
+enum class eRenderBufferUsage
+{
+	VERTEX,
+	INDEX,
+	UNIFORM,
+	STORAGE
+};
+
+class RenderBuffer
+{
+public:
+	void* m_pInternalData{ nullptr };
+};
+
+class RendererView
+{
+public:
+	bool	m_bShouldClear{ false };
+	void*	m_pInternalData{ nullptr };
 };

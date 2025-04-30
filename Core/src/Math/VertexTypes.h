@@ -11,6 +11,14 @@
 
 #include "VectorTypes.h"
 
+class Vertex2D
+{
+public:
+	Vector2D Pos;
+	Vector4D Color;
+	Vector2D TexCoord;
+};
+
 class Vertex3D
 {
 public:
