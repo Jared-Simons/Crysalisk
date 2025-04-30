@@ -89,6 +89,7 @@ struct ShaderConfig_t
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
 	size_t		vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
+	RendererView	m_RendererView{};
 };
 
 class Shader

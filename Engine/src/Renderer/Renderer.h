@@ -63,6 +63,9 @@ private:
 
 	// TODO: These are temporary...
 public:
+	RendererView		m_SceneView{};
+	RendererView		m_UIView{};
+
 	RenderBuffer		m_WorldVertexBuffer{};
 	RenderBuffer		m_WorldIndexBuffer{};
 

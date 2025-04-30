@@ -99,3 +99,10 @@ class RenderBuffer
 public:
 	void* m_pInternalData{ nullptr };
 };
+
+class RendererView
+{
+public:
+	bool	m_bShouldClear{ false };
+	void*	m_pInternalData{ nullptr };
+};

@@ -68,6 +68,13 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// Set up our renderpasses
+	m_SceneView.m_bShouldClear = true; // We do want to clear the framebuffer before rendering the scene.
+	m_RendererBackend->CreateRendererViewInternal(m_SceneView);
+
+	m_UIView.m_bShouldClear = false;
+	m_RendererBackend->CreateRendererViewInternal(m_UIView);
+
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_WorldIndexBuffer);
@@ -95,6 +102,9 @@ void Renderer::Shutdown()
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
+
+	m_RendererBackend->DestroyRendererViewInternal(m_UIView);
+	m_RendererBackend->DestroyRendererViewInternal(m_SceneView);
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
@@ -124,7 +134,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		return false;
 	}
 
-	m_RendererBackend->StartRenderpass(eKnownRenderpassType::WORLD);
+	m_RendererBackend->StartRenderpass(m_SceneView);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -170,7 +180,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	if (s_bLevelGeometryLoaded)
 	{
-		m_RendererBackend->StartRenderpass(eKnownRenderpassType::UI);
+		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render the test ui text
 		m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);

@@ -24,7 +24,8 @@ public:
 
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
-	virtual bool	StartRenderpass(eKnownRenderpassType renderpassType) = 0;
+
+	virtual bool	StartRenderpass(class RendererView& pRendererView) = 0;
 	virtual void	EndRenderpass() = 0;
 
 	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) = 0;
@@ -32,6 +33,9 @@ public:
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) = 0;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) = 0;
+
+	virtual bool	CreateRendererViewInternal(RendererView& pOutView) = 0;
+	virtual void	DestroyRendererViewInternal(RendererView& pView) = 0;
 
 	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(class Texture& pTexture) = 0;

@@ -585,21 +585,13 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::StartRenderpass(eKnownRenderpassType renderpassType)
+bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 {
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pRendererView.m_pInternalData);
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
-	switch (renderpassType)
-	{
-	case eKnownRenderpassType::WORLD:
-		renderpassInfo.renderPass = m_MainRenderPass.m_Handle;
-		break;
-
-	case eKnownRenderpassType::UI:
-		renderpassInfo.renderPass = m_UIRenderPass.m_Handle;
-	}
-
+	renderpassInfo.renderPass = pInternalPass->m_Handle;
 	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
 	renderpassInfo.renderArea.offset = { 0, 0 };
 	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
@@ -793,6 +785,29 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, *pInternalBuffer);
 
 	delete pRenderBuffer.m_pInternalData;
+	pRenderBuffer.m_pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
+{
+	// Allocate our internal renderpass.
+	pOutView.m_pInternalData = new VulkanRenderPass;
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
+
+	return VulkanRenderPass::CreateRenderpass(s_VulkanContext, pOutView.m_bShouldClear, *pInternalPass);
+}
+
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
+{
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pView.m_pInternalData);
+	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, *pInternalPass);
+
+	delete pView.m_pInternalData;
+	pView.m_pInternalData = nullptr;
 }
 
 //-------------------------------------------------------------------------

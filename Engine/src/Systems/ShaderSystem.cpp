@@ -173,6 +173,8 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newShader->m_szShaderName = StringDuplicate(newShaderConfig.pszShaderName);
 		}
 
+		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
+
 		// Acquire renderer resources.
 		if (!g_pRenderer->AcquireShaderResources(*newShader, newShaderConfig))
 		{
