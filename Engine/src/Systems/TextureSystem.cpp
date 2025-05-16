@@ -31,6 +31,9 @@ public:
 			// This variant exists to free textures in the array without having to access the hashmap from the calling function. This really only exists to easily clear the textures on shutdown.
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
 
+	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const override;
+	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const override;
+
 	// Use this to convert a texture handle to a texture pointer. This is necessary so the renderer can get at texture resources without relying on the texture system.
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
@@ -39,6 +42,10 @@ public:
 	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultNormalTexture() override { return m_pDefaultNormalTexture->TextureIndex; }
+
+private:
+
+	TextureHandle_t				GetFirstFreeTextureHandle() const;
 
 	bool			CreateDefaultTextures();
 	void			DestroyDefaultTextures();
@@ -127,7 +134,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 	if (!m_TextureDictionary.m_TextureArray)
 	{
 		LOG_WARN("CTextureSystem::AcquireTexture() called before texture system was initialized! Returning NULL handle.");
-		return 0; // TODO: Invalid ID.
+		return kInvalidID_U32;
 	}
 
 	if (!pszTextureName)
@@ -150,16 +157,8 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
 
 	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
 	{
-		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 
 		if (!newTexture)
 		{
@@ -271,15 +270,8 @@ TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, 
 	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
 	{
 		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 
 		if (!newTexture)
 		{
@@ -380,6 +372,46 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 }
 
 //-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
+{
+	return m_TextureDictionary.m_TextureArray[hTexture].width;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
+{
+	return m_TextureDictionary.m_TextureArray[hTexture].height;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
+{
+	if (!s_TextureSystem.m_TextureDictionary.m_TextureArray)
+	{
+		LOG_ERROR("Attempting to acquire a texture prior to texture system initialization, texture acquisition failed.");
+		return kInvalidID_U32;
+	}
+
+	for (int texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+	{
+		if (!s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+		{
+			// Found a free slot, return!
+			return texIdx;
+		}
+	}
+
+	LOG_WARN("Failed to find free texture slot in the texture dictionary, returning default texture.");
+	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
 // Create/Acquire default texture resources.
 //-------------------------------------------------------------------------
 bool CTextureSystem::CreateDefaultTextures()
@@ -395,16 +427,8 @@ bool CTextureSystem::CreateDefaultTextures()
 		TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultTextureName);
 		CAssert(newTextureLookup != nullptr);
 
-		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				defaultDiffuseTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		defaultDiffuseTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(defaultDiffuseTexture != nullptr);
 
 		defaultDiffuseTexture->pszTextureName = StringDuplicate(kszDefaultTextureName);
@@ -445,17 +469,8 @@ bool CTextureSystem::CreateDefaultTextures()
 		// Get an entry into the hashmap.
 		TextureLookup* defaultWhiteTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultWhiteTextureName);
 		CAssert(defaultWhiteTextureLookup != nullptr);
-
-		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				defaultWhiteTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		defaultWhiteTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(defaultWhiteTexture != nullptr);
 
 		defaultWhiteTexture->pszTextureName = StringDuplicate(kszDefaultWhiteTextureName);
@@ -496,17 +511,8 @@ bool CTextureSystem::CreateDefaultTextures()
 		// Get an entry into the hashmap.
 		TextureLookup* defaultSpecularTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultSpecularTextureName);
 		CAssert(defaultSpecularTextureLookup != nullptr);
-
-		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(pDefaultSpecularTexture != nullptr);
 
 		pDefaultSpecularTexture->pszTextureName = StringDuplicate(kszDefaultSpecularTextureName);
@@ -547,17 +553,8 @@ bool CTextureSystem::CreateDefaultTextures()
 		// Get an entry into the hashmap.
 		TextureLookup* defaultNormalTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultNormalTextureName);
 		CAssert(defaultNormalTextureLookup != nullptr);
-
-		// Get at the first free texture.
-		for (texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
-		{
-			if (!m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
-			{
-				// Found one!
-				pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-				break;
-			}
-		}
+		texIdx = GetFirstFreeTextureHandle();
+		pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(pDefaultNormalTexture != nullptr);
 
 		pDefaultNormalTexture->pszTextureName = StringDuplicate(kszDefaultNormalTextureName);

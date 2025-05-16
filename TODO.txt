@@ -13,3 +13,5 @@ Features to be developed:
 - Anti-aliasing
 - Shader system needs to be able to read shader stages with more flexibility.
 	- e.g. core.UI.frag.spv is NOT valid, but UI.frag.spv is.
+	
+- We need a solution for allocating memory prior to the memory manager being initialized.

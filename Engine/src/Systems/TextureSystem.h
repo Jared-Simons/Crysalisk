@@ -29,6 +29,9 @@ public:
 	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) = 0;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture, bool bForceRelease) = 0;
 
+	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const = 0;
+	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const = 0;
+
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) = 0;
 
 	virtual TextureHandle_t		GetDefaultDiffuseTexture() = 0;
