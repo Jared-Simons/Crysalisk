@@ -258,7 +258,7 @@ namespace Utl {
 			memcpy(pNewArray, m_pValues, m_ValueStride * m_Count);
 
 			// Free the old memory, and assign the new memory.
-			if (m_pValues)
+			if (m_pValues && m_Capacity > 0)
 				delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 

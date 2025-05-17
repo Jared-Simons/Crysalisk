@@ -29,6 +29,7 @@ public:
 private:
 	void			ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
 	VertexType_t	ParseVertexTypeFromString(const char* pszType);
+	void			ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
 
 private:
 	ShaderSystemConfig_t	m_Config{};
@@ -347,6 +348,11 @@ void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, Sh
 
 			pOutShaderConfig.uniformConfigs.PushBack(newUniform);
 		}
+		else if (StringCompare(key, "sampler_types"))
+		{
+			// Parse the sampler types.
+			ParseSamplerTypesFromString(value, pOutShaderConfig.samplerTypes);
+		}
 		else
 		{
 			LOG_WARN("Failed to parse shader config key: '%s'.", key);
@@ -386,6 +392,65 @@ VertexType_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
 	{
 		LOG_WARN("ParseVertexTypeFromString() -> Failed to parse: '%s'", pszType);
 		return VertexType_t::Undefined;
+	}
+}
+
+void CShaderSystem::ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes)
+{
+	LOG_DEBUG("Sampler types: %s", pszTypeString);
+	char* pszTypes = StringDuplicate(pszTypeString);
+	int commaIndex = StringIndexOf(pszTypeString, ',');
+	int startIndex = 0;
+
+	while (commaIndex != kInvalidID_U32)
+	{
+		// TODO: Clean this logic up.
+		char* pszCurrentType = StringDuplicate_N(&pszTypeString[startIndex], commaIndex);
+
+		if (StringCompare(pszCurrentType, "diffuse"))
+		{
+			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+		}
+		else if (StringCompare(pszCurrentType, "specular"))
+		{
+			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+		}
+		else if (StringCompare(pszCurrentType, "normal"))
+		{
+			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+		}
+		else
+		{
+			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_UNDEFINED);
+		}
+
+		StringFree(pszCurrentType);
+		startIndex += commaIndex + 1;
+		commaIndex = StringIndexOf(&pszTypeString[startIndex], ',');
+
+		if (commaIndex == kInvalidID_U32)
+		{
+			// There should be one more type after the last comma.
+			pszCurrentType = StringDuplicate(&pszTypeString[startIndex]);
+			if (StringCompare(pszCurrentType, "diffuse"))
+			{
+				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			}
+			else if (StringCompare(pszCurrentType, "specular"))
+			{
+				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			}
+			else if (StringCompare(pszCurrentType, "normal"))
+			{
+				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			}
+			else
+			{
+				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_UNDEFINED);
+			}
+
+			StringFree(pszCurrentType);
+		}
 	}
 }
 

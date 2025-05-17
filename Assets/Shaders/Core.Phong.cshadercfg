@@ -23,4 +23,5 @@ uniform=shininess,int,1
 uniform=color,vec3,1
 uniform=textures,texture[3],1
 uniform=model,mat4,2
- 
+
+sampler_types=diffuse,specular,normal 

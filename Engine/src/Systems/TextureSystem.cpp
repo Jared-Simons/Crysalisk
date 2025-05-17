@@ -24,7 +24,7 @@ public:
 	virtual bool	Initialize(TextureSystemConfig_t config) override;
 	virtual void	Shutdown() override;
 
-	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName) override;
+	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, eKnownTextureTypes textureType) override;
 	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) override;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture, bool bForceRelease) override;
 
@@ -125,7 +125,7 @@ void CTextureSystem::Shutdown()
 // Loads a texture at the provided path if it hasn't been loaded.
 // Returns a handle to the texture.
 //-------------------------------------------------------------------------
-TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName)
+TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, eKnownTextureTypes textureType)
 {
 	Texture* newTexture = nullptr;
 	int texIdx = 0;

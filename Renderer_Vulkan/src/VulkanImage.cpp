@@ -51,29 +51,11 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 
 	VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewCreateInfo, pRenderingContext.m_Allocator, &pOutImage.m_View));
 
-	// Create sampler
-	VkSamplerCreateInfo samplerCreateInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	samplerCreateInfo.magFilter = VK_FILTER_LINEAR; // TODO: MAKE THIS CONFIGRABLE!!!
-	samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
-	samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreateInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	samplerCreateInfo.anisotropyEnable = VK_FALSE;
-	samplerCreateInfo.maxAnisotropy = pRenderingContext.m_Device.m_DeviceProperties.limits.maxSamplerAnisotropy;
-	samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-	samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-	samplerCreateInfo.compareEnable = VK_FALSE;
-	samplerCreateInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-	samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	VK_CHECK(vkCreateSampler(pRenderingContext.m_Device.m_Device, &samplerCreateInfo, pRenderingContext.m_Allocator, &pOutImage.m_Sampler));
-
 	return true;
 }
 
 void VulkanImage::DestroyImage(CVulkanRenderer& pRenderingContext, VulkanImage& pImage)
 {
-	vkDestroySampler(pRenderingContext.m_Device.m_Device, pImage.m_Sampler, pRenderingContext.m_Allocator);
 	vkDestroyImageView(pRenderingContext.m_Device.m_Device, pImage.m_View, pRenderingContext.m_Allocator);
 	vkFreeMemory(pRenderingContext.m_Device.m_Device, pImage.m_Memory, pRenderingContext.m_Allocator);
 	vkDestroyImage(pRenderingContext.m_Device.m_Device, pImage.m_Image, pRenderingContext.m_Allocator);

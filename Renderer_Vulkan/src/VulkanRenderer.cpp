@@ -959,7 +959,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_View;
-		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_Sampler;
+		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE];
 
 		imageWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		imageWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
@@ -978,7 +978,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_View;
-		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_Sampler;
+		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_SPECULAR];
 
 		imageWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		imageWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
@@ -997,7 +997,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 		VkDescriptorImageInfo imageInfo{};
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_View;
-		imageInfo.sampler = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_Sampler;
+		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_NORMAL];
 
 		imageWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		imageWrites[2].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
@@ -1387,6 +1387,27 @@ bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pS
 			instanceSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // For now at least, samplers are only used in fragment shaders.
 
 			instanceBindings.PushBack(instanceSamplerLayoutBinding);
+
+			pInternalShader.m_InstanceSamplers.Resize(iInstanceSamplerCount);
+
+			// Set up the actual samplers.
+			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+			samplerInfo.magFilter = VK_FILTER_LINEAR; // TODO: MAKE THIS CONFIGURABLE!!!
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.anisotropyEnable = VK_FALSE;
+			samplerInfo.maxAnisotropy = m_Device.m_DeviceProperties.limits.maxSamplerAnisotropy;
+			samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			for (int idx = 0; idx < iInstanceSamplerCount; idx++)
+			{
+				VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader.m_InstanceSamplers[idx]));
+			}
 		}
 
 		// Instance descriptor set layout.
@@ -1535,6 +1556,11 @@ void CVulkanRenderer::ReleaseShaderResources(Shader& pShader)
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
 	
 	vkDeviceWaitIdle(m_Device.m_Device);
+
+	for (int idx = 0; idx < pInternalShader.m_InstanceSamplers.Capacity(); idx++)
+	{
+		vkDestroySampler(m_Device.m_Device, pInternalShader.m_InstanceSamplers[idx], m_Allocator);
+	}
 
 	// Release uniform buffer resources.
 	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)

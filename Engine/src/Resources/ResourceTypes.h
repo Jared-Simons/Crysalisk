@@ -80,6 +80,15 @@ public:
 
 using ShaderHandle_t = uint32_t;
 
+// Core known texture types.
+enum eKnownTextureTypes
+{
+	TEXTURE_TYPE_UNDEFINED = -1,
+	TEXTURE_TYPE_DIFFUSE,
+	TEXTURE_TYPE_SPECULAR,
+	TEXTURE_TYPE_NORMAL,
+};
+
 struct ShaderConfig_t
 {
 	const char* pszShaderName{ nullptr };
@@ -89,6 +98,7 @@ struct ShaderConfig_t
 	Utl::CVector<VertexAttribute_t> vertexAttributes{};
 	size_t		vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
+	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
 	RendererView	m_RendererView{};
 };
 

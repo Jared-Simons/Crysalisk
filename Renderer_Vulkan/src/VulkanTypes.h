@@ -61,7 +61,6 @@ public:
 	VkImage			m_Image{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
 	VkImageView		m_View{ VK_NULL_HANDLE };
-	VkSampler		m_Sampler{ VK_NULL_HANDLE };
 };
 
 class VulkanBuffer
@@ -153,6 +152,7 @@ public:
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 	size_t					m_CurrentRendererFrame{ 0 };
 
+	Utl::CVector<VkSampler>		m_InstanceSamplers{};
 	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
 	GlobalUniformObject_t	m_UniformData{};
 };
