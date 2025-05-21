@@ -834,7 +834,7 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 //-------------------------------------------------------------------------
 // TODO: Documentation
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// The internal data for a Vulkan texture is the image data.
 	pTexture->m_pInternalData = new VulkanImage;

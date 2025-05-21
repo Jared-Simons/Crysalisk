@@ -22,6 +22,8 @@ public:
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) = 0;
 
+	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) = 0;
+
 	virtual void	BindShader(ShaderHandle_t hShader) = 0;
 };
 

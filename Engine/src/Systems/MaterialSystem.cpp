@@ -161,7 +161,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszShaderName != nullptr)
 		{
-			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMatConfig.pszShaderName);
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD(newMatConfig.pszShaderName);
 		}
 
 		if (newMatConfig.iShininess != kInvalidID_U32)
@@ -176,7 +176,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			//newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName, true);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
 			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
@@ -185,7 +186,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszSpecularTextureName != nullptr)
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			//newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszSpecularTextureName, true);
 		}
 		else
 		{
@@ -195,7 +197,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszNormalTextureName != nullptr)
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			//newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszNormalTextureName, true);
 		}
 		else
 		{
@@ -309,7 +312,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszShaderName != nullptr)
 		{
-			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(pConfig.pszShaderName);
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD(pConfig.pszShaderName);
 		}
 
 		if (pConfig.iShininess != kInvalidID_U32)
@@ -419,7 +422,7 @@ MaterialReference CMaterialSystem::GetDefaultMaterialReference()
 void CMaterialSystem::CreateDefaultMaterial()
 {
 	m_DefaultMaterial.m_szMaterialName = StringDuplicate("_DefaultMaterial");
-	m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");
+	m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD("Core.Phong");
 	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem->GetDefaultDiffuseTexture();
 	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
 	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();

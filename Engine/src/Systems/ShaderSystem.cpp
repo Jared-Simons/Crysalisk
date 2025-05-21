@@ -11,6 +11,7 @@
 #include <Containers/CHashMap.h>
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
+#include <Resources/Loaders/ShaderLoader.h>
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -23,6 +24,8 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
+
+	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) override;
 
 	virtual void	BindShader(ShaderHandle_t hShader) override;
 
@@ -88,22 +91,61 @@ void CShaderSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
+{
+	ShaderLoader::ShaderResource_t	newShaderResource{};
+	ShaderHandle_t					newShaderHandle = kInvalidID_U32;
+	ShaderLookup*					pLookup = &m_ShaderDictionary.m_ShaderLookup[pszShaderName];
+
+	if (!pszShaderName)
+	{
+		LOG_ERROR("AcquireShader() called with null shader name! Returning null handle.");
+		return kInvalidID_U32;
+	}
+
+	if (pLookup->ShaderIndex == kInvalidID_U32)
+	{
+		// This shader has not yet been loaded, so load it in.
+
+		// Format the path string (TODO: Don't hardcode this path).
+		char szFormattedResourcePath[kScratchStringBufferLength];
+		StringFormat_V("%s/%s.cshadercfg", szFormattedResourcePath, "Assets/Shaders", pszShaderName);
+
+		// Load up a shader configuration from disk
+		if (!ShaderLoader::LoadShaderResource(szFormattedResourcePath, newShaderResource))
+		{
+			LOG_ERROR("Failed to load resources for shader '%s'. Aborting creation", pszShaderName);
+			return 0;
+		}
+	}
+	else
+	{
+		// This shader's resources are already loaded, just return the index.
+		newShaderHandle = pLookup->ShaderIndex;
+	}
+
+	return newShaderHandle;
+}
+
+//-------------------------------------------------------------------------
 // Loads a material at the provided path, and acquires it's resources if it
 // hasn't been loaded.
 // Returns a handle to the shader.
 //-------------------------------------------------------------------------
-ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
+ShaderHandle_t CShaderSystem::AcquireShader_OLD(const char* pszShaderName)
 {
 	// Make sure our state is ready to go.
 	if (!m_ShaderDictionary.m_ShaderArray)
 	{
-		LOG_WARN("CShaderSystem::AcquireShader() called before material system was initialized! Returning NULL handle.");
+		LOG_WARN("CShaderSystem::AcquireShader_OLD() called before material system was initialized! Returning NULL handle.");
 		return 0;
 	}
 
 	if (!pszShaderName || !pszShaderName[0])
 	{
-		LOG_ERROR("AcquireShader() requires a shader to load. Nothing was done.");
+		LOG_ERROR("AcquireShader_OLD() requires a shader to load. Nothing was done.");
 		return -1;
 	}
 
