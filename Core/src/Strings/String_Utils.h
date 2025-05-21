@@ -26,11 +26,13 @@ DLL_EXPORT unsigned int StringIndexOf(const char* pString, char pCharToFind);
 // Appends str2 to string 1.
 DLL_EXPORT char* StringConcat(char* str1, char* str2);
 
-DLL_EXPORT size_t StringTrim(char* pStr, char* pOutString);
+DLL_EXPORT char* StringTrim(char* pStr);
+DLL_EXPORT size_t StringTrimInPlace(char* pStr, char* pOutString);
 
 // Strips all instances of 'c' from pStr.
 // NOTE: This must be freed by the caller.
 DLL_EXPORT char* StringStrip(char* pStr, char c);
+DLL_EXPORT void StringStripInPlace(char* pStr, char c);
 
 DLL_EXPORT int String_ATOI(const char* c);
 DLL_EXPORT float String_ATOF(const char* c);

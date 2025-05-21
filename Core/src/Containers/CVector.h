@@ -108,7 +108,7 @@ namespace Utl {
 			if (m_Capacity > 0)
 			{
 				m_pValues = new T[m_Capacity];
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
 			return *this;
@@ -210,7 +210,8 @@ namespace Utl {
 				Resize(newCapacity);
 			}
 
-			m_pValues[m_Count] = element;
+			//m_pValues[m_Count] = element;
+			memcpy(&m_pValues[m_Count], &element, sizeof(T));
 			m_Count++;
 
 			// Return the index of the new element.

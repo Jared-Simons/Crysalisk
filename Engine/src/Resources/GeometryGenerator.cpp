@@ -409,13 +409,13 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newVertex{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newVertex.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newVertex.y = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newVertex.z = String_ATOF(pCurrValue);
 
 						vertices.PushBack(newVertex);
@@ -428,13 +428,13 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newNormal{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newNormal.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newNormal.y = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newNormal.z = String_ATOF(pCurrValue);
 
 						normals.PushBack(newNormal);
@@ -447,10 +447,10 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector2D newTexCoord{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newTexCoord.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newTexCoord.y = String_ATOF(pCurrValue);
 
 						texCoords.PushBack(newTexCoord);

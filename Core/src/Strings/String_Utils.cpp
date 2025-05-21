@@ -26,14 +26,16 @@ void StringFormat(const char* format, const char* str1, const char* str2, char* 
 	strcpy_s(outString, 10000, stringBuffer);
 }
 
+// NOTE: This only supports strings UP TO 512 characters!
+// This had to be shortened because the larger string sizes were blowing out the stack on deep call stacks.
 void StringFormat_V(const char* format, char* outString, ...)
 {
-	char stringBuffer[10000];
+	char stringBuffer[512];
 	va_list varArgs;
 	va_start(varArgs, outString);
-	vsnprintf_s(stringBuffer, 10000, format, varArgs);
+	vsnprintf_s(stringBuffer, 512, format, varArgs);
 	va_end(varArgs);
-	strcpy_s(outString, 10000, stringBuffer);
+	strcpy_s(outString, 512, stringBuffer);
 	//strcpy(outString, stringBuffer);
 }
 
@@ -80,7 +82,6 @@ void StringFree(char* pString)
 {
 	if (pString)
 	{
-		size_t strLength = StringLength(pString);
 		delete[] pString;
 	}
 }
@@ -99,14 +100,13 @@ char* StringConcat(char* str1, char* str2)
 	return newString;
 }
 
-size_t StringTrim(char* pStr, char* pOutString)
+char* StringTrim(char* pStr)
 {
-	char* szTrimmedString{};
-
 	size_t strLength = StringLength(pStr);
 
 	size_t startIndex = -1;
 	size_t endIndex = -1;
+	size_t numWhitespaceCharacters = 0;
 
 	for (int idx = 0; idx < strLength; idx++)
 	{
@@ -116,10 +116,10 @@ size_t StringTrim(char* pStr, char* pOutString)
 			startIndex = idx;
 		}
 
-		if ((pStr[idx] == ' ' || pStr[idx] == 0) && startIndex != -1)
+		if ((pStr[idx] == ' ' || pStr[idx] == '\t' || pStr[idx] == 0) && startIndex != -1)
 		{
-			// Set the end index.
-			endIndex = idx;
+			// Whitespace token found.
+			numWhitespaceCharacters++;
 		}
 
 		if (startIndex != -1 && endIndex != -1)
@@ -131,10 +131,67 @@ size_t StringTrim(char* pStr, char* pOutString)
 		endIndex = strLength + 1;
 	}
 
-	size_t newStringLength = endIndex - startIndex + 1;
+	size_t newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
+	char* pTrimmedString = new char[newStringLength];
 
-	memcpy(pOutString, &pStr[startIndex], newStringLength);
-	pOutString[newStringLength] = 0;
+	// Step through the string again, this time copying over all the characters BUT the whitespace characters.
+	for (int idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
+	{
+		// Ignore all whitespace tokens.
+		while (pStr[oldIdx] == ' ' || pStr[oldIdx] == '\t' || pStr[oldIdx] == 0)
+			oldIdx++;
+
+		pTrimmedString[idx] = pStr[oldIdx];
+	}
+
+	pTrimmedString[newStringLength - numWhitespaceCharacters] = 0;
+	return pTrimmedString;
+}
+
+size_t StringTrimInPlace(char* pStr, char* pOutString)
+{
+	size_t strLength = StringLength(pStr);
+
+	size_t startIndex = -1;
+	size_t endIndex = -1;
+	size_t numWhitespaceCharacters = 0;
+
+	for (int idx = 0; idx < strLength; idx++)
+	{
+		if (pStr[idx] != ' ' && startIndex == -1)
+		{
+			// Set the start index.
+			startIndex = idx;
+		}
+
+		if ((pStr[idx] == ' ' || pStr[idx] == '\t' || pStr[idx] == 0) && startIndex != -1)
+		{
+			// Whitespace token found.
+			numWhitespaceCharacters++;
+		}
+
+		if (startIndex != -1 && endIndex != -1)
+			break;
+	}
+
+	if (endIndex == -1)
+	{
+		endIndex = strLength + 1;
+	}
+
+	size_t newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
+
+	// Step through the string again, this time copying over all the characters BUT the whitespace characters.
+	for (int idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
+	{
+		// Ignore all whitespace tokens.
+		while (pStr[oldIdx] == ' ' || pStr[oldIdx] == '\t' || pStr[oldIdx] == 0)
+			oldIdx++;
+
+		pOutString[idx] = pStr[oldIdx];
+	}
+
+	pOutString[newStringLength - numWhitespaceCharacters] = 0;
 	return newStringLength;
 }
 
@@ -168,6 +225,29 @@ char* StringStrip(char* pStr, char c)
 	}
 	newString[(len - numInstances) - 1] = '\0';
 	return newString;
+}
+
+void StringStripInPlace(char* pStr, char c)
+{
+	if (!pStr)
+	{
+		return;
+	}
+
+	size_t len = StringLength(pStr);
+	size_t numInstances = 0;
+
+	for (int idx = 0; idx < len; idx++)
+	{
+		if (pStr[idx] == c)
+		{
+			// Strip this character and pull the rest of the string back.
+			for (int inIdx = idx; inIdx < len; inIdx++)
+			{
+				pStr[inIdx] = pStr[inIdx + 1];
+			}
+		}
+	}
 }
 
 int String_ATOI(const char* c)
