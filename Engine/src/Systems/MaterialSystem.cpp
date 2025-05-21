@@ -176,7 +176,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
 			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
@@ -185,7 +185,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszSpecularTextureName != nullptr)
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
 		}
 		else
 		{
@@ -195,7 +195,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszNormalTextureName != nullptr)
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
 		}
 		else
 		{
@@ -324,7 +324,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszDiffuseTextureName != nullptr)
 		{
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
 			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
@@ -333,7 +333,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszSpecularTextureName != nullptr)
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
 		}
 		else
 		{
@@ -343,7 +343,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszNormalTextureName != nullptr)
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
 		}
 		else
 		{

@@ -25,9 +25,13 @@ public:
 	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, eKnownTextureTypes textureType) = 0;
+	virtual TextureHandle_t		AcquireTexture_OLD(const char* pszTextureName, eKnownTextureTypes textureType) = 0;
+	virtual void				ReleaseTexture_OLD(TextureHandle_t hTexture, bool bForceRelease) = 0;
+
+	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) = 0;
+	virtual void				ReleaseTexture(TextureHandle_t hTexture) = 0;
+
 	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) = 0;
-	virtual void				ReleaseTexture(TextureHandle_t hTexture, bool bForceRelease) = 0;
 
 	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const = 0;
 	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const = 0;

@@ -157,9 +157,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		}
 
 		// Render our temp geometry.
-		//DrawGeometry(m_Cube1);
-		//DrawGeometry(m_Cube2);
-		//DrawGeometry(m_Cube3);
+		DrawGeometry(m_Cube1);
+		DrawGeometry(m_Cube2);
+		DrawGeometry(m_Cube3);
 
 		// Render the opaque geometry first.
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
@@ -178,7 +178,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->EndRenderpass();
 
-	if (s_bLevelGeometryLoaded)
+	/*if (s_bLevelGeometryLoaded)
 	{
 		m_RendererBackend->StartRenderpass(m_UIView);
 
@@ -186,22 +186,32 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
 
 		m_RendererBackend->EndRenderpass();
-	}
+	}*/
 
 	m_RendererBackend->EndFrame(pRenderData);
 
 	return true;
 }
 
-bool Renderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
-	// No work to be done here, pass it right through to the backend.
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
 
-void Renderer::ReleaseTextureResources(Texture& pTexture)
+void Renderer::ReleaseTextureResources(Texture* pTexture)
 {
 	m_RendererBackend->ReleaseTextureResources(pTexture);
+}
+
+bool Renderer::AcquireTextureResources_OLD(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+{
+	// No work to be done here, pass it right through to the backend.
+	return m_RendererBackend->AcquireTextureResources_OLD(pTexture, internalIndex, nPixelDataSize, pPixelData);
+}
+
+void Renderer::ReleaseTextureResources_OLD(Texture& pTexture)
+{
+	m_RendererBackend->ReleaseTextureResources_OLD(pTexture);
 }
 
 bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
@@ -249,7 +259,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 
 bool Renderer::CreateTempGeometry()
 {
-	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
 
@@ -269,7 +279,7 @@ bool Renderer::CreateTempGeometry()
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
-	}*/
+	}
 
 	// Acquire materials
 	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
@@ -282,19 +292,19 @@ bool Renderer::CreateTempGeometry()
 	// END TEMP
 
 	// Load a test model.
-	LOG_DEBUG("Bytes allocated before model loading:");
-	g_pMemoryManager->PrintMemoryStats();
-	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+	//LOG_DEBUG("Bytes allocated before model loading:");
+	//g_pMemoryManager->PrintMemoryStats();
+	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
-	LOG_DEBUG("Bytes allocated after model loading:");
+	//LOG_DEBUG("Bytes allocated after model loading:");
 
 	// Font test.
-	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
+	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
 
 	// Acquire geometry resources for this text.
-	s_FontTest.SetText("Some Test Text!");
+	//s_FontTest.SetText("Some Test Text!");
 
 	return true;
 }

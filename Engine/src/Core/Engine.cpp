@@ -75,7 +75,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up our memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(75);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(50);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -200,6 +200,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
 	//ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Assets/Shaders/CoreShader.cshadercfg");
+	TextureHandle_t testTextureHandle = g_pTextureSystem->AcquireTexture("Assets/Textures/Container2.png", true);
+	g_pTextureSystem->ReleaseTexture(testTextureHandle);
 
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();

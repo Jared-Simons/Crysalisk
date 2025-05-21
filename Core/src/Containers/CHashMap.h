@@ -70,7 +70,7 @@ namespace Utl {
 		{
 			// TODO: We need a generic function here
 			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
-			CAssert((hashedValue >= 0 && hashedValue < m_Capacity));
+			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
 
 			// TODO: Check for collisions.
 			m_pKeys[hashedValue] = key;

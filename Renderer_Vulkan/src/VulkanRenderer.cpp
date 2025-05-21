@@ -410,6 +410,9 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	// Device
 	VulkanDevice::DestroyDevice(s_VulkanContext, m_Device);
 
+	// Surface
+	vkDestroySurfaceKHR(m_Instance, m_Surface, m_Allocator);
+
 #ifdef _DEBUG
 	// Debug messenger
 	PFN_vkDestroyDebugUtilsMessengerEXT destroyDebuggerFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -417,7 +420,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	if (destroyDebuggerFunc != nullptr)
 	{
 		destroyDebuggerFunc(m_Instance, m_DebugMessenger, m_Allocator);
-		return;
 	}
 #endif
 
@@ -811,6 +813,75 @@ void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 }
 
 //-------------------------------------------------------------------------
+// TODO: Documentation
+//-------------------------------------------------------------------------
+static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
+{
+	switch (iChannelCount)
+	{
+	case 1:
+		return VK_FORMAT_R8_UNORM;
+	case 3:
+		return VK_FORMAT_R8G8B8_UNORM;
+	case 4:
+	default:
+		if (iChannelCount == 0)
+			LOG_WARN("Channel count of 0 was provided, returning R8G8B8A8.");
+		return VK_FORMAT_R8G8B8A8_UNORM;
+	}
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+{
+	// The internal data for a Vulkan texture is the image data.
+	pTexture->m_pInternalData = new VulkanImage;
+	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+
+	// Set up the internal image data.
+	VkFormat format = ConvertChannelNumberToVulkanFormat(pTexture->numChannels);
+	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture->width, pTexture->height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, *pImageInternal))
+	{
+		LOG_ERROR("Failed to create Vulkan resources for texture.");
+		delete pImageInternal;
+		pTexture->m_pInternalData = nullptr;
+		return false;
+	}
+
+	if (!pImageInternal->WriteDataToImage(s_VulkanContext, pTexture->width, pTexture->height, pPixelData))
+	{
+		LOG_ERROR("Failed to write pixel data to texture. Nothing was done.");
+		VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
+		delete pImageInternal;
+		pTexture->m_pInternalData = nullptr;
+		return false;
+	}
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation
+//-------------------------------------------------------------------------
+void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
+{
+	// Make sure the resource isn't in use.
+	vkDeviceWaitIdle(m_Device.m_Device);
+
+	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+	CAssert(pImageInternal);
+
+	// Destroy the image data.
+	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
+
+	// Release the memory.
+	delete pImageInternal;
+	pTexture->m_pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Acquire Vulkan specific texture resources.
 // Input: pTexture		 - The texture to acquire resources for.
 //		  internalIndex  - The array index/handle this texture is using.
@@ -818,7 +889,7 @@ void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 //		  pPixelData	 - A byte array containing the raw pixel data.
 // Output: bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool CVulkanRenderer::AcquireTextureResources_OLD(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// Allocate space for Vulkan texture data.
 	VulkanTextureInternal* pInternalData = nullptr;
@@ -862,7 +933,7 @@ bool CVulkanRenderer::AcquireTextureResources(Texture& pTexture, int internalInd
 // Input: pTexture - The texture to release resources for.
 // Output: none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::ReleaseTextureResources(Texture& pTexture)
+void CVulkanRenderer::ReleaseTextureResources_OLD(Texture& pTexture)
 {
 	// Make sure the resource isn't in use.
 	vkDeviceWaitIdle(m_Device.m_Device);

@@ -160,6 +160,5 @@ public:
 struct VulkanTextureInternal
 {
 	class VulkanImage	m_Image{};
-	unsigned int		m_DescriptorSetIndex{ 0 };
 	unsigned char		m_Generation{ kInvalidID_U8 };
 };

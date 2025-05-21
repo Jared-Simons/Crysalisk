@@ -33,6 +33,7 @@ enum class eTextureType
 	MAX_TEXTURE_TYPES,
 };
 
+// TODO: MOVE THIS TO THE TEXTURE SYSTEM INTERNALLY AND USE HANDLES EVERYWHERE ELSE
 class Texture
 {
 public:
@@ -44,7 +45,7 @@ public:
 	inline const char* GetName() const { return pszTextureName; }
 	inline TextureFlags GetFlags() const { return textureFlags; }
 
-private:
+public:
 	int32_t width;
 	int32_t height;
 	int32_t numChannels; // TODO: Image format

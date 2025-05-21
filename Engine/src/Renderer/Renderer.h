@@ -32,8 +32,11 @@ public:
 	void	Shutdown();
 	bool	Update(struct RenderPacket_t& pRenderData);
 
-	bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void	ReleaseTextureResources(class Texture& pTexture);
+	bool			AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
+	void			ReleaseTextureResources(class Texture* pTexture);
+
+	bool	AcquireTextureResources_OLD(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
+	void	ReleaseTextureResources_OLD(class Texture& pTexture);
 
 	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
 
