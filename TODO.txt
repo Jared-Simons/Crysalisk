@@ -15,3 +15,5 @@ Features to be developed:
 	- e.g. core.UI.frag.spv is NOT valid, but UI.frag.spv is.
 	
 - We need a solution for allocating memory prior to the memory manager being initialized.
+- There is a bug with the overloaded new/delete operators where they allocate x address but actually return an address x + a few bytes, but this is inconsistent.	
+	- This is possibly an alignment issue which we need to support memory alignment in our own allocators anyways.

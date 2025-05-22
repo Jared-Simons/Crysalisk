@@ -15,6 +15,8 @@ namespace ShaderLoader
 {
 	// Helper functions.
 	static bool ProcessShaderModule(char* pszConfigData, ShaderResource_t& pOutResource);
+	static bool	ProcessShaderVertexAttribute(char* pszConfigData, ShaderResource_t& pOutResource);
+	static bool ProcessShaderUniforms(char* pszConfigData, ShaderResource_t& pOutResource);
 	
 
 #define VERIFY_EQUAL_TOKEN_FOUND(currentLine, equalIndex)\
@@ -24,6 +26,9 @@ namespace ShaderLoader
 		continue;																										\
 	}
 
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
 	bool LoadShaderResource(const char* pszShaderPath, ShaderResource_t& pOutResource)
 	{
 		FileHandle_t hShaderCfgFile{};
@@ -105,15 +110,19 @@ namespace ShaderLoader
 					char	pszDataBlockLine[1000];
 					size_t	subBlockBytesRead{ 0 };
 
+					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+
 					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 9)	// Hopefully we never have more than 8 shader stages...
 					{
+						// Doing a second line read here is okay because the one above should simply be a '{'.
+						// If this is not the case, then the file is formatted wrong.
+						FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+						
 						if (nIterations == 9)
 						{
 							LOG_WARN("Shaders currently only support a max of 8 stages. Shader '%s' exceeds this limit. Only 8 stages we're processed.", pOutResource.pszShaderName);
 							break;
 						}
-
-						FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
 
 						if (!pszDataBlockLine[0] || pszDataBlockLine[0] == '{' || pszDataBlockLine[0] == '}' || pszDataBlockLine[0] == '#') // Skip blank lines, braces, and comments.
 							continue;
@@ -126,13 +135,74 @@ namespace ShaderLoader
 
 						nIterations++;
 					}
-
 					continue;
 				}
 				else if (StringCompare(szCurrentLine, "attributes"))
 				{
 					// Vertex attributes.
+					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
+					char	pszDataBlockLine[1000];
+					size_t	subBlockBytesRead{ 0 };
 
+					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+
+					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 vertex attributes to one shader.
+					{
+						// Doing a second line read here is okay because the one above should simply be a '{'.
+						// If this is not the case, then the file is formatted wrong.
+						FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+
+						if (nIterations == 101)
+						{
+							LOG_WARN("Shaders currently only support a max of 100 vertex attributes. Shader '%s' exceeds this limit. Only 100 attributes were processed.", pOutResource.pszShaderName);
+							break;
+						}
+
+						if (!pszDataBlockLine[0] || pszDataBlockLine[0] == '{' || pszDataBlockLine[0] == '}' || pszDataBlockLine[1] == '#') // Skip blank lines, braces, and comments.
+							continue;
+
+						if (!ProcessShaderVertexAttribute(pszDataBlockLine, pOutResource))
+						{
+							LOG_ERROR("Failed to process shader vertex attribute config '%s'. Skipping attribute.", pszDataBlockLine);
+							continue;
+						}
+
+						nIterations++;
+					}
+					continue;
+				}
+				else if (StringCompare(szCurrentLine, "uniforms"))
+				{
+					// Shader uniforms.
+					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
+					char	pszDataBlockLine[1000];
+					size_t	subBlockBytesRead{ 0 };
+					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+
+					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 vertex attributes to one shader.
+					{
+						// Doing a second line read here is okay because the one above should simply be a '{'.
+						// If this is not the case, then the file is formatted wrong.
+						FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
+
+						if (nIterations == 101)
+						{
+							LOG_WARN("Shaders currently only support a max of 100 uniforms. Shader '%s' exceeds this limit. Only 100 uniforms were processed.", pOutResource.pszShaderName);
+							break;
+						}
+
+						if (!pszDataBlockLine[0] || pszDataBlockLine[0] == '{' || pszDataBlockLine[0] == '}' || pszDataBlockLine[1] == '#') // Skip blank lines, braces, and comments.
+							continue;
+
+						if (!ProcessShaderUniforms(pszDataBlockLine, pOutResource))
+						{
+							LOG_ERROR("Failed to process shader vertex attribute config '%s'. Skipping attribute.", pszDataBlockLine);
+							continue;
+						}
+
+						nIterations++;
+					}
+					continue;
 				}
 			}
 			LOG_WARN("Failed to parse shader config data: '%s'.", szCurrentLine);
@@ -144,6 +214,9 @@ namespace ShaderLoader
 		return true;
 	}
 
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
 	static bool ProcessShaderModule(char* pszConfigData, ShaderResource_t& pOutResource)
 	{
 		size_t									commaIndex{ 0 };
@@ -206,11 +279,104 @@ namespace ShaderLoader
 		FileSystem::CloseFile(&hShaderModule);
 
 		// Release temp string data.
-		StringFree(pszTypeString);
-		StringFree(pszTrimmedModulePath);
+		if (pszTypeString)
+			StringFree(pszTypeString);
+		if (pszTrimmedModulePath)
+			StringFree(pszTrimmedModulePath);
 
 		// Add the new module to the resource.
 		pOutResource.ShaderStages.PushBack(newShaderModule);
+
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static bool	ProcessShaderVertexAttribute(char* pszConfigData, ShaderResource_t& pOutResource)
+	{
+		ShaderResource_t::ShaderVertexAttributeConfig_t newAttribute{};
+		char*											pszTrimmedData{ nullptr };
+		char*											pszTempStringBuffer{ nullptr };
+		size_t											commaIndex{ 0 };
+
+		// We're assuming that the config data passed in here will be in the format of:
+		// "attribute name", "attribute type".
+		// If this is not the case, than the file is formatted wrong.
+		pszTrimmedData = StringTrim(pszConfigData);
+		commaIndex = StringIndexOf(pszTrimmedData, ',');
+		if (commaIndex == kInvalidID_U32)
+		{
+			return false;
+		}
+
+		pszTempStringBuffer = StringDuplicate_N(pszTrimmedData, commaIndex);
+		newAttribute.pszName = StringStrip(pszTempStringBuffer, '\"');
+		StringFree(pszTempStringBuffer);
+
+		pszTempStringBuffer = StringDuplicate(&pszTrimmedData[commaIndex + 1]);
+		newAttribute.pszType = StringStrip(pszTempStringBuffer, '\"');
+		StringFree(pszTempStringBuffer);
+
+		// Release temp string data.
+		if (pszTrimmedData)
+			StringFree(pszTrimmedData);
+
+		// Add the attribute to the resource.
+		pOutResource.ShaderAttributes.PushBack(newAttribute);
+
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static bool ProcessShaderUniforms(char* pszConfigData, ShaderResource_t& pOutResource)
+	{
+		ShaderResource_t::ShaderUniformConfig_t newUniform{};
+		char*									pszTrimmedData{ nullptr };
+		char*									pszTempStringBuffer{ nullptr };
+		size_t									commaIndex{ 0 };
+		size_t									commaIndex2{ 0 };
+
+		// We're assuming that the config data passed in here will be in the format of:
+		// "uniform name", "uniform type", "uniform group".
+		// If this is not the case, then the file is formatted wrong.
+		pszTrimmedData = StringTrim(pszConfigData);
+		commaIndex = StringIndexOf(pszTrimmedData, ',');
+		if (commaIndex == kInvalidID_U32)
+		{
+			return false;
+		}
+
+		// Uniform name first.
+		pszTempStringBuffer = StringDuplicate_N(pszTrimmedData, commaIndex);
+		newUniform.pszName = StringStrip(pszTempStringBuffer, '\"');
+		commaIndex2 = StringIndexOf(&pszTrimmedData[commaIndex + 1], ',');
+		if (commaIndex2 == kInvalidID_U32)
+		{
+			return false;
+		}
+
+		// Uniform type next.
+		StringFree(pszTempStringBuffer);
+		pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
+		newUniform.pszType = StringStrip(pszTempStringBuffer, '\"');
+
+		// Uniform update group next.
+		StringFree(pszTempStringBuffer);
+		pszTempStringBuffer = StringDuplicate(&pszTrimmedData[commaIndex + 1 + commaIndex2 + 1]);
+		newUniform.pszFreq = StringStrip(pszTempStringBuffer, '\"');
+
+		// Release temp string data.
+		if (pszTempStringBuffer)
+			StringFree(pszTempStringBuffer);
+
+		if (pszTrimmedData)
+			StringFree(pszTrimmedData);
+
+		// Add the uniform to the resource.
+		pOutResource.ShaderUniforms.PushBack(newUniform);
 
 		return true;
 	}

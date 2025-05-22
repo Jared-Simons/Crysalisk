@@ -86,7 +86,8 @@ namespace Utl {
 			// TODO: Custom allocators.
 			static int timesCalled{ 0 };
 			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
-				delete[] m_pValues;
+				g_pMemoryManager->Free(m_pValues);
+				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			m_pValues = nullptr;
 			timesCalled++;
 
@@ -190,7 +191,8 @@ namespace Utl {
 		//--------------------------------------------------
 		void Clear()
 		{
-			delete[] m_pValues;
+			g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+			//delete[] m_pValues;
 			m_pValues = nullptr;
 			m_Capacity = 0;
 			m_Count = 0;
@@ -210,8 +212,7 @@ namespace Utl {
 				Resize(newCapacity);
 			}
 
-			//m_pValues[m_Count] = element;
-			memcpy(&m_pValues[m_Count], &element, sizeof(T));
+			m_pValues[m_Count] = element;
 			m_Count++;
 
 			// Return the index of the new element.
@@ -252,7 +253,8 @@ namespace Utl {
 			}
 
 			// Allocate some new memory.
-			void* pNewArray = new T[newCapacity];
+			void* pNewData = g_pMemoryManager->Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
+			T* pNewArray = (T*)pNewData;												// For example, using new[] here seems to be inconsistent with returning a pointer to the correct address allocated, or an address that is some amount of bytes ahead of the allocated address.
 			CAssert(pNewArray);
 
 			// Copy the current array over.
@@ -260,7 +262,8 @@ namespace Utl {
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				delete[] m_pValues;
+				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				//delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 
 			// Bump up our capacity!

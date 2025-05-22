@@ -116,7 +116,7 @@ char* StringTrim(char* pStr)
 			startIndex = idx;
 		}
 
-		if ((pStr[idx] == ' ' || pStr[idx] == '\t' || pStr[idx] == 0) && startIndex != -1)
+		if ((pStr[idx] == ' ' || pStr[idx] == '\t') && startIndex != -1)
 		{
 			// Whitespace token found.
 			numWhitespaceCharacters++;
@@ -132,19 +132,21 @@ char* StringTrim(char* pStr)
 	}
 
 	size_t newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
+	size_t lastNonWhitespaceIdx{ 0 };
 	char* pTrimmedString = new char[newStringLength];
 
 	// Step through the string again, this time copying over all the characters BUT the whitespace characters.
 	for (int idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
 	{
 		// Ignore all whitespace tokens.
-		while (pStr[oldIdx] == ' ' || pStr[oldIdx] == '\t' || pStr[oldIdx] == 0)
+		while (pStr[oldIdx] == ' ' || pStr[oldIdx] == '\t')
 			oldIdx++;
 
 		pTrimmedString[idx] = pStr[oldIdx];
+		lastNonWhitespaceIdx = idx;
 	}
 
-	pTrimmedString[newStringLength - numWhitespaceCharacters] = 0;
+	pTrimmedString[lastNonWhitespaceIdx] = 0;
 	return pTrimmedString;
 }
 

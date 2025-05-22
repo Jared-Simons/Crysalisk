@@ -199,7 +199,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
+	g_pMemoryManager->PrintMemoryStats();
 	ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
+	g_pMemoryManager->PrintMemoryStats();
 
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();
