@@ -30,6 +30,8 @@ public:
 	virtual void	BindShader(ShaderHandle_t hShader) override;
 
 private:
+	ShaderHandle_t	FindFirstFreeShaderHandle() const;
+
 	void			ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
 	VertexType_t	ParseVertexTypeFromString(const char* pszType);
 	void			ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
@@ -55,6 +57,9 @@ private:
 // Shader System context.
 static CShaderSystem s_ShaderSystem;
 IShaderSystem* g_pShaderSystem = &s_ShaderSystem;
+
+// Forward Declarations
+static eShaderStage	GetShaderStageFromString(const char* pszString);
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -98,6 +103,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 	ShaderLoader::ShaderResource_t	newShaderResource{};
 	ShaderHandle_t					newShaderHandle = kInvalidID_U32;
 	ShaderLookup*					pLookup = &m_ShaderDictionary.m_ShaderLookup[pszShaderName];
+	Shader*							pShader = nullptr;
 
 	if (!pszShaderName)
 	{
@@ -116,8 +122,28 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		// Load up a shader configuration from disk
 		if (!ShaderLoader::LoadShaderResource(szFormattedResourcePath, newShaderResource))
 		{
-			LOG_ERROR("Failed to load resources for shader '%s'. Aborting creation", pszShaderName);
+			LOG_ERROR("Failed to load resources for shader '%s'. Aborting creation.", pszShaderName);
 			return 0;
+		}
+
+		// Find a free slot for this shader to occupy.
+		newShaderHandle = FindFirstFreeShaderHandle();
+		if (newShaderHandle == kInvalidID_U32)
+		{
+			LOG_ERROR("Failed to create shader '%s'. Returning null handle.", pszShaderName);
+			return kInvalidID_U32;
+		}
+		pShader = &m_ShaderDictionary.m_ShaderArray[newShaderHandle];
+
+		// Parse the stage types from the resource.
+		eShaderStage testStage = GetShaderStageFromString(newShaderResource.ShaderStages[0].pszStageString);
+
+		// Create internal resources for the shader.
+		if (!g_pRenderer->CreateShader(pShader, &newShaderResource))
+		{
+			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
+			// TODO: Release created resources and reset state.
+			return false;
 		}
 	}
 	else
@@ -219,7 +245,7 @@ ShaderHandle_t CShaderSystem::AcquireShader_OLD(const char* pszShaderName)
 		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
 
 		// Acquire renderer resources.
-		if (!g_pRenderer->AcquireShaderResources(*newShader, newShaderConfig))
+		if (!g_pRenderer->AcquireShaderResources_OLD(*newShader, newShaderConfig))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for shader '%s'. Returning default shader.", pszShaderName);
 			// TODO: Free resources and return default shader.
@@ -242,6 +268,25 @@ ShaderHandle_t CShaderSystem::AcquireShader_OLD(const char* pszShaderName)
 
 	LOG_VERBOSE("Successfully acquired shader: '%s', at index %d", newShader->m_szShaderName, newShaderLookup->ShaderIndex);
 	return newShaderLookup->ShaderIndex;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static eShaderStage	GetShaderStageFromString(const char* pszString)
+{
+	if (!pszString)
+		return eShaderStage::UNDEFINED;
+
+	if (StringCompareInsensitive(pszString, "Vertex") || StringCompareInsensitive(pszString, "Vert"))
+	{
+		return eShaderStage::VERTEX;
+	}
+	else
+	{
+		LOG_WARN("Failed to parse shader stage '%s'. Check shader configuration.", pszString);
+		return eShaderStage::UNDEFINED;
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -502,4 +547,16 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	{
 		g_pRenderer->BindShader(m_ShaderDictionary.m_ShaderArray[hShader]);
 	}
+}
+
+ShaderHandle_t CShaderSystem::FindFirstFreeShaderHandle() const
+{
+	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	{
+		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32)
+			return idx;
+	}
+
+	LOG_ERROR("Failed to find a free slot in the shader dictionary. Adjust config to allow for more.");
+	return kInvalidID_U32;
 }

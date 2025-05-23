@@ -14,6 +14,7 @@
 #include "VulkanTypes.h"
 
 #include <Containers/CVector.h>
+#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 class CVulkanRenderer : public IRendererBackend
 {
@@ -44,7 +45,9 @@ public:
 
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
-	virtual bool	AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
+	virtual bool	CreateShader(class Shader* pShader, struct ShaderLoader::ShaderResource_t* pShaderConfig) override;
+
+	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;
 
 	virtual void	BindShader(class Shader& pShader) override;

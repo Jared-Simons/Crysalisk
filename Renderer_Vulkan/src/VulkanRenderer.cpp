@@ -18,6 +18,7 @@
 #include <Platform/InterfaceRegistry.h>
 #include <Renderer/RendererTypes.h>
 #include <Resources/GeometryGenerator.h>
+#include <Resources/Loaders/ShaderLoader.h>
 #include <Resources/ResourceTypes.h>
 #include <Strings/String_Utils.h>
 
@@ -1088,6 +1089,30 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 	return true;
 }
 
+static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderLoader::ShaderResource_t::ShaderStageResource_t* pStageConfig)
+{
+	return true;
+}
+
+bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderLoader::ShaderResource_t* pShaderConfig)
+{
+	// Allocate internal structures for the shader.
+	pShader->m_pInternalData = new VulkanShaderInternal;
+	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+
+	// Piece together the shader modules.
+	for (int stageIdx = 0; stageIdx < pShaderConfig->ShaderStages.Count(); stageIdx++)
+	{
+		if (!CreateShaderModule(this, pInternalShader, &pShaderConfig->ShaderStages[stageIdx]))
+		{
+			LOG_ERROR("Failed to create shader module '%s' for shader '%s'. Shader creation aborted.", pShaderConfig->ShaderStages[stageIdx].pszStageString, pShaderConfig->pszShaderName);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static VkFormat VertexAttributeToVulkanType(VertexType_t inAttribute)
 {
 	switch (inAttribute)
@@ -1132,7 +1157,7 @@ static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 	}
 }
 
-bool CVulkanRenderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pShaderConfig)
+bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
 {
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
 	CAssert(pShader.m_iInternalHandle != kInvalidID_U32);

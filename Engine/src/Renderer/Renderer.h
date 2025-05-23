@@ -10,6 +10,7 @@
 #include "Core/Logging.h"
 #include "Defines.h"
 #include "Resources/ResourceTypes.h"
+#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 // Forward Declarations
 class IRendererBackend;
@@ -40,7 +41,9 @@ public:
 
 	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
 
-	bool			AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
+	bool			CreateShader(class Shader* pShader, struct ShaderLoader::ShaderResource_t* pShaderConfig);
+
+	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);
 
 	void			BindShader(class Shader& pShader);

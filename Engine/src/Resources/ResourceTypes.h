@@ -8,6 +8,7 @@
 
 #include "Defines.h"
 
+#include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
@@ -103,11 +104,29 @@ struct ShaderConfig_t
 	RendererView	m_RendererView{};
 };
 
+enum class eShaderStage
+{
+	UNDEFINED,
+	VERTEX,
+	FRAGMENT,
+	GEOMETRY,
+	COMPUTE,
+};
+
+struct ShaderUniform_t
+{
+
+};
+
 class Shader
 {
 public:
-	const char*		m_szShaderName{ nullptr };
-	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	const char*					m_szShaderName{ nullptr };
+	unsigned int				m_iInternalHandle{ kInvalidID_U32 };
+	Utl::CHashMap<char*, int>	m_UniformLookup{};
+	ShaderUniform_t*			m_pUniforms{ nullptr };
+
+	void*						m_pInternalData{ nullptr };
 };
 
 using MaterialHandle_t = uint32_t;

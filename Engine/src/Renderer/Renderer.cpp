@@ -219,9 +219,14 @@ bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct Materi
 	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
 }
 
-bool Renderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pShaderConfig)
+bool Renderer::CreateShader(Shader* pShader, ShaderLoader::ShaderResource_t* pShaderConfig)
 {
-	return m_RendererBackend->AcquireShaderResources(pShader, pShaderConfig);
+	return m_RendererBackend->CreateShader(pShader, pShaderConfig);
+}
+
+bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
+{
+	return m_RendererBackend->AcquireShaderResources_OLD(pShader, pShaderConfig);
 }
 
 void Renderer::ReleaseShaderResources(Shader& pShader)

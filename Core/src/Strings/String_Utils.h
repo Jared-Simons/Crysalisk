@@ -20,6 +20,7 @@ DLL_EXPORT char* StringDuplicate_N(const char* pStrToCopy, size_t bytesToCopy);
 DLL_EXPORT void StringFree(char* pString);
 
 DLL_EXPORT bool StringCompare(const char* str1, const char* str2);
+DLL_EXPORT bool StringCompareInsensitive(const char* str1, const char* str2);
 
 DLL_EXPORT unsigned int StringIndexOf(const char* pString, char pCharToFind);
 

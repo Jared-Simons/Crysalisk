@@ -45,6 +45,12 @@ bool StringCompare(const char* str1, const char* str2)
 	return result == 0;
 }
 
+bool StringCompareInsensitive(const char* str1, const char* str2)
+{
+	int result = strcmpi(str1, str2);
+	return result == 0;
+}
+
 unsigned int StringIndexOf(const char* pString, char pCharToFind)
 {
 	size_t len = StringLength(pString);
