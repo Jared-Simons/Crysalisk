@@ -58,7 +58,7 @@ namespace Utl {
 			if (m_Capacity > 0)
 			{
 				m_pValues = new T[m_Capacity];
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
 

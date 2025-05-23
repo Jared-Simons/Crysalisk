@@ -126,13 +126,15 @@ public:
 	VkRenderPass	m_Handle{ VK_NULL_HANDLE };
 };
 
+struct VulkanShaderModule_t
+{
+	VkShaderStageFlagBits	eStage{};
+	VkShaderModule			hModule{};
+};
+
 class VulkanShaderInternal
 {
 public:
-	size_t		m_Generation{ kInvalidID_U32 };
-	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
-	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
-
 	struct VulkanDescriptorSetLayoutState
 	{
 		VkDescriptorSetLayout			m_Layout;
@@ -144,6 +146,10 @@ public:
 		VkDescriptorSet m_DescriptorSets[3];
 		byte			m_Generation;
 	};
+
+	size_t		m_Generation{ kInvalidID_U32 };
+	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
 
 	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
 	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};

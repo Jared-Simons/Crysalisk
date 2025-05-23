@@ -142,6 +142,8 @@ namespace ShaderLoader
 		char*										pszShaderName{ nullptr };
 		Utl::CVector<ShaderStageResource_t>			ShaderStages{};
 		char*										pszTopologyType;
+		bool										bDepthTestingEnabled{ false };
+		bool										bColorBlendingEnabled{ false };
 		Utl::CVector<ShaderVertexAttributeConfig_t>	ShaderAttributes{};
 		Utl::CVector<ShaderUniformConfig_t>			ShaderUniforms{};
 

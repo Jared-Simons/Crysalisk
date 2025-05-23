@@ -219,9 +219,9 @@ bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct Materi
 	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
 }
 
-bool Renderer::CreateShader(Shader* pShader, ShaderLoader::ShaderResource_t* pShaderConfig)
+bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
-	return m_RendererBackend->CreateShader(pShader, pShaderConfig);
+	return m_RendererBackend->CreateShader(pShader, pConfig);
 }
 
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
@@ -299,7 +299,6 @@ bool Renderer::CreateTempGeometry()
 	// Load a test model.
 	//LOG_DEBUG("Bytes allocated before model loading:");
 	//g_pMemoryManager->PrintMemoryStats();
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
@@ -310,6 +309,7 @@ bool Renderer::CreateTempGeometry()
 
 	// Acquire geometry resources for this text.
 	//s_FontTest.SetText("Some Test Text!");
+	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
 	return true;
 }

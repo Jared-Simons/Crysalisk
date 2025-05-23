@@ -55,14 +55,38 @@ enum class VertexType_t
 
 struct VertexAttribute_t
 {
-	const char* szName;
-	VertexType_t type;
+	char*			szName;
+	VertexType_t	type;
+	size_t			stride;
 
 	VertexAttribute_t()
 		: szName{ nullptr }
-		, type{ VertexType_t::Undefined } {}
+		, type{ VertexType_t::Undefined } 
+		, stride{ 0 } {}
 
-	// TODO: String cleanup
+	VertexAttribute_t(const VertexAttribute_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		type = pOther.type;
+		stride = pOther.stride;
+	}
+
+	VertexAttribute_t& operator=(const VertexAttribute_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		type = pOther.type;
+		stride = pOther.stride;
+
+		return *this;
+	}
+
+	~VertexAttribute_t()
+	{
+		if (szName)
+			StringFree(szName);
+	}
 };
 
 enum class eShaderUniformUpdateFrequency

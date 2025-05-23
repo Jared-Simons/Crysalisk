@@ -91,19 +91,6 @@ enum eKnownTextureTypes
 	TEXTURE_TYPE_NORMAL,
 };
 
-struct ShaderConfig_t
-{
-	const char* pszShaderName{ nullptr };
-	int			numShaderStages{ 0 };
-	Utl::CVector<char*> pszShaderStageFileNames{};
-	unsigned int eTopologyTypes{ UNDEFINED };
-	Utl::CVector<VertexAttribute_t> vertexAttributes{};
-	size_t		vertexStride{};
-	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
-	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
-	RendererView	m_RendererView{};
-};
-
 enum class eShaderStage
 {
 	UNDEFINED,
@@ -111,6 +98,38 @@ enum class eShaderStage
 	FRAGMENT,
 	GEOMETRY,
 	COMPUTE,
+};
+
+enum eShaderTopologyType
+{
+	SHADER_TOPOLOGY_TYPE_UNDEFINED,
+	SHADER_TOPOLOGY_TYPE_LINE_LIST,
+	SHADER_TOPOLOGY_TYPE_TRIANGLE_LIST,
+};
+
+struct ShaderModuleConfig_t
+{
+	eShaderStage		stage{ UNDEFINED };
+	size_t				codeSize{ 0 };
+	Utl::CVector<byte>	byteCode{};
+};
+
+struct ShaderConfig_t
+{
+	const char*							pszShaderName{ nullptr };
+	Utl::CVector<ShaderModuleConfig_t>	moduleConfigs{};
+	unsigned int						eTopologyTypes{ UNDEFINED };
+	bool								bDepthTestingEnabled{ false };
+	bool								bColorBlendingEnabled{ false };
+	Utl::CVector<VertexAttribute_t>		vertexAttributes{};
+	size_t								vertexStride{};
+	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
+	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
+	RendererView	m_RendererView{};
+
+	// Deprecated!
+	int			numShaderStages{ 0 };
+	Utl::CVector<char*> pszShaderStageFileNames{};
 };
 
 struct ShaderUniform_t

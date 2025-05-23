@@ -1089,25 +1089,204 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 	return true;
 }
 
-static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderLoader::ShaderResource_t::ShaderStageResource_t* pStageConfig)
+static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inStage)
 {
+	switch (inStage)
+	{
+	case eShaderStage::VERTEX:
+	case eShaderStage::UNDEFINED:
+	default:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+
+	case eShaderStage::FRAGMENT:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+	}
+}
+
+static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
+{
+	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+	shaderModuleInfo.codeSize = pConfig.codeSize;
+	shaderModuleInfo.pCode = (uint32_t*)pConfig.byteCode.Data();
+
+	VulkanShaderModule_t newModule{};
+	if (vkCreateShaderModule(pRenderingContext->m_Device.m_Device, &shaderModuleInfo, pRenderingContext->m_Allocator, &newModule.hModule) != VK_SUCCESS)
+	{
+		LOG_ERROR("Failed to create shader module.");
+		return false;
+	}
+	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.stage);
+
+	// Add the module to the shader.
+	pOutModules.PushBack(newModule);
+
 	return true;
 }
 
-bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderLoader::ShaderResource_t* pShaderConfig)
+static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
+{
+	switch (inType)
+	{
+	case SHADER_TOPOLOGY_TYPE_LINE_LIST:
+		return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	default:
+	case SHADER_TOPOLOGY_TYPE_TRIANGLE_LIST:
+	case SHADER_TOPOLOGY_TYPE_UNDEFINED:
+		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	}
+}
+
+static VkFormat GetVertexFormatFromType(VertexType_t pType)
+{
+	switch (pType)
+	{
+	case VertexType_t::Int32:
+		return VK_FORMAT_R32_SINT;
+	case VertexType_t::Vector2:
+		return VK_FORMAT_R32G32_SFLOAT;
+	case VertexType_t::Vector3:
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	case VertexType_t::Vector4:
+		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	default:
+		LOG_WARN("Failed to parse vertex type, returning undefined.");
+		return VK_FORMAT_UNDEFINED;
+	}
+}
+
+bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
 	// Allocate internal structures for the shader.
 	pShader->m_pInternalData = new VulkanShaderInternal;
 	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
 
 	// Piece together the shader modules.
-	for (int stageIdx = 0; stageIdx < pShaderConfig->ShaderStages.Count(); stageIdx++)
+	Utl::CVector<VulkanShaderModule_t>				modules{};
+	Utl::CVector<VkPipelineShaderStageCreateInfo>	shaderStageInfos{};
+	modules.Resize(pConfig.moduleConfigs.Count());
+	for (int stageIdx = 0; stageIdx < pConfig.moduleConfigs.Count(); stageIdx++)
 	{
-		if (!CreateShaderModule(this, pInternalShader, &pShaderConfig->ShaderStages[stageIdx]))
+		if (!CreateShaderModule(this, pInternalShader, pConfig.moduleConfigs[stageIdx], modules))
 		{
-			LOG_ERROR("Failed to create shader module '%s' for shader '%s'. Shader creation aborted.", pShaderConfig->ShaderStages[stageIdx].pszStageString, pShaderConfig->pszShaderName);
+			LOG_ERROR("Failed to create shader module for shader '%s'. Shader creation aborted.", pConfig.pszShaderName);
 			return false;
 		}
+	}
+
+	// Use the created modules as stages for the pipeline.
+	shaderStageInfos.Resize(modules.Count());
+	for (int stageIdx = 0; stageIdx < modules.Count(); stageIdx++)
+	{
+		VkPipelineShaderStageCreateInfo stageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+		stageInfo.stage = modules[stageIdx].eStage;
+		stageInfo.module = modules[stageIdx].hModule;
+		stageInfo.pName = "main";	// All shader entrypoints are 'main()'.
+
+		shaderStageInfos.PushBack(stageInfo);
+	}
+
+	// Vertex input
+	// For now, we only need one binding.
+	VkPipelineVertexInputStateCreateInfo	vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+	VkPipelineInputAssemblyStateCreateInfo	inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+	VkVertexInputBindingDescription bindingDescription{};
+	bindingDescription.binding = 0;
+	bindingDescription.stride = pConfig.vertexStride;
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+	// Parse the vertex attributes from the config.
+	size_t	attribCount = pConfig.vertexAttributes.Count();
+	size_t	runningOffset{ 0 };
+	Utl::CVector<VkVertexInputAttributeDescription> vertexAttributes(attribCount);
+	for (int attribIdx = 0; attribIdx < attribCount; attribIdx++)
+	{
+		VkVertexInputAttributeDescription newAttribute{};
+		newAttribute.binding = 0;
+		newAttribute.location = attribIdx;
+		newAttribute.format = GetVertexFormatFromType(pConfig.vertexAttributes[attribIdx].type);
+		newAttribute.offset = runningOffset;
+
+		vertexAttributes.PushBack(newAttribute);
+		runningOffset += pConfig.vertexAttributes[attribIdx].stride;
+	}
+
+	// Input assembly
+	inputAssembly.topology = GetVulkanTopologyType(pConfig.eTopologyTypes);
+	inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+	// Dynamic state
+	VkDynamicState						dynamicStates[2]{};
+	VkPipelineDynamicStateCreateInfo	dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+	dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
+	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
+
+	dynamicStateInfo.dynamicStateCount = 2;
+	dynamicStateInfo.pDynamicStates = dynamicStates;
+
+	// Viewport
+	VkViewport viewport{};
+	viewport.x = 0.0f;
+	viewport.y = 0.0f;
+	viewport.width = (float)m_Swapchain.m_SwapchainExtent.width;
+	viewport.height = (float)m_Swapchain.m_SwapchainExtent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+	VkRect2D scissor{};
+	scissor.offset = { 0, 0 };
+	scissor.extent = m_Swapchain.m_SwapchainExtent;
+
+	VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+	viewportState.viewportCount = 1;
+	viewportState.pViewports = &viewport;
+	viewportState.scissorCount = 1;
+	viewportState.pScissors = &scissor;
+
+	// Rasterizer
+	VkPipelineRasterizationStateCreateInfo rasterizerInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+	rasterizerInfo.depthBiasClamp = VK_FALSE;
+	rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;
+	rasterizerInfo.polygonMode = VK_POLYGON_MODE_FILL;	// Set this to MODE_LINE for wireframe.
+	rasterizerInfo.lineWidth = 1.0f;
+	rasterizerInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+	rasterizerInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	// Multisampling
+	VkPipelineMultisampleStateCreateInfo multisamplingState{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+	multisamplingState.sampleShadingEnable = VK_FALSE;
+	multisamplingState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	// Depth testing
+	VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+	if (pConfig.bDepthTestingEnabled)
+	{
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthBoundsTestEnable = VK_FALSE;
+		depthStencil.stencilTestEnable = VK_FALSE;
+	}
+
+	// Color blending
+	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+	colorBlendAttachment.blendEnable = (pConfig.bColorBlendingEnabled) ? VK_TRUE : VK_FALSE;
+	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+	VkPipelineColorBlendStateCreateInfo colorBlendState{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+	colorBlendState.logicOpEnable = VK_FALSE;
+	colorBlendState.attachmentCount = 1;
+	colorBlendState.pAttachments = &colorBlendAttachment;
+
+	// We no longer need the shader modules.
+	for (int stageIdx = 0; stageIdx < modules.Count(); stageIdx++)
+	{
+		vkDestroyShaderModule(m_Device.m_Device, modules[stageIdx].hModule, m_Allocator);
 	}
 
 	return true;
@@ -1142,18 +1321,6 @@ static uint32_t GetSizeOfVertexAttribute(VertexType_t inAttribute)
 		return sizeof(Matrix4x4);
 	default:
 		return 0;
-	}
-}
-
-static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
-{
-	switch (inType)
-	{
-	case LINE_LIST:
-		return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-	default:
-	case TRIANGLE_LIST:
-		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	}
 }
 

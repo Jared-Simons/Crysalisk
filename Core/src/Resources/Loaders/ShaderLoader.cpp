@@ -99,6 +99,20 @@ namespace ShaderLoader
 					pOutResource.pszTopologyType = StringStrip(szValue, '\"');
 					continue;
 				}
+				else if (StringCompare(szKey, "enable_depth_testing"))
+				{
+					// Should this shader be set up to perform depth testing.
+					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
+					pOutResource.bDepthTestingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
+					continue;
+				}
+				else if (StringCompare(szKey, "enable_blending"))
+				{
+					// Should this shader be set up to perform depth testing.
+					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
+					pOutResource.bColorBlendingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
+					continue;
+				}
 			}
 			else
 			{

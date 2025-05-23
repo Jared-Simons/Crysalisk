@@ -59,7 +59,9 @@ static CShaderSystem s_ShaderSystem;
 IShaderSystem* g_pShaderSystem = &s_ShaderSystem;
 
 // Forward Declarations
-static eShaderStage	GetShaderStageFromString(const char* pszString);
+static eShaderStage			GetShaderStageFromString(const char* pszString);
+static eShaderTopologyType	GetTopologyTypeFromString(const char* pszString);
+static VertexAttribute_t	GetVertexAttributeDataFromString(const char* pszString);
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -135,11 +137,42 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 		pShader = &m_ShaderDictionary.m_ShaderArray[newShaderHandle];
 
-		// Parse the stage types from the resource.
-		eShaderStage testStage = GetShaderStageFromString(newShaderResource.ShaderStages[0].pszStageString);
+		ShaderConfig_t	newShaderConfig{};
+
+		// Copy over config data.
+		newShaderConfig.eTopologyTypes = GetTopologyTypeFromString(newShaderResource.pszTopologyType);
+		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
+		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;
+
+		// Setup shader module configs from resource.
+		size_t shaderStageCount = newShaderResource.ShaderStages.Count();
+		newShaderConfig.moduleConfigs.Resize(shaderStageCount);
+
+		for (int stageIdx = 0; stageIdx < shaderStageCount; stageIdx++)
+		{
+			ShaderModuleConfig_t newConfig{};
+			newConfig.stage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
+			newConfig.byteCode = newShaderResource.ShaderStages[stageIdx].pShaderModuleBytecode;
+			newConfig.codeSize = newShaderResource.ShaderStages[stageIdx].CodeDataSize;
+
+			newShaderConfig.moduleConfigs.PushBack(newConfig);
+		}
+
+		// Parse the vertex attribute data and stride.
+		for (int attribIdx = 0; attribIdx < newShaderResource.ShaderAttributes.Count(); attribIdx++)
+		{
+			VertexAttribute_t newAttribute = GetVertexAttributeDataFromString(newShaderResource.ShaderAttributes[attribIdx].pszType);
+			newAttribute.szName = StringDuplicate(newShaderResource.ShaderAttributes[attribIdx].pszName);
+
+			// Save the new attribute.
+			newShaderConfig.vertexAttributes.PushBack(newAttribute);
+			newShaderConfig.vertexStride += newAttribute.stride;	// Make sure to keep track of our vertex stride.
+		}
+		// For now, make sure that the math adds up so we're configurable with an existing vertex type.
+		CAssert((newShaderConfig.vertexStride == sizeof(Vertex3D)) || (newShaderConfig.vertexStride == sizeof(Vertex2D)))
 
 		// Create internal resources for the shader.
-		if (!g_pRenderer->CreateShader(pShader, &newShaderResource))
+		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
 		{
 			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
 			// TODO: Release created resources and reset state.
@@ -282,11 +315,80 @@ static eShaderStage	GetShaderStageFromString(const char* pszString)
 	{
 		return eShaderStage::VERTEX;
 	}
+	else if (StringCompareInsensitive(pszString, "Fragment") || StringCompareInsensitive(pszString, "Frag"))
+	{
+		return eShaderStage::FRAGMENT;
+	}
 	else
 	{
 		LOG_WARN("Failed to parse shader stage '%s'. Check shader configuration.", pszString);
 		return eShaderStage::UNDEFINED;
 	}
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static eShaderTopologyType GetTopologyTypeFromString(const char* pszString)
+{
+	if (!pszString)
+		return SHADER_TOPOLOGY_TYPE_UNDEFINED;
+
+	if (StringCompareInsensitive(pszString, "triangle_list") || StringCompareInsensitive(pszString, "triangle"))
+	{
+		return SHADER_TOPOLOGY_TYPE_TRIANGLE_LIST;
+	}
+	else if (StringCompareInsensitive(pszString, "line_list") || StringCompareInsensitive(pszString, "line"))
+	{
+		return SHADER_TOPOLOGY_TYPE_LINE_LIST;
+	}
+	else
+	{
+		LOG_WARN("Failed to parse topology type '%s'. Check shader configuration.", pszString);
+		return SHADER_TOPOLOGY_TYPE_UNDEFINED;
+	}
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
+{
+	VertexAttribute_t attrib{};
+
+	if (StringCompareInsensitive(pszString, "int"))
+	{
+		attrib.type = VertexType_t::Int32;
+		attrib.stride = sizeof(int32_t);
+	}
+	else if (StringCompareInsensitive(pszString, "vec2") || StringCompareInsensitive(pszString, "vector2d"))
+	{
+		attrib.type = VertexType_t::Vector2;
+		attrib.stride = sizeof(Vector2D);
+	}
+	else if (StringCompareInsensitive(pszString, "vec3") || StringCompareInsensitive(pszString, "vector3d"))
+	{
+		attrib.type = VertexType_t::Vector3;
+		attrib.stride = sizeof(Vector3D);
+	}
+	else if (StringCompareInsensitive(pszString, "vec4") || StringCompareInsensitive(pszString, "vector4d"))
+	{
+		attrib.type = VertexType_t::Vector4;
+		attrib.stride = sizeof(Vector4D);
+	}
+	else if (StringCompareInsensitive(pszString, "mat4") || StringCompareInsensitive(pszString, "matrix4x4"))
+	{
+		attrib.type = VertexType_t::Matrix4x4;
+		attrib.stride = sizeof(Matrix4x4);
+	}
+	else
+	{
+		LOG_WARN("Failed to parse vertex type '%s'. Returning undefined result!", pszString);
+		attrib.type = VertexType_t::Undefined;
+		attrib.stride = 4;
+	}
+
+	return attrib;
 }
 
 //-------------------------------------------------------------------------

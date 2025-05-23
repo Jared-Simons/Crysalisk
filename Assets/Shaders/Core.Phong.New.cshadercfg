@@ -8,6 +8,8 @@ stages
 }
 
 topology_type="triangle_list"
+enable_depth_testing="true"
+enable_blending="true"
 
 # Vertex attributes 
 attributes
