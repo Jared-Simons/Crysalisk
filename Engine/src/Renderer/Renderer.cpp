@@ -30,7 +30,7 @@ static bool RendererEvent_KeyPressed(EventData_t data);
 typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
-ShaderHandle_t testShaderHandle = kInvalidID_U32;
+extern ShaderHandle_t testShaderHandle;
 
 TextObject	s_FontTest{};
 // END TEMP!
@@ -136,6 +136,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
+	g_pShaderSystem->BindShader(testShaderHandle);
+	g_pShaderSystem->BindPerFrameUniforms();
+
 	if (s_bLevelGeometryLoaded)
 	{
 		// TODO: Make this work with an allocator.
@@ -229,6 +232,16 @@ void Renderer::DestroyShader(Shader* pShader)
 	m_RendererBackend->DestroyShader(pShader);
 }
 
+void Renderer::BindShader(Shader* pShader)
+{
+	m_RendererBackend->BindShader(pShader);
+}
+
+void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
+{
+	m_RendererBackend->BindShaderDescriptors(pShader, eShaderUniformGroup::GLOBAL);
+}
+
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
 {
 	return m_RendererBackend->AcquireShaderResources_OLD(pShader, pShaderConfig);
@@ -239,9 +252,9 @@ void Renderer::ReleaseShaderResources(Shader& pShader)
 	return m_RendererBackend->ReleaseShaderResources(pShader);
 }
 
-void Renderer::BindShader(Shader& pShader)
+void Renderer::BindShader_OLD(Shader& pShader)
 {
-	m_RendererBackend->BindShader(pShader);
+	m_RendererBackend->BindShader_OLD(pShader);
 }
 
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)

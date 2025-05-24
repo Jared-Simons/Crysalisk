@@ -137,7 +137,9 @@ struct ShaderConfig_t
 
 struct ShaderUniform_t
 {
-
+	size_t				Offset{ 0 };
+	size_t				Stride{ 0 };
+	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
 };
 
 class Shader

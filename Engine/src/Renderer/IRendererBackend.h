@@ -48,10 +48,14 @@ public:
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) = 0;
 	virtual void	DestroyShader(class Shader* pShader) = 0;
 
+	virtual void	BindShader(class Shader* pShader) = 0;
+
+	virtual void	BindShaderDescriptors(class Shader* pShader, eShaderUniformGroup groupToBind) = 0;
+
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) = 0;
 	virtual void	ReleaseShaderResources(class Shader& pShader) = 0;
 
-	virtual void	BindShader(class Shader& pShader) = 0;
+	virtual void	BindShader_OLD(class Shader& pShader) = 0;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryConfig_t& pGeometryConfig, struct GeometryInstance_t& pOutInstance) = 0;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) = 0;

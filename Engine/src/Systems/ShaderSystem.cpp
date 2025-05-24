@@ -26,9 +26,15 @@ public:
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
+	virtual void			BindShader(ShaderHandle_t hShader) override;
+	virtual void			BindPerFrameUniforms() override;
+
+	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
+	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData) override;
+
 	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) override;
 
-	virtual void	BindShader(ShaderHandle_t hShader) override;
+	virtual void	BindShader_OLD(ShaderHandle_t hShader) override;
 
 private:
 	ShaderHandle_t	FindFirstFreeShaderHandle() const;
@@ -53,6 +59,9 @@ private:
 	};
 
 	ShaderDictionary	m_ShaderDictionary{};
+
+	// DEPRECATED!!!
+	ShaderHandle_t			m_hCurrentlyBoundShader_OLD{ kInvalidID_U32 };
 };
 
 // Shader System context.
@@ -64,6 +73,7 @@ static eShaderStage				GetShaderStageFromString(const char* pszString);
 static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
 static VertexAttribute_t		GetVertexAttributeDataFromString(const char* pszString);
 static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr);
+static inline size_t			GetAttributeStride(ShaderAttribute_t inAttribute);
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -142,6 +152,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		ShaderConfig_t	newShaderConfig{};
 
 		// Copy over config data.
+		pShader->m_szShaderName = StringDuplicate(newShaderResource.pszShaderName);
 		newShaderConfig.eTopologyTypes = GetTopologyTypeFromString(newShaderResource.pszTopologyType);
 		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
 		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;
@@ -192,13 +203,45 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// TODO: Don't hardcode this.
 		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
+		if (StringCompare(pszShaderName, "Core.UI.New"))
+		{
+			newShaderConfig.m_RendererView = g_pRenderer->m_UIView;
+		}
 
-		// Create internal resources for the shader.
+		// Acquire internal resources for the shader.
 		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
 		{
 			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
 			// TODO: Release created resources and reset state.
 			return false;
+		}
+
+		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
+		size_t uniformCount = newShaderResource.ShaderUniforms.Count();
+		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
+		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
+		size_t	iRunningPerFrameOffset{ 0 };
+		size_t	iRunningPerMaterialOffset{ 0 };
+		for (int idx = 0; idx < uniformCount; idx++)
+		{
+			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
+			// Find all our buffer offsets.
+			size_t currentStride = GetAttributeStride(pCurrentConfig.eType);
+			if (pCurrentConfig.eFrequency == eShaderUniformGroup::GLOBAL)
+			{
+				pShader->m_pUniforms[idx].Offset = iRunningPerFrameOffset;
+				iRunningPerFrameOffset += currentStride;
+			}
+			else if (pCurrentConfig.eFrequency == eShaderUniformGroup::OBJECT)
+			{
+				pShader->m_pUniforms[idx].Offset = iRunningPerMaterialOffset;
+				iRunningPerMaterialOffset += currentStride;
+			}
+			pShader->m_pUniforms[idx].Stride = currentStride;
+			pShader->m_pUniforms[idx].eType = pCurrentConfig.eType;
+			
+			// Store off the location.
+			pShader->m_UniformLookup[pCurrentConfig.szName] = idx;
 		}
 	}
 	else
@@ -217,7 +260,58 @@ void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 {
 	// TODO: clean this up and make it more flexible!
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+
+	if (pShader->m_pUniforms)
+		delete[] pShader->m_pUniforms;
+
 	g_pRenderer->DestroyShader(pShader);
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::BindShader(ShaderHandle_t hShader)
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	CAssert(pShader && pShader->m_pInternalData); // Don't try to bind a nonexistant shader!
+
+	m_hCurrentlyBoundShader = hShader;
+	// The renderer will do all the work for us.
+	g_pRenderer->BindShader(pShader);
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::BindPerFrameUniforms()
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
+	CAssert(pShader);
+	g_pRenderer->BindShaderPerFrameUniforms(pShader);
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName)
+{
+	CAssert(hShader != kInvalidID_U32);
+	if (!pszUniformName)
+	{
+		LOG_ERROR("Failed to acquire shader uniform location for '%s'. Returning invalid handle.", pszUniformName);
+		return kInvalidID_U16;
+	}
+
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	return pShader->m_UniformLookup[pszUniformName];
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData)
+{
+	CAssert(hShader != kInvalidID_U16 && uniformLocation != kInvalidID_U16 && pData);
 }
 
 //-------------------------------------------------------------------------
@@ -488,6 +582,30 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	}
 
 	return newUniformConfig;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+inline size_t GetAttributeStride(ShaderAttribute_t inAttribute) 
+{
+	switch (inAttribute)
+	{
+	case ShaderAttribute_t::Undefined:
+	case ShaderAttribute_t::Int32:
+	default:
+		return sizeof(int32_t);
+	case ShaderAttribute_t::Vector2:
+		return sizeof(Vector2D);
+	case ShaderAttribute_t::Vector3:
+		return sizeof(Vector3D);
+	case ShaderAttribute_t::Vector4:
+		return sizeof(Vector4D);
+	case ShaderAttribute_t::Matrix4x4:
+		return sizeof(Matrix4x4);
+	case ShaderAttribute_t::Texture:
+		return 0; // Samplers don't count.
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -766,11 +884,11 @@ void CShaderSystem::ParseSamplerTypesFromString(const char* pszTypeString, Utl::
 	}
 }
 
-void CShaderSystem::BindShader(ShaderHandle_t hShader)
+void CShaderSystem::BindShader_OLD(ShaderHandle_t hShader)
 {
 	if (m_ShaderDictionary.m_ShaderArray[hShader].m_iInternalHandle != kInvalidID_U32)
 	{
-		g_pRenderer->BindShader(m_ShaderDictionary.m_ShaderArray[hShader]);
+		g_pRenderer->BindShader_OLD(m_ShaderDictionary.m_ShaderArray[hShader]);
 	}
 }
 
@@ -778,7 +896,7 @@ ShaderHandle_t CShaderSystem::FindFirstFreeShaderHandle() const
 {
 	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
 	{
-		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32)
+		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32 && m_ShaderDictionary.m_ShaderArray[idx].m_pInternalData == nullptr)
 			return idx;
 	}
 

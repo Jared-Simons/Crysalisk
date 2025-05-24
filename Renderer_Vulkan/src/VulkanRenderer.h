@@ -48,10 +48,14 @@ public:
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;
 
+	virtual void	BindShader(class Shader* pShader) override;
+
+	virtual void	BindShaderDescriptors(class Shader* pShader, eShaderUniformGroup groupToBind) override;
+
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;
 
-	virtual void	BindShader(class Shader& pShader) override;
+	virtual void	BindShader_OLD(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;

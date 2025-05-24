@@ -62,7 +62,20 @@ static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
 // TEMP!
-static ShaderHandle_t testShaderHandle = kInvalidID_U32;
+ShaderHandle_t testShaderHandle = kInvalidID_U32;
+struct TestShaderLocations_t
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	viewPos{ kInvalidID_U16 };
+	uint16_t	dirLightPos{ kInvalidID_U16 };
+	uint16_t	renderMode{ kInvalidID_U16 };
+	uint16_t	shininess{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	texture_maps{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+TestShaderLocations_t shaderLocations{};
 // TEMP!
 
 //-------------------------------------------------------------------------
@@ -203,9 +216,19 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
-	g_pMemoryManager->PrintMemoryStats();
 	testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
-	g_pMemoryManager->PrintMemoryStats();
+	shaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "projection");
+	shaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "view");
+	shaderLocations.viewPos = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "viewPos");
+	shaderLocations.dirLightPos = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "dirLightPos");
+	shaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "renderMode");
+	shaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "shininess");
+	shaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "color");
+	shaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "texture_maps");
+	shaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "model");
+
+	Matrix4x4 myMatrix(5.0);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, shaderLocations.projection, &myMatrix);
 
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();

@@ -1169,6 +1169,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		if (!CreateShaderModule(this, pInternalShader, pConfig.moduleConfigs[stageIdx], modules))
 		{
 			LOG_ERROR("Failed to create shader module for shader '%s'. Shader creation aborted.", pConfig.pszShaderName);
+			// TODO: Make sure to release any allocated resoures!
 			return false;
 		}
 	}
@@ -1428,6 +1429,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader->m_UniformBuffers[idx]))
 		{
 			LOG_ERROR("Failed to create uniform buffer.");
+			// TODO: Make sure to release any allocated resoures!
 			return false;
 		}
 	}
@@ -1460,7 +1462,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	graphicsPipelineInfo.pViewportState = &viewportState;
 	graphicsPipelineInfo.pRasterizationState = &rasterizerInfo;
 	graphicsPipelineInfo.pMultisampleState = &multisamplingState;
-	graphicsPipelineInfo.pDepthStencilState = (pConfig.bDepthTestingEnabled) ? &depthStencil : nullptr;
+	//graphicsPipelineInfo.pDepthStencilState = (pConfig.bDepthTestingEnabled) ? &depthStencil : nullptr;
+	graphicsPipelineInfo.pDepthStencilState = &depthStencil; // TODO: Make this configurable through renderpasses w/o a depth attachment!
 	graphicsPipelineInfo.pColorBlendState = &colorBlendState;
 	graphicsPipelineInfo.pDynamicState = &dynamicStateInfo;
 	graphicsPipelineInfo.layout = pInternalShader->m_PipelineLayout;
@@ -1507,6 +1510,9 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 void CVulkanRenderer::DestroyShader(Shader* pShader)
 {
+	// Make sure no resources are in use.
+	vkDeviceWaitIdle(m_Device.m_Device);
+
 	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
 	CAssert(pInternalShader);
 
@@ -1533,6 +1539,33 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 	// Descriptor pool
 	if (pInternalShader->m_DescriptorPool)
 		vkDestroyDescriptorPool(m_Device.m_Device, pInternalShader->m_DescriptorPool, m_Allocator);
+}
+
+void CVulkanRenderer::BindShader(Shader* pShader)
+{
+	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
+	CAssert(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	vkCmdBindPipeline(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_Pipeline);
+}
+
+void CVulkanRenderer::BindShaderDescriptors(Shader* pShader, eShaderUniformGroup groupToBind)
+{
+	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
+	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	uint8_t descriptorSetIndex{ 0 };
+
+	switch (groupToBind)
+	{
+	case eShaderUniformGroup::GLOBAL:
+		descriptorSetIndex = 0;
+		break;
+
+	default:
+		CAssert(0); // TODO: IMPLEMENT ME!
+	}
+
+	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 0, 1, &pInternalShader->m_DescriptorSets[descriptorSetIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
 static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
@@ -2109,7 +2142,7 @@ VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
 	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
 */
 
-void CVulkanRenderer::BindShader(Shader& pShader)
+void CVulkanRenderer::BindShader_OLD(Shader& pShader)
 {
 	// TODO: Assert that a frame is being rendered.
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];

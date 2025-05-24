@@ -44,10 +44,13 @@ public:
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
 
+	void			BindShader(class Shader* pShader);
+	void			BindShaderPerFrameUniforms(class Shader* pShader);
+
 	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);
 
-	void			BindShader(class Shader& pShader);
+	void			BindShader_OLD(class Shader& pShader);
 
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 
