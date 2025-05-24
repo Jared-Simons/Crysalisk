@@ -46,6 +46,7 @@ public:
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) = 0;
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) = 0;
+	virtual void	DestroyShader(class Shader* pShader) = 0;
 
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) = 0;
 	virtual void	ReleaseShaderResources(class Shader& pShader) = 0;

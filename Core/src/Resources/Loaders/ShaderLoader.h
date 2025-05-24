@@ -97,6 +97,7 @@ namespace ShaderLoader
 			char*	pszName{ nullptr };
 			char*	pszType{ nullptr };
 			char*	pszFreq{ nullptr };
+			int		iArraySize{ 1 };
 
 			ShaderUniformConfig_t() {}
 
@@ -110,6 +111,8 @@ namespace ShaderLoader
 
 				if (pOther.pszFreq)
 					pszFreq = StringDuplicate(pOther.pszFreq);
+
+				iArraySize = pOther.iArraySize;
 			}
 
 			ShaderUniformConfig_t& operator=(const ShaderUniformConfig_t& pOther)
@@ -122,6 +125,8 @@ namespace ShaderLoader
 
 				if (pOther.pszFreq)
 					pszFreq = StringDuplicate(pOther.pszFreq);
+
+				iArraySize = pOther.iArraySize;
 
 				return *this;
 			}

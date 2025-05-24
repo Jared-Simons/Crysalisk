@@ -976,7 +976,7 @@ bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInst
 	VkDescriptorSetLayout instanceDescriptorLayout{};
 	for (int idx = 0; idx < pShader->m_DescriptorSetLayouts.Capacity(); idx++)
 	{
-		if (pShader->m_DescriptorSetLayouts[idx].m_FrequencyLevel == eShaderUniformUpdateFrequency::OBJECT)
+		if (pShader->m_DescriptorSetLayouts[idx].m_FrequencyLevel == eShaderUniformGroup::OBJECT)
 		{
 			instanceDescriptorLayout = pShader->m_DescriptorSetLayouts[idx].m_Layout;
 			break;
@@ -1136,17 +1136,17 @@ static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 	}
 }
 
-static VkFormat GetVertexFormatFromType(VertexType_t pType)
+static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 {
 	switch (pType)
 	{
-	case VertexType_t::Int32:
+	case ShaderAttribute_t::Int32:
 		return VK_FORMAT_R32_SINT;
-	case VertexType_t::Vector2:
+	case ShaderAttribute_t::Vector2:
 		return VK_FORMAT_R32G32_SFLOAT;
-	case VertexType_t::Vector3:
+	case ShaderAttribute_t::Vector3:
 		return VK_FORMAT_R32G32B32_SFLOAT;
-	case VertexType_t::Vector4:
+	case ShaderAttribute_t::Vector4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
 	default:
 		LOG_WARN("Failed to parse vertex type, returning undefined.");
@@ -1187,8 +1187,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Vertex input
 	// For now, we only need one binding.
-	VkPipelineVertexInputStateCreateInfo	vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-	VkPipelineInputAssemblyStateCreateInfo	inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 	VkVertexInputBindingDescription bindingDescription{};
 	bindingDescription.binding = 0;
 	bindingDescription.stride = pConfig.vertexStride;
@@ -1210,7 +1209,13 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		runningOffset += pConfig.vertexAttributes[attribIdx].stride;
 	}
 
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+	vertexInputInfo.vertexAttributeDescriptionCount = attribCount;
+	vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.Data();
+
 	// Input assembly
+	VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
 	inputAssembly.topology = GetVulkanTopologyType(pConfig.eTopologyTypes);
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
@@ -1283,41 +1288,279 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	colorBlendState.attachmentCount = 1;
 	colorBlendState.pAttachments = &colorBlendAttachment;
 
+	// Setup uniform resources
+	size_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include samplers.
+	size_t iPerFrameSamplerCount{ 0 };
+	size_t iPerMaterialUniformCount{ 0 };	// Note: Does not include samplers.
+	size_t iPerMaterialSamplerCount{ 0 };
+	size_t iPerDrawUniformCount{ 0 };
+
+	for (int idx = 0; idx < pConfig.uniformConfigs.Count(); idx++)
+	{
+		if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::GLOBAL)
+		{
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			{
+				iPerFrameUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+			}
+			else
+			{
+				iPerFrameSamplerCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+			}
+		}
+		else if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::OBJECT)
+		{
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			{
+				iPerMaterialUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+			}
+			else
+			{
+				iPerMaterialSamplerCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+			}
+		}
+		else
+		{
+			iPerDrawUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+		}
+	}
+
+	// Descriptor pool
+	VkDescriptorPoolSize descriptorPoolSizes[2];
+	size_t				 descriptorPoolsNeeded{ 1 };
+
+	// Uniform buffer.
+	descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorPoolSizes[0].descriptorCount = kMaxVulkanInstances;
+
+	// Image samplers.
+	// TODO: SEPARATE SAMPLERS AND IMAGES.
+	descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorPoolSizes[1].descriptorCount = kMaxVulkanInstances;
+
+	// Only create a second descriptor pool if samplers will be used.
+	if (iPerFrameSamplerCount + iPerMaterialSamplerCount > 0)
+		descriptorPoolsNeeded++;
+
+	VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	descriptorPoolInfo.maxSets = kMaxVulkanInstances;
+	descriptorPoolInfo.poolSizeCount = descriptorPoolsNeeded;
+	descriptorPoolInfo.pPoolSizes = descriptorPoolSizes;
+
+	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, m_Allocator, &pInternalShader->m_DescriptorPool));
+
+	pInternalShader->m_DescriptorSetLayouts.Resize(2);
+	// Per-frame descriptor set layout.
+	{
+		Utl::CVector<VkDescriptorSetLayoutBinding> perFrameDescriptorLayoutBindings{};
+
+		// First is the uniform buffer -- this is always expected to exist.
+		{
+			VkDescriptorSetLayoutBinding perFrameUBOBinding{};
+			perFrameUBOBinding.binding = 0;
+			perFrameUBOBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			perFrameUBOBinding.descriptorCount = kMaxVulkanInstances;
+			perFrameUBOBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			perFrameDescriptorLayoutBindings.PushBack(perFrameUBOBinding);
+		}
+
+		// Next is per-frame samplers, only needed if images are actually being used at the per-frame level.
+		if (iPerFrameSamplerCount > 0)
+		{
+			VkDescriptorSetLayoutBinding perFrameSamplerBinding{};
+			perFrameSamplerBinding.binding = 1;
+			perFrameSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;	// TODO: Separate samplers and images
+			perFrameSamplerBinding.descriptorCount = kMaxVulkanInstances;
+			perFrameSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			perFrameDescriptorLayoutBindings.PushBack(perFrameSamplerBinding);
+		}
+
+		// Create the per-frame descriptor set layout.
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		descriptorSetLayoutInfo.bindingCount = perFrameDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.pBindings = perFrameDescriptorLayoutBindings.Data();
+		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[0].m_Layout));
+		pInternalShader->m_DescriptorSetLayouts[0].m_FrequencyLevel = eShaderUniformGroup::GLOBAL;
+	}
+
+	// Per-material descriptor set layout.
+	{
+		Utl::CVector<VkDescriptorSetLayoutBinding> perMaterialDescriptorLayoutBindings{};
+
+		// First is the uniform buffer -- this is always expected to exist.
+		{
+			VkDescriptorSetLayoutBinding perMaterialUBOBinding{};
+			perMaterialUBOBinding.binding = 0;
+			perMaterialUBOBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			perMaterialUBOBinding.descriptorCount = kMaxVulkanInstances;
+			perMaterialUBOBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			perMaterialDescriptorLayoutBindings.PushBack(perMaterialUBOBinding);
+		}
+
+		// Next is per-material samplers, only needed if images are actually being used at the per-frame level.
+		if (iPerMaterialSamplerCount > 0)
+		{
+			VkDescriptorSetLayoutBinding perMaterialSamplerBinding{};
+			perMaterialSamplerBinding.binding = 1;
+			perMaterialSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;	// TODO: Separate samplers and images
+			perMaterialSamplerBinding.descriptorCount = kMaxVulkanInstances;
+			perMaterialSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			perMaterialDescriptorLayoutBindings.PushBack(perMaterialSamplerBinding);
+		}
+
+		// Create the per-material descriptor set layout.
+		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+		descriptorSetLayoutInfo.bindingCount = perMaterialDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.pBindings = perMaterialDescriptorLayoutBindings.Data();
+		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[1].m_Layout));
+		pInternalShader->m_DescriptorSetLayouts[1].m_FrequencyLevel = eShaderUniformGroup::OBJECT;
+	}
+
+	// Setup uniform buffers.
+	pInternalShader->m_UniformBuffers.Resize(m_MaxImagesInFlight);
+	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perMaterialUBOStride * kMaxVulkanInstances);
+	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	{
+		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader->m_UniformBuffers[idx]))
+		{
+			LOG_ERROR("Failed to create uniform buffer.");
+			return false;
+		}
+	}
+
+	VkPushConstantRange pushConstants{};
+	pushConstants.size = pConfig.perDrawUBOStride;
+	pushConstants.offset = 0;
+	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Currently only used in the vertex shader.
+
+	VkDescriptorSetLayout descriptorSetLayouts[2] = { pInternalShader->m_DescriptorSetLayouts[0].m_Layout, pInternalShader->m_DescriptorSetLayouts[1].m_Layout };
+
+	// Pipeline layout
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.setLayoutCount = pInternalShader->m_DescriptorSetLayouts.Capacity();
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
+	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader->m_PipelineLayout));
+
+	// Renderpass
+	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_RendererView.m_pInternalData);
+
+	// Graphics pipeline object
+	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
+	graphicsPipelineInfo.stageCount = shaderStageInfos.Count();
+	graphicsPipelineInfo.pStages = shaderStageInfos.Data();
+	graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
+	graphicsPipelineInfo.pInputAssemblyState = &inputAssembly;
+	graphicsPipelineInfo.pTessellationState = nullptr;
+	graphicsPipelineInfo.pViewportState = &viewportState;
+	graphicsPipelineInfo.pRasterizationState = &rasterizerInfo;
+	graphicsPipelineInfo.pMultisampleState = &multisamplingState;
+	graphicsPipelineInfo.pDepthStencilState = (pConfig.bDepthTestingEnabled) ? &depthStencil : nullptr;
+	graphicsPipelineInfo.pColorBlendState = &colorBlendState;
+	graphicsPipelineInfo.pDynamicState = &dynamicStateInfo;
+	graphicsPipelineInfo.layout = pInternalShader->m_PipelineLayout;
+	graphicsPipelineInfo.renderPass = pRenderpass->m_Handle;
+	graphicsPipelineInfo.subpass = 0;
+	VK_CHECK(vkCreateGraphicsPipelines(m_Device.m_Device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, m_Allocator, &pInternalShader->m_Pipeline));
+
 	// We no longer need the shader modules.
 	for (int stageIdx = 0; stageIdx < modules.Count(); stageIdx++)
 	{
 		vkDestroyShaderModule(m_Device.m_Device, modules[stageIdx].hModule, m_Allocator);
 	}
 
+	// Allocate the global descriptor set while we're here.
+	pInternalShader->m_DescriptorSets.Resize(kMaxVulkanInstances + 1); // Max instances + 1 for the per-frame descriptors.
+	VkDescriptorSetLayout* pGlobalLayout = nullptr;
+	for (int layout = 0; layout < pInternalShader->m_DescriptorSetLayouts.Capacity(); layout++)
+	{
+		if (pInternalShader->m_DescriptorSetLayouts[layout].m_FrequencyLevel == eShaderUniformGroup::GLOBAL)
+		{
+			pGlobalLayout = &pInternalShader->m_DescriptorSetLayouts[layout].m_Layout;
+		}
+	}
+
+	if (!pGlobalLayout)
+	{
+		// No global resources were created, boot out now.
+		return true;
+	}
+
+	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	{
+		VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		allocInfo.descriptorPool = pInternalShader->m_DescriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = pGlobalLayout;
+
+		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]));	// Per-frame descriptors are always first.
+	}
+	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
+
 	return true;
 }
 
-static VkFormat VertexAttributeToVulkanType(VertexType_t inAttribute)
+void CVulkanRenderer::DestroyShader(Shader* pShader)
+{
+	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	CAssert(pInternalShader);
+
+	// Pipeline
+	if (pInternalShader->m_Pipeline)
+		vkDestroyPipeline(m_Device.m_Device, pInternalShader->m_Pipeline, m_Allocator);
+
+	// Pipeline layout
+	if (pInternalShader->m_PipelineLayout)
+		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader->m_PipelineLayout, m_Allocator);
+
+	// Uniform buffers
+	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	{
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader->m_UniformBuffers[idx]);
+	}
+
+	// Descriptor set layouts
+	for (int idx = 0; idx < pInternalShader->m_DescriptorSetLayouts.Capacity(); idx++)
+	{
+		vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader->m_DescriptorSetLayouts[idx].m_Layout, m_Allocator);
+	}
+
+	// Descriptor pool
+	if (pInternalShader->m_DescriptorPool)
+		vkDestroyDescriptorPool(m_Device.m_Device, pInternalShader->m_DescriptorPool, m_Allocator);
+}
+
+static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
 	{
-	case VertexType_t::Vector2:
+	case ShaderAttribute_t::Vector2:
 		return VK_FORMAT_R32G32_SFLOAT;
-	case VertexType_t::Vector3:
+	case ShaderAttribute_t::Vector3:
 		return VK_FORMAT_R32G32B32_SFLOAT;
-	case VertexType_t::Vector4:
+	case ShaderAttribute_t::Vector4:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
 	default:
 		return VK_FORMAT_UNDEFINED;
 	}
 }
 
-static uint32_t GetSizeOfVertexAttribute(VertexType_t inAttribute)
+static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
 	{
-	case VertexType_t::Vector2:
+	case ShaderAttribute_t::Vector2:
 		return sizeof(Vector2D);
-	case VertexType_t::Vector3:
+	case ShaderAttribute_t::Vector3:
 		return sizeof(Vector3D);
-	case VertexType_t::Vector4:
+	case ShaderAttribute_t::Vector4:
 		return sizeof(Vector4D);
-	case VertexType_t::Matrix4x4:
+	case ShaderAttribute_t::Matrix4x4:
 		return sizeof(Matrix4x4);
 	default:
 		return 0;
@@ -1538,10 +1781,10 @@ bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t
 
 	for (int uniformIdx = 0; uniformIdx < pShaderConfig.uniformConfigs.Count(); uniformIdx++)
 	{
-		if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformUpdateFrequency::GLOBAL)
+		if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::GLOBAL)
 		{
 			bGlobalUniformsPresent = true;
-			if (pShaderConfig.uniformConfigs[uniformIdx].eType != VertexType_t::Texture)
+			if (pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture)
 			{
 				iGlobalUniformCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
 			}
@@ -1550,10 +1793,10 @@ bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t
 				iGlobalSamplerCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
 			}
 		}
-		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformUpdateFrequency::OBJECT)
+		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::OBJECT)
 		{
 			bInstanceUniformsPresent = true;
-			if (pShaderConfig.uniformConfigs[uniformIdx].eType != VertexType_t::Texture)
+			if (pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture)
 			{
 				iInstanceUniformCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
 			}
@@ -1562,9 +1805,9 @@ bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t
 				iInstanceSamplerCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
 			}
 		}
-		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformUpdateFrequency::PER_DRAW)
+		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::PER_DRAW)
 		{
-			CAssert(pShaderConfig.uniformConfigs[uniformIdx].eType != VertexType_t::Texture); // There may not be any per-draw samplers, as they can't use push-constants.
+			CAssert(pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture); // There may not be any per-draw samplers, as they can't use push-constants.
 			bPerDrawUniformsPresent = true;
 			iPerDrawUniformCount++;
 			iPerDrawMemoryRequirement += GetSizeOfVertexAttribute(pShaderConfig.uniformConfigs[uniformIdx].eType);
@@ -1617,7 +1860,7 @@ bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t
 
 		// TODO: Allocation callbacks.
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &globalLayoutInfo, nullptr, &pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_Layout));
-		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformUpdateFrequency::GLOBAL;
+		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformGroup::GLOBAL;
 
 		iCurrentDescriptorSetLayoutIndex++;
 	}
@@ -1680,7 +1923,7 @@ bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t
 
 		// TODO: Allocation callbacks.
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &instanceLayoutInfo, nullptr, &pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_Layout));
-		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformUpdateFrequency::OBJECT;
+		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformGroup::OBJECT;
 
 		iCurrentDescriptorSetLayoutIndex++;
 	}

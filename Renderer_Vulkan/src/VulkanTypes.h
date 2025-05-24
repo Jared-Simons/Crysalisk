@@ -138,7 +138,7 @@ public:
 	struct VulkanDescriptorSetLayoutState
 	{
 		VkDescriptorSetLayout			m_Layout;
-		eShaderUniformUpdateFrequency	m_FrequencyLevel;
+		eShaderUniformGroup	m_FrequencyLevel;
 	};
 
 	struct VulkanDescriptorSetState
@@ -151,6 +151,7 @@ public:
 	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
 
+	VkDescriptorPool		m_DescriptorPool{};
 	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
 	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
@@ -159,8 +160,8 @@ public:
 	size_t					m_CurrentRendererFrame{ 0 };
 
 	Utl::CVector<VkSampler>		m_InstanceSamplers{};
-	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
-	GlobalUniformObject_t	m_UniformData{};
+	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
+	GlobalUniformObject_t		m_UniformData{};
 };
 
 struct VulkanTextureInternal

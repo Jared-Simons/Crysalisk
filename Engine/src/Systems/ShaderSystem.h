@@ -21,6 +21,7 @@ public:
 	virtual void	Shutdown() = 0;
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) = 0;
+	virtual void			ReleaseShader(ShaderHandle_t hShader) = 0;
 
 	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) = 0;
 

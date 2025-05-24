@@ -221,7 +221,12 @@ bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct Materi
 
 bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
-	return m_RendererBackend->CreateShader(pShader, pConfig);
+	return m_RendererBackend->CreateShader(pShader, pConfig); 
+}
+
+void Renderer::DestroyShader(Shader* pShader)
+{
+	m_RendererBackend->DestroyShader(pShader);
 }
 
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)

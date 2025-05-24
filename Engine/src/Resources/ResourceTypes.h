@@ -124,12 +124,15 @@ struct ShaderConfig_t
 	Utl::CVector<VertexAttribute_t>		vertexAttributes{};
 	size_t								vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
-	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
-	RendererView	m_RendererView{};
+	size_t								perFrameUBOStride{ 0 };
+	size_t								perMaterialUBOStride{ 0 };
+	size_t								perDrawUBOStride{ 0 };
+	RendererView						m_RendererView{};
 
 	// Deprecated!
-	int			numShaderStages{ 0 };
-	Utl::CVector<char*> pszShaderStageFileNames{};
+	int									numShaderStages{ 0 };
+	Utl::CVector<char*>					pszShaderStageFileNames{};
+	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
 };
 
 struct ShaderUniform_t

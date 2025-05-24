@@ -61,6 +61,10 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
+// TEMP!
+static ShaderHandle_t testShaderHandle = kInvalidID_U32;
+// TEMP!
+
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
 // Input: engineConfig - A configuration passed in by the calling application.
@@ -200,7 +204,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
 	g_pMemoryManager->PrintMemoryStats();
-	ShaderHandle_t testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
+	testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
 	g_pMemoryManager->PrintMemoryStats();
 
 	// Create temporary geometry.
@@ -245,6 +249,8 @@ bool CEngine::Run()
 void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	g_pShaderSystem->ReleaseShader(testShaderHandle);
 
 	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();

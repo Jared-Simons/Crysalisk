@@ -363,6 +363,24 @@ namespace ShaderLoader
 			return false;
 		}
 
+		// Check the uniform type to see if it's an array.
+		size_t arrayBracketIndex = StringIndexOf(pszTrimmedData, '[');
+		size_t arrayEndBracketIndex = StringIndexOf(pszTrimmedData, ']');
+
+		if (arrayBracketIndex != kInvalidID_U32)
+		{
+			if (arrayEndBracketIndex == kInvalidID_U32)
+			{
+				LOG_WARN("Formatting error in shader '%s'! <%s> array declaration is not properly formatted!", pOutResource.pszShaderName, pszConfigData);
+				newUniform.iArraySize = 1;
+				return false;
+			}
+
+			char* pszArrayLength = StringDuplicate_N(&pszTrimmedData[arrayBracketIndex + 1], arrayEndBracketIndex - arrayBracketIndex - 1);
+			newUniform.iArraySize = String_ATOI(pszArrayLength);
+			StringFree(pszArrayLength);
+		}
+
 		// Uniform name first.
 		pszTempStringBuffer = StringDuplicate_N(pszTrimmedData, commaIndex);
 		newUniform.pszName = StringStrip(pszTempStringBuffer, '\"');
@@ -374,7 +392,19 @@ namespace ShaderLoader
 
 		// Uniform type next.
 		StringFree(pszTempStringBuffer);
-		pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
+		if (arrayBracketIndex != kInvalidID_U32)
+		{
+			// If the type is an array type, strip the array piece out of the string, as that was already processed.
+			pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], arrayBracketIndex - commaIndex);
+			size_t typeLength = StringLength(pszTempStringBuffer);
+			pszTempStringBuffer[typeLength - 1] = '\"';		// Make sure to add the '"' back to the end of the type string so we match the formatting of the other types.
+			pszTempStringBuffer[typeLength] = 0;
+		}
+		else
+		{
+			// Otherwise, just copy the whole type over.
+			pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
+		}
 		newUniform.pszType = StringStrip(pszTempStringBuffer, '\"');
 
 		// Uniform update group next.

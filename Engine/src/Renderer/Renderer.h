@@ -42,6 +42,7 @@ public:
 	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
+	void			DestroyShader(class Shader* pShader);
 
 	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);

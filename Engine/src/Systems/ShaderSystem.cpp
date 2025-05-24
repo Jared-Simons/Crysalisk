@@ -24,6 +24,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
+	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
 	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) override;
 
@@ -33,7 +34,7 @@ private:
 	ShaderHandle_t	FindFirstFreeShaderHandle() const;
 
 	void			ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
-	VertexType_t	ParseVertexTypeFromString(const char* pszType);
+	ShaderAttribute_t	ParseVertexTypeFromString(const char* pszType);
 	void			ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
 
 private:
@@ -59,9 +60,10 @@ static CShaderSystem s_ShaderSystem;
 IShaderSystem* g_pShaderSystem = &s_ShaderSystem;
 
 // Forward Declarations
-static eShaderStage			GetShaderStageFromString(const char* pszString);
-static eShaderTopologyType	GetTopologyTypeFromString(const char* pszString);
-static VertexAttribute_t	GetVertexAttributeDataFromString(const char* pszString);
+static eShaderStage				GetShaderStageFromString(const char* pszString);
+static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
+static VertexAttribute_t		GetVertexAttributeDataFromString(const char* pszString);
+static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr);
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -169,7 +171,27 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newShaderConfig.vertexStride += newAttribute.stride;	// Make sure to keep track of our vertex stride.
 		}
 		// For now, make sure that the math adds up so we're configurable with an existing vertex type.
-		CAssert((newShaderConfig.vertexStride == sizeof(Vertex3D)) || (newShaderConfig.vertexStride == sizeof(Vertex2D)))
+		CAssert((newShaderConfig.vertexStride == sizeof(Vertex3D)) || (newShaderConfig.vertexStride == sizeof(Vertex2D)));
+
+		// Parse the uniform configs.
+		for (int uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
+		{
+			ShaderUniformConfig_t newUniform = GetShaderAttributeFromString(newShaderResource.ShaderUniforms[uniformIdx].pszType, newShaderResource.ShaderUniforms[uniformIdx].pszFreq);
+			newUniform.szName = StringDuplicate(newShaderResource.ShaderUniforms[uniformIdx].pszName);
+			newUniform.iArraySize = newShaderResource.ShaderUniforms[uniformIdx].iArraySize;
+			newShaderConfig.uniformConfigs.PushBack(newUniform);
+
+			// Keep track of our group strides.
+			if (newUniform.eFrequency == eShaderUniformGroup::GLOBAL)
+				newShaderConfig.perFrameUBOStride += newUniform.iStride;
+			else if (newUniform.eFrequency == eShaderUniformGroup::OBJECT)
+				newShaderConfig.perMaterialUBOStride += newUniform.iStride;
+			else
+				newShaderConfig.perDrawUBOStride += newUniform.iStride;
+		}
+
+		// TODO: Don't hardcode this.
+		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
 
 		// Create internal resources for the shader.
 		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
@@ -186,6 +208,16 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 	}
 
 	return newShaderHandle;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
+{
+	// TODO: clean this up and make it more flexible!
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	g_pRenderer->DestroyShader(pShader);
 }
 
 //-------------------------------------------------------------------------
@@ -358,37 +390,128 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 
 	if (StringCompareInsensitive(pszString, "int"))
 	{
-		attrib.type = VertexType_t::Int32;
+		attrib.type = ShaderAttribute_t::Int32;
 		attrib.stride = sizeof(int32_t);
 	}
 	else if (StringCompareInsensitive(pszString, "vec2") || StringCompareInsensitive(pszString, "vector2d"))
 	{
-		attrib.type = VertexType_t::Vector2;
+		attrib.type = ShaderAttribute_t::Vector2;
 		attrib.stride = sizeof(Vector2D);
 	}
 	else if (StringCompareInsensitive(pszString, "vec3") || StringCompareInsensitive(pszString, "vector3d"))
 	{
-		attrib.type = VertexType_t::Vector3;
+		attrib.type = ShaderAttribute_t::Vector3;
 		attrib.stride = sizeof(Vector3D);
 	}
 	else if (StringCompareInsensitive(pszString, "vec4") || StringCompareInsensitive(pszString, "vector4d"))
 	{
-		attrib.type = VertexType_t::Vector4;
+		attrib.type = ShaderAttribute_t::Vector4;
 		attrib.stride = sizeof(Vector4D);
 	}
 	else if (StringCompareInsensitive(pszString, "mat4") || StringCompareInsensitive(pszString, "matrix4x4"))
 	{
-		attrib.type = VertexType_t::Matrix4x4;
+		attrib.type = ShaderAttribute_t::Matrix4x4;
 		attrib.stride = sizeof(Matrix4x4);
 	}
 	else
 	{
 		LOG_WARN("Failed to parse vertex type '%s'. Returning undefined result!", pszString);
-		attrib.type = VertexType_t::Undefined;
+		attrib.type = ShaderAttribute_t::Undefined;
 		attrib.stride = 4;
 	}
 
 	return attrib;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr)
+{
+	ShaderUniformConfig_t newUniformConfig{};
+
+	// Get the type and stride.
+	if (StringCompareInsensitive(pszAttributeStr, "int"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Int32;
+		newUniformConfig.iStride = sizeof(int32_t);
+	}
+	else if (StringCompareInsensitive(pszAttributeStr, "vec2") || StringCompareInsensitive(pszAttributeStr, "vector2d"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Vector2;
+		newUniformConfig.iStride = sizeof(Vector2D);
+	}
+	else if (StringCompareInsensitive(pszAttributeStr, "vec3") || StringCompareInsensitive(pszAttributeStr, "vector3d"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Vector3;
+		newUniformConfig.iStride = sizeof(Vector3D);
+	}
+	else if (StringCompareInsensitive(pszAttributeStr, "vec4") || StringCompareInsensitive(pszAttributeStr, "vector4d"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Vector4;
+		newUniformConfig.iStride = sizeof(Vector4D);
+	}
+	else if (StringCompareInsensitive(pszAttributeStr, "mat4") || StringCompareInsensitive(pszAttributeStr, "matrix4x4"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Matrix4x4;
+		newUniformConfig.iStride = sizeof(Matrix4x4);
+	}
+	else if (StringCompareInsensitive(pszAttributeStr, "texture") || StringCompareInsensitive(pszAttributeStr, "sampler"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Texture;
+		newUniformConfig.iStride = 0; // Samplers have no size.
+	}
+	else
+	{
+		LOG_WARN("Failed to parse shader attribute '%s'. Returning undefined result!", pszAttributeStr);
+		newUniformConfig.eType = ShaderAttribute_t::Undefined;
+		newUniformConfig.iStride = 4;
+	}
+
+	// Get the uniform group.
+	if (StringCompareInsensitive(pszGroupStr, "frame"))
+	{
+		newUniformConfig.eFrequency = eShaderUniformGroup::GLOBAL;
+	}
+	else if (StringCompareInsensitive(pszGroupStr, "material"))
+	{
+		newUniformConfig.eFrequency = eShaderUniformGroup::OBJECT;
+	}
+	else if (StringCompareInsensitive(pszGroupStr, "draw"))
+	{
+		newUniformConfig.eFrequency = eShaderUniformGroup::PER_DRAW;
+	}
+	else
+	{
+		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszGroupStr);
+		newUniformConfig.eFrequency = eShaderUniformGroup::OBJECT;
+	}
+
+	return newUniformConfig;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString) 
+{
+	if (StringCompareInsensitive(pszString, "frame"))
+	{
+		return eShaderUniformGroup::GLOBAL;
+	}
+	else if (StringCompareInsensitive(pszString, "material"))
+	{
+		return eShaderUniformGroup::OBJECT;
+	}
+	else if (StringCompareInsensitive(pszString, "draw"))
+	{
+		return eShaderUniformGroup::PER_DRAW;
+	}
+	else
+	{
+		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszString);
+		return eShaderUniformGroup::OBJECT;
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -533,7 +656,7 @@ void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, Sh
 
 			// Next the uniform update level.
 			int updateLevel = String_ATOI(currentChar);
-			newUniform.eFrequency = (eShaderUniformUpdateFrequency)String_ATOI(currentChar);
+			newUniform.eFrequency = (eShaderUniformGroup)String_ATOI(currentChar);
 
 			pOutShaderConfig.uniformConfigs.PushBack(newUniform);
 		}
@@ -551,36 +674,36 @@ void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, Sh
 	FileSystem::CloseFile(&shaderConfigFile);
 }
 
-VertexType_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
+ShaderAttribute_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
 {
 	if (StringCompare(pszType, "int"))
 	{
-		return VertexType_t::Int32;
+		return ShaderAttribute_t::Int32;
 	}
 	else if (StringCompare(pszType, "vec2"))
 	{
-		return VertexType_t::Vector2;
+		return ShaderAttribute_t::Vector2;
 	}
 	else if (StringCompare(pszType, "vec3"))
 	{
-		return VertexType_t::Vector3;
+		return ShaderAttribute_t::Vector3;
 	}
 	else if (StringCompare(pszType, "vec4"))
 	{
-		return VertexType_t::Vector4;
+		return ShaderAttribute_t::Vector4;
 	}
 	else if (StringCompare(pszType, "mat4"))
 	{
-		return VertexType_t::Matrix4x4;
+		return ShaderAttribute_t::Matrix4x4;
 	}
 	else if (StringCompare(pszType, "texture"))
 	{
-		return VertexType_t::Texture;
+		return ShaderAttribute_t::Texture;
 	}
 	else
 	{
 		LOG_WARN("ParseVertexTypeFromString() -> Failed to parse: '%s'", pszType);
-		return VertexType_t::Undefined;
+		return ShaderAttribute_t::Undefined;
 	}
 }
 
