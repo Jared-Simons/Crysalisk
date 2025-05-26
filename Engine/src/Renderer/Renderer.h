@@ -47,6 +47,8 @@ public:
 	void			BindShader(class Shader* pShader);
 	void			BindShaderPerFrameUniforms(class Shader* pShader);
 
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, void* pData);
+
 	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);
 
@@ -81,6 +83,8 @@ public:
 
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
+
+	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};

@@ -27,7 +27,9 @@ public:
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
 	virtual void			BindShader(ShaderHandle_t hShader) override;
+
 	virtual void			BindPerFrameUniforms() override;
+	virtual void			ApplyPerFrameUniforms() override;
 
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
 	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData) override;
@@ -74,6 +76,8 @@ static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
 static VertexAttribute_t		GetVertexAttributeDataFromString(const char* pszString);
 static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr);
 static inline size_t			GetAttributeStride(ShaderAttribute_t inAttribute);
+static size_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
+static void						AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig);
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -201,6 +205,13 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 				newShaderConfig.perDrawUBOStride += newUniform.iStride;
 		}
 
+		// Make sure our uniform buffers are aligned properly.
+		{
+			// TODO: Handle this properly.
+			size_t test = newShaderConfig.perFrameUBOStride % 16;
+			newShaderConfig.perFrameUBOStride += (16 - (newShaderConfig.perFrameUBOStride % 16));
+		}
+
 		// TODO: Don't hardcode this.
 		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
 		if (StringCompare(pszShaderName, "Core.UI.New"))
@@ -208,40 +219,51 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newShaderConfig.m_RendererView = g_pRenderer->m_UIView;
 		}
 
-		// Acquire internal resources for the shader.
-		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
-		{
-			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
-			// TODO: Release created resources and reset state.
-			return false;
-		}
-
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
 		size_t uniformCount = newShaderResource.ShaderUniforms.Count();
 		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
+		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
 		size_t	iRunningPerFrameOffset{ 0 };
 		size_t	iRunningPerMaterialOffset{ 0 };
 		for (int idx = 0; idx < uniformCount; idx++)
 		{
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
-			// Find all our buffer offsets.
+			// Find all our buffer offsets and save off our groups.
 			size_t currentStride = GetAttributeStride(pCurrentConfig.eType);
 			if (pCurrentConfig.eFrequency == eShaderUniformGroup::GLOBAL)
 			{
+				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::GLOBAL;
 				pShader->m_pUniforms[idx].Offset = iRunningPerFrameOffset;
 				iRunningPerFrameOffset += currentStride;
 			}
 			else if (pCurrentConfig.eFrequency == eShaderUniformGroup::OBJECT)
 			{
+				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::OBJECT;
 				pShader->m_pUniforms[idx].Offset = iRunningPerMaterialOffset;
 				iRunningPerMaterialOffset += currentStride;
+			}
+			else
+			{
+				// We don't need to store off stride info for per-draw uniforms.
+				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_DRAW;
 			}
 			pShader->m_pUniforms[idx].Stride = currentStride;
 			pShader->m_pUniforms[idx].eType = pCurrentConfig.eType;
 			
 			// Store off the location.
 			pShader->m_UniformLookup[pCurrentConfig.szName] = idx;
+		}
+
+		// Make sure our uniform data layout is aligned properly.
+		AlignUniformBufferLayout(pShader, &newShaderConfig);
+
+		// Acquire internal resources for the shader.
+		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
+		{
+			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
+			// TODO: Release created resources and reset state.
+			return false;
 		}
 	}
 	else
@@ -278,6 +300,15 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	m_hCurrentlyBoundShader = hShader;
 	// The renderer will do all the work for us.
 	g_pRenderer->BindShader(pShader);
+
+	if (pShader->m_iRendererFrame != g_pRenderer->m_iCurrentRendererFrame)
+	{
+		// If we have not been bound yet this frame, update our per-frame descriptors.
+		BindPerFrameUniforms();
+		ApplyPerFrameUniforms();
+
+		pShader->m_iRendererFrame = g_pRenderer->m_iCurrentRendererFrame;
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -288,6 +319,15 @@ void CShaderSystem::BindPerFrameUniforms()
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
 	CAssert(pShader);
 	g_pRenderer->BindShaderPerFrameUniforms(pShader);
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::ApplyPerFrameUniforms()
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
+	CAssert(pShader);
 }
 
 //-------------------------------------------------------------------------
@@ -312,6 +352,10 @@ uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* p
 void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData)
 {
 	CAssert(hShader != kInvalidID_U16 && uniformLocation != kInvalidID_U16 && pData);
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	ShaderUniform_t* pUniform = &pShader->m_pUniforms[uniformLocation];
+
+	g_pRenderer->SetShaderUniform(pShader, pUniform, pData);
 }
 
 //-------------------------------------------------------------------------
@@ -606,6 +650,96 @@ inline size_t GetAttributeStride(ShaderAttribute_t inAttribute)
 	case ShaderAttribute_t::Texture:
 		return 0; // Samplers don't count.
 	}
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign)
+{
+	size_t boundaryToAlignTo{ 0 };
+	switch (typeToAlign)
+	{
+	case ShaderAttribute_t::Int32:
+		boundaryToAlignTo = 4;
+		break;
+
+	case ShaderAttribute_t::Vector2:
+		boundaryToAlignTo = 8;
+		break;
+
+	case ShaderAttribute_t::Vector3:
+	case ShaderAttribute_t::Vector4:
+	case ShaderAttribute_t::Matrix4x4:
+		boundaryToAlignTo = 16;
+		break;
+
+	case ShaderAttribute_t::Texture:
+		return 0;
+
+	default:
+		CAssert(0);
+	}
+
+	if (currentOffset % boundaryToAlignTo != 0)
+	{
+		// Need to push forward some.
+		return boundaryToAlignTo - (currentOffset % boundaryToAlignTo);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig)
+{
+	size_t iCurrentPerFrameOffset{ 0 };
+	size_t iCurrentPerMaterialOffset{ 0 };
+	size_t iCurrentPerDrawOffset{ 0 };
+
+	size_t uniformCount = pShader->m_iUniformCount;
+	size_t currentStride = 0;
+	ShaderUniform_t* pCurrentUniform = nullptr;
+	for (int idx = 0; idx < uniformCount; idx++)
+	{
+		pCurrentUniform = &pShader->m_pUniforms[idx];
+
+		switch (pCurrentUniform->eGroup)
+		{
+		case eShaderUniformGroup::GLOBAL:
+			iCurrentPerFrameOffset += GetExtraByteCountToEnsureAlignment(iCurrentPerFrameOffset, pCurrentUniform->eType);
+			// Update the individual uniform offset here, as it might've shifted during alignment.
+			pCurrentUniform->Offset = iCurrentPerFrameOffset;
+			iCurrentPerFrameOffset += pCurrentUniform->Stride;
+			break;
+
+		case eShaderUniformGroup::OBJECT:
+			iCurrentPerMaterialOffset += GetExtraByteCountToEnsureAlignment(iCurrentPerMaterialOffset, pCurrentUniform->eType);
+			// Update the individual uniform offset here, as it might've shifted during alignment.
+			pCurrentUniform->Offset = iCurrentPerMaterialOffset;
+			iCurrentPerMaterialOffset += pCurrentUniform->Stride;
+			break;
+			
+		case eShaderUniformGroup::PER_DRAW:
+			iCurrentPerDrawOffset += GetExtraByteCountToEnsureAlignment(iCurrentPerDrawOffset, pCurrentUniform->eType);
+			// Update the individual uniform offset here, as it might've shifted during alignment.
+			pCurrentUniform->Offset = iCurrentPerDrawOffset;
+			iCurrentPerDrawOffset += pCurrentUniform->Stride;
+			break;
+
+		default:
+			CAssert(0);
+		}
+	}
+
+	// Update the UBO strides.
+	pShaderConfig->perFrameUBOStride = iCurrentPerFrameOffset;
+	pShaderConfig->perMaterialUBOStride = iCurrentPerMaterialOffset;
+	pShaderConfig->perDrawUBOStride = iCurrentPerDrawOffset;
 }
 
 //-------------------------------------------------------------------------

@@ -140,14 +140,17 @@ struct ShaderUniform_t
 	size_t				Offset{ 0 };
 	size_t				Stride{ 0 };
 	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
+	eShaderUniformGroup	eGroup{ eShaderUniformGroup::GLOBAL };
 };
 
 class Shader
 {
 public:
 	const char*					m_szShaderName{ nullptr };
-	unsigned int				m_iInternalHandle{ kInvalidID_U32 };
+	unsigned int				m_iInternalHandle{ kInvalidID_U32 };	// DEPRECATED!
+	size_t						m_iRendererFrame{ kInvalidID_U64 };
 	Utl::CHashMap<char*, int>	m_UniformLookup{};
+	size_t						m_iUniformCount{ 0 };
 	ShaderUniform_t*			m_pUniforms{ nullptr };
 
 	void*						m_pInternalData{ nullptr };

@@ -19,7 +19,7 @@ namespace ShaderLoader
 	static bool ProcessShaderUniforms(char* pszConfigData, ShaderResource_t& pOutResource);
 	
 
-#define VERIFY_EQUAL_TOKEN_FOUND(currentLine, equalIndex)\
+#define VERIFY_EQUAL_TOKEN_FOUND(currentLine, equalIndex)																\
 	if (equalIndex == kInvalidID_U32)																					\
 	{																													\
 		LOG_WARN("Error in parsing 'name' value in shader configuration. Line: '%s'. Skipping line.", currentLine);		\
@@ -101,14 +101,14 @@ namespace ShaderLoader
 				}
 				else if (StringCompare(szKey, "enable_depth_testing"))
 				{
-					// Should this shader be set up to perform depth testing.
+					// Should this shader be set up to perform depth testing?
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
 					pOutResource.bDepthTestingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
 					continue;
 				}
 				else if (StringCompare(szKey, "enable_blending"))
 				{
-					// Should this shader be set up to perform depth testing.
+					// Should this shader be set up to perform color blending?
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
 					pOutResource.bColorBlendingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
 					continue;

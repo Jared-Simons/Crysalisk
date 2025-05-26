@@ -50,7 +50,8 @@ public:
 
 	virtual void	BindShader(class Shader* pShader) = 0;
 
-	virtual void	BindShaderDescriptors(class Shader* pShader, eShaderUniformGroup groupToBind) = 0;
+	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) = 0;
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, void* pData) = 0;
 
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) = 0;
 	virtual void	ReleaseShaderResources(class Shader& pShader) = 0;

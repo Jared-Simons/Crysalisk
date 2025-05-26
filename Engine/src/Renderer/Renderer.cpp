@@ -88,6 +88,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
 
+	m_iCurrentRendererFrame = 0;
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -137,7 +139,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
 	g_pShaderSystem->BindShader(testShaderHandle);
-	g_pShaderSystem->BindPerFrameUniforms();
+	Matrix4x4 myMatrix(5.0);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, &myMatrix);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, &myMatrix);
+	Vector3D myPos{ 0.0, 1.0, 0.0 };
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, &myPos);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -193,6 +199,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->EndFrame(pRenderData);
 
+	// Increment the frame count.
+	m_iCurrentRendererFrame++;
+
 	return true;
 }
 
@@ -239,7 +248,12 @@ void Renderer::BindShader(Shader* pShader)
 
 void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
 {
-	m_RendererBackend->BindShaderDescriptors(pShader, eShaderUniformGroup::GLOBAL);
+	m_RendererBackend->BindPerFrameShaderDescriptors(pShader);
+}
+
+void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, void* pData)
+{
+	m_RendererBackend->SetShaderUniform(pShader, pUniform, pData);
 }
 
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
@@ -327,7 +341,7 @@ bool Renderer::CreateTempGeometry()
 
 	// Acquire geometry resources for this text.
 	//s_FontTest.SetText("Some Test Text!");
-	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
 	return true;
 }

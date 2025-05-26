@@ -50,7 +50,9 @@ public:
 
 	virtual void	BindShader(class Shader* pShader) override;
 
-	virtual void	BindShaderDescriptors(class Shader* pShader, eShaderUniformGroup groupToBind) override;
+	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) override;
+
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, void* pData) override;
 
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;
@@ -109,6 +111,7 @@ public:
 	// Internal shader data
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
+	VulkanShaderInternal* m_pCurrentlyBoundShader{ nullptr };
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
