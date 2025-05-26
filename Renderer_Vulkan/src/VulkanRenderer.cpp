@@ -1623,7 +1623,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	// Copy data over to the GPU.
 	void* pUniformData{};
 	vkMapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, uniformStride, 0, &pUniformData);
-	memcpy(pUniformData, &pData, uniformStride);
+	memcpy(pUniformData, pData, uniformStride);
 	vkUnmapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[m_ImageIndex].m_Memory);
 }
 
@@ -2230,7 +2230,7 @@ void CVulkanRenderer::BindShader_OLD(Shader& pShader)
 		void* pUniformData;
 		VkDeviceSize uniformOffset = { 0 };
 		vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-		memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
+		//memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
 		vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
 	}
 }
