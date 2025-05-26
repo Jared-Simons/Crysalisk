@@ -11,6 +11,7 @@
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
@@ -31,6 +32,7 @@ typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
 extern ShaderHandle_t testShaderHandle;
+static Camera_t s_MainCamera;
 
 TextObject	s_FontTest{};
 // END TEMP!
@@ -85,6 +87,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
+	s_MainCamera.RecalculateCameraVectors();
+
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
 
@@ -131,6 +135,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
 	m_flLastFrameTime = currentFrameTime;
 
+	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
+
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
@@ -139,10 +145,16 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
 	g_pShaderSystem->BindShader(testShaderHandle);
-	Matrix4x4 myMatrix(5.0);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, &myMatrix);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, &myMatrix);
-	Vector3D myPos{ 0.0, 1.0, 0.0 };
+
+	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 1000.0f); // TODO: Don't hardcode this.
+	// Flip the y-axis.
+	projection.data[5] *= -1;
+	Matrix4x4 view = s_MainCamera.GetViewMatrix();
+	Vector3D myPos = s_MainCamera.vecPosition;
+
+	// TODO: Get these shader locations set in here.
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, &projection);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, &view);
 	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, &myPos);
 
 	if (s_bLevelGeometryLoaded)

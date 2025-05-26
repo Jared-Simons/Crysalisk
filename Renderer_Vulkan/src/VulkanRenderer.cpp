@@ -16,6 +16,7 @@
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
 #include <Platform/InterfaceRegistry.h>
+#include <Renderer/Camera.h>
 #include <Renderer/RendererTypes.h>
 #include <Resources/GeometryGenerator.h>
 #include <Resources/Loaders/ShaderLoader.h>
@@ -37,106 +38,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 
 static bool RendererEvent_WindowResized(EventData_t data);
 static bool RendererEvent_KeyPressed(EventData_t data);
-
-// TEMPORARY CAMERA DATA
-// THIS SHOULD BE MOVED ELSEWHERE EVENTUALLY!
-struct Camera_t
-{
-	Vector3D vecPosition{ 0, 0, 3 };
-	Vector3D vecFront{ 0, 0, -1 };
-	Vector3D vecRight{ 1, 0, 0 };
-	Vector3D vecUp{ 0, 1, 0 };
-	Vector3D vecWorldUp{ 0, 1, 0 };
-	
-	float	Yaw{ -90.0f };
-	float	Pitch{ 0.0f };
-	float	MoveSpeed{ 6.0f };
-	float	TurnSpeed{ 0.5f };
-
-	inline Matrix4x4 GetViewMatrix()
-	{
-		return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp);
-	}
-
-	void RecalculateCameraVectors()
-	{
-		Vector3D front{};
-		front.x = M_COS_F(M_DEG2RAD_F(Yaw)) * M_COS_F(M_DEG2RAD_F(Pitch));
-		front.y = M_SIN_F(M_DEG2RAD_F(Pitch));
-		front.z = M_SIN_F(M_DEG2RAD_F(Yaw)) * M_COS_F(M_DEG2RAD_F(Pitch));
-		vecFront = front.Normalize();
-
-		Vector3D newRight = Vector3D::CrossProduct(vecFront, vecWorldUp);
-		vecRight = newRight.Normalize();
-
-		Vector3D newUp = Vector3D::CrossProduct(vecRight, vecFront);
-		vecUp = newUp.Normalize();
-	}
-
-	void UpdateCameraData(double deltaTime)
-	{
-		float velocity = (float)(2.5f * deltaTime);
-		const float cameraSpeedMultiplier = 100.0;
-		const float cameraRotationSpeedMultipler = 50.0f;
-
-		if (g_pInputSystem->IsKeyPressed(KEY_W))
-		{
-			vecPosition += (vecFront * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_S))
-		{
-			vecPosition -= (vecFront * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_A))
-		{
-			vecPosition -= (vecRight * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_D))
-		{
-			vecPosition += (vecRight * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_SPACE))
-		{
-			vecPosition += (vecUp * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_CTRL))
-		{
-			vecPosition -= (vecUp * (velocity * cameraSpeedMultiplier));
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_RIGHT))
-		{
-			Yaw += velocity * cameraRotationSpeedMultipler;
-			RecalculateCameraVectors();
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_LEFT))
-		{
-			Yaw -= velocity * cameraRotationSpeedMultipler;
-			RecalculateCameraVectors();
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_UP))
-		{
-			Pitch += velocity * cameraRotationSpeedMultipler;
-
-			if (Pitch > 89.0f)
-				Pitch = 89.0f;
-
-			RecalculateCameraVectors();
-		}
-		if (g_pInputSystem->IsKeyPressed(KEY_DOWN))
-		{
-			Pitch -= velocity * cameraRotationSpeedMultipler;
-
-			if (Pitch < -89.0f)
-				Pitch = -89.0f;
-
-			RecalculateCameraVectors();
-		}
-	}
-};
-
-static Camera_t s_MainCamera;
-
-// END TEMP CAMERA
 
 //-------------------------------------------------------------------------
 // Purpose: Gets opaque pointers to interfaces that will be exposed to the rest of the engine.
@@ -363,7 +264,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Register for input events.
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
-	s_MainCamera.RecalculateCameraVectors();
+	//s_MainCamera.RecalculateCameraVectors();
 	// TEMP CAMERA POSITION
 	//s_MainCamera.vecPosition = { 3072, 464, -5660 };
 
@@ -443,7 +344,7 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 	// Wait for the prior frame to finish it's work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
-	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
+	//s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Acquire the next swapchain image.
 	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
@@ -497,12 +398,10 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	// TODO: Make this happen on shader binds!!
 	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
-	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+	//pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
 	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
 	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
 	pInternalShader.m_UniformData.Projection.data[5] *= -1;
-
-	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
 
 	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
 		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
@@ -2215,11 +2114,9 @@ void CVulkanRenderer::BindShader_OLD(Shader& pShader)
 	{
 		pInternalShader.m_CurrentRendererFrame = m_CurrentRendererFrame;
 
-		pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
+		//pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
 		pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
 		pInternalShader.m_UniformData.Projection.data[5] *= -1;
-
-		pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
 
 		if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
 			pInternalShader.m_UniformData.RenderMode = m_RenderMode;
@@ -2494,12 +2391,7 @@ static bool RendererEvent_WindowResized(EventData_t data)
 
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
-	if (data.c[0] == 'P')
-	{
-		LOG_DEBUG("Camera Pos: %.8f, %.8f, %.8f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z);
-		LOG_DEBUG("Camera Ang: %.8f, %.8f", s_MainCamera.Yaw, s_MainCamera.Pitch);
-	}
-	else if (data.c[0] >= 0  && data.c[0] <= 9)
+	if (data.c[0] >= 0  && data.c[0] <= 9)
 	{
 		s_VulkanContext.m_RenderMode = data.c[0];
 

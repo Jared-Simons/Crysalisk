@@ -39,7 +39,7 @@ mat3 TBN;
 
 void main()
 {
-	vec3 normal = normalize(fsInput.Normal);
+	/*vec3 normal = normalize(fsInput.Normal);
 	vec3 tangentLightPos = fsInput.TBN * global_ubo.dirLightPos;
 	vec3 tangentViewPos = fsInput.TBN * global_ubo.viewPos;
 	vec3 tangentFragPos = fsInput.TBN * fsInput.FragPos;
@@ -118,5 +118,7 @@ void main()
 			outColor = vec4(abs(normalize(fsInput.Bitangent)), diffuseSample.a);
 			return;
 		}
-	}
+	}*/
+	
+	outColor = vec4(1.0f);
 }
