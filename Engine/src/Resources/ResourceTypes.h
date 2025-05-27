@@ -147,13 +147,17 @@ class Shader
 {
 public:
 	const char*					m_szShaderName{ nullptr };
-	unsigned int				m_iInternalHandle{ kInvalidID_U32 };	// DEPRECATED!
+	unsigned int				m_iInternalHandle{ kInvalidID_U32 };
 	size_t						m_iRendererFrame{ kInvalidID_U64 };
 	Utl::CHashMap<char*, int>	m_UniformLookup{};
 	size_t						m_iUniformCount{ 0 };
 	ShaderUniform_t*			m_pUniforms{ nullptr };
 
-	void*						m_pInternalData{ nullptr };
+	size_t						m_iPerFrameUBOSize{ 0 };
+	size_t						m_iPerInstanceUBOSize{ 0 };
+	size_t						m_iUniformBufferAlignmentRequirement{ 0 };
+
+	void*						m_pInternalData{ nullptr };// DEPRECATED!
 };
 
 using MaterialHandle_t = uint32_t;

@@ -76,7 +76,8 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	m_MaterialDictionary.m_MaterialInstanceData = (MaterialInstanceData_t*)new MaterialInstanceData_t[m_Config.MaxMaterials];
 
 	// Default material.
-	CreateDefaultMaterial();
+	// TODO: Make this work with new shader system.
+	//CreateDefaultMaterial();
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
@@ -207,7 +208,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		}
 
 		// Acquire shader resources.
-		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
+		if (!g_pRenderer->AcquireMaterialResources_OLD(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pszMaterialName);
 			return 0; // TODO: Default texture and release resources.
@@ -355,7 +356,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 		}
 		pMatInstanceData.vecDiffuseColor = pConfig.vecDiffuseColor;
 		// Acquire shader resources.
-		if (!g_pRenderer->AcquireMaterialResources(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
+		if (!g_pRenderer->AcquireMaterialResources_OLD(*newMaterial, m_MaterialDictionary.m_MaterialInstanceData[matIdx]))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for material '%s'. Returning default material.", pConfig.pszMaterialName);
 			return m_DefaultMaterialLookup.MaterialIndex; // TODO: Release resources.
@@ -422,7 +423,7 @@ MaterialReference CMaterialSystem::GetDefaultMaterialReference()
 void CMaterialSystem::CreateDefaultMaterial()
 {
 	m_DefaultMaterial.m_szMaterialName = StringDuplicate("_DefaultMaterial");
-	m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD("Core.Phong");
+	//m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD("Core.Phong");	// TODO: NEW SHADER METHOD
 	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem->GetDefaultDiffuseTexture();
 	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
 	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
@@ -444,7 +445,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
 	newMaterialLookup->MaterialIndex = matIdx;
 
-	g_pRenderer->AcquireMaterialResources(m_DefaultMaterial, defaultInstanceData);
+	g_pRenderer->AcquireMaterialResources_OLD(m_DefaultMaterial, defaultInstanceData);
 }
 
 //-------------------------------------------------------------------------

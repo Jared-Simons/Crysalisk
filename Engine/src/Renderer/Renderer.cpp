@@ -145,6 +145,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
 	g_pShaderSystem->BindShader(testShaderHandle);
+	g_pShaderSystem->BindPerInstanceUniforms(1); // TODO: HARDCODED BADNESS
 
 	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 1000.0f); // TODO: Don't hardcode this.
 	// Flip the y-axis.
@@ -153,9 +154,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	Vector3D myPos = s_MainCamera.vecPosition;
 
 	// TODO: Get these shader locations set in here.
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, &projection);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, &view);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, &myPos);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, 0, &projection);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, 0, &view);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, 0, &myPos);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -238,7 +239,7 @@ void Renderer::ReleaseTextureResources_OLD(Texture& pTexture)
 	m_RendererBackend->ReleaseTextureResources_OLD(pTexture);
 }
 
-bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
+bool Renderer::AcquireMaterialResources_OLD(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
 {
 	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
 }
@@ -253,6 +254,11 @@ void Renderer::DestroyShader(Shader* pShader)
 	m_RendererBackend->DestroyShader(pShader);
 }
 
+void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
+{
+	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID);
+}
+
 void Renderer::BindShader(Shader* pShader)
 {
 	m_RendererBackend->BindShader(pShader);
@@ -263,9 +269,14 @@ void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
 	m_RendererBackend->BindPerFrameShaderDescriptors(pShader);
 }
 
-void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, void* pData)
+void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
 {
-	m_RendererBackend->SetShaderUniform(pShader, pUniform, pData);
+	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
+}
+
+void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData)
+{
+	m_RendererBackend->SetShaderUniform(pShader, pUniform, hInstanceID, pData);
 }
 
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
@@ -275,7 +286,8 @@ bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShad
 
 void Renderer::ReleaseShaderResources(Shader& pShader)
 {
-	return m_RendererBackend->ReleaseShaderResources(pShader);
+	//return m_RendererBackend->ReleaseShaderResources(pShader);
+	m_RendererBackend->DestroyShader(&pShader);
 }
 
 void Renderer::BindShader_OLD(Shader& pShader)

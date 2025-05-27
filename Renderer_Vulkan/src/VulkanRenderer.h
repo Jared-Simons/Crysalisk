@@ -48,11 +48,14 @@ public:
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;
 
+	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID) override;
+
 	virtual void	BindShader(class Shader* pShader) override;
 
 	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) override;
+	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, unsigned int hInstanceID) override;
 
-	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, void* pData) override;
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData) override;
 
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;

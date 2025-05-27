@@ -120,5 +120,6 @@ void main()
 		}
 	}*/
 	
+	outColor = vec4(instance_ubo.shininess);
 	outColor = vec4(1.0f);
 }

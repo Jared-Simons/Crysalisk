@@ -533,6 +533,13 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 		return;
 	}
 
+	if (m_CurrentlyBoundShaderIndex == kInvalidID_U32)
+	{
+		// No shader is currently bound! Boot out.
+		LOG_WARN("DrawGeometry() called with an invalid shader bound! Aborting draw.");
+		return;
+	}
+
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
@@ -546,10 +553,6 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	{
 		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}
-
-	// Bind our pipeline.
-	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[pMaterial.m_hShaderHandle].m_Pipeline);
-	m_CurrentlyBoundShaderIndex = pMaterial.m_hShaderHandle;// TODO: Make this work with a call to 'BindShader()'
 
 	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pCurrentlyBoundShader->m_Pipeline);
 
@@ -740,7 +743,7 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// The internal data for a Vulkan texture is the image data.
-	pTexture->m_pInternalData = new VulkanImage;
+	pTexture->m_pInternalData = &m_pInternalTextureData[internalIndex];
 	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
 
 	// Set up the internal image data.
@@ -779,8 +782,6 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
 
-	// Release the memory.
-	delete pImageInternal;
 	pTexture->m_pInternalData = nullptr;
 }
 
@@ -1058,8 +1059,8 @@ static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 
 bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
-	// Allocate internal structures for the shader.
-	pShader->m_pInternalData = new VulkanShaderInternal;
+	// Get the internal shader data.
+	pShader->m_pInternalData = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
 
 	// Piece together the shader modules.
@@ -1425,25 +1426,11 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		vkUpdateDescriptorSets(m_Device.m_Device, 1, &descriptorWrite, 0, nullptr);
 	}
 
-	// TEMP INSTANCE DESCRIPTORS
-	/*VkDescriptorSetLayout* pInstanceLayout = nullptr;
-	for (int layout = 0; layout < pInternalShader->m_DescriptorSetLayouts.Capacity(); layout++)
-	{
-		if (pInternalShader->m_DescriptorSetLayouts[layout].m_FrequencyLevel == eShaderUniformGroup::OBJECT)
-		{
-			pInstanceLayout = &pInternalShader->m_DescriptorSetLayouts[layout].m_Layout;
-		}
-	}
-	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		allocInfo.descriptorPool = pInternalShader->m_DescriptorPool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = pInstanceLayout;
+	// We'll need then when setting up uniform descriptors.
+	pShader->m_iUniformBufferAlignmentRequirement = m_Device.m_DeviceProperties.limits.minUniformBufferOffsetAlignment;
 
-		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[1].m_DescriptorSets[idx]));	// Per-frame descriptors are always first.
-	}*/
-	// END TEMP
+	// Bump up the next free descriptor set index.
+	pInternalShader->m_NextFreeDescriptorSetIndex = 1;
 
 	return true;
 }
@@ -1452,8 +1439,7 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 {
 	// Make sure no resources are in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
-
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	CAssert(pInternalShader);
 
 	// Pipeline
@@ -1481,29 +1467,106 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 		vkDestroyDescriptorPool(m_Device.m_Device, pInternalShader->m_DescriptorPool, m_Allocator);
 }
 
+void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
+{
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
+
+	// Find the instance-level descriptor set layout.
+	VkDescriptorSetLayout instanceDescriptorSetLayout{};
+
+	for (int layoutIdx = 0; layoutIdx < pInternalShader->m_DescriptorSetLayouts.Capacity(); layoutIdx++)
+	{
+		if (pInternalShader->m_DescriptorSetLayouts[layoutIdx].m_FrequencyLevel == eShaderUniformGroup::OBJECT)
+		{
+			// We want this one.
+			instanceDescriptorSetLayout = pInternalShader->m_DescriptorSetLayouts[layoutIdx].m_Layout;
+		}
+	}
+
+	// Bind resources once per image in flight.
+	for (int imageIdx = 0; imageIdx < m_MaxImagesInFlight; imageIdx++)
+	{
+		// Allocate the descriptor set.
+		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+		allocInfo.descriptorPool = pInternalShader->m_DescriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = &instanceDescriptorSetLayout;
+
+		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[imageIdx]));
+
+		Utl::CVector<VkWriteDescriptorSet> descriptorWrites{};
+		VkDescriptorBufferInfo	uboDescriptor{};
+
+		// Image samplers do not count towards UBO stride. Therefore, if UBO stride > 0, then we need to bind UBO resources.
+		if (pShader->m_iPerInstanceUBOSize > 0)
+		{
+			uboDescriptor.buffer = pInternalShader->m_UniformBuffers[imageIdx].m_Handle;
+			uboDescriptor.offset = pShader->m_iPerFrameUBOSize + (pShader->m_iPerInstanceUBOSize * pInternalShader->m_NextFreeDescriptorSetIndex);	// Add the per-frame UBO stride onto the front because those resources live at the front of the buffer.
+			uboDescriptor.range = pShader->m_iPerInstanceUBOSize;
+
+			if (uboDescriptor.offset % pShader->m_iUniformBufferAlignmentRequirement != 0)
+			{
+				// We need to move forward some to align properly.
+				size_t bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uboDescriptor.offset % pShader->m_iUniformBufferAlignmentRequirement);
+				uboDescriptor.offset += bytesToMoveForward;
+			}
+
+			VkWriteDescriptorSet uboDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			uboDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[imageIdx];
+			uboDescriptorWrite.descriptorCount = 1;
+			uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboDescriptorWrite.pBufferInfo = &uboDescriptor;
+
+			descriptorWrites.PushBack(uboDescriptorWrite);
+		}
+
+		// TODO: Handle image samplers.
+
+		// Update the descriptor sets.
+		vkUpdateDescriptorSets(m_Device.m_Device, descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
+	}
+
+	// Bump up the next available descriptor set index.
+	*pOutInstanceID = pInternalShader->m_NextFreeDescriptorSetIndex;
+	pInternalShader->m_NextFreeDescriptorSetIndex++;
+}
+
 void CVulkanRenderer::BindShader(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
 	CAssert(pShader->m_pInternalData);
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	vkCmdBindPipeline(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_Pipeline);
 
 	// Save the internal pointer for use later.
 	m_pCurrentlyBoundShader = pInternalShader;
+	m_CurrentlyBoundShaderIndex = pShader->m_iInternalHandle;
 }
 
 void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	uint8_t descriptorSetIndex{ 0 };	// Per-frame descriptors are always first.
 
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 0, 1, &pInternalShader->m_DescriptorSets[descriptorSetIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
-void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, void* pData)
+void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned int hInstanceID)
 {
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
+	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
+	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 1, 1, &pInternalShader->m_DescriptorSets[hInstanceID].m_DescriptorSets[m_ImageIndex], 0, nullptr);
+}
+
+void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData)
+{
+	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	VkDeviceSize uniformOffset{ 0 };
 	VkDeviceSize uniformStride{ 0 };
 
@@ -1511,6 +1574,19 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	{
 	case eShaderUniformGroup::GLOBAL:
 		uniformOffset = pUniform->Offset;
+		uniformStride = pUniform->Stride;
+		break;
+
+	case eShaderUniformGroup::OBJECT:
+		uniformOffset = pShader->m_iPerFrameUBOSize + (pShader->m_iPerInstanceUBOSize * hInstanceID);
+		// Make sure it's aligned.
+		if (uniformOffset % pShader->m_iUniformBufferAlignmentRequirement != 0)
+		{
+			// We need to move forward some to align properly.
+			size_t bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uniformOffset % pShader->m_iUniformBufferAlignmentRequirement);
+			uniformOffset += bytesToMoveForward;
+		}
+		uniformOffset += pUniform->Offset;
 		uniformStride = pUniform->Stride;
 		break;
 

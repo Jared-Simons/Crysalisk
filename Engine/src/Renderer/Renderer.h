@@ -39,15 +39,18 @@ public:
 	bool	AcquireTextureResources_OLD(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void	ReleaseTextureResources_OLD(class Texture& pTexture);
 
-	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
+	bool	AcquireMaterialResources_OLD(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
 
+	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID);
+
 	void			BindShader(class Shader* pShader);
 	void			BindShaderPerFrameUniforms(class Shader* pShader);
+	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID);
 
-	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, void* pData);
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData);
 
 	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);

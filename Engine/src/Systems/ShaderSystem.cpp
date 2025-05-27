@@ -26,13 +26,15 @@ public:
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
+	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID) override;
+
 	virtual void			BindShader(ShaderHandle_t hShader) override;
 
 	virtual void			BindPerFrameUniforms() override;
-	virtual void			ApplyPerFrameUniforms() override;
+	virtual void			BindPerInstanceUniforms(unsigned int hInstanceID) override;
 
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
-	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData) override;
+	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData) override;
 
 	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) override;
 
@@ -258,6 +260,13 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		// Make sure our uniform data layout is aligned properly.
 		AlignUniformBufferLayout(pShader, &newShaderConfig);
 
+		// Save off our UBO strides.
+		pShader->m_iPerFrameUBOSize = newShaderConfig.perFrameUBOStride;
+		pShader->m_iPerInstanceUBOSize = newShaderConfig.perMaterialUBOStride;
+
+		// Set the internal shader handle.
+		pShader->m_iInternalHandle = newShaderHandle;
+
 		// Acquire internal resources for the shader.
 		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
 		{
@@ -287,6 +296,18 @@ void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 		delete[] pShader->m_pUniforms;
 
 	g_pRenderer->DestroyShader(pShader);
+	pShader->m_iInternalHandle = kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID)
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
+
+	g_pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID);
 }
 
 //-------------------------------------------------------------------------
@@ -305,7 +326,6 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	{
 		// If we have not been bound yet this frame, update our per-frame descriptors.
 		BindPerFrameUniforms();
-		ApplyPerFrameUniforms();
 
 		pShader->m_iRendererFrame = g_pRenderer->m_iCurrentRendererFrame;
 	}
@@ -321,13 +341,11 @@ void CShaderSystem::BindPerFrameUniforms()
 	g_pRenderer->BindShaderPerFrameUniforms(pShader);
 }
 
-//-------------------------------------------------------------------------
-// TODO: Documentation.
-//-------------------------------------------------------------------------
-void CShaderSystem::ApplyPerFrameUniforms()
+void CShaderSystem::BindPerInstanceUniforms(unsigned int hInstanceID)
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
 	CAssert(pShader);
+	g_pRenderer->BindShaderPerInstanceUniforms(pShader, hInstanceID);
 }
 
 //-------------------------------------------------------------------------
@@ -349,13 +367,13 @@ uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* p
 //-------------------------------------------------------------------------
 // TODO: Documentation.
 //-------------------------------------------------------------------------
-void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, void* pData)
+void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData)
 {
 	CAssert(hShader != kInvalidID_U16 && uniformLocation != kInvalidID_U16 && pData);
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	ShaderUniform_t* pUniform = &pShader->m_pUniforms[uniformLocation];
 
-	g_pRenderer->SetShaderUniform(pShader, pUniform, pData);
+	g_pRenderer->SetShaderUniform(pShader, pUniform, hInstanceID, pData);
 }
 
 //-------------------------------------------------------------------------
