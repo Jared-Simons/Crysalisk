@@ -24,9 +24,6 @@ class CTextureSystem : public ITextureSystem
 public:
 	virtual bool	Initialize(TextureSystemConfig_t config) override;
 	virtual void	Shutdown() override;
-
-	virtual TextureHandle_t		AcquireTexture_OLD(const char* pszTextureName, eKnownTextureTypes textureType) override;
-	virtual void				ReleaseTexture_OLD(TextureHandle_t hTexture, bool bForceRelease) override;
 	
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) override;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) override;
@@ -125,118 +122,6 @@ void CTextureSystem::Shutdown()
 	DestroyDefaultTextures();
 
 	delete[] m_TextureDictionary.m_TextureArray;
-}
-
-//-------------------------------------------------------------------------
-// Loads a texture at the provided path if it hasn't been loaded.
-// Returns a handle to the texture.
-//-------------------------------------------------------------------------
-TextureHandle_t CTextureSystem::AcquireTexture_OLD(const char* pszTextureName, eKnownTextureTypes textureType)
-{
-	Texture* newTexture = nullptr;
-	int texIdx = 0;
-
-	// Make sure our state is ready to go.
-	if (!m_TextureDictionary.m_TextureArray)
-	{
-		LOG_WARN("CTextureSystem::AcquireTexture_OLD() called before texture system was initialized! Returning NULL handle.");
-		return kInvalidID_U32;
-	}
-
-	if (!pszTextureName)
-	{
-		LOG_ERROR("CTextureSystem::AcquireTexture_OLD() requires a path to the texture to load! Returning default texture.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	// We need to flip standard images.
-	stbi_set_flip_vertically_on_load(true);
-
-	// Get an entry into the hashmap.
-	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
-
-	if (!newTextureLookup)
-	{
-		LOG_ERROR("Failed to find free space for new texture in texture hashmap, returning default.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
-	{
-		texIdx = GetFirstFreeTextureHandle();
-		newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-
-		if (!newTexture)
-		{
-			LOG_ERROR("Could not load texture '%s' because all texture slots were full, returning default texture.", pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		// Load up the image
-		byte* pPixelData = stbi_load(pszTextureName, &newTexture->width, &newTexture->height, &newTexture->numChannels, 4);
-
-		if (!pPixelData)
-		{
-			LOG_ERROR("Failed to load texture '%s'. Returning default texture.", pszTextureName); // TODO: Failure reason?
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		// Check the image data for transparency.
-		byte* pCurrentPixel = pPixelData;
-
-		for (int x = 0; x < newTexture->width; x++)
-		{
-			// If we're already marked as transparent, break out.
-			if ((newTexture->textureFlags & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
-				break;
-
-			for (int y = 0; y < newTexture->height; y++)
-			{
-				byte alpha = pCurrentPixel[3];
-				if (alpha < 255)
-				{
-					// This texture is transparent, mark it as such.
-					newTexture->textureFlags |= TEXTURE_FLAG_IS_TRANSPARENT;
-					break;
-				}
-
-				pCurrentPixel += 4; // 4 bytes forward to the next pixel
-				int myBreakpoint = 0;
-			}
-		}
-
-		// Send the data off to the renderer to be uploaded to the GPU.
-		if (!g_pRenderer->AcquireTextureResources_OLD(*newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
-		{
-			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
-			stbi_image_free(pPixelData);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		// Free the original pixel data.
-		stbi_image_free(pPixelData);
-
-		newTexture->pszTextureName = StringDuplicate(pszTextureName);
-	}
-	else
-	{
-		newTexture = &m_TextureDictionary.m_TextureArray[newTextureLookup->TextureIndex];
-	}
-
-	if (!newTexture)
-	{
-		LOG_ERROR("Failed to find resources to load/create texture '%s'. Returning default texture.", pszTextureName);
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32)
-		newTextureLookup->TextureIndex = texIdx;
-	
-	newTextureLookup->ReferenceCount++;
-	newTextureLookup->AutoRelease = true; // TODO: Configurable.
-	
-	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
-	return newTextureLookup->TextureIndex;
 }
 
 //-------------------------------------------------------------------------
@@ -419,47 +304,6 @@ TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, 
 
 	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
 	return newTextureLookup->TextureIndex;
-}
-
-//-------------------------------------------------------------------------
-// Releases the texture, which decrements it's reference count.
-// Once that count reaches zero, textures that are flagged as such will be released.
-//-------------------------------------------------------------------------
-void CTextureSystem::ReleaseTexture_OLD(TextureHandle_t hTexture, bool bForceRelease)
-{
-	Texture* pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
-
-	// Default textures do not go through this pipe.
-	if (pTexture->textureFlags & TEXTURE_FLAG_DEFAULT_TEXTURE)
-		return;
-
-	// Get the texture lookup.
-	TextureLookup* pTexLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
-	if (!pTexLookup || pTexLookup->TextureIndex == kInvalidID_U32)
-	{
-		LOG_ERROR("Texture '%s' failed to release resources. Texture dictionary is likely corrupt!", pTexture->pszTextureName);
-		return;
-	}
-
-	// Decrement reference count.
-	pTexLookup->ReferenceCount--;
-	LOG_VERBOSE("Released texture '%s', reference count is now %d", pTexture->pszTextureName, pTexLookup->ReferenceCount);
-
-	// Release resources if necessary.
-	if ((pTexLookup->ReferenceCount <= 0 && pTexLookup->AutoRelease == true) || bForceRelease)
-	{
-		if (bForceRelease)
-		{
-			LOG_DEBUG("Texture '%s''s reference count has reached %d, but is being force-released. Releasing resources.", pTexture->pszTextureName, pTexLookup->ReferenceCount);
-		}
-		else
-		{
-			LOG_DEBUG("Texture '%s''s reference count has reached %d, and is set to auto-release. Releasing resources.", pTexture->pszTextureName, pTexLookup->ReferenceCount);
-		}
-		g_pRenderer->ReleaseTextureResources_OLD(*pTexture);
-		if (pTexture->pszTextureName)
-			StringFree(pTexture->pszTextureName);
-	}
 }
 
 //-------------------------------------------------------------------------

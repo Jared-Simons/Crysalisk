@@ -36,16 +36,12 @@ public:
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
 	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData) override;
 
-	virtual ShaderHandle_t	AcquireShader_OLD(const char* pszShaderName) override;
-
-	virtual void	BindShader_OLD(ShaderHandle_t hShader) override;
-
 private:
 	ShaderHandle_t	FindFirstFreeShaderHandle() const;
 
-	void			ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
+	void				ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
 	ShaderAttribute_t	ParseVertexTypeFromString(const char* pszType);
-	void			ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
+	void				ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
 
 private:
 	ShaderSystemConfig_t	m_Config{};
@@ -374,121 +370,6 @@ void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLoc
 	ShaderUniform_t* pUniform = &pShader->m_pUniforms[uniformLocation];
 
 	g_pRenderer->SetShaderUniform(pShader, pUniform, hInstanceID, pData);
-}
-
-//-------------------------------------------------------------------------
-// Loads a material at the provided path, and acquires it's resources if it
-// hasn't been loaded.
-// Returns a handle to the shader.
-//-------------------------------------------------------------------------
-ShaderHandle_t CShaderSystem::AcquireShader_OLD(const char* pszShaderName)
-{
-	// Make sure our state is ready to go.
-	if (!m_ShaderDictionary.m_ShaderArray)
-	{
-		LOG_WARN("CShaderSystem::AcquireShader_OLD() called before material system was initialized! Returning NULL handle.");
-		return 0;
-	}
-
-	if (!pszShaderName || !pszShaderName[0])
-	{
-		LOG_ERROR("AcquireShader_OLD() requires a shader to load. Nothing was done.");
-		return -1;
-	}
-
-	Shader* newShader = nullptr;
-	int shaderIdx = -1;
-
-	// Get an entry into the hashmap.
-	ShaderLookup* newShaderLookup = &m_ShaderDictionary.m_ShaderLookup[pszShaderName];
-	if (!newShaderLookup)
-	{
-		LOG_ERROR("Failed to find free space for a new shader in the shader hashmap, returning default.");
-		return 0; // TODO: Default shader.
-	}
-
-	if (newShaderLookup->ShaderIndex == kInvalidID_U32) // This shader does not yet exist in our hashmap.
-	{
-		char formattedShaderPath[kScratchStringBufferLength];
-		*formattedShaderPath = *pszShaderName;
-
-		// Check to see if the shader exists.
-		if (!FileSystem::FileExists(pszShaderName))
-		{
-			// It's possible that we were passed the name of the shader without a path.
-			// Tack on the path and try again.
-			StringFormat_V("%s/%s.%s", formattedShaderPath, "Assets/Shaders", pszShaderName, "cshadercfg");
-
-			if (!FileSystem::FileExists(formattedShaderPath))
-			{
-				LOG_ERROR("Shader '%s' can't be found! Shader acquisition failed.", pszShaderName);
-				return -1;
-			}
-		}
-
-		// Get at the first free shader slot.
-		for (shaderIdx = 0; shaderIdx < m_Config.MaxShaders; shaderIdx++)
-		{
-			if (!m_ShaderDictionary.m_ShaderArray[shaderIdx].m_szShaderName)
-			{
-				newShader = &m_ShaderDictionary.m_ShaderArray[shaderIdx];
-				break;
-			}
-		}
-
-		if (!newShader)
-		{
-			LOG_ERROR("Could not load shader '%s' because all shader slots were full, returning default shader.", pszShaderName);
-			return 0; // TODO: Default shader.
-		}
-		newShader->m_iInternalHandle = shaderIdx;
-
-		// Parse the shader configuration.
-		ShaderConfig_t newShaderConfig{};
-		ParseShaderConfigurationFromFile(formattedShaderPath, newShaderConfig);
-
-		// TODO: DONT HARDCORE THIS!
-		if (StringCompare(newShaderConfig.pszShaderName, "Core.Phong"))
-		{
-			newShaderConfig.vertexStride = sizeof(Vertex3D);
-		}
-		else
-		{
-			newShaderConfig.vertexStride = sizeof(Vertex2D);
-		}
-		
-		// Acquire shader resources.
-		if (newShaderConfig.pszShaderName != nullptr)
-		{
-			newShader->m_szShaderName = StringDuplicate(newShaderConfig.pszShaderName);
-		}
-
-		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
-
-		// Acquire renderer resources.
-		if (!g_pRenderer->AcquireShaderResources_OLD(*newShader, newShaderConfig))
-		{
-			LOG_ERROR("Failed to acquire renderer resources for shader '%s'. Returning default shader.", pszShaderName);
-			// TODO: Free resources and return default shader.
-			return 0;
-		}
-	}
-	else
-	{
-		newShader = &m_ShaderDictionary.m_ShaderArray[newShaderLookup->ShaderIndex];
-	}
-
-	if (!newShader)
-	{
-		LOG_ERROR("Failed to load/create shader '%s'. Returning default shader.", pszShaderName);
-		return 0; // TODO: Default shader.
-	}
-
-	if (newShaderLookup->ShaderIndex == kInvalidID_U32)
-		newShaderLookup->ShaderIndex = shaderIdx;
-
-	LOG_VERBOSE("Successfully acquired shader: '%s', at index %d", newShader->m_szShaderName, newShaderLookup->ShaderIndex);
-	return newShaderLookup->ShaderIndex;
 }
 
 //-------------------------------------------------------------------------
@@ -1033,14 +914,6 @@ void CShaderSystem::ParseSamplerTypesFromString(const char* pszTypeString, Utl::
 
 			StringFree(pszCurrentType);
 		}
-	}
-}
-
-void CShaderSystem::BindShader_OLD(ShaderHandle_t hShader)
-{
-	if (m_ShaderDictionary.m_ShaderArray[hShader].m_iInternalHandle != kInvalidID_U32)
-	{
-		g_pRenderer->BindShader_OLD(m_ShaderDictionary.m_ShaderArray[hShader]);
 	}
 }
 

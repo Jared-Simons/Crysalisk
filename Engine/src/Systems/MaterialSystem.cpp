@@ -162,7 +162,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		if (newMatConfig.pszShaderName != nullptr)
 		{
-			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD(newMatConfig.pszShaderName);
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMatConfig.pszMaterialName);
 		}
 
 		if (newMatConfig.iShininess != kInvalidID_U32)
@@ -300,7 +300,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (!newMaterial)
 		{
-			LOG_ERROR("Could not load material '%s' because all material slots were full, returning default material.", pConfig.pszMaterialName);
+			LOG_ERROR("Could not load material '%s' because all material slots are full, returning default material.", pConfig.pszMaterialName);
 			return m_DefaultMaterialLookup.MaterialIndex;
 		}
 		MaterialInstanceData_t& pMatInstanceData = m_MaterialDictionary.m_MaterialInstanceData[matIdx];
@@ -313,7 +313,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszShaderName != nullptr)
 		{
-			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD(pConfig.pszShaderName);
+			newMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(pConfig.pszShaderName);
 		}
 
 		if (pConfig.iShininess != kInvalidID_U32)
@@ -328,7 +328,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszDiffuseTextureName != nullptr)
 		{
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszDiffuseTextureName, true);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
 			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
@@ -337,7 +337,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszSpecularTextureName != nullptr)
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszSpecularTextureName, true);
 		}
 		else
 		{
@@ -347,7 +347,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszNormalTextureName != nullptr)
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(pConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszNormalTextureName, true);
 		}
 		else
 		{

@@ -25,9 +25,6 @@ public:
 	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual TextureHandle_t		AcquireTexture_OLD(const char* pszTextureName, eKnownTextureTypes textureType) = 0;
-	virtual void				ReleaseTexture_OLD(TextureHandle_t hTexture, bool bForceRelease) = 0;
-
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) = 0;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) = 0;
 
