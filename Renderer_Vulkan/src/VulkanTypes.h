@@ -55,7 +55,7 @@ public:
 
 	bool		TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, byte* pPixelData);
+	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData);
 
 public:
 	VkImage			m_Image{ VK_NULL_HANDLE };

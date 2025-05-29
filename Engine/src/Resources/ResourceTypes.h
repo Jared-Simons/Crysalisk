@@ -140,7 +140,7 @@ struct ShaderUniform_t
 	size_t				Offset{ 0 };
 	size_t				Stride{ 0 };
 	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
-	eShaderUniformGroup	eGroup{ eShaderUniformGroup::GLOBAL };
+	eShaderUniformGroup	eGroup{ eShaderUniformGroup::PER_FRAME };
 };
 
 class Shader

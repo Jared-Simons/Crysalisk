@@ -50,7 +50,7 @@ public:
 	void			BindShaderPerFrameUniforms(class Shader* pShader);
 	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID);
 
-	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData);
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData);
 
 	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
 	void			ReleaseShaderResources(class Shader& pShader);

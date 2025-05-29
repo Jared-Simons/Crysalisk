@@ -17,8 +17,8 @@ struct ShaderSystemConfig_t
 class IShaderSystem
 {
 public:
-	virtual bool	Initialize(ShaderSystemConfig_t config) = 0;
-	virtual void	Shutdown() = 0;
+	virtual bool			Initialize(ShaderSystemConfig_t config) = 0;
+	virtual void			Shutdown() = 0;
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) = 0;
 	virtual void			ReleaseShader(ShaderHandle_t hShader) = 0;
@@ -31,7 +31,7 @@ public:
 	virtual void			BindPerInstanceUniforms(unsigned int hInstanceID) = 0;
 
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) = 0;
-	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData) = 0;
+	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) = 0;
 };
 
 DLL_EXPORT IShaderSystem* g_pShaderSystem;

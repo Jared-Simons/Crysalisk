@@ -33,7 +33,7 @@ layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 const int SAMP_DIFFUSE = 0;
 const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
-//layout(set = 1, binding = 1) uniform sampler2D samplers[3];
+layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 
 mat3 TBN;
 
@@ -120,6 +120,6 @@ void main()
 		}
 	}*/
 	
-	outColor = vec4(instance_ubo.shininess);
-	outColor = vec4(1.0f);
+	outColor = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
+	//outColor = vec4(1.0f);
 }

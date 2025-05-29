@@ -80,7 +80,7 @@ private:
 
 // Texture System context.
 static CTextureSystem s_TextureSystem;
-ITextureSystem* g_pTextureSystem = &s_TextureSystem;
+ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -429,6 +429,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultTexturePixels[0][0];
 
 		defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
+		defaultDiffuseTexture->numChannels = 4;
 		if (!g_pRenderer->AcquireTextureResources_OLD(*defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
@@ -471,6 +472,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultTexturePixels[0][0];
 
 		defaultWhiteTexture->width = defaultWhiteTexture->height = 8;
+		defaultWhiteTexture->numChannels = 4;
 		if (!g_pRenderer->AcquireTextureResources_OLD(*defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
@@ -513,6 +515,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultSpecularTexturePixels[0][0];
 
 		pDefaultSpecularTexture->width = pDefaultSpecularTexture->height = 8;
+		pDefaultSpecularTexture->numChannels = 4;
 		if (!g_pRenderer->AcquireTextureResources_OLD(*pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default specular texture.");
@@ -555,6 +558,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		byte* pPixelData = defaultNormalTexturePixels[0][0];
 
 		pDefaultNormalTexture->width = pDefaultNormalTexture->height = 8;
+		pDefaultNormalTexture->numChannels = 4;
 		if (!g_pRenderer->AcquireTextureResources_OLD(*pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default normal texture.");

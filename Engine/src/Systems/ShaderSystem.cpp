@@ -20,8 +20,8 @@
 class CShaderSystem : public IShaderSystem
 {
 public:
-	virtual bool	Initialize(ShaderSystemConfig_t config) override;
-	virtual void	Shutdown() override;
+	virtual bool			Initialize(ShaderSystemConfig_t config) override;
+	virtual void			Shutdown() override;
 
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
@@ -34,7 +34,7 @@ public:
 	virtual void			BindPerInstanceUniforms(unsigned int hInstanceID) override;
 
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
-	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData) override;
+	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
 
 private:
 	ShaderHandle_t	FindFirstFreeShaderHandle() const;
@@ -195,9 +195,9 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newShaderConfig.uniformConfigs.PushBack(newUniform);
 
 			// Keep track of our group strides.
-			if (newUniform.eFrequency == eShaderUniformGroup::GLOBAL)
+			if (newUniform.eFrequency == eShaderUniformGroup::PER_FRAME)
 				newShaderConfig.perFrameUBOStride += newUniform.iStride;
-			else if (newUniform.eFrequency == eShaderUniformGroup::OBJECT)
+			else if (newUniform.eFrequency == eShaderUniformGroup::PER_MATERIAL)
 				newShaderConfig.perMaterialUBOStride += newUniform.iStride;
 			else
 				newShaderConfig.perDrawUBOStride += newUniform.iStride;
@@ -229,15 +229,15 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
 			// Find all our buffer offsets and save off our groups.
 			size_t currentStride = GetAttributeStride(pCurrentConfig.eType);
-			if (pCurrentConfig.eFrequency == eShaderUniformGroup::GLOBAL)
+			if (pCurrentConfig.eFrequency == eShaderUniformGroup::PER_FRAME)
 			{
-				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::GLOBAL;
+				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_FRAME;
 				pShader->m_pUniforms[idx].Offset = iRunningPerFrameOffset;
 				iRunningPerFrameOffset += currentStride;
 			}
-			else if (pCurrentConfig.eFrequency == eShaderUniformGroup::OBJECT)
+			else if (pCurrentConfig.eFrequency == eShaderUniformGroup::PER_MATERIAL)
 			{
-				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::OBJECT;
+				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_MATERIAL;
 				pShader->m_pUniforms[idx].Offset = iRunningPerMaterialOffset;
 				iRunningPerMaterialOffset += currentStride;
 			}
@@ -363,13 +363,13 @@ uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* p
 //-------------------------------------------------------------------------
 // TODO: Documentation.
 //-------------------------------------------------------------------------
-void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int hInstanceID, void* pData)
+void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	CAssert(hShader != kInvalidID_U16 && uniformLocation != kInvalidID_U16 && pData);
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	ShaderUniform_t* pUniform = &pShader->m_pUniforms[uniformLocation];
 
-	g_pRenderer->SetShaderUniform(pShader, pUniform, hInstanceID, pData);
+	g_pRenderer->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
 
 //-------------------------------------------------------------------------
@@ -508,11 +508,11 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	// Get the uniform group.
 	if (StringCompareInsensitive(pszGroupStr, "frame"))
 	{
-		newUniformConfig.eFrequency = eShaderUniformGroup::GLOBAL;
+		newUniformConfig.eFrequency = eShaderUniformGroup::PER_FRAME;
 	}
 	else if (StringCompareInsensitive(pszGroupStr, "material"))
 	{
-		newUniformConfig.eFrequency = eShaderUniformGroup::OBJECT;
+		newUniformConfig.eFrequency = eShaderUniformGroup::PER_MATERIAL;
 	}
 	else if (StringCompareInsensitive(pszGroupStr, "draw"))
 	{
@@ -521,7 +521,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	else
 	{
 		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszGroupStr);
-		newUniformConfig.eFrequency = eShaderUniformGroup::OBJECT;
+		newUniformConfig.eFrequency = eShaderUniformGroup::PER_MATERIAL;
 	}
 
 	return newUniformConfig;
@@ -609,14 +609,14 @@ static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderCon
 
 		switch (pCurrentUniform->eGroup)
 		{
-		case eShaderUniformGroup::GLOBAL:
+		case eShaderUniformGroup::PER_FRAME:
 			iCurrentPerFrameOffset += GetExtraByteCountToEnsureAlignment(iCurrentPerFrameOffset, pCurrentUniform->eType);
 			// Update the individual uniform offset here, as it might've shifted during alignment.
 			pCurrentUniform->Offset = iCurrentPerFrameOffset;
 			iCurrentPerFrameOffset += pCurrentUniform->Stride;
 			break;
 
-		case eShaderUniformGroup::OBJECT:
+		case eShaderUniformGroup::PER_MATERIAL:
 			iCurrentPerMaterialOffset += GetExtraByteCountToEnsureAlignment(iCurrentPerMaterialOffset, pCurrentUniform->eType);
 			// Update the individual uniform offset here, as it might've shifted during alignment.
 			pCurrentUniform->Offset = iCurrentPerMaterialOffset;
@@ -648,11 +648,11 @@ static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString
 {
 	if (StringCompareInsensitive(pszString, "frame"))
 	{
-		return eShaderUniformGroup::GLOBAL;
+		return eShaderUniformGroup::PER_FRAME;
 	}
 	else if (StringCompareInsensitive(pszString, "material"))
 	{
-		return eShaderUniformGroup::OBJECT;
+		return eShaderUniformGroup::PER_MATERIAL;
 	}
 	else if (StringCompareInsensitive(pszString, "draw"))
 	{
@@ -661,7 +661,7 @@ static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString
 	else
 	{
 		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszString);
-		return eShaderUniformGroup::OBJECT;
+		return eShaderUniformGroup::PER_MATERIAL;
 	}
 }
 

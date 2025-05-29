@@ -182,7 +182,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	TextureSystemConfig_t textureSysConfig{};
 	textureSysConfig.MaxTextures = 4999;
 	CAssert(rendererConfig.MaxTextures == textureSysConfig.MaxTextures);
-	if (!g_pTextureSystem->Initialize(textureSysConfig))
+	if (!g_pTextureSystem_Internal->Initialize(textureSysConfig))
 	{
 		LOG_ERROR("Failed to initialize texture system! Application cannot continue.");
 		return false;
@@ -216,6 +216,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
+	TextureHandle_t	hTestTexture = g_pTextureSystem_Internal->AcquireTexture("Assets/Textures/container2.png", true);
 	testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
 	shaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "projection");
 	shaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "view");
@@ -229,6 +230,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	unsigned int hTestInstanceID{ 0 };
 	g_pShaderSystem->AcquireShaderInstanceResources(testShaderHandle, &hTestInstanceID);
+
+	// Test to bind the texture to the shader.
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, shaderLocations.texture_maps, 0, hTestInstanceID, &hTestTexture); // 0 for diffuse sampler.
 
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();
@@ -278,7 +282,7 @@ void CEngine::Shutdown()
 	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
-	g_pTextureSystem->Shutdown();
+	g_pTextureSystem_Internal->Shutdown();
 
 	g_pRenderer->Shutdown();
 
@@ -422,6 +426,11 @@ bool ReturnInterfacesToRegistry()
 	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
 	inputSystem.szSystemName = StringDuplicate("input_system");
 	Platform::RegisterInterface(inputSystem);
+
+	Platform::SystemInterface_t textureSystem{};
+	textureSystem.pSystemAddr = reinterpret_cast<void*>(g_pTextureSystem_Internal);
+	textureSystem.szSystemName = StringDuplicate("texture_system");
+	Platform::RegisterInterface(textureSystem);
 
 	Platform::SystemInterface_t materialSystem{};
 	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);

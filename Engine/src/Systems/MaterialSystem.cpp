@@ -178,32 +178,32 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		if (newMatConfig.pszDiffuseTextureName != nullptr)
 		{
 			//newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszDiffuseTextureName, eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszDiffuseTextureName, true);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->AcquireTexture(newMatConfig.pszDiffuseTextureName, true);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
-			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
+			if ((g_pTextureSystem_Internal->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
 				newMaterial->m_bIsTransparent = true;
 		}
 
 		if (newMatConfig.pszSpecularTextureName != nullptr)
 		{
 			//newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszSpecularTextureName, eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszSpecularTextureName, true);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->AcquireTexture(newMatConfig.pszSpecularTextureName, true);
 		}
 		else
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
 			LOG_VERBOSE("Material '%s' missing specular texture, using default.", pszMaterialName);
 		}
 
 		if (newMatConfig.pszNormalTextureName != nullptr)
 		{
 			//newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture_OLD(newMatConfig.pszNormalTextureName, eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(newMatConfig.pszNormalTextureName, true);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->AcquireTexture(newMatConfig.pszNormalTextureName, true);
 		}
 		else
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
 			LOG_VERBOSE("Material '%s' missing normal texture, using default.", pszMaterialName);
 		}
 
@@ -328,30 +328,30 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 
 		if (pConfig.pszDiffuseTextureName != nullptr)
 		{
-			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszDiffuseTextureName, true);
+			newMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->AcquireTexture(pConfig.pszDiffuseTextureName, true);
 
 			// If the diffuse texture is transparent, mark the material as transparent.
-			if ((g_pTextureSystem->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
+			if ((g_pTextureSystem_Internal->GetTextureFromHandle(newMaterial->m_hDiffuseTextureHandle)->GetFlags() & TEXTURE_FLAG_IS_TRANSPARENT) != 0)
 				newMaterial->m_bIsTransparent = true;
 		}
 
 		if (pConfig.pszSpecularTextureName != nullptr)
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszSpecularTextureName, true);
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->AcquireTexture(pConfig.pszSpecularTextureName, true);
 		}
 		else
 		{
-			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
+			newMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
 			LOG_VERBOSE("Material '%s' missing specular texture, using default.", pConfig.pszMaterialName);
 		}
 
 		if (pConfig.pszNormalTextureName != nullptr)
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->AcquireTexture(pConfig.pszNormalTextureName, true);
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->AcquireTexture(pConfig.pszNormalTextureName, true);
 		}
 		else
 		{
-			newMaterial->m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+			newMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
 			LOG_VERBOSE("Material '%s' missing normal texture, using default.", pConfig.pszMaterialName);
 		}
 		pMatInstanceData.vecDiffuseColor = pConfig.vecDiffuseColor;
@@ -424,9 +424,9 @@ void CMaterialSystem::CreateDefaultMaterial()
 {
 	m_DefaultMaterial.m_szMaterialName = StringDuplicate("_DefaultMaterial");
 	//m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD("Core.Phong");	// TODO: NEW SHADER METHOD
-	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem->GetDefaultDiffuseTexture();
-	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem->GetDefaultSpecularTexture();
-	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem->GetDefaultNormalTexture();
+	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
+	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
+	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
 	MaterialInstanceData_t defaultInstanceData{};
 	defaultInstanceData.Shininess = 32;
 

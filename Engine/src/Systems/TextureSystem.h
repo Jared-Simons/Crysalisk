@@ -41,4 +41,4 @@ public:
 	virtual TextureHandle_t		GetDefaultNormalTexture() = 0;
 };
 
-DLL_EXPORT ITextureSystem* g_pTextureSystem;
+DLL_EXPORT ITextureSystem* g_pTextureSystem_Internal;

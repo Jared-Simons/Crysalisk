@@ -154,12 +154,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	Vector3D myPos = s_MainCamera.vecPosition;
 
 	// TODO: Get these shader locations set in here.
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, 0, &projection);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, 0, &view);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, 0, &myPos);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, 0, 0, &projection);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, 0, 0, &view);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, 0, 0, &myPos);
 
 	int myShininess{ 7 };
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 5, 1, &myShininess);
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 5, 1, 0, &myShininess);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -277,9 +277,9 @@ void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInst
 	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
 }
 
-void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData)
+void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
-	m_RendererBackend->SetShaderUniform(pShader, pUniform, hInstanceID, pData);
+	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
 
 bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)

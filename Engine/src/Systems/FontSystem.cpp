@@ -199,7 +199,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		}
 
 		// Acquire texture resources.
-		newFont->m_hFontTexture = g_pTextureSystem->WrapTextureInternal(pFontPath, newFont->m_Atlas.Width, newFont->m_Atlas.Height, pFontPixelBuffer); // TODO: formatted texture name
+		newFont->m_hFontTexture = g_pTextureSystem_Internal->WrapTextureInternal(pFontPath, newFont->m_Atlas.Width, newFont->m_Atlas.Height, pFontPixelBuffer); // TODO: formatted texture name
 
 		// Set up a material for this
 		// TODO: We need to get a material for now because that's the ONLY way the Vulkan renderer can set up the descriptor sets.

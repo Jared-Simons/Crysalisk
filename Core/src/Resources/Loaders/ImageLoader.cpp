@@ -45,7 +45,8 @@ namespace ImageLoader
 		FileSystem::CloseFile(&tempFileHandle);
 
 		// Load the image data into our buffer. (This must be freed by the caller).
-		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, 0);
+		// NOTE: We are forcing each image to be loaded as 4 channels because support for R8G8B8 images on some hardware is dodgy, whereas R8G8B8A8 is seemingly universal.
+		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, 4);	
 
 		// Check the image for transparency.
 		// We (currently) only care about this if there is an alpha channel.

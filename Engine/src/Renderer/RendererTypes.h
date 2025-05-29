@@ -91,8 +91,8 @@ struct VertexAttribute_t
 
 enum class eShaderUniformGroup
 {
-	GLOBAL,
-	OBJECT,
+	PER_FRAME,
+	PER_MATERIAL,
 	PER_DRAW
 };
 
@@ -107,7 +107,7 @@ struct ShaderUniformConfig_t
 	ShaderUniformConfig_t()
 		: szName{ nullptr }
 		, eType{ ShaderAttribute_t::Undefined }
-		, eFrequency{ eShaderUniformGroup::OBJECT }
+		, eFrequency{ eShaderUniformGroup::PER_MATERIAL }
 		, iStride{ 0 }
 		, iArraySize{ 1 } { }
 

@@ -55,7 +55,7 @@ public:
 	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) override;
 	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, unsigned int hInstanceID) override;
 
-	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int hInstanceID, void* pData) override;
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
 
 	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;

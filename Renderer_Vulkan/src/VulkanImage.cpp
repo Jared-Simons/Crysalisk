@@ -122,15 +122,15 @@ bool VulkanImage::TransitionImageLayout(class CVulkanRenderer& pRenderingContext
 	return true;
 }
 
-bool VulkanImage::WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, byte* pPixelData)
+bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData)
 {
 	// Put the image data into a nice staging buffer.
 	VulkanBuffer stagingBuffer;
 	VulkanBuffer::CreateBuffer(pRenderingContext, width * height * 4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 
 	void* pImageData;
-	vkMapMemory(pRenderingContext.m_Device.m_Device, stagingBuffer.m_Memory, 0, width * height * 4, 0, &pImageData);
-	memcpy(pImageData, pPixelData, width * height * 4);
+	vkMapMemory(pRenderingContext.m_Device.m_Device, stagingBuffer.m_Memory, 0, width * height * numChannels, 0, &pImageData);
+	memcpy(pImageData, pPixelData, width * height * numChannels);
 	vkUnmapMemory(pRenderingContext.m_Device.m_Device, stagingBuffer.m_Memory);
 
 	// Transition the image to a transfer dest. layout

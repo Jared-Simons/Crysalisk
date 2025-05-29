@@ -29,9 +29,10 @@
 #include <Strings/String_Utils.h>
 
 // Engine System Interfaces
-static class IEventSystem* g_pEngineEvents{ nullptr };
-static class IInputSystem* g_pInputSystem{ nullptr };
-static class IMaterialSystem* g_pMaterialSystem{ nullptr };
+static class IEventSystem*		g_pEngineEvents{ nullptr };
+static class IInputSystem*		g_pInputSystem{ nullptr };
+static class ITextureSystem*	g_pTextureSystem{ nullptr };
+static class IMaterialSystem*	g_pMaterialSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: A function to be implemented by the consuming library.
@@ -66,6 +67,12 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 		if (StringCompare(appInterfaces[i].szSystemName, "input_system"))
 		{
 			g_pInputSystem = (IInputSystem*)appInterfaces[i].pSystemAddr;
+			continue;
+		}
+
+		if (StringCompare(appInterfaces[i].szSystemName, "texture_system"))
+		{
+			g_pTextureSystem = (ITextureSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 
