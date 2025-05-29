@@ -1298,7 +1298,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 			VkDescriptorSetLayoutBinding perMaterialUBOBinding{};
 			perMaterialUBOBinding.binding = 0;
 			perMaterialUBOBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			perMaterialUBOBinding.descriptorCount = kMaxVulkanInstances;
+			perMaterialUBOBinding.descriptorCount = 1;
 			perMaterialUBOBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 			perMaterialDescriptorLayoutBindings.PushBack(perMaterialUBOBinding);
@@ -1514,6 +1514,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 
 			VkWriteDescriptorSet uboDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 			uboDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[imageIdx];
+			uboDescriptorWrite.dstBinding = 0;
 			uboDescriptorWrite.descriptorCount = 1;
 			uboDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			uboDescriptorWrite.pBufferInfo = &uboDescriptor;

@@ -158,6 +158,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, 0, &view);
 	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, 0, &myPos);
 
+	int myShininess{ 7 };
+	g_pShaderSystem->SetShaderUniform(testShaderHandle, 5, 1, &myShininess);
+
 	if (s_bLevelGeometryLoaded)
 	{
 		// TODO: Make this work with an allocator.

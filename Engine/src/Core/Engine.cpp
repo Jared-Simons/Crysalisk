@@ -230,9 +230,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	unsigned int hTestInstanceID{ 0 };
 	g_pShaderSystem->AcquireShaderInstanceResources(testShaderHandle, &hTestInstanceID);
 
-	int myShininess{ 7 };
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, shaderLocations.shininess, hTestInstanceID, &myShininess);
-
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();
 
