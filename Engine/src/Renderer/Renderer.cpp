@@ -31,7 +31,6 @@ static bool RendererEvent_KeyPressed(EventData_t data);
 typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
-extern ShaderHandle_t testShaderHandle;
 static Camera_t s_MainCamera;
 
 TextObject	s_FontTest{};
@@ -144,9 +143,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
-	g_pShaderSystem->BindShader(testShaderHandle);
-	g_pShaderSystem->BindPerInstanceUniforms(1); // TODO: HARDCODED BADNESS
-
 	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 1000.0f); // TODO: Don't hardcode this.
 	// Flip the y-axis.
 	projection.data[5] *= -1;
@@ -154,12 +150,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	Vector3D myPos = s_MainCamera.vecPosition;
 
 	// TODO: Get these shader locations set in here.
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 0, 0, 0, &projection);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 1, 0, 0, &view);
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 2, 0, 0, &myPos);
-
-	int myShininess{ 7 };
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, 5, 1, 0, &myShininess);
+	// TODO: Don't hardcode these things here
+	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
+	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
+	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -182,7 +176,13 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		}
 
 		// Render our temp geometry.
+
+		// Bind the appropriate material.
+		// TODO: Don't hardcode this material handle here.
+		g_pMaterialSystemInternal->ApplyMaterialInstance(0);
 		DrawGeometry(m_Cube1);
+
+		g_pMaterialSystemInternal->ApplyMaterialInstance(1);
 		DrawGeometry(m_Cube2);
 		DrawGeometry(m_Cube3);
 

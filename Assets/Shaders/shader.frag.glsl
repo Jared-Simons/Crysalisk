@@ -120,6 +120,8 @@ void main()
 		}
 	}*/
 	
+	outColor = texture(samplers[SAMP_SPECULAR], fsInput.TexCoord);
+	outColor = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
 	outColor = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
 	//outColor = vec4(1.0f);
 }

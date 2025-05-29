@@ -61,23 +61,6 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
-// TEMP!
-ShaderHandle_t testShaderHandle = kInvalidID_U32;
-struct TestShaderLocations_t
-{
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	viewPos{ kInvalidID_U16 };
-	uint16_t	dirLightPos{ kInvalidID_U16 };
-	uint16_t	renderMode{ kInvalidID_U16 };
-	uint16_t	shininess{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	texture_maps{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
-};
-TestShaderLocations_t shaderLocations{};
-// TEMP!
-
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
 // Input: engineConfig - A configuration passed in by the calling application.
@@ -215,27 +198,11 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	//MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("Assets/Materials/testmaterial");
-	TextureHandle_t	hTestTexture = g_pTextureSystem_Internal->AcquireTexture("Assets/Textures/container2.png", true);
-	testShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong.New");
-	shaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "projection");
-	shaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "view");
-	shaderLocations.viewPos = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "viewPos");
-	shaderLocations.dirLightPos = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "dirLightPos");
-	shaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "renderMode");
-	shaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "shininess");
-	shaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "color");
-	shaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "texture_maps");
-	shaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(testShaderHandle, "model");
-
-	unsigned int hTestInstanceID{ 0 };
-	g_pShaderSystem->AcquireShaderInstanceResources(testShaderHandle, &hTestInstanceID);
-
-	// Test to bind the texture to the shader.
-	g_pShaderSystem->SetShaderUniform(testShaderHandle, shaderLocations.texture_maps, 0, hTestInstanceID, &hTestTexture); // 0 for diffuse sampler.
-
 	// Create temporary geometry.
 	//g_pRenderer->CreateTempGeometry();
+	
+	MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("testmaterial2");
+	MaterialHandle_t testMaterialHandle2 = g_pMaterialSystemInternal->AcquireMaterial("testmaterial");
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -276,8 +243,6 @@ bool CEngine::Run()
 void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
-
-	g_pShaderSystem->ReleaseShader(testShaderHandle);
 
 	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();

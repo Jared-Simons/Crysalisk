@@ -262,6 +262,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Set the internal shader handle.
 		pShader->m_iInternalHandle = newShaderHandle;
+		pLookup->ShaderIndex = newShaderHandle;
 
 		// Acquire internal resources for the shader.
 		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))

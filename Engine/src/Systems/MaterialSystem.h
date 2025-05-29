@@ -17,10 +17,14 @@ struct MaterialSystemConfig_t
 class IMaterialSystem
 {
 public:
-	virtual bool	Initialize(MaterialSystemConfig_t config) = 0;
-	virtual void	Shutdown() = 0;
+	virtual bool				Initialize(MaterialSystemConfig_t config) = 0;
+	virtual void				Shutdown() = 0;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) = 0;
+
+	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
+
+	virtual MaterialHandle_t	AcquireMaterial_OLD(const char* pszMaterialName) = 0;
 	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) = 0;
 
 	virtual MaterialHandle_t	AcquireMaterialFromConfig(MaterialConfig_t& pConfig) = 0;

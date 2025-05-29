@@ -11,9 +11,27 @@
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
+#include <Resources/Loaders/MaterialLoader.h>
 #include <Strings/String_Utils.h>
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
+
+//-------------------------------------------------------------------------
+// Indices for each of the phong shader lookups.
+//-------------------------------------------------------------------------
+struct PhongShaderLocations_t
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	viewPos{ kInvalidID_U16 };
+	uint16_t	dirLightPos{ kInvalidID_U16 };
+	uint16_t	renderMode{ kInvalidID_U16 };
+	uint16_t	shininess{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	texture_maps{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+PhongShaderLocations_t phongShaderLocations{};
 
 //-------------------------------------------------------------------------
 // Material System Implementation.
@@ -21,10 +39,14 @@
 class CMaterialSystem : public IMaterialSystem
 {
 public:
-	virtual bool	Initialize(MaterialSystemConfig_t config) override;
-	virtual void	Shutdown() override;
+	virtual bool				Initialize(MaterialSystemConfig_t config) override;
+	virtual void				Shutdown() override;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
+
+	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
+
+	virtual MaterialHandle_t	AcquireMaterial_OLD(const char* pszMaterialName) override;
 	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) override;
 
 	virtual MaterialHandle_t	AcquireMaterialFromConfig(MaterialConfig_t& pConfig) override;
@@ -35,6 +57,8 @@ public:
 private:
 	void						CreateDefaultMaterial();
 	MaterialConfig_t			ParseMaterialConfig(char* pszMaterialPathFile);
+
+	MaterialHandle_t			FindFirstFreeMaterialHandle() const;
 
 private:
 	MaterialSystemConfig_t	m_Config{};
@@ -57,6 +81,9 @@ private:
 
 	Material			m_DefaultMaterial{};
 	MaterialLookup		m_DefaultMaterialLookup{};
+
+	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
+	ShaderHandle_t		m_DefaultMaterialShader{ kInvalidID_U32 };
 };
 
 // Material System context.
@@ -79,6 +106,18 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// TODO: Make this work with new shader system.
 	//CreateDefaultMaterial();
 
+	// Setup shader locations.
+	m_DefaultMaterialShader = g_pShaderSystem->AcquireShader("Core.Phong");
+	phongShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "projection");
+	phongShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "view");
+	phongShaderLocations.viewPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "viewPos");
+	phongShaderLocations.dirLightPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "dirLightPos");
+	phongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
+	phongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
+	phongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
+	phongShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "texture_maps");
+	phongShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "model");
+
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
 	return true;
@@ -89,16 +128,104 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 //-------------------------------------------------------------------------
 void CMaterialSystem::Shutdown()
 {
+	g_pShaderSystem->ReleaseShader(m_DefaultMaterialShader);
+
 	delete[] m_MaterialDictionary.m_MaterialInstanceData;
 	delete[] m_MaterialDictionary.m_MaterialArray;
 	LOG_WARN("TODO: IMPLEMENT MATERIAL SYSTEM RESOURCE RELEASE METHOD!!!");
 }
 
 //-------------------------------------------------------------------------
+// TODO: Documentation
+//-------------------------------------------------------------------------
+MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
+{
+	MaterialLoader::MaterialResource_t	newMaterialResource{};
+	MaterialHandle_t					newMaterialHandle{ kInvalidID_U32 };
+	MaterialLookup*						pLookup = &m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
+	Material*							pMaterial = nullptr;
+
+	if (!pszMaterialName)
+	{
+		LOG_ERROR("AcquireMaterial() called with null material name! Returning default handle.");
+		return kInvalidID_U32; // TODO: Default material handle.
+	}
+
+	if (pLookup->MaterialIndex == kInvalidID_U32)
+	{
+		// This material has not yet been loaded, so load it in.
+
+		// Format the path string (TODO: Don't hardcode this path).
+		char szFormattedResourcePath[kScratchStringBufferLength];
+		StringFormat_V("%s/%s.cmat", szFormattedResourcePath, "Assets/Materials", pszMaterialName);
+
+		// Load the material configuration resource from disk
+		if (!MaterialLoader::LoadMaterialResource(szFormattedResourcePath, newMaterialResource))
+		{
+			LOG_ERROR("Failed to load material resource '%s'. Returning default.", pszMaterialName);
+			return 0; // TODO: Default material handle.
+		}
+
+		// Find a free slot for this material to occupy.
+		newMaterialHandle = FindFirstFreeMaterialHandle();
+		if (newMaterialHandle == kInvalidID_U32)
+		{
+			LOG_ERROR("Failed to create shader '%s'. Returning default handle.", pszMaterialName);
+			return kInvalidID_U32;	// TODO: Default material handle.
+		}
+		pMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialHandle];
+
+		// Acquire material resources.
+		pMaterial->m_szMaterialName = StringDuplicate(newMaterialResource.pszMaterialName);
+		pMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(newMaterialResource.pszShaderName);
+
+		// Acquire shader instance resources for this material.
+		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle);
+
+		// Texture maps.
+		size_t							textureMapCount = newMaterialResource.textureMapConfigs.Count();
+		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
+
+		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		{
+			TextureHandle_t hTexture = g_pTextureSystem_Internal->AcquireTexture(newMaterialResource.textureMapConfigs[texIdx].pszTextureName, true);
+			textureHandles.PushBack(hTexture);
+		}
+
+		// Bind the texture maps to the shader instance.
+		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		{
+			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
+			int iTextureArrayIndex = (int)newMaterialResource.textureMapConfigs[texIdx].eType;
+			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+		}
+	}
+
+	return newMaterialHandle;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation
+// TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
+{
+	CAssert(hMaterial != kInvalidID_U32);
+
+	// Bind the appropriate shader.
+	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
+
+	// Bind the appropriate material instance.
+	g_pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle);
+
+	m_hCurrentlyBoundMaterialInstance = hMaterial;
+}
+
+//-------------------------------------------------------------------------
 // Loads a material at the provided path if it hasn't been loaded.
 // Returns a handle to the material.
 //-------------------------------------------------------------------------
-MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
+MaterialHandle_t CMaterialSystem::AcquireMaterial_OLD(const char* pszMaterialName)
 {
 	Material* newMaterial = nullptr;
 	int matIdx = 0;
@@ -106,13 +233,13 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	// Make sure our state is ready to go.
 	if (!m_MaterialDictionary.m_MaterialArray)
 	{
-		LOG_WARN("CMaterialSystem::AcquireMaterial() called before material system was initialized! Returning NULL handle.");
+		LOG_WARN("CMaterialSystem::AcquireMaterial_OLD() called before material system was initialized! Returning NULL handle.");
 		return 0;
 	}
 
 	if (!pszMaterialName)
 	{
-		LOG_ERROR("CMaterialSystem::AcquireMaterial() requires a path to the material to load! Returning default material.");
+		LOG_ERROR("CMaterialSystem::AcquireMaterial_OLD() requires a path to the material to load! Returning default material.");
 		return m_DefaultMaterialLookup.MaterialIndex;
 	}
 
@@ -242,7 +369,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 //-------------------------------------------------------------------------
 MaterialReference CMaterialSystem::AcquireMaterialReference(const char* pszMaterialName)
 {
-	MaterialHandle_t newMaterial = AcquireMaterial(pszMaterialName);
+	MaterialHandle_t newMaterial = AcquireMaterial_OLD(pszMaterialName);
 
 	MaterialReference newRef;
 
@@ -267,7 +394,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromConfig(MaterialConfig_t& pC
 	// Make sure our state is ready to go.
 	if (!m_MaterialDictionary.m_MaterialArray)
 	{
-		LOG_WARN("CMaterialSystem::AcquireMaterial() called before material system was initialized! Returning NULL handle.");
+		LOG_WARN("CMaterialSystem::AcquireMaterial_OLD() called before material system was initialized! Returning NULL handle.");
 		return 0;
 	}
 
@@ -520,4 +647,19 @@ MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
 	FileSystem::CloseFile(&matConfigFile);
 
 	return newMatConfig;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation pls.
+//-------------------------------------------------------------------------
+MaterialHandle_t CMaterialSystem::FindFirstFreeMaterialHandle() const
+{
+	for (int idx = 0; idx < m_Config.MaxMaterials; idx++)
+	{
+		if (m_MaterialDictionary.m_MaterialArray[idx].m_iInternalHandle == kInvalidID_U32)
+			return idx;
+	}
+
+	LOG_ERROR("Failed to find a free slot in the material dictionary. Adjust config to allow for more.");
+	return kInvalidID_U32;
 }
