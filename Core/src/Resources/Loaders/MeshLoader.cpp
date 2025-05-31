@@ -61,11 +61,15 @@ namespace MeshLoader
 		}
 
 		// Some helper variables.
-		MeshResource_t::GeometryObject_t*	pCurrentObject{ nullptr };
+		MeshResource_t::GeometryObject_t*		pCurrentObject{ nullptr };
+		MeshResource_t::GeometryGroup_t*		pCurrentGroup{ nullptr };
 		int										nObjectsProcessed{ 0 };
+		Utl::CVector<Vector3D>					vertexPositions{};
+		Utl::CVector<Vector2D>					vertexTexCoords{};
+		Utl::CVector<Vector3D>					vertexNormals{};
 
 		// Parse the file's contents.
-		while (!FileSystem::IsEOF(&hObjFile) && nObjectsProcessed < 2)
+		while (!FileSystem::IsEOF(&hObjFile) && nObjectsProcessed < 10)
 		{
 			char	szCurrentLine[1000];
 			size_t	currentLineLength{ 0 };
@@ -83,57 +87,97 @@ namespace MeshLoader
 			firstChar = szCurrentLine[0];
 			secondChar = szCurrentLine[1];
 
-			if (firstChar == 'o')	// A new object.
+			switch (firstChar)
 			{
-				size_t newObjectIdx = pOutResource.Objects.PushBack(new MeshResource_t::GeometryObject_t());
-				pCurrentObject = &pOutResource.Objects[newObjectIdx];
-
-				// Store off the name of the group (this is purely for debugging purposes).
-				pCurrentObject->DebugName = StringDuplicate(&szCurrentLine[2]);
+			case 'o':	// Objects
+				pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
+				pCurrentObject = pOutResource.pObjects.Back();
+				pCurrentObject->pszDebugName = StringDuplicate(&szCurrentLine[2]);
 				nObjectsProcessed++;
+				break;
 
-				//CAssert(0);
-			}
-			else if (firstChar == 'v')	// Some form of vertex data, need to check the second char to be sure.
-			{
-				if (secondChar == ' ')		// Vertex positions.
-				{
-					Vector3D vecNewPosition{};
-					int numElementsFound = sscanf(&szCurrentLine[2], "%f %f %f", &vecNewPosition.x, &vecNewPosition.y, &vecNewPosition.z);
-					CAssert(numElementsFound == 3);
+			case 'g':	// Groups
+				CAssert(pCurrentObject);
+				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
+				pCurrentGroup = pCurrentObject->pGroups.Back();
+				pCurrentGroup->DebugName = StringDuplicate(&szCurrentLine[2]);
+				break;
 
-					// Add it to the array!
-					pOutResource.Positions.PushBack(vecNewPosition);
-				}
-				else if (secondChar == 't')	// Vertex texture coordinate.
-				{
-					Vector2D vecNewTexCoord{};
-					int numElementsFound = sscanf(&szCurrentLine[2], "%f %f", &vecNewTexCoord.x, &vecNewTexCoord.y);
-					CAssert(numElementsFound == 2);
-
-					// Add it to the array!
-					pOutResource.TexCoords.PushBack(vecNewTexCoord);
-				}
-				else if (secondChar == 'n')
-				{
-					Vector3D vecNewNormal{};
-					int numElementsFound = sscanf(&szCurrentLine[2], "%f %f %f", &vecNewNormal.x, &vecNewNormal.y, &vecNewNormal.z);
-					CAssert(numElementsFound == 3);
-
-					// Add it to the array!
-					pOutResource.Normals.PushBack(vecNewNormal);
-				}
-				else
-				{
-					// Should be no other options here.
-					CAssert(0);
-				}
-			}
-			else if (firstChar == 'm')
-			{
+			case 'm':
 				// Material library file.
 				// TODO: Implement.
 				LoadOBJMaterialLibrary(nullptr);
+				break;
+
+			case 'v':
+			{
+				switch (secondChar)
+				{
+					case ' ':	// Vertex position.
+					{
+						Vector3D newVertex{};
+						int numElements = sscanf(&szCurrentLine[2], "%f %f %f", &newVertex.x, &newVertex.y, &newVertex.z);
+
+						CAssert(numElements == 3);
+						// Add it to the array.
+						vertexPositions.PushBack(newVertex);
+						break;
+					}
+
+					case 't':	// Vertex texture coordinates.
+					{
+						Vector2D newTexCoord{};
+						int numElements = sscanf(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
+
+						CAssert(numElements == 2);
+						// Add it to the array.
+						vertexTexCoords.PushBack(newTexCoord);
+						break;
+					}
+
+					case 'n':	// Vertex normals.
+					{
+						Vector3D newNormal{};
+						int numElements = sscanf(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
+
+						CAssert(numElements == 3);
+						// Add it to the array.
+						vertexNormals.PushBack(newNormal);
+						break;
+					}
+				}
+				break;
+			}
+
+			case 'f':	// Polygon 'face'.
+			{
+				uint32_t	vertexIndices[3];
+				uint32_t	texCoordIndices[3];
+				uint32_t	notmalIndices[3];
+
+				int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndices[0], &texCoordIndices[0], &notmalIndices[0], &vertexIndices[1], &texCoordIndices[1], &notmalIndices[1], &vertexIndices[2], &texCoordIndices[2], &notmalIndices[2]);
+
+				CAssert(elements == 9);
+
+				Vertex3D newVertices[3];
+
+				for (int idx = 0; idx < 3; idx++)
+				{
+					newVertices[idx].Pos = vertexPositions[vertexIndices[idx]];
+					newVertices[idx].TexCoord = vertexTexCoords[texCoordIndices[idx]];
+					newVertices[idx].Normal = vertexNormals[notmalIndices[idx]];
+
+					CAssert(pCurrentGroup && pCurrentObject);
+
+					pCurrentGroup->Vertices.PushBack(newVertices[idx]);
+				}
+
+				break;
+			}
+
+			default:
+				//CAssert(0);
+				break;
 			}
 		}
 

@@ -20,7 +20,6 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
-#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -85,7 +84,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Logger.
-	if (!g_pLog->Init((int)eLogLevel::LOG_LEVEL_DEBUG)) // Log all messages
+	if (!g_pLog->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
@@ -200,13 +199,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Create temporary geometry.
-	//g_pRenderer->CreateTempGeometry();
+	g_pRenderer->CreateTempGeometry();
 	
 	MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("testmaterial2");
-	// Test mesh.
-	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
-	// End test mesh.
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();

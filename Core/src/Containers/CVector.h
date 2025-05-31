@@ -28,7 +28,12 @@ namespace Utl {
 			, m_Capacity{ 0 }
 			, m_ValueStride{ sizeof(T) }
 			, m_ResizeFactor{ 2 }
-			, m_pValues{ nullptr } {
+			, m_pValues{ nullptr } 
+		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
 		}
 
 		//--------------------------------------------------
@@ -41,6 +46,11 @@ namespace Utl {
 			, m_ResizeFactor{ resizeFactor }
 			, m_pValues{ nullptr }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
 			m_pValues = new T[initialCapacity];
@@ -55,6 +65,11 @@ namespace Utl {
 			, m_ValueStride{ pOtherVector.m_ValueStride }
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			if (m_Capacity > 0)
 			{
 				m_pValues = new T[m_Capacity];
@@ -72,6 +87,11 @@ namespace Utl {
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
 			, m_pValues{ pOtherVector.m_pValues }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			// Release the other vector's referece to these resources.
 			pOtherVector.m_pValues = nullptr;
 			pOtherVector.m_Count = 0;
@@ -105,6 +125,11 @@ namespace Utl {
 			m_Capacity = pOtherVector.m_Capacity;
 			m_ValueStride = pOtherVector.m_ValueStride;
 			m_ResizeFactor = pOtherVector.m_ResizeFactor;
+
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
 
 			if (m_Capacity > 0)
 			{

@@ -13,6 +13,7 @@
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
+#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -143,7 +144,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
-	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 1000.0f); // TODO: Don't hardcode this.
+	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 10000.0f); // TODO: Don't hardcode this.
 	// Flip the y-axis.
 	projection.data[5] *= -1;
 	Matrix4x4 view = s_MainCamera.GetViewMatrix();
@@ -161,7 +162,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
 
-		for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+		/*for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
 		{
 			if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
 			{
@@ -196,7 +197,16 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
 			DrawGeometry(*pTransparentGeometries[idx]);
-		}
+		}*/
+	}
+
+	// TEMP BADNESS
+	g_pShaderSystem->BindShader(0);
+	//g_pShaderSystem->BindPerInstanceUniforms(0);
+	g_pMaterialSystemInternal->ApplyMaterialInstance(0);
+	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	{
+		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
 	}
 
 	m_RendererBackend->EndRenderpass();
@@ -367,6 +377,28 @@ bool Renderer::CreateTempGeometry()
 	// Acquire geometry resources for this text.
 	//s_FontTest.SetText("Some Test Text!");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+
+	// Test mesh.
+	MeshLoader::MeshResource_t sponzaResource{};
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
+	m_SponzaModel.m_Geometries.SetCount(sponzaResource.pObjects.Count());
+
+	// TEMP MATERIALS
+	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
+
+	for (int idx = 0; idx < sponzaResource.pObjects.Count(); idx++)
+	{
+		for (int gpIdx = 0; gpIdx < sponzaResource.pObjects[idx]->pGroups.Count(); gpIdx++)
+		{
+			GeometryConfig_t newConfig{};
+			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
+			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->DebugName);
+			if (newConfig.Vertices.Count() > 0)
+				g_pRenderer->AcquireGeometryResources(newConfig, m_SponzaModel.m_Geometries[idx]);
+		}
+	}
+	// End test mesh.
 
 	return true;
 }
