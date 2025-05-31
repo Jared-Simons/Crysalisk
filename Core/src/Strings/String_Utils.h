@@ -24,6 +24,8 @@ DLL_EXPORT bool StringCompareInsensitive(const char* str1, const char* str2);
 
 DLL_EXPORT unsigned int StringIndexOf(const char* pString, char pCharToFind);
 
+DLL_EXPORT char* StringGetFilenameExtension(const char* pString);
+
 // Appends str2 to string 1.
 DLL_EXPORT char* StringConcat(char* str1, char* str2);
 

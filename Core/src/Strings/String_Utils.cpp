@@ -63,6 +63,22 @@ unsigned int StringIndexOf(const char* pString, char pCharToFind)
 	return kInvalidID_U32;
 }
 
+char* StringGetFilenameExtension(const char* pString)
+{
+	size_t length = StringLength(pString);
+	size_t curIdx = length - 1;
+	char* pCurChar = const_cast<char*>(&pString[length - 1]);
+	while (pCurChar && *pCurChar != '.')
+	{
+		pCurChar--;
+		curIdx--;
+	}
+
+	char* pszExtension = StringDuplicate_N(&pString[curIdx], length - curIdx);
+
+	return pszExtension;
+}
+
 char* StringDuplicate(const char* pStrToCopy)
 {
 	size_t strLength = StringLength(pStrToCopy);

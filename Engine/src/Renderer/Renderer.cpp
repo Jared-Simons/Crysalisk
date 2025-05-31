@@ -181,8 +181,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		// TODO: Don't hardcode this material handle here.
 		g_pMaterialSystemInternal->ApplyMaterialInstance(0);
 		DrawGeometry(m_Cube1);
-
-		g_pMaterialSystemInternal->ApplyMaterialInstance(1);
 		DrawGeometry(m_Cube2);
 		DrawGeometry(m_Cube3);
 

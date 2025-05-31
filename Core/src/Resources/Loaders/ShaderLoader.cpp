@@ -18,7 +18,6 @@ namespace ShaderLoader
 	static bool	ProcessShaderVertexAttribute(char* pszConfigData, ShaderResource_t& pOutResource);
 	static bool ProcessShaderUniforms(char* pszConfigData, ShaderResource_t& pOutResource);
 	
-
 #define VERIFY_EQUAL_TOKEN_FOUND(currentLine, equalIndex)																\
 	if (equalIndex == kInvalidID_U32)																					\
 	{																													\

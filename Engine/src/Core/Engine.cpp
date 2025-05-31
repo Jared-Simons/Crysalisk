@@ -20,6 +20,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
+#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -202,7 +203,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	//g_pRenderer->CreateTempGeometry();
 	
 	MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("testmaterial2");
-	MaterialHandle_t testMaterialHandle2 = g_pMaterialSystemInternal->AcquireMaterial("testmaterial");
+	// Test mesh.
+	MeshLoader::MeshResource_t sponzaResource{};
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	// End test mesh.
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();

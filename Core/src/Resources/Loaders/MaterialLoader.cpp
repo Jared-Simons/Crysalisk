@@ -13,6 +13,9 @@
 namespace MaterialLoader
 {
 	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
 	bool LoadMaterialResource(const char* pszMaterialPath, struct MaterialResource_t& pOutResource)
 	{
 		// Make sure the file actually exists first.
