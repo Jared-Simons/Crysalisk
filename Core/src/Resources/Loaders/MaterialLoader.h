@@ -57,6 +57,8 @@ namespace MaterialLoader
 		char*								pszMaterialName{ nullptr };
 		char*								pszShaderName{ nullptr };
 		Utl::CVector<eTextureMapConfig_t>	textureMapConfigs{};
+		Utl::CVector<char*>					pszCustomKeys{};
+		Utl::CVector<char*>					pszCustomValues{};
 
 		~MaterialResource_t()
 		{

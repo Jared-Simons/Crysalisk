@@ -393,7 +393,7 @@ bool Renderer::CreateTempGeometry()
 		{
 			GeometryConfig_t newConfig{};
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
-			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->DebugName);
+			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 				g_pRenderer->AcquireGeometryResources(newConfig, m_SponzaModel.m_Geometries[idx]);
 		}

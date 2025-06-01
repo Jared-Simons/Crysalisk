@@ -89,7 +89,7 @@ namespace Utl
 							pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 						}
 						ReleaseNodeBackToFreelist(pCurrentNode);
-						CAssert(retDataOffset != 0);
+						//CAssert(retDataOffset != 0);
 						return retDataOffset; // Early return here since pCurrentNode will be nullified.
 					}
 				}

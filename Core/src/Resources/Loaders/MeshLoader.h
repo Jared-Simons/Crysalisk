@@ -10,6 +10,7 @@
 #include <Defines.h>
 #include "Math/VectorTypes.h"
 #include "Math/VertexTypes.h"
+#include "Resources/Loaders/MaterialLoader.h"	// We need this in the case that models have materials to load in.
 #include "Strings/String_Utils.h"
 
 namespace MeshLoader
@@ -21,26 +22,30 @@ namespace MeshLoader
 	//-------------------------------------------------------------------------
 	struct MeshResource_t
 	{
-		Utl::CVector<Vector3D>	Positions{};
-		Utl::CVector<Vector2D>	TexCoords{};
-		Utl::CVector<Vector3D>	Normals{};
-
 		struct GeometryGroup_t
 		{
-			char*					DebugName{ nullptr };
+			char*					pszDebugName{ nullptr };
 			Utl::CVector<Vertex3D>	Vertices{};
+			char*					pszMaterialName{ nullptr };
 
 			GeometryGroup_t() {}
 			
 			GeometryGroup_t(const GeometryGroup_t& pOther)
 			{
-				DebugName = StringDuplicate(pOther.DebugName);
+				if (pOther.pszDebugName)
+					pszDebugName = StringDuplicate(pOther.pszDebugName);
+				if (pOther.pszMaterialName)
+					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+
+				Vertices = pOther.Vertices;
 			}
 
 			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
 			{
-				if (pOther.DebugName)
-					DebugName = StringDuplicate(pOther.DebugName);
+				if (pOther.pszDebugName)
+					pszDebugName = StringDuplicate(pOther.pszDebugName);
+				if (pOther.pszMaterialName)
+					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
 
 				Vertices = pOther.Vertices;
 
@@ -49,9 +54,12 @@ namespace MeshLoader
 
 			~GeometryGroup_t()
 			{
-				// Make sure to free the string.
-				if (DebugName)
-					StringFree(DebugName);
+				// Make sure to free the strings.
+				if (pszDebugName)
+					StringFree(pszDebugName);
+
+				if (pszMaterialName)
+					StringFree(pszMaterialName);
 			}
 		};
 
@@ -95,31 +103,25 @@ namespace MeshLoader
 		MeshResource_t() {}
 		MeshResource_t(const MeshResource_t& pOther)
 		{
-			Positions = pOther.Positions;
-			TexCoords = pOther.TexCoords;
-			Normals = pOther.Normals;
-			Groups = pOther.Groups;
+			pObjects = pOther.pObjects;
 		}
 
 		MeshResource_t& operator=(const MeshResource_t& pOther)
 		{
-			Positions = pOther.Positions;
-			TexCoords = pOther.TexCoords;
-			Normals = pOther.Normals;
-			Groups = pOther.Groups;
+			pObjects = pOther.pObjects;
 
 			return *this;
 		}
 
 		~MeshResource_t()
 		{
-			for (int idx = 0; idx < Groups.Count(); idx++)
+			for (int idx = 0; idx < pObjects.Count(); idx++)
 			{
-				delete Groups[idx];
+				delete pObjects[idx];
 			}
 		}
 
-		Utl::CVector<GeometryGroup_t*>	Groups{};
-		Utl::CVector<GeometryObject_t*>	pObjects{};
+		Utl::CVector<GeometryObject_t*>						pObjects{};
+		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 	};
 }
