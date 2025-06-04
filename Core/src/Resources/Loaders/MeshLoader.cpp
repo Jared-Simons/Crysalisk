@@ -117,7 +117,7 @@ namespace MeshLoader
 
 				pszFormattedMtlPath = StringConcat(pszMtlPath, ".mtl");
 
-				LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
+				//LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
 
 				// Free the temp string data.
 				if (pszFormattedMtlPath)

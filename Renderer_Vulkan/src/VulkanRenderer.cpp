@@ -751,8 +751,6 @@ bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalInd
 	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture->width, pTexture->height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, *pImageInternal))
 	{
 		LOG_ERROR("Failed to create Vulkan resources for texture.");
-		delete pImageInternal;
-		pTexture->m_pInternalData = nullptr;
 		return false;
 	}
 
@@ -760,8 +758,6 @@ bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalInd
 	{
 		LOG_ERROR("Failed to write pixel data to texture. Nothing was done.");
 		VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
-		delete pImageInternal;
-		pTexture->m_pInternalData = nullptr;
 		return false;
 	}
 
