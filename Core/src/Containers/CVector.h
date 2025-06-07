@@ -113,7 +113,7 @@ namespace Utl {
 
 			m_Count = 0;
 			m_Capacity = 0;
-			m_ValueStride = 0;
+			//m_ValueStride = 0;	// We CAN'T set this to 0 in case the user decides they want to re-use this container.
 		}
 
 		//--------------------------------------------------
@@ -133,7 +133,8 @@ namespace Utl {
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = new T[m_Capacity];
+				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
+				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
 				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
@@ -216,7 +217,8 @@ namespace Utl {
 		//--------------------------------------------------
 		void Clear()
 		{
-			g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+			if (m_pValues)
+				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
 			//delete[] m_pValues;
 			m_pValues = nullptr;
 			m_Capacity = 0;

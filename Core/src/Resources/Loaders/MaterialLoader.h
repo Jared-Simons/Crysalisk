@@ -60,6 +60,36 @@ namespace MaterialLoader
 		Utl::CVector<char*>					pszCustomKeys{};
 		Utl::CVector<char*>					pszCustomValues{};
 
+		MaterialResource_t() {}
+
+		MaterialResource_t(const MaterialResource_t& pOther)
+		{
+			if (pOther.pszMaterialName)
+				pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+
+			if (pOther.pszShaderName)
+				pszShaderName = StringDuplicate(pOther.pszShaderName);
+
+			textureMapConfigs = pOther.textureMapConfigs;
+			pszCustomKeys = pOther.pszCustomKeys;
+			pszCustomValues = pOther.pszCustomValues;
+		}
+
+		MaterialResource_t& operator=(const MaterialResource_t& pOther)
+		{
+			if (pOther.pszMaterialName)
+				pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+
+			if (pOther.pszShaderName)
+				pszShaderName = StringDuplicate(pOther.pszShaderName);
+
+			textureMapConfigs = pOther.textureMapConfigs;
+			pszCustomKeys = pOther.pszCustomKeys;
+			pszCustomValues = pOther.pszCustomValues;
+
+			return *this;
+		}
+
 		~MaterialResource_t()
 		{
 			if (pszMaterialName)
@@ -67,6 +97,10 @@ namespace MaterialLoader
 
 			if (pszShaderName)
 				StringFree(pszShaderName);
+
+			textureMapConfigs.Clear();
+			pszCustomKeys.Clear();
+			pszCustomValues.Clear();
 		}
 	};
 }

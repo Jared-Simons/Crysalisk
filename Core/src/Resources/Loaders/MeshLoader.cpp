@@ -117,7 +117,7 @@ namespace MeshLoader
 
 				pszFormattedMtlPath = StringConcat(pszMtlPath, ".mtl");
 
-				//LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
+				LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
 
 				// Free the temp string data.
 				if (pszFormattedMtlPath)
@@ -245,13 +245,12 @@ namespace MeshLoader
 			spaceIndex = StringIndexOf(szCurrentLine, ' ');
 			pFirstChar = szCurrentLine[0];
 			pSecondChar = szCurrentLine[1];
-			CAssert(currLine != 58);
 
 			if (spaceIndex != kInvalidID_U32)
 			{
 				// Just in case the newline starts with a '\t'.
 				int startIndex = (szCurrentLine[0] == '\t') ? 1 : 0;
-				pKey = StringDuplicate_N(&szCurrentLine[startIndex], spaceIndex - 1);
+				pKey = StringDuplicate_N(&szCurrentLine[startIndex], spaceIndex);
 				pValue = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
 			}
 
@@ -306,8 +305,9 @@ namespace MeshLoader
 				case 'a':
 				{
 					// Diffuse map.
-					if (StringCompare(pKey, "map_Kd") || StringCompare(pKey, "map_Ka"))
+					if (StringCompare(pKey, "map_Kd ") || StringCompare(pKey, "map_Ka "))
 					{
+						//CAssert(currLine != 50);
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t diffuseMap{};
 						diffuseMap.eType = MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE;
 						diffuseMap.pszTextureName = StringDuplicate(pValue);
@@ -319,7 +319,7 @@ namespace MeshLoader
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t specularMap{};
 						specularMap.eType = MaterialLoader::MaterialResource_t::eTextureType::SPECULAR;
 						specularMap.pszTextureName = StringDuplicate(pValue);
-						currentMaterialResource.textureMapConfigs.PushBack(specularMap);
+						//currentMaterialResource.textureMapConfigs.PushBack(specularMap);
 					}
 					// Normal map.
 					else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_bump"))
@@ -327,7 +327,7 @@ namespace MeshLoader
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t normalMap{};
 						normalMap.eType = MaterialLoader::MaterialResource_t::eTextureType::NORMAL;
 						normalMap.pszTextureName = StringDuplicate(pValue);
-						currentMaterialResource.textureMapConfigs.PushBack(normalMap);
+						//currentMaterialResource.textureMapConfigs.PushBack(normalMap);
 					}
 
 					break;
