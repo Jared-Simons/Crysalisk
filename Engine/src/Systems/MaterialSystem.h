@@ -24,6 +24,9 @@ public:
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) = 0;
 	virtual MaterialHandle_t	AcquireMaterialFromResource(struct MaterialLoader::MaterialResource_t& pInResource) = 0;
 
+	// TODO: Make this return flags instead.
+	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const = 0;
+
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
 
 	virtual MaterialHandle_t	AcquireMaterial_OLD(const char* pszMaterialName) = 0;

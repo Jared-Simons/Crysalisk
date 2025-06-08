@@ -67,7 +67,7 @@ namespace ImageLoader
 					if (alpha < 255)
 					{
 						// The texture is transparent, mark it as such.
-						pOutResource.bIsTransparent;
+						pOutResource.bIsTransparent = true;
 						break;
 					}
 

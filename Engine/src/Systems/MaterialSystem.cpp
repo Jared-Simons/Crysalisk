@@ -44,6 +44,7 @@ public:
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
+	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
 
@@ -276,6 +277,12 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
 			int iTextureArrayIndex = (int)pInResource.textureMapConfigs[texIdx].eType;
 			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+
+			// Use the diffuse map to determine material transparency.
+			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
+			{
+				pMaterial->m_bIsTransparent = (g_pTextureSystem_Internal->GetTextureFlags(textureHandles[texIdx]) & TEXTURE_FLAG_IS_TRANSPARENT) != 0;
+			}
 		}
 
 		// Save off the index.
@@ -288,6 +295,18 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 	}
 
 	return newMaterialHandle;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation
+// TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
+//-------------------------------------------------------------------------
+uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
+{
+	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hMaterial];
+	CAssert(hMaterial != kInvalidID_U32 && pMaterial && pMaterial->m_iInternalHandle != kInvalidID_U32);
+
+	return pMaterial->m_bIsTransparent;
 }
 
 //-------------------------------------------------------------------------

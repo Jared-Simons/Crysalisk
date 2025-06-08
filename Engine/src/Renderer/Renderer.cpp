@@ -144,6 +144,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
+	// TEMP BADNESS
+	g_pShaderSystem->BindShader(0);
+
 	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 10000.0f); // TODO: Don't hardcode this.
 	// Flip the y-axis.
 	projection.data[5] *= -1;
@@ -162,9 +165,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
 
-		/*for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+		for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
 		{
-			if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
+			if (!m_SponzaModel.m_Geometries[idx].bIsTransparent)
 			{
 				// If not transparent, add them to the list!
 				pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
@@ -180,14 +183,16 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		// Bind the appropriate material.
 		// TODO: Don't hardcode this material handle here.
-		g_pMaterialSystemInternal->ApplyMaterialInstance(0);
-		DrawGeometry(m_Cube1);
-		DrawGeometry(m_Cube2);
-		DrawGeometry(m_Cube3);
+		//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
+		//DrawGeometry(m_Cube1);
+		//DrawGeometry(m_Cube2);
+		//DrawGeometry(m_Cube3);
 
 		// Render the opaque geometry first.
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
+			// Bind the appropriate material.
+			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
 			DrawGeometry(*pOpaqueGeometries[idx]);
 		}
 
@@ -196,20 +201,22 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		// Render the sorted transparent geometries.
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
+			// Bind the appropriate material.
+			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx]);
-		}*/
+		}
 	}
 
 	// TEMP BADNESS
-	g_pShaderSystem->BindShader(0);
+	//g_pShaderSystem->BindShader(0);
 	//g_pShaderSystem->BindPerInstanceUniforms(0);
 	//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
-	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+	/*for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
 	{
 		// Bind the appropriate material.
 		g_pMaterialSystemInternal->ApplyMaterialInstance(m_SponzaModel.m_Geometries[idx].hMaterial);
 		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
-	}
+	}*/
 
 	m_RendererBackend->EndRenderpass();
 
@@ -410,8 +417,11 @@ bool Renderer::CreateTempGeometry()
 
 			// Set the material as well.
 			m_SponzaModel.m_Geometries[idx].hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
+			m_SponzaModel.m_Geometries[idx].bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(m_SponzaModel.m_Geometries[idx].hMaterial);
 		}
 	}
+	// TEMP!
+	s_bLevelGeometryLoaded = true;
 	// End test mesh.
 
 	return true;

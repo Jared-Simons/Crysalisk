@@ -208,8 +208,6 @@ namespace MeshLoader
 			}
 		}
 
-		// Flush the last mesh config to the resource.
-
 		FileSystem::CloseFile(&hObjFile);
 
 		return true;

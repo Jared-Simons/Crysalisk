@@ -285,6 +285,8 @@ struct GeometryInstance_t
 	size_t indexDataStride{ kInvalidID_U64 };
 
 	MaterialHandle_t	hMaterial;
+	bool				bIsTransparent;
+
 	MaterialReference hMaterial_OLD;// DEPRECATED!!!
 };
 
