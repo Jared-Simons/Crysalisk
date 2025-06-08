@@ -72,6 +72,9 @@ namespace MeshLoader
 		size_t mtlPathLength = 0;
 		char* pszFormattedMtlPath = nullptr;
 
+		bool	bMaterialDefinedBeforeNewGroup = false;
+		bool	bLoadedMaterialLib = false;
+
 		// Parse the file's contents.
 		while (!FileSystem::IsEOF(&hObjFile) && nObjectsProcessed < 1024)
 		{
@@ -101,7 +104,14 @@ namespace MeshLoader
 				break;
 
 			case 'g':	// Groups
+				if (!pCurrentObject)
+				{
+					// If we recieved an OBJ without objects, then create one for everything.
+					pOutResource.pObjects.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
+					pCurrentObject = pOutResource.pObjects.Back();
+				}
 				CAssert(pCurrentObject);
+
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
 				pCurrentGroup->pszDebugName = StringDuplicate(&szCurrentLine[2]);
@@ -109,20 +119,28 @@ namespace MeshLoader
 
 			case 'm':
 				// Material library file.
-				pszMtlPath = StringDuplicate(pszMeshFileName);
-				CAssert(pszMtlPath);
-				mtlPathLength = StringLength(pszMtlPath);
-				pszMtlPath[mtlPathLength - 4] = '\0';
 
-				pszFormattedMtlPath = StringConcat(pszMtlPath, ".mtl");
+				// Only load this once!
+				// TODO: This only accounts for a single material lib per .obj file!
+				if (!bLoadedMaterialLib)
+				{
+					pszMtlPath = StringDuplicate(pszMeshFileName);
+					CAssert(pszMtlPath);
+					mtlPathLength = StringLength(pszMtlPath);
+					pszMtlPath[mtlPathLength - 4] = '\0';
 
-				LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
+					pszFormattedMtlPath = StringConcat(pszMtlPath, ".mtl");
 
-				// Free the temp string data.
-				if (pszFormattedMtlPath)
-					StringFree(pszFormattedMtlPath);
-				if (pszMtlPath)
-					StringFree(pszMtlPath);
+					LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
+
+					// Free the temp string data.
+					if (pszFormattedMtlPath)
+						StringFree(pszFormattedMtlPath);
+					if (pszMtlPath)
+						StringFree(pszMtlPath);
+
+					bLoadedMaterialLib = true;
+				}
 
 				break;
 
@@ -195,6 +213,23 @@ namespace MeshLoader
 
 			case 'u':	// 'usemtl' Use material.
 			{
+				CAssert(pCurrentObject);
+				if (!pCurrentGroup)
+				{
+					// It is possible that the material name was declared before the group was...
+					bMaterialDefinedBeforeNewGroup = true;
+
+					// Create a new group.
+					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
+					pCurrentGroup = pCurrentObject->pGroups.Back();
+				}
+				else if (bMaterialDefinedBeforeNewGroup)
+				{
+					// We need to create a new group to work with here.
+					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
+					pCurrentGroup = pCurrentObject->pGroups.Back();
+				}
+
 				CAssert(pCurrentGroup);
 				size_t spaceIdx = StringIndexOf(szCurrentLine, ' ');
 				pCurrentGroup->pszMaterialName = StringDuplicate(&szCurrentLine[spaceIdx + 1]);

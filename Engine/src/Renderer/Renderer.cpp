@@ -152,12 +152,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	projection.data[5] *= -1;
 	Matrix4x4 view = s_MainCamera.GetViewMatrix();
 	Vector3D myPos = s_MainCamera.vecPosition;
+	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
 
 	// TODO: Get these shader locations set in here.
 	// TODO: Don't hardcode these things here
 	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
 	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
 	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
+	g_pShaderSystem->SetShaderUniform(0, 8, 0, 0, &model);
 
 	if (s_bLevelGeometryLoaded)
 	{

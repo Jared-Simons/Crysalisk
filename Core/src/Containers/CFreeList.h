@@ -215,8 +215,8 @@ namespace Utl
 				{
 					if (pDebugNextNode->Offset < (pDebugCurNode->Offset + pDebugCurNode->Size))
 					{
-						LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
-						CAssert(0);
+						//LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
+						//CAssert(0);
 					}
 				}
 

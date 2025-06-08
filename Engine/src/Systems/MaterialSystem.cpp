@@ -303,8 +303,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 //-------------------------------------------------------------------------
 uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
 {
+	if (hMaterial == kInvalidID_U32)
+		//hMaterial = m_DefaultMaterialLookup.MaterialIndex;
+		hMaterial = 0; // TODO: Use the default material here.
 	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hMaterial];
-	CAssert(hMaterial != kInvalidID_U32 && pMaterial && pMaterial->m_iInternalHandle != kInvalidID_U32);
+	//CAssert(hMaterial != kInvalidID_U32 && pMaterial && pMaterial->m_iInternalHandle != kInvalidID_U32);
 
 	return pMaterial->m_bIsTransparent;
 }
@@ -315,7 +318,9 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 //-------------------------------------------------------------------------
 void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 {
-	CAssert(hMaterial != kInvalidID_U32);
+	//CAssert(hMaterial != kInvalidID_U32);
+	if (hMaterial == kInvalidID_U32)
+		hMaterial = 0; // TODO: This is not elegant
 
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);

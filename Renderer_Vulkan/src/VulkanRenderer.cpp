@@ -587,14 +587,14 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pCurrentlyBoundShader->m_PipelineLayout, 1, 1, &m_pCurrentlyBoundShader->m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 
 	// Update our matrices.
-	Matrix4x4 model{};
-	model = Matrix4x4(1.0f);
+	//Matrix4x4 model{};
+	//model = Matrix4x4(1.0f);
 	//model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
 	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
 	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
 
 	// Push our model matrix as well.
-	vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
+	//vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != 0)
@@ -1637,6 +1637,14 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			uniformOffset += pUniform->Offset;
 			uniformStride = pUniform->Stride;
 			break;
+
+		case eShaderUniformGroup::PER_DRAW:
+			// Push-constants!
+			uniformOffset = pUniform->Offset;
+			uniformStride = pUniform->Stride;
+			vkCmdPushConstants(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, pInternalShader->m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, uniformOffset, uniformStride, pData);
+
+			return;	// We need to early-out here because this data is not going to get copied to a buffer.
 
 		default:
 			CAssert(0);
