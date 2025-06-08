@@ -420,7 +420,7 @@ bool Renderer::CreateTempGeometry()
 
 				// Set the material as well.
 				newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
-				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(m_SponzaModel.m_Geometries[idx].hMaterial);
+				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
 
 				m_SponzaModel.m_Geometries.PushBack(newGeometry);
 			}
