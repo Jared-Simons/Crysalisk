@@ -391,7 +391,6 @@ bool Renderer::CreateTempGeometry()
 	MeshLoader::MeshResource_t sponzaResource{};
 	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
-	m_SponzaModel.m_Geometries.SetCount(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS
 	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
@@ -413,11 +412,16 @@ bool Renderer::CreateTempGeometry()
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
-				g_pRenderer->AcquireGeometryResources(newConfig, m_SponzaModel.m_Geometries[idx]);
+			{
+				GeometryInstance_t newGeometry{};
+				g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
 
-			// Set the material as well.
-			m_SponzaModel.m_Geometries[idx].hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
-			m_SponzaModel.m_Geometries[idx].bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(m_SponzaModel.m_Geometries[idx].hMaterial);
+				// Set the material as well.
+				newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
+				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(m_SponzaModel.m_Geometries[idx].hMaterial);
+
+				m_SponzaModel.m_Geometries.PushBack(newGeometry);
+			}
 		}
 	}
 	// TEMP!

@@ -109,7 +109,6 @@ namespace MeshLoader
 
 			case 'm':
 				// Material library file.
-				// TODO: Implement.
 				pszMtlPath = StringDuplicate(pszMeshFileName);
 				CAssert(pszMtlPath);
 				mtlPathLength = StringLength(pszMtlPath);
@@ -202,8 +201,13 @@ namespace MeshLoader
 				break;
 			}
 
+			case 's':	// 's' Smoothing group -- currently unused.
+			{
+				continue;
+			}
+
 			default:
-				//CAssert(0);
+				CAssert(0);
 				break;
 			}
 		}
