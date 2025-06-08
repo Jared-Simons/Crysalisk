@@ -284,7 +284,8 @@ struct GeometryInstance_t
 	size_t indexDataOffset{ kInvalidID_U64 };
 	size_t indexDataStride{ kInvalidID_U64 };
 
-	MaterialReference hMaterial;
+	MaterialHandle_t	hMaterial;
+	MaterialReference hMaterial_OLD;// DEPRECATED!!!
 };
 
 struct Mesh

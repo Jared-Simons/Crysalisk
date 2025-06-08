@@ -194,11 +194,21 @@ namespace MeshLoader
 				break;
 			}
 
+			case 'u':	// 'usemtl' Use material.
+			{
+				CAssert(pCurrentGroup);
+				size_t spaceIdx = StringIndexOf(szCurrentLine, ' ');
+				pCurrentGroup->pszMaterialName = StringDuplicate(&szCurrentLine[spaceIdx + 1]);
+				break;
+			}
+
 			default:
 				//CAssert(0);
 				break;
 			}
 		}
+
+		// Flush the last mesh config to the resource.
 
 		FileSystem::CloseFile(&hObjFile);
 
@@ -364,6 +374,9 @@ namespace MeshLoader
 
 			currLine++;
 		}
+
+		// Flush the last config to the resource, it won't be picked up by the above code.
+		pMeshResource.pMaterials.PushBack(currentMaterialResource);
 
 		FileSystem::CloseFile(&hMtlFile);
 

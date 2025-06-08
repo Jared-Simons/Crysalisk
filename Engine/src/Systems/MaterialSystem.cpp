@@ -43,6 +43,7 @@ public:
 	virtual void				Shutdown() override;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
+	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
 
@@ -142,7 +143,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 {
 	MaterialLoader::MaterialResource_t	newMaterialResource{};
 	MaterialHandle_t					newMaterialHandle{ kInvalidID_U32 };
-	MaterialLookup*						pLookup = &m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
+	MaterialLookup*						pLookup = nullptr;
 	Material*							pMaterial = nullptr;
 
 	if (!pszMaterialName)
@@ -150,6 +151,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		LOG_ERROR("AcquireMaterial() called with null material name! Returning default handle.");
 		return kInvalidID_U32; // TODO: Default material handle.
 	}
+
+	pLookup = &m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
 
 	if (pLookup->MaterialIndex == kInvalidID_U32)
 	{
@@ -170,7 +173,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		newMaterialHandle = FindFirstFreeMaterialHandle();
 		if (newMaterialHandle == kInvalidID_U32)
 		{
-			LOG_ERROR("Failed to create shader '%s'. Returning default handle.", pszMaterialName);
+			LOG_ERROR("Failed to create material '%s'. Returning default handle.", pszMaterialName);
 			return kInvalidID_U32;	// TODO: Default material handle.
 		}
 		pMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialHandle];
@@ -199,6 +202,89 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 			int iTextureArrayIndex = (int)newMaterialResource.textureMapConfigs[texIdx].eType;
 			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 		}
+
+		// Save off the index.
+		pLookup->MaterialIndex = newMaterialHandle;
+	}
+	else
+	{
+		// The material is already loaded, just return the handle.
+		newMaterialHandle = pLookup->MaterialIndex;
+	}
+
+	return newMaterialHandle;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation
+//-------------------------------------------------------------------------
+MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource)
+{
+	MaterialHandle_t	newMaterialHandle{ kInvalidID_U32 };
+	MaterialLookup*		pLookup = nullptr;
+	Material*			pMaterial = nullptr;
+
+	if (pInResource.pszMaterialName == nullptr)
+	{
+		LOG_ERROR("AcquireMaterialFromResource() called with null material name! Returning default handle.");
+		return kInvalidID_U32; // TODO: Default material handle.
+	}
+
+	pLookup = &m_MaterialDictionary.m_MaterialHashmap[pInResource.pszMaterialName];
+
+	if (pLookup->MaterialIndex == kInvalidID_U32)
+	{
+		// This material does not yet exist, acquire the config's resources.
+		// Find a free slot for this material to occupy.
+		newMaterialHandle = FindFirstFreeMaterialHandle();
+		if (newMaterialHandle == kInvalidID_U32)
+		{
+			LOG_ERROR("Failed to create material '%s'. Returning default handle.", pInResource.pszMaterialName);
+			return kInvalidID_U32;	// TODO: Default material handle.
+		}
+		pMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialHandle];
+
+		// Acquire material resources.
+		pMaterial->m_szMaterialName = StringDuplicate(pInResource.pszMaterialName);
+
+		if (pInResource.pszShaderName)
+		{
+			pMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader(pInResource.pszShaderName);
+		}
+		else
+		{
+			// Default shader name, in case none was provided.
+			pMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");
+		}
+
+		// Acquire shader instance resources for this material.
+		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle);
+
+		// Texture maps.
+		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
+		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
+
+		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		{
+			TextureHandle_t hTexture = g_pTextureSystem_Internal->AcquireTexture(pInResource.textureMapConfigs[texIdx].pszTextureName, true);
+			textureHandles.PushBack(hTexture);
+		}
+
+		// Bind the texture maps to the shader instance.
+		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		{
+			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
+			int iTextureArrayIndex = (int)pInResource.textureMapConfigs[texIdx].eType;
+			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+		}
+
+		// Save off the index.
+		pLookup->MaterialIndex = newMaterialHandle;
+	}
+	else
+	{
+		// This material is already loaded, just return the handle.
+		newMaterialHandle = pLookup->MaterialIndex;
 	}
 
 	return newMaterialHandle;

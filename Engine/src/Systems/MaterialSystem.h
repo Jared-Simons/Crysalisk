@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include <Resources/Loaders/MaterialLoader.h>
 #include "Resources/ResourceTypes.h"
 
 struct MaterialSystemConfig_t
@@ -21,6 +22,7 @@ public:
 	virtual void				Shutdown() = 0;
 
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) = 0;
+	virtual MaterialHandle_t	AcquireMaterialFromResource(struct MaterialLoader::MaterialResource_t& pInResource) = 0;
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
 

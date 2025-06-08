@@ -370,7 +370,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			// Acquire material resources.
 			if (szCurrentMaterialName != nullptr)
 			{
-				newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+				newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 				StringFree(szCurrentMaterialName);
 				szCurrentMaterialName = nullptr;
@@ -628,7 +628,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		// Acquire material resources.
 		if (szCurrentMaterialName != nullptr)
 		{
-			newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+			newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 			StringFree(szCurrentMaterialName);
 			szCurrentMaterialName = nullptr;

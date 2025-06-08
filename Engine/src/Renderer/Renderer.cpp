@@ -203,9 +203,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	// TEMP BADNESS
 	g_pShaderSystem->BindShader(0);
 	//g_pShaderSystem->BindPerInstanceUniforms(0);
-	g_pMaterialSystemInternal->ApplyMaterialInstance(0);
+	//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
 	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
 	{
+		// Bind the appropriate material.
+		g_pMaterialSystemInternal->ApplyMaterialInstance(m_SponzaModel.m_Geometries[idx].hMaterial);
 		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
 	}
 
@@ -324,7 +326,7 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 {
 	// Acquire the default material if our own material's resources aren't yet available.
-	MaterialReference& pMaterial = (pGeometry.hMaterial.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial;
+	MaterialReference& pMaterial = (pGeometry.hMaterial_OLD.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial_OLD;
 
 	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry, pMaterial);
 }
@@ -387,6 +389,15 @@ bool Renderer::CreateTempGeometry()
 	// TEMP MATERIALS
 	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
+	// Load any needed materials.
+	LOG_DEBUG("Acquiring material resources for sponza model.");
+	for (int idx = 0; idx < sponzaResource.pMaterials.Count(); idx++)
+	{
+		LOG_VERBOSE("Acquiring material '%s'.", sponzaResource.pMaterials[idx].pszMaterialName);
+		g_pMaterialSystemInternal->AcquireMaterialFromResource(sponzaResource.pMaterials[idx]);
+	}
+
+	LOG_DEBUG("Acquiring geometry resources for sponza model.");
 	for (int idx = 0; idx < sponzaResource.pObjects.Count(); idx++)
 	{
 		for (int gpIdx = 0; gpIdx < sponzaResource.pObjects[idx]->pGroups.Count(); gpIdx++)
@@ -396,6 +407,9 @@ bool Renderer::CreateTempGeometry()
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 				g_pRenderer->AcquireGeometryResources(newConfig, m_SponzaModel.m_Geometries[idx]);
+
+			// Set the material as well.
+			m_SponzaModel.m_Geometries[idx].hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
 		}
 	}
 	// End test mesh.
@@ -429,10 +443,10 @@ static bool RendererEvent_WindowResized(EventData_t data)
 
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
-	if (*data.c == 'T' && s_Renderer.m_Cube2.hMaterial.m_iInternalHandle == kInvalidID_U32)
+	if (*data.c == 'T' && s_Renderer.m_Cube2.hMaterial_OLD.m_iInternalHandle == kInvalidID_U32)
 	{
 		LOG_DEBUG("Loading test material.");
-		s_Renderer.m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
+		s_Renderer.m_Cube2.hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
 	}
 
 	// Let other listeners handle this event.
