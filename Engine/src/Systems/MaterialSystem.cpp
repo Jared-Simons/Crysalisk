@@ -285,6 +285,25 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
+		// Set any instance-level uniform data.
+		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
+		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
+		{
+			if (StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
+			{
+				// TODO: FIX THIS SO WE CAN USE THIS IN THE SHADER!
+				float flShininess = String_ATOF(pInResource.pszCustomValues[idx]);
+				flShininess = 32;
+				// Set the instance uniform.
+				g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
+			}
+			else
+			{
+				LOG_WARN("Failed to parse custom material key '%s'.", pInResource.pszCustomKeys[idx]);
+				continue;
+			}
+		}
+
 		// Save off the index.
 		pLookup->MaterialIndex = newMaterialHandle;
 	}

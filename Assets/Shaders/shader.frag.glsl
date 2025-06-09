@@ -35,93 +35,59 @@ const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
 layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 
-mat3 TBN;
+// Temp lighting values
+float ambientStrength = 0.3;
+vec3 lightColor = vec3(0.93, 0.94, 0.65);
+vec3 lightPosition = vec3(0, 500, -500);
+// End Temp 
 
 void main()
 {
-	/*vec3 normal = normalize(fsInput.Normal);
-	vec3 tangentLightPos = fsInput.TBN * global_ubo.dirLightPos;
-	vec3 tangentViewPos = fsInput.TBN * global_ubo.viewPos;
-	vec3 tangentFragPos = fsInput.TBN * fsInput.FragPos;
-	TBN = mat3(fsInput.Tangent, fsInput.Bitangent, normal);
+	vec3 normal = normalize(fsInput.Normal);
+	vec3 lightDir = normalize(lightPosition - fsInput.FragPos);
 
-	// Sample the normal map.
-	normal = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
-	normal = normalize(normal * 2.0 - 1.0);
-	normal = normalize(fsInput.TBN * normal);
-
-	// ambient
-	vec3 ambient = vec3(0.5, 0.5, 0.5) * texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord).rgb;
-
-	// diffuse
-	//vec3 lightPosition = vec3(1.2, 1.0, 2.0);
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
-	vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
-	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 lightDiffuse = vec3(0.3, 0.5, 1.0);
-	vec3 diffuse = lightDiffuse * diff * diffuseSample.rgb;
-
-	// specular
-	vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
-	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), instance_ubo.shininess);
-	vec3 lightSpecular = vec3(1.0);
-	vec3 specular = lightSpecular * spec * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
-
-	vec3 result = ambient + diffuse + specular;
-	if (global_ubo.renderMode == 0)
+	
+	if (global_ubo.renderMode == 1)	// Fullbright.
 	{
-		outColor = vec4(result, diffuseSample.a);
+		// Do no lighting calculations for fullbright rendering, boot out now.
+		outColor = diffuseSample;
 		return;
 	}
-	else
-	{
-		if (global_ubo.renderMode == 1)
-		{
-			outColor = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
-			return;
-		}
-		else if (global_ubo.renderMode == 2)
-		{
-			vec3 white = vec3(1.0);
-			outColor = vec4((white * diff), diffuseSample.a);
-			return;
-		}
-		else if (global_ubo.renderMode == 3)
-		{
-			outColor = vec4(specular, diffuseSample.a);
-			return;
-		}
-		else if (global_ubo.renderMode == 4)
-		{
-			outColor = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
-			outColor.a = diffuseSample.a;
-			return;
-		}
-		else if (global_ubo.renderMode == 5)
-		{
-			outColor = vec4(abs(normal), diffuseSample.a);
-			return;
-		}
-		else if (global_ubo.renderMode == 6)
-		{
-			outColor = vec4(abs(normalize(fsInput.Normal)), diffuseSample.a);
-			return;
-		}
-		else if (global_ubo.renderMode == 7)
-		{
-			outColor = vec4(abs(normalize(fsInput.Tangent)), diffuseSample.a);
-			return;
-		}
-		else if (global_ubo.renderMode == 8)
-		{
-			outColor = vec4(abs(normalize(fsInput.Bitangent)), diffuseSample.a);
-			return;
-		}
-	}*/
 	
-	outColor = texture(samplers[SAMP_SPECULAR], fsInput.TexCoord);
-	outColor = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
-	outColor = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
-	//outColor = vec4(1.0f);
+	// Ambient lighting
+	vec3 ambient = ambientStrength * lightColor;
+	
+	if (global_ubo.renderMode == 2) // Ambient only.
+	{
+		outColor = vec4(ambient, 1.0);
+		return;
+	}
+	
+	// Diffuse lighting 
+	float diffuseFactor = max(dot(normal, lightDir), 0.0);
+	vec3 diffuse = diffuseFactor * lightColor;
+	
+	if (global_ubo.renderMode == 3) // Diffuse only.
+	{
+		outColor = vec4(diffuse, 1.0);
+		return;
+	}
+	
+	// Specular lighting
+	vec3 viewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
+	vec3 halfwayVector = normalize(lightDir + viewDir);
+	float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), 32);
+	vec3 lightColorSpecular = vec3(1.0);
+	vec3 specular = lightColorSpecular * specularFactor * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
+	
+	if (global_ubo.renderMode == 4) // Specular only.
+	{
+		outColor = vec4(specular, 1.0);
+		return;
+	}
+	
+	vec3 lightingResult = ambient + diffuse + specular;
+	
+	outColor = diffuseSample * vec4(lightingResult, 1.0);
 }

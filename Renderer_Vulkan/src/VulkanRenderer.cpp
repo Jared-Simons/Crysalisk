@@ -1652,10 +1652,13 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		}
 
 		// Copy data over to the GPU.
-		void* pUniformData{};
-		vkMapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, uniformStride, 0, &pUniformData);
-		memcpy(pUniformData, pData, uniformStride);
-		vkUnmapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[m_ImageIndex].m_Memory);
+		for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		{
+			void* pUniformData{};
+			vkMapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[idx].m_Memory, uniformOffset, uniformStride, 0, &pUniformData);
+			memcpy(pUniformData, pData, uniformStride);
+			vkUnmapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[idx].m_Memory);
+		}
 	}
 	else
 	{
@@ -2563,24 +2566,27 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 			LOG_INFO("Lighting mode set to fullbright.");
 			break;
 		case 2:
-			LOG_INFO("Lighting mode set to diffuse lighting.");
+			LOG_INFO("Lighting mode set to ambient lighting.");
 			break;
 		case 3:
-			LOG_INFO("Lighting mode set to specular lighting.");
+			LOG_INFO("Lighting mode set to diffuse lighting.");
 			break;
 		case 4:
-			LOG_INFO("Lighting mode set to normals - tangent space.");
+			LOG_INFO("Lighting mode set to specular lighting.");
 			break;
 		case 5:
-			LOG_INFO("Lighting mode set to normals - world space.");
+			LOG_INFO("Lighting mode set to normals - tangent space.");
 			break;
 		case 6:
-			LOG_INFO("Lighting mode set to geometric normal.");
+			LOG_INFO("Lighting mode set to normals - world space.");
 			break;
 		case 7:
-			LOG_INFO("Lighting mode set to tangent u - world space.");
+			LOG_INFO("Lighting mode set to geometric normal.");
 			break;
 		case 8:
+			LOG_INFO("Lighting mode set to tangent u - world space.");
+			break;
+		case 9:
 			LOG_INFO("Lighting mode set to tangent v - world space.");
 			break;
 		}
