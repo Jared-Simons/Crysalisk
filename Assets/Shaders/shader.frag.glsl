@@ -44,6 +44,7 @@ vec3 lightPosition = vec3(0, 500, -500);
 void main()
 {
 	vec3 normal = normalize(fsInput.Normal);
+	
 	vec3 lightDir = normalize(lightPosition - fsInput.FragPos);
 
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
@@ -84,6 +85,21 @@ void main()
 	if (global_ubo.renderMode == 4) // Specular only.
 	{
 		outColor = vec4(specular, 1.0);
+		return;
+	}
+	
+	// Other debug modes.
+	if (global_ubo.renderMode == 5) // Normals - tangent space.
+	{
+		// TODO: Make this work with normal maps.
+	}
+	else if (global_ubo.renderMode == 6) // Normals - world space .
+	{
+		// TODO: Make this work with normal maps.
+	}
+	else if (global_ubo.renderMode == 7) // Geometric normal - world space.
+	{
+		outColor = vec4(abs(normal), 1.0);
 		return;
 	}
 	
