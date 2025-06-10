@@ -293,7 +293,6 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			{
 				// TODO: FIX THIS SO WE CAN USE THIS IN THE SHADER!
 				float flShininess = String_ATOF(pInResource.pszCustomValues[idx]);
-				flShininess = 32;
 				// Set the instance uniform.
 				g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
 			}

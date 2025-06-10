@@ -351,6 +351,7 @@ namespace MeshLoader
 				{
 				case 'a':
 				{
+					// TODO: Clean up this string parsing some...
 					// Diffuse map.
 					if (StringCompare(pKey, "map_Kd ") || StringCompare(pKey, "map_Ka "))
 					{
@@ -361,20 +362,20 @@ namespace MeshLoader
 						currentMaterialResource.textureMapConfigs.PushBack(diffuseMap);
 					}
 					// Specular map.
-					else if (StringCompare(pKey, "map_Ks"))
+					else if (StringCompare(pKey, "map_Ks") || StringCompare(pKey, "map_Ks "))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t specularMap{};
 						specularMap.eType = MaterialLoader::MaterialResource_t::eTextureType::SPECULAR;
 						specularMap.pszTextureName = StringDuplicate(pValue);
-						//currentMaterialResource.textureMapConfigs.PushBack(specularMap);
+						currentMaterialResource.textureMapConfigs.PushBack(specularMap);
 					}
 					// Normal map.
-					else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_bump"))
+					else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_Disp ") || StringCompare(pKey, "map_bump") || StringCompare(pKey, "map_bump "))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t normalMap{};
 						normalMap.eType = MaterialLoader::MaterialResource_t::eTextureType::NORMAL;
 						normalMap.pszTextureName = StringDuplicate(pValue);
-						//currentMaterialResource.textureMapConfigs.PushBack(normalMap);
+						currentMaterialResource.textureMapConfigs.PushBack(normalMap);
 					}
 
 					break;

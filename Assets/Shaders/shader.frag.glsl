@@ -78,7 +78,8 @@ void main()
 	// Specular lighting
 	vec3 viewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
 	vec3 halfwayVector = normalize(lightDir + viewDir);
-	float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), 32);
+	//float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), instance_ubo.shininess);
+	float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), 10);
 	vec3 lightColorSpecular = vec3(1.0);
 	vec3 specular = lightColorSpecular * specularFactor * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
 	
@@ -103,6 +104,8 @@ void main()
 		return;
 	}
 	
+	vec3 test = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
+	outColor = vec4(test, 1.0);
 	vec3 lightingResult = ambient + diffuse + specular;
 	
 	outColor = diffuseSample * vec4(lightingResult, 1.0);
