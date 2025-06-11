@@ -188,7 +188,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
 		//DrawGeometry(m_Cube1);
 		//DrawGeometry(m_Cube2);
-		//DrawGeometry(m_Cube3);
+		g_pMaterialSystemInternal->ApplyMaterialInstance(m_Cube3.hMaterial);
+		DrawGeometry(m_Cube3);
 
 		// Render the opaque geometry first.
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
@@ -344,7 +345,7 @@ bool Renderer::CreateTempGeometry()
 {
 	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
-	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
+	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 
 	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig, m_Cube1))
 	{
@@ -368,7 +369,7 @@ bool Renderer::CreateTempGeometry()
 	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	//m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial3");
+	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	// TEMP SHADER TEST CODE
 	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");

@@ -38,14 +38,24 @@ layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 // Temp lighting values
 float ambientStrength = 0.3;
 vec3 lightColor = vec3(0.93, 0.94, 0.65);
-vec3 lightPosition = vec3(0, 500, -500);
+vec3 lightDir = vec3(-0.577350, -0.577350, -0.577350);
 // End Temp 
 
 void main()
 {
-	vec3 normal = normalize(fsInput.Normal);
+	// Build our TBN matrix.
+	vec3 normal = fsInput.Normal;
+	vec3 tangent = fsInput.Tangent;
+	tangent = (tangent - dot(tangent, normal) * normal);
+	vec3 bitangent = cross(fsInput.Normal, fsInput.Tangent);
+	mat3 TBN = mat3(tangent, bitangent, normal);
+
+	// Get a normal from the normal map.
+	normal = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
+	normal = normalize(normal * 2.0 - 1.0);
 	
-	vec3 lightDir = normalize(lightPosition - fsInput.FragPos);
+	// Bring our normals into world space.
+	normal = normalize(TBN * normal);
 
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
 	
@@ -66,7 +76,7 @@ void main()
 	}
 	
 	// Diffuse lighting 
-	float diffuseFactor = max(dot(normal, lightDir), 0.0);
+	float diffuseFactor = max(dot(normal, -lightDir), 0.0);
 	vec3 diffuse = diffuseFactor * lightColor;
 	
 	if (global_ubo.renderMode == 3) // Diffuse only.
@@ -80,6 +90,7 @@ void main()
 	vec3 halfwayVector = normalize(lightDir + viewDir);
 	//float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), instance_ubo.shininess);
 	float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), 10);
+	specularFactor = 0.0;
 	vec3 lightColorSpecular = vec3(1.0);
 	vec3 specular = lightColorSpecular * specularFactor * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
 	
@@ -92,15 +103,20 @@ void main()
 	// Other debug modes.
 	if (global_ubo.renderMode == 5) // Normals - tangent space.
 	{
-		// TODO: Make this work with normal maps.
+		// Use a sample from the normal map.
+		vec4 normal4 = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
+		outColor = vec4(normal4.xyz, 1.0);
+		return;
 	}
-	else if (global_ubo.renderMode == 6) // Normals - world space .
+	else if (global_ubo.renderMode == 6) // Normals - world space.
 	{
-		// TODO: Make this work with normal maps.
+		outColor = vec4(abs(normal), 1.0);
+		return;
 	}
 	else if (global_ubo.renderMode == 7) // Geometric normal - world space.
 	{
-		outColor = vec4(abs(normal), 1.0);
+		// Use the normal from the vertex data (duh!)
+		outColor = vec4(abs(fsInput.Normal), 1.0);
 		return;
 	}
 	

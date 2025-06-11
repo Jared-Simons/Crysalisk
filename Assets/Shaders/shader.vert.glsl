@@ -42,12 +42,6 @@ void main()
 	vsOutput.FragPos = vec3(u_PushConstants.model * vec4(inPosition, 1.0));
 
 	mat3 normalMatrix = transpose(inverse(mat3(u_PushConstants.model)));
-	vec3 tangent = normalize(normalMatrix * inTangent);
-	vec3 normal = normalize(normalMatrix * inNormal);
-	tangent = normalize(tangent - dot(tangent, normal) * normal);
-	vec3 bitangent = cross(normal, tangent);
-
-	vsOutput.TBN = transpose(mat3(tangent, bitangent, normal));
 
 	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }
