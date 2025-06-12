@@ -26,6 +26,7 @@ public:
 	virtual void	Shutdown() override;
 	
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) override;
+	virtual TextureHandle_t		AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease) override;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) override;
 
 	virtual uint32_t			GetTextureFlags(TextureHandle_t hTexture) const override;
@@ -165,33 +166,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 			return m_pDefaultTextureLookup->TextureIndex;
 		}
 
-		// Set up our hashmap entry.
-		pTextureLookup->AutoRelease = bAutoRelease;
-		pTextureLookup->ReferenceCount = 0; // We'll increment this further down in the function.
-		pTextureLookup->TextureIndex = newTextureHandle;
-
-		// Finally, use the loaded resource to set up our texture entry.
-		pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
-		CAssert(pTexture);
-
-		pTexture->width = imageResource.Width;
-		pTexture->height = imageResource.Height;
-		pTexture->numChannels = imageResource.NumChannels; // TODO: Use texture format here instead?
-		pTexture->textureFlags |= imageResource.bIsTransparent ? TEXTURE_FLAG_IS_TRANSPARENT : 0;
-		pTexture->pszTextureName = StringDuplicate(pszTextureName);
-
-		// Acquire renderer resources and upload to the GPU.
-		if (!g_pRenderer->AcquireTextureResources(pTexture, newTextureHandle, (pTexture->width * pTexture->height * pTexture->numChannels), imageResource.pPixelData))
-		{
-			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Texture acquisition failed!", pszTextureName);
-			
-			// Clear out texture/hashmap entries.
-			ClearTextureDictionaryEntry(pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		// Increment the reference count.
-		pTextureLookup->ReferenceCount++;
+		newTextureHandle = AcquireTextureFromResource(imageResource, pszTextureName, bAutoRelease);
 	}
 	else
 	{
@@ -199,6 +174,55 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		pTextureLookup->ReferenceCount++;
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
+
+	return newTextureHandle;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease)
+{
+	TextureLookup*					pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
+	Texture*						pTexture = nullptr;
+
+	// Get the next free slot in the texture dictionary.
+	TextureHandle_t newTextureHandle = GetFirstFreeTextureHandle();
+	if (newTextureHandle == kInvalidID_U32)
+	{
+		LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
+		return m_pDefaultTextureLookup->TextureIndex;
+	}
+
+	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
+
+	// Set up our hashmap entry.
+	pTextureLookup->AutoRelease = bAutoRelease;
+	pTextureLookup->ReferenceCount = 0; // We'll increment this further down in the function.
+	pTextureLookup->TextureIndex = newTextureHandle;
+
+	// Finally, use the loaded resource to set up our texture entry.
+	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
+	CAssert(pTexture);
+
+	pTexture->width = pResource.Width;
+	pTexture->height = pResource.Height;
+	pTexture->numChannels = pResource.NumChannels; // TODO: Use texture format here instead?
+	pTexture->textureFlags |= pResource.bIsTransparent ? TEXTURE_FLAG_IS_TRANSPARENT : 0;
+	pTexture->pszTextureName = StringDuplicate(pszTextureName);
+
+	// Acquire renderer resources and upload to the GPU.
+	if (!g_pRenderer->AcquireTextureResources(pTexture, newTextureHandle, (pTexture->width * pTexture->height * pTexture->numChannels), pResource.pPixelData))
+	{
+		LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Texture acquisition failed!", pszTextureName);
+
+		// Clear out texture/hashmap entries.
+		ClearTextureDictionaryEntry(pszTextureName);
+		return m_pDefaultTextureLookup->TextureIndex;
+	}
+
+	// Increment the reference count.
+	pTextureLookup->ReferenceCount++;
 
 	return newTextureHandle;
 }

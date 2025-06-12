@@ -66,18 +66,13 @@ enum ShaderTopologyType
 
 using FontHandle_t = uint32_t;
 
-struct FontAtlas_t
-{
-	size_t	Width;
-	size_t	Height;
-};
-
 class Font
 {
 public:
-	FontAtlas_t m_Atlas{};
-	void* m_pInternalData{ nullptr };
+	uint32_t		m_InternalInstanceID{ kInvalidID_U32 };
+	void*			m_pInternalData{ nullptr };	// DEPRECATED!
 	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
+	void*			m_pInternalFontAtlasData{ nullptr };
 };
 
 using ShaderHandle_t = uint32_t;

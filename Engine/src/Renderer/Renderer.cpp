@@ -34,7 +34,9 @@ typedef void* (*PFN_GetRendererBackendState)();
 // TEMP!
 static Camera_t s_MainCamera;
 
-TextObject	s_FontTest{};
+// TEMP Test font
+FontHandle_t	testFont;
+TextObject		testText;
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -208,6 +210,13 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx]);
 		}
+
+		// Render some test UI text.
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
+		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
+		g_pShaderSystem->BindPerInstanceUniforms(1);
+		DrawGeometry(testText.m_Geometry);
 	}
 
 	m_RendererBackend->EndRenderpass();
@@ -346,7 +355,7 @@ bool Renderer::CreateTempGeometry()
 
 	// Test mesh.
 	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS
@@ -387,6 +396,11 @@ bool Renderer::CreateTempGeometry()
 	// TEMP!
 	s_bLevelGeometryLoaded = true;
 	// End test mesh.
+
+	// TEMP TEST FONT
+	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	testText.SetText("Poggers text!");
+	// END TEMP
 
 	return true;
 }

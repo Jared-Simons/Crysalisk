@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include <Resources/Loaders/ImageLoader.h>
 #include "Resources/ResourceTypes.h"
 
 struct TextureSystemConfig_t
@@ -22,10 +23,11 @@ static const char* kszDefaultNormalTextureName = "_DefaultNormal";
 class ITextureSystem
 {
 public:
-	virtual bool	Initialize(TextureSystemConfig_t config) = 0;
-	virtual void	Shutdown() = 0;
+	virtual bool				Initialize(TextureSystemConfig_t config) = 0;
+	virtual void				Shutdown() = 0;
 
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) = 0;
+	virtual TextureHandle_t		AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease) = 0;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) = 0;
 
 	virtual uint32_t			GetTextureFlags(TextureHandle_t hTexture) const = 0;

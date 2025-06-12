@@ -31,7 +31,9 @@ public:
 	virtual bool	Initialize(FontSystemConfig_t config) = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual FontHandle_t	AcquireFontResources(const char* pFontPath) = 0;
+	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
+
+	virtual FontHandle_t		AcquireFontResources_OLD(const char* pFontPath) = 0;
 
 	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) = 0;
 };
