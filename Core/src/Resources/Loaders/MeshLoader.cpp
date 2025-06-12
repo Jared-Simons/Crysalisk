@@ -8,12 +8,15 @@
 
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Resources/Serializers/MeshSerializer.h"
 
 #include <stdio.h> // For sscanf()
 
 namespace MeshLoader
 {
 	// Helper functions.
+	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
+
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource);
 
@@ -32,7 +35,11 @@ namespace MeshLoader
 		// Grab the extension from the path.
 		char* pszFileExtension = StringGetFilenameExtension(pszMeshFileName);
 
-		if (StringCompare(pszFileExtension, ".obj"))
+		if (StringCompare(pszFileExtension, ".cmodel_c"))
+		{
+			LoadCModelMeshResource(pszMeshFileName, pOutResource);
+		}
+		else if (StringCompare(pszFileExtension, ".obj"))
 		{
 			LoadOBJMeshResource(pszMeshFileName, pOutResource);
 		}
@@ -44,6 +51,41 @@ namespace MeshLoader
 
 		// Free temp string data.
 		StringFree(pszFileExtension);
+
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
+	{
+		Utl::CVector<uint8_t> modelBytes{};
+		FileHandle_t hCModelFile;
+		size_t modelDataSize{ 0 };
+		size_t bytesRead{ 0 };
+
+		if (!FileSystem::OpenFile(pszMeshFileName, eFileMode::FILEMODE_READ, true, &hCModelFile))
+		{
+			return false;
+		}
+
+		modelDataSize = FileSystem::FileSize(&hCModelFile);
+		modelBytes.Resize(modelDataSize);
+		FileSystem::ReadWholeBinaryFile(modelBytes.Data(), modelDataSize, &bytesRead, &hCModelFile);
+
+		// First up is the magic number.
+		uint32_t* pMagicNumber = (uint32_t*)modelBytes.Data();
+		if (*pMagicNumber != MeshSerializer::kModelResourceMagicNumber)
+		{
+			LOG_ERROR("'%s' mesh does not contain kModelResourceMagicNumber, resource reading failed.");
+			return false;
+		}
+
+		// File header.
+		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pMagicNumber + 4);
+
+		FileSystem::CloseFile(&hCModelFile);
 
 		return true;
 	}
@@ -248,6 +290,14 @@ namespace MeshLoader
 		}
 
 		FileSystem::CloseFile(&hObjFile);
+
+		// Write the resource out to our engine-specific format.
+
+		// Write it without the original extension
+		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
+		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
+		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+		StringFree(pTempNameBuffer);
 
 		return true;
 	}
