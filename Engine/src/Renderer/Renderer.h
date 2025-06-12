@@ -52,7 +52,7 @@ public:
 	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry);
 
-	void			DrawGeometry(GeometryInstance_t& pGeometry);
+	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer);
 
 	// Temp geometry stuff
 	bool	CreateTempGeometry();

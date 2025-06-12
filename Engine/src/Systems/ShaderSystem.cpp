@@ -212,7 +212,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// TODO: Don't hardcode this.
 		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
-		if (StringCompare(pszShaderName, "Core.UI.New"))
+		if (StringCompare(pszShaderName, "Core.UI"))
 		{
 			newShaderConfig.m_RendererView = g_pRenderer->m_UIView;
 		}

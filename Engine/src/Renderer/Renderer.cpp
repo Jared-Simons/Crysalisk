@@ -191,14 +191,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		//DrawGeometry(m_Cube1);
 		//DrawGeometry(m_Cube2);
 		g_pMaterialSystemInternal->ApplyMaterialInstance(m_Cube3.hMaterial);
-		DrawGeometry(m_Cube3);
+		DrawGeometry(m_Cube3, m_WorldVertexBuffer, m_WorldIndexBuffer);
 
 		// Render the opaque geometry first.
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pOpaqueGeometries[idx]);
+			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
 		}
 
 		// TODO: Sort the transparent geometries from farthest to closest to the camera.
@@ -208,28 +208,24 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		{
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pTransparentGeometries[idx]);
+			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
 		}
+	}
+
+	m_RendererBackend->EndRenderpass();
+
+	{
+		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render some test UI text.
 		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
 		g_pShaderSystem->BindPerInstanceUniforms(1);
-		DrawGeometry(testText.m_Geometry);
-	}
-
-	m_RendererBackend->EndRenderpass();
-
-	/*if (s_bLevelGeometryLoaded)
-	{
-		m_RendererBackend->StartRenderpass(m_UIView);
-
-		// Render the test ui text
-		m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
+		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
-	}*/
+	}
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -299,9 +295,9 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
-void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
+void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
 {
-	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry);
+	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 bool Renderer::CreateTempGeometry()
@@ -355,7 +351,7 @@ bool Renderer::CreateTempGeometry()
 
 	// Test mesh.
 	MeshLoader::MeshResource_t sponzaResource{};
-	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS

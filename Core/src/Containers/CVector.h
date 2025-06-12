@@ -53,7 +53,8 @@ namespace Utl {
 
 			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
-			m_pValues = new T[initialCapacity];
+			//m_pValues = new T[initialCapacity];
+			m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
@@ -72,7 +73,8 @@ namespace Utl {
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = new T[m_Capacity];
+				//m_pValues = new T[m_Capacity];
+				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
 				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}

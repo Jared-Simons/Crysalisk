@@ -69,12 +69,6 @@ void main()
 	// Ambient lighting
 	vec3 ambient = ambientStrength * lightColor;
 	
-	if (global_ubo.renderMode == 2) // Ambient only.
-	{
-		outColor = vec4(ambient, 1.0);
-		return;
-	}
-	
 	// Diffuse lighting 
 	float diffuseFactor = max(dot(normal, -lightDir), 0.0);
 	vec3 diffuse = diffuseFactor * lightColor;
@@ -95,6 +89,12 @@ void main()
 	if (global_ubo.renderMode == 4) // Specular only.
 	{
 		outColor = vec4(specular, 1.0);
+		return;
+	}
+
+	if (global_ubo.renderMode == 2) // Lighting only.
+	{
+		outColor = vec4(ambient + diffuse + specular, 1.0);
 		return;
 	}
 	

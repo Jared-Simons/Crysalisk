@@ -549,13 +549,13 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
 
 	// Bind the index buffer, if necessary
-	if (pGeometry.indexDataOffset != 0)
+	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}
 
 	// Issue the draw.
-	if (pGeometry.indexDataOffset != 0)
+	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, (uint32_t)pGeometry.indexDataOffset, (int32_t)pGeometry.vertexDataOffset, 0);
 	}
@@ -2258,9 +2258,6 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 
 	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
-	
-	pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
-	pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
 
 	VulkanCommandBuffer cmdBuffer{};
 	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
@@ -2294,6 +2291,9 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	// TODO: Handle index buffers as well...
 	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
 	{
+		pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
+		pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
+
 		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
 		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
@@ -2519,34 +2519,34 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		default:
 		case 0:
 			s_VulkanContext.m_RenderMode = 0;
-			LOG_INFO("Lighting mode set to default.");
+			LOG_INFO("Visualization mode set to default.");
 			break;
 		case 1:
-			LOG_INFO("Lighting mode set to fullbright.");
+			LOG_INFO("Visualization mode set to fullbright.");
 			break;
 		case 2:
-			LOG_INFO("Lighting mode set to ambient lighting.");
+			LOG_INFO("Visualization mode set to lighting only.");
 			break;
 		case 3:
-			LOG_INFO("Lighting mode set to diffuse lighting.");
+			LOG_INFO("Visualization mode set to diffuse lighting.");
 			break;
 		case 4:
-			LOG_INFO("Lighting mode set to specular lighting.");
+			LOG_INFO("Visualization mode set to specular lighting.");
 			break;
 		case 5:
-			LOG_INFO("Lighting mode set to normals - tangent space.");
+			LOG_INFO("Visualization mode set to normals - tangent space.");
 			break;
 		case 6:
-			LOG_INFO("Lighting mode set to normals - world space.");
+			LOG_INFO("Visualization mode set to normals - world space.");
 			break;
 		case 7:
-			LOG_INFO("Lighting mode set to geometric normal.");
+			LOG_INFO("Visualization mode set to geometric normal.");
 			break;
 		case 8:
-			LOG_INFO("Lighting mode set to tangent u - world space.");
+			LOG_INFO("Visualization mode set to tangent u - world space.");
 			break;
 		case 9:
-			LOG_INFO("Lighting mode set to tangent v - world space.");
+			LOG_INFO("Visualization mode set to tangent v - world space.");
 			break;
 		}
 	}
