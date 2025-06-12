@@ -119,7 +119,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	LOG_DEBUG("Graphics Queue Index:\t%d", pOutDevice.m_QueueFamilyIndices.GraphicsQueueFamilyIndex);
 	LOG_DEBUG("Present Queue Index:\t%d", pOutDevice.m_QueueFamilyIndices.PresentQueueFamilyIndex);
 
-	// Cache off appropriate device features.
+	// Cache off appropriate device details.
 	vkGetPhysicalDeviceMemoryProperties(pOutDevice.m_PhysicalDevice, &pOutDevice.m_MemoryProperties);
 	vkGetPhysicalDeviceFeatures(pOutDevice.m_PhysicalDevice, &pOutDevice.m_DeviceFeatures);
 	vkGetPhysicalDeviceProperties(pOutDevice.m_PhysicalDevice, &pOutDevice.m_DeviceProperties);

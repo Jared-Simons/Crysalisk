@@ -29,19 +29,20 @@
 #include <Strings/String_Utils.h>
 
 // Engine System Interfaces
-static class IEventSystem* g_pEngineEvents{ nullptr };
-static class IInputSystem* g_pInputSystem{ nullptr };
-static class IMaterialSystem* g_pMaterialSystem{ nullptr };
+static class IEventSystem*		g_pEngineEvents{ nullptr };
+static class IInputSystem*		g_pInputSystem{ nullptr };
+static class ITextureSystem*	g_pTextureSystem{ nullptr };
+static class IMaterialSystem*	g_pMaterialSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: A function to be implemented by the consuming library.
 //			This is supposed to call Platform::RegisterInterface() on all
 //			of it's shared interfaces so they can be propagated out to all other libs.
 // 
-// Input: none.
-// Output: bool - Returns true on successfully returned interfaces.
+// Input:  none.
+// Output: none.
 //-------------------------------------------------------------------------
-bool ReturnInterfacesToRegistry();
+void ReturnInterfacesToRegistry();
 
 //-------------------------------------------------------------------------
 // Purpose: This function will go through and populate all of the above
@@ -66,6 +67,12 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 		if (StringCompare(appInterfaces[i].szSystemName, "input_system"))
 		{
 			g_pInputSystem = (IInputSystem*)appInterfaces[i].pSystemAddr;
+			continue;
+		}
+
+		if (StringCompare(appInterfaces[i].szSystemName, "texture_system"))
+		{
+			g_pTextureSystem = (ITextureSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 

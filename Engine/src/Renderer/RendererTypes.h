@@ -42,10 +42,11 @@ struct MaterialInstanceData_t
 	Vector4D	Reserved3;
 };
 
-enum class VertexType_t
+enum class ShaderAttribute_t
 {
 	Undefined,
 	Int32,
+	Float32,
 	Vector2,
 	Vector3,
 	Vector4,
@@ -55,29 +56,89 @@ enum class VertexType_t
 
 struct VertexAttribute_t
 {
-	const char* szName;
-	VertexType_t type;
+	char*			szName;
+	ShaderAttribute_t	type;
+	size_t			stride;
 
 	VertexAttribute_t()
 		: szName{ nullptr }
-		, type{ VertexType_t::Undefined } {}
+		, type{ ShaderAttribute_t::Undefined } 
+		, stride{ 0 } {}
 
-	// TODO: String cleanup
+	VertexAttribute_t(const VertexAttribute_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		type = pOther.type;
+		stride = pOther.stride;
+	}
+
+	VertexAttribute_t& operator=(const VertexAttribute_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		type = pOther.type;
+		stride = pOther.stride;
+
+		return *this;
+	}
+
+	~VertexAttribute_t()
+	{
+		if (szName)
+			StringFree(szName);
+	}
 };
 
-enum class eShaderUniformUpdateFrequency
+enum class eShaderUniformGroup
 {
-	GLOBAL,
-	OBJECT,
+	PER_FRAME,
+	PER_MATERIAL,
 	PER_DRAW
 };
 
 struct ShaderUniformConfig_t
 {
-	const char* szName;
-	VertexType_t eType;
-	eShaderUniformUpdateFrequency eFrequency;
-	int iArraySize;
+	char*							szName;
+	ShaderAttribute_t				eType;
+	eShaderUniformGroup				eFrequency;
+	size_t							iStride;	// The length of a single element in bytes (does not account for a whole array).
+	int								iArraySize;
+
+	ShaderUniformConfig_t()
+		: szName{ nullptr }
+		, eType{ ShaderAttribute_t::Undefined }
+		, eFrequency{ eShaderUniformGroup::PER_MATERIAL }
+		, iStride{ 0 }
+		, iArraySize{ 1 } { }
+
+	ShaderUniformConfig_t(const ShaderUniformConfig_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		eType = pOther.eType;
+		eFrequency = pOther.eFrequency;
+		iStride = pOther.iStride;
+		iArraySize = pOther.iArraySize;
+	}
+
+	ShaderUniformConfig_t& operator=(const ShaderUniformConfig_t& pOther)
+	{
+		if (pOther.szName)
+			szName = StringDuplicate(pOther.szName);
+		eType = pOther.eType;
+		eFrequency = pOther.eFrequency;
+		iStride = pOther.iStride;
+		iArraySize = pOther.iArraySize;
+
+		return *this;
+	}
+
+	~ShaderUniformConfig_t()
+	{
+		if (szName)
+			StringFree(szName);
+	}
 };
 
 enum class eKnownRenderpassType

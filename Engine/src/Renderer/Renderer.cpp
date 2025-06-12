@@ -11,7 +11,9 @@
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
+#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -30,9 +32,11 @@ static bool RendererEvent_KeyPressed(EventData_t data);
 typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
-ShaderHandle_t testShaderHandle = kInvalidID_U32;
+static Camera_t s_MainCamera;
 
-TextObject	s_FontTest{};
+// TEMP Test font
+FontHandle_t	testFont;
+TextObject		testText;
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -85,8 +89,12 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
+	s_MainCamera.RecalculateCameraVectors();
+
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
+
+	m_iCurrentRendererFrame = 0;
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
@@ -129,12 +137,31 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
 	m_flLastFrameTime = currentFrameTime;
 
+	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
+
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
 	}
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
+
+	// TEMP BADNESS
+	g_pShaderSystem->BindShader(0);
+
+	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 10000.0f); // TODO: Don't hardcode this.
+	// Flip the y-axis.
+	projection.data[5] *= -1;
+	Matrix4x4 view = s_MainCamera.GetViewMatrix();
+	Vector3D myPos = s_MainCamera.vecPosition;
+	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
+
+	// TODO: Get these shader locations set in here.
+	// TODO: Don't hardcode these things here
+	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
+	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
+	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
+	g_pShaderSystem->SetShaderUniform(0, 8, 0, 0, &model);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -144,7 +171,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
 		{
-			if (!m_SponzaModel.m_Geometries[idx].hMaterial.m_bIsTransparent)
+			if (!m_SponzaModel.m_Geometries[idx].bIsTransparent)
 			{
 				// If not transparent, add them to the list!
 				pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
@@ -157,14 +184,21 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		}
 
 		// Render our temp geometry.
+
+		// Bind the appropriate material.
+		// TODO: Don't hardcode this material handle here.
+		//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
 		//DrawGeometry(m_Cube1);
 		//DrawGeometry(m_Cube2);
-		//DrawGeometry(m_Cube3);
+		g_pMaterialSystemInternal->ApplyMaterialInstance(m_Cube3.hMaterial);
+		DrawGeometry(m_Cube3, m_WorldVertexBuffer, m_WorldIndexBuffer);
 
 		// Render the opaque geometry first.
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
-			DrawGeometry(*pOpaqueGeometries[idx]);
+			// Bind the appropriate material.
+			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
+			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
 		}
 
 		// TODO: Sort the transparent geometries from farthest to closest to the camera.
@@ -172,56 +206,78 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		// Render the sorted transparent geometries.
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
-			DrawGeometry(*pTransparentGeometries[idx]);
+			// Bind the appropriate material.
+			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
+			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
 		}
 	}
 
 	m_RendererBackend->EndRenderpass();
 
-	if (s_bLevelGeometryLoaded)
 	{
 		m_RendererBackend->StartRenderpass(m_UIView);
 
-		// Render the test ui text
-		m_RendererBackend->RenderTestUI(m_UIVertexBuffer, m_UIIndexBuffer, s_FontTest.m_Geometry);
+		// Render some test UI text.
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
+		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
+		g_pShaderSystem->BindPerInstanceUniforms(1);
+		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
 	}
 
 	m_RendererBackend->EndFrame(pRenderData);
 
+	// Increment the frame count.
+	m_iCurrentRendererFrame++;
+
 	return true;
 }
 
-bool Renderer::AcquireTextureResources(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
-	// No work to be done here, pass it right through to the backend.
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
 
-void Renderer::ReleaseTextureResources(Texture& pTexture)
+void Renderer::ReleaseTextureResources(Texture* pTexture)
 {
 	m_RendererBackend->ReleaseTextureResources(pTexture);
 }
 
-bool Renderer::AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
+bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
-	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
+	return m_RendererBackend->CreateShader(pShader, pConfig); 
 }
 
-bool Renderer::AcquireShaderResources(Shader& pShader, ShaderConfig_t& pShaderConfig)
+void Renderer::DestroyShader(Shader* pShader)
 {
-	return m_RendererBackend->AcquireShaderResources(pShader, pShaderConfig);
+	m_RendererBackend->DestroyShader(pShader);
 }
 
-void Renderer::ReleaseShaderResources(Shader& pShader)
+void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
 {
-	return m_RendererBackend->ReleaseShaderResources(pShader);
+	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID);
 }
 
-void Renderer::BindShader(Shader& pShader)
+void Renderer::BindShader(Shader* pShader)
 {
 	m_RendererBackend->BindShader(pShader);
+}
+
+void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
+{
+	m_RendererBackend->BindPerFrameShaderDescriptors(pShader);
+}
+
+void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
+{
+	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
+}
+
+void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
+{
+	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
 
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
@@ -239,19 +295,16 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
-void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
+void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
 {
-	// Acquire the default material if our own material's resources aren't yet available.
-	MaterialReference& pMaterial = (pGeometry.hMaterial.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial;
-
-	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry, pMaterial);
+	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 bool Renderer::CreateTempGeometry()
 {
-	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
-	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 60, 40, 0 }, 32, 32, 32);
+	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 
 	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig, m_Cube1))
 	{
@@ -269,32 +322,81 @@ bool Renderer::CreateTempGeometry()
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
-	}*/
+	}
 
 	// Acquire materials
 	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
 	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	//m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial3");
+	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	// TEMP SHADER TEST CODE
 	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
 	// END TEMP
 
 	// Load a test model.
-	LOG_DEBUG("Bytes allocated before model loading:");
-	g_pMemoryManager->PrintMemoryStats();
-	m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+	//LOG_DEBUG("Bytes allocated before model loading:");
+	//g_pMemoryManager->PrintMemoryStats();
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
-	LOG_DEBUG("Bytes allocated after model loading:");
+	//LOG_DEBUG("Bytes allocated after model loading:");
 
 	// Font test.
-	FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
+	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
 
 	// Acquire geometry resources for this text.
-	s_FontTest.SetText("Some Test Text!");
+	//s_FontTest.SetText("Some Test Text!");
+	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
+
+	// Test mesh.
+	MeshLoader::MeshResource_t sponzaResource{};
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
+
+	// TEMP MATERIALS
+	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
+
+	// Load any needed materials.
+	LOG_DEBUG("Acquiring material resources for sponza model.");
+	for (int idx = 0; idx < sponzaResource.pMaterials.Count(); idx++)
+	{
+		LOG_VERBOSE("Acquiring material '%s'.", sponzaResource.pMaterials[idx].pszMaterialName);
+		g_pMaterialSystemInternal->AcquireMaterialFromResource(sponzaResource.pMaterials[idx]);
+	}
+
+	LOG_DEBUG("Acquiring geometry resources for sponza model.");
+	for (int idx = 0; idx < sponzaResource.pObjects.Count(); idx++)
+	{
+		for (int gpIdx = 0; gpIdx < sponzaResource.pObjects[idx]->pGroups.Count(); gpIdx++)
+		{
+			GeometryConfig_t newConfig{};
+			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
+			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
+			if (newConfig.Vertices.Count() > 0)
+			{
+				// Generate tangent data.
+				MeshGenerator::GenerateTangentData(newConfig);
+
+				GeometryInstance_t newGeometry{};
+				g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
+
+				// Set the material as well.
+				newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
+				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
+
+				m_SponzaModel.m_Geometries.PushBack(newGeometry);
+			}
+		}
+	}
+	// TEMP!
+	s_bLevelGeometryLoaded = true;
+	// End test mesh.
+
+	// TEMP TEST FONT
+	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	testText.SetText("Poggers text!");
+	// END TEMP
 
 	return true;
 }
@@ -325,12 +427,6 @@ static bool RendererEvent_WindowResized(EventData_t data)
 
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
-	if (*data.c == 'T' && s_Renderer.m_Cube2.hMaterial.m_iInternalHandle == kInvalidID_U32)
-	{
-		LOG_DEBUG("Loading test material.");
-		s_Renderer.m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	}
-
 	// Let other listeners handle this event.
 	return false;
 }

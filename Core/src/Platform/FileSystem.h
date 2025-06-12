@@ -36,7 +36,7 @@ public:
 	static bool			OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle);
 	static bool			CloseFile(FileHandle_t* fileHandle);
 	static bool			FileExists(const char* pszFilePath);
-	static u64			FileSize(FileHandle_t* fileHandle);
+	static size_t		FileSize(FileHandle_t* fileHandle);
 
 	static bool 		ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, FileHandle_t* file);
 	static bool			ReadWholeFile(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* file);

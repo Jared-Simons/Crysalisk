@@ -55,13 +55,12 @@ public:
 
 	bool		TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, byte* pPixelData);
+	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData);
 
 public:
 	VkImage			m_Image{ VK_NULL_HANDLE };
 	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
 	VkImageView		m_View{ VK_NULL_HANDLE };
-	VkSampler		m_Sampler{ VK_NULL_HANDLE };
 };
 
 class VulkanBuffer
@@ -127,17 +126,19 @@ public:
 	VkRenderPass	m_Handle{ VK_NULL_HANDLE };
 };
 
+struct VulkanShaderModule_t
+{
+	VkShaderStageFlagBits	eStage{};
+	VkShaderModule			hModule{};
+};
+
 class VulkanShaderInternal
 {
 public:
-	size_t		m_Generation{ kInvalidID_U32 };
-	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
-	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
-
 	struct VulkanDescriptorSetLayoutState
 	{
 		VkDescriptorSetLayout			m_Layout;
-		eShaderUniformUpdateFrequency	m_FrequencyLevel;
+		eShaderUniformGroup	m_FrequencyLevel;
 	};
 
 	struct VulkanDescriptorSetState
@@ -146,6 +147,11 @@ public:
 		byte			m_Generation;
 	};
 
+	size_t		m_Generation{ kInvalidID_U32 };
+	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
+	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
+
+	VkDescriptorPool		m_DescriptorPool{};
 	VkDescriptorSetLayout	m_GlobalDescriptorLayout{};
 	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
@@ -153,13 +159,13 @@ public:
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 	size_t					m_CurrentRendererFrame{ 0 };
 
-	Utl::CVector<VulkanBuffer> m_UniformBuffers{};
-	GlobalUniformObject_t	m_UniformData{};
+	Utl::CVector<VkSampler>		m_InstanceSamplers{};
+	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
+	GlobalUniformObject_t		m_UniformData{};
 };
 
 struct VulkanTextureInternal
 {
 	class VulkanImage	m_Image{};
-	unsigned int		m_DescriptorSetIndex{ 0 };
 	unsigned char		m_Generation{ kInvalidID_U8 };
 };

@@ -10,11 +10,28 @@
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
+#include <Resources/Loaders/FontLoader.h>
 #include "Systems/TextureSystem.h"
 #include "Systems/MaterialSystem.h" // TODO: REMOVE THIS ASAP!
+#include "Systems/ShaderSystem.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <Vendor/stb_truetype.h>
+
+//-------------------------------------------------------------------------
+// Indices for each of the UI shader lookups.
+//-------------------------------------------------------------------------
+// UI Shader Locations
+struct UIShaderLocations_t
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	texture_maps{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+
+static UIShaderLocations_t s_UIShaderLocations{};
 
 const uint32_t kCodePointOfFirstChar = 32;
 const uint32_t kCharsToIncludeInFontAtlas = 95;
@@ -42,9 +59,14 @@ class CFontSystem : public IFontSystem
 	virtual bool	Initialize(FontSystemConfig_t config) override;
 	virtual void	Shutdown() override;
 
-	virtual FontHandle_t	AcquireFontResources(const char* pFontPath) override;
+	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
+
+	virtual FontHandle_t		AcquireFontResources_OLD(const char* pFontPath) override;
 
 	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) override;
+
+private:
+	FontHandle_t	GetFirstFreeFontHandle() const;
 
 private:
 	FontSystemConfig_t m_Config{};
@@ -61,6 +83,7 @@ private:
 	};
 
 	FontDictionary	m_FontDictionary{};
+	ShaderHandle_t	m_hDefaultUIShader{ kInvalidID_U32 };
 };
 
 // Font System context.
@@ -73,6 +96,12 @@ struct TrueTypeFontInternalData_t
 	stbtt_aligned_quad alignedQuads[kCharsToIncludeInFontAtlas];
 };
 
+struct InternalFontAtlasData_t
+{
+	Utl::CVector<FontLoader::FontChar_t>		charData{};
+	Utl::CVector<FontLoader::FontQuadData_t>	quadData{};
+};
+
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
@@ -83,6 +112,22 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 
 	// Allocate memory for our font array
 	m_FontDictionary.m_FontArray = (Font*)new Font[config.MaxFonts];
+
+	// Set up our required shader resources.
+	m_hDefaultUIShader = g_pShaderSystem->AcquireShader("Core.UI");
+	
+	if (m_hDefaultUIShader == kInvalidID_U32)
+	{
+		LOG_ERROR("Failed to acquire necessary shader resources for font rendering!");
+		return false;
+	}
+
+	// Get all our shader uniform locations
+	s_UIShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
+	s_UIShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
+	s_UIShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
+	s_UIShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
+	s_UIShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;
@@ -97,130 +142,67 @@ void CFontSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// Loads a font at the provided path if it hasn't been loaded.
+// TODO: Documentation.
 //-------------------------------------------------------------------------
-FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
+FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 {
-	Font* newFont = nullptr;
-	int fontIdx = 0;
+	FontLoader::FontResource_t	fontResource{};
+	FontHandle_t				fontHandle{ kInvalidID_U32 };
+	FontLookup*					pFontLookup{ nullptr };
+	Font*						pFont{ nullptr };
 
-	// Make sure our state is ready to go.
-	if (!m_FontDictionary.m_FontArray)
+	if (!pszFontName)
 	{
-		LOG_WARN("CFontSystem::AcquireFontResources() called before font system was initialized! Returning NULL handle.");
-		return 0;
+		LOG_ERROR("AcquireTexture() was called with null texture name! Returning default texture.");
+		return 0; // TODO: Default font.
 	}
 
-	if (!pFontPath)
+	// Check to see if the font is already loaded.
+	pFontLookup = &m_FontDictionary.m_FontHashmap[pszFontName];
+
+	if (pFontLookup->FontIndex == kInvalidID_U32)
 	{
-		LOG_ERROR("CFontSystem::AcquireFontResources() requires a path to the font to load! Returning NULL handle.");
-		return 0;
-	}
-
-	// Get an entry into the hashmap.
-	FontLookup* pNewFontLookup = m_FontDictionary.m_FontHashmap.Insert(pFontPath);
-
-	if (!pNewFontLookup)
-	{
-		LOG_ERROR("Failed to find free space for a new font in font hashmap! Returning NULL handle.");
-		return 0;
-	}
-
-	if (pNewFontLookup->FontIndex == kInvalidID_U32) // This font does not exist yet.
-	{
-		// Get the first free font slot.
-		for (fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
+		// TODO: Don't hard-code this path.
+		// The font is not yet loaded, load it up.
+		if (!FontLoader::LoadFontResource(pszFontName, fontResource))
 		{
-			if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalData)
-			{
-				// Found one!
-				newFont = &m_FontDictionary.m_FontArray[fontIdx];
-				break;
-			}
+			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
+			return 0; // TODO: Default font.
 		}
 
-		if (!newFont)
-		{
-			LOG_ERROR("Could not load font '%s' because all font slots are full, returning default font.", pFontPath);
-			return 0; // TODO: return default?
-		}
+		fontHandle = GetFirstFreeFontHandle();
+		pFont = &m_FontDictionary.m_FontArray[fontHandle];
 
-		// TODO: make this configurable.
-		newFont->m_Atlas.Width = newFont->m_Atlas.Height = 512;
+		// Load up the texture data.
+		TextureHandle_t hFontAtlas = g_pTextureSystem_Internal->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
 
-		// Read in the data from the file.
-		Utl::CVector<uint8_t> fontBytes;
-		FileHandle_t ttfFileHandle{};
-		size_t ttfFileSize{ 0 };
-		if (!FileSystem::OpenFile(pFontPath, eFileMode::FILEMODE_READ, true, &ttfFileHandle))
-		{
-			LOG_ERROR("Failed to find '%s' font file", pFontPath);
-			return 0; // TODO: Default?
-		}
+		// Get our shader instance data and bind the font atlas.
+		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID);
+		g_pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
 
-		// Read the data into our buffer.
-		ttfFileSize = FileSystem::FileSize(&ttfFileHandle);
-		fontBytes.Resize(ttfFileSize);
-		FileSystem::ReadWholeBinaryFile(fontBytes.Data(), ttfFileSize, &ttfFileSize, &ttfFileHandle);
+		// Setup the font atlas.
+		pFont->m_pInternalFontAtlasData = new InternalFontAtlasData_t;
+		InternalFontAtlasData_t* pAtlas = reinterpret_cast<InternalFontAtlasData_t*>(pFont->m_pInternalFontAtlasData);
+		pAtlas->charData = fontResource.charData;
+		pAtlas->quadData = fontResource.charQuads;
 
-		FileSystem::CloseFile(&ttfFileHandle);
-
-		stbtt_fontinfo fontInfo = {};
-		int fontCount = stbtt_GetNumberOfFonts(fontBytes.Data());
-
-		if (!stbtt_InitFont(&fontInfo, fontBytes.Data(), 0))
-		{
-			// TODO: Logging
-			CAssert(0);
-		}
-
-		// Allocate some memory for our font data.
-		byte* pFontPixelBuffer = new uint8_t[newFont->m_Atlas.Width * newFont->m_Atlas.Height];
-		newFont->m_pInternalData = new TrueTypeFontInternalData_t;
-		TrueTypeFontInternalData_t* pInternalData = (TrueTypeFontInternalData_t*)newFont->m_pInternalData;
-
-		// Font pixel height
-		// TODO: Configurable
-		float fontSize = 64.0f;
-
-		stbtt_packedchar* packedChars = pInternalData->packedChar;
-		stbtt_aligned_quad* alignedQuads = pInternalData->alignedQuads;
-
-		stbtt_pack_context ctx;
-
-		stbtt_PackBegin(&ctx, pFontPixelBuffer, newFont->m_Atlas.Width, newFont->m_Atlas.Height, 0, 1, nullptr);
-		stbtt_PackFontRange(&ctx, fontBytes.Data(), 0, fontSize, kCodePointOfFirstChar, kCharsToIncludeInFontAtlas, packedChars);
-		stbtt_PackEnd(&ctx);
-
-		for (int idx = 0; idx < kCharsToIncludeInFontAtlas; idx++)
-		{
-			float unusedX, unusedY;
-			stbtt_GetPackedQuad(pInternalData->packedChar, newFont->m_Atlas.Width, newFont->m_Atlas.Height, idx, &unusedX, &unusedY, &pInternalData->alignedQuads[idx], 0);
-		}
-
-		// Acquire texture resources.
-		newFont->m_hFontTexture = g_pTextureSystem->WrapTextureInternal(pFontPath, newFont->m_Atlas.Width, newFont->m_Atlas.Height, pFontPixelBuffer); // TODO: formatted texture name
-
-		// Set up a material for this
-		// TODO: We need to get a material for now because that's the ONLY way the Vulkan renderer can set up the descriptor sets.
-		// This should not be the case for fonts! This will need to change asap.
-		MaterialConfig_t newFontConfig{};
-		newFontConfig.pszDiffuseTextureName = StringDuplicate(pFontPath);
-		newFontConfig.pszMaterialName = StringDuplicate("NewFontMaterial");
-		newFontConfig.pszShaderName = StringDuplicate("Core.UI");
-		MaterialHandle_t newMaterial = g_pMaterialSystemInternal->AcquireMaterialFromConfig(newFontConfig);
-
-		// Delete the original pixel buffer.
-		delete[] pFontPixelBuffer;
-		pNewFontLookup->FontIndex = fontIdx;
+		pFontLookup->FontIndex = fontHandle;
 	}
 	else
 	{
-		// The font data is already loaded.
-		newFont = &m_FontDictionary.m_FontArray[pNewFontLookup->FontIndex];
+		// The font is already loaded, just return the handle.
+		fontHandle = pFontLookup->FontIndex;
 	}
 
-	return pNewFontLookup->FontIndex;
+	return fontHandle;
+}
+
+//-------------------------------------------------------------------------
+// Loads a font at the provided path if it hasn't been loaded.
+//-------------------------------------------------------------------------
+FontHandle_t CFontSystem::AcquireFontResources_OLD(const char* pFontPath)
+{
+	return 0;
 }
 
 // Shoutouts to shreyaspranav for the stb_truetype example! :)
@@ -232,7 +214,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 	GeometryConfig2D_t newConfig{};
 	newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
 
-	TrueTypeFontInternalData_t* pInternalData = reinterpret_cast<TrueTypeFontInternalData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalData);
+	InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	size_t currVertIndex{ 0 };
 
 	// TODO: Configurable position and size
@@ -254,20 +236,20 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 		}
 
 		// Get the data that is used in the rendering of this character.
-		stbtt_packedchar* pCurrPackedChar = &pInternalData->packedChar[pText[ch] - kCodePointOfFirstChar];
-		stbtt_aligned_quad* pCurrAlignedQuad = &pInternalData->alignedQuads[pText[ch] - kCodePointOfFirstChar];
+		FontLoader::FontChar_t* pCurrPackedChar = &pInternalAtlas->charData[pText[ch] - kCodePointOfFirstChar];
+		FontLoader::FontQuadData_t* pCurrAlignedQuad = &pInternalAtlas->quadData[pText[ch] - kCodePointOfFirstChar];
 
 		// Scale the units above from pixels by flPixelScale.
 		Vector2D vecGlyphSize =
 		{
-			(pCurrPackedChar->x1 - pCurrPackedChar->x0) * flPixelScale * flSize,
-			(pCurrPackedChar->y1 - pCurrPackedChar->y0) * flPixelScale * flSize
+			(pCurrPackedChar->xMax - pCurrPackedChar->xMin) * flPixelScale * flSize,
+			(pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
 		};
 
 		Vector2D vecGlyphBoundingBoxBottomLeft =
 		{
-			position.x + (pCurrPackedChar->xoff * flPixelScale * flSize),
-			position.y - (pCurrPackedChar->yoff + pCurrPackedChar->y1 - pCurrPackedChar->y0) * flPixelScale * flSize
+			position.x + (pCurrPackedChar->xOffset * flPixelScale * flSize),
+			position.y - (pCurrPackedChar->yOffset + pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
 		};
 
 		// The order of vertices of a quad go from top-right, top-left, bottom-left, bottom-right.
@@ -281,10 +263,10 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 
 		Vector2D vecGlyphTexCoords[4] =
 		{
-			{ pCurrAlignedQuad->s1, pCurrAlignedQuad->t0 },
-			{ pCurrAlignedQuad->s0, pCurrAlignedQuad->t0 },
-			{ pCurrAlignedQuad->s0, pCurrAlignedQuad->t1 },
-			{ pCurrAlignedQuad->s1, pCurrAlignedQuad->t1 }
+			{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMin },
+			{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMin },
+			{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMax },
+			{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMax }
 		};
 
 		// Set up all of our vertex data.
@@ -304,9 +286,22 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 		currVertIndex += 4;
 
 		// Push the current position forward by the current character's advance.
-		position.x += pCurrPackedChar->xadvance * flPixelScale * flSize;
+		position.x += pCurrPackedChar->Advance * flPixelScale * flSize;
 	}
 	newConfig.Vertices.SetCount(currVertIndex);
 
 	return newConfig;
+}
+
+FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
+{
+	// Get the first free font slot.
+	for (int fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
+	{
+		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalData)
+		{
+			// Found one!
+			return fontIdx;
+		}
+	}
 }

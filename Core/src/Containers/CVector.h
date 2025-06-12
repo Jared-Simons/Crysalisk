@@ -28,7 +28,12 @@ namespace Utl {
 			, m_Capacity{ 0 }
 			, m_ValueStride{ sizeof(T) }
 			, m_ResizeFactor{ 2 }
-			, m_pValues{ nullptr } {
+			, m_pValues{ nullptr } 
+		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
 		}
 
 		//--------------------------------------------------
@@ -41,9 +46,15 @@ namespace Utl {
 			, m_ResizeFactor{ resizeFactor }
 			, m_pValues{ nullptr }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
-			m_pValues = new T[initialCapacity];
+			//m_pValues = new T[initialCapacity];
+			m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
@@ -55,10 +66,16 @@ namespace Utl {
 			, m_ValueStride{ pOtherVector.m_ValueStride }
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			if (m_Capacity > 0)
 			{
-				m_pValues = new T[m_Capacity];
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+				//m_pValues = new T[m_Capacity];
+				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
 
@@ -72,6 +89,11 @@ namespace Utl {
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
 			, m_pValues{ pOtherVector.m_pValues }
 		{
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			// Release the other vector's referece to these resources.
 			pOtherVector.m_pValues = nullptr;
 			pOtherVector.m_Count = 0;
@@ -86,13 +108,14 @@ namespace Utl {
 			// TODO: Custom allocators.
 			static int timesCalled{ 0 };
 			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
-				delete[] m_pValues;
+				g_pMemoryManager->Free(m_pValues);
+				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			m_pValues = nullptr;
 			timesCalled++;
 
 			m_Count = 0;
 			m_Capacity = 0;
-			m_ValueStride = 0;
+			//m_ValueStride = 0;	// We CAN'T set this to 0 in case the user decides they want to re-use this container.
 		}
 
 		//--------------------------------------------------
@@ -105,10 +128,16 @@ namespace Utl {
 			m_ValueStride = pOtherVector.m_ValueStride;
 			m_ResizeFactor = pOtherVector.m_ResizeFactor;
 
+			if (m_ResizeFactor == 0)
+			{
+				m_ResizeFactor = 2; // Never let this be 0!
+			}
+
 			if (m_Capacity > 0)
 			{
-				m_pValues = new T[m_Capacity];
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Count);
+				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
+				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
+				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
 			return *this;
@@ -190,7 +219,9 @@ namespace Utl {
 		//--------------------------------------------------
 		void Clear()
 		{
-			delete[] m_pValues;
+			if (m_pValues)
+				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+			//delete[] m_pValues;
 			m_pValues = nullptr;
 			m_Capacity = 0;
 			m_Count = 0;
@@ -251,15 +282,17 @@ namespace Utl {
 			}
 
 			// Allocate some new memory.
-			void* pNewArray = new T[newCapacity];
+			void* pNewData = g_pMemoryManager->Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
+			T* pNewArray = (T*)pNewData;												// For example, using new[] here seems to be inconsistent with returning a pointer to the correct address allocated, or an address that is some amount of bytes ahead of the allocated address.
 			CAssert(pNewArray);
 
 			// Copy the current array over.
 			memcpy(pNewArray, m_pValues, m_ValueStride * m_Count);
 
 			// Free the old memory, and assign the new memory.
-			if (m_pValues)
-				delete[] m_pValues;
+			if (m_pValues && m_Capacity > 0)
+				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				//delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 
 			// Bump up our capacity!

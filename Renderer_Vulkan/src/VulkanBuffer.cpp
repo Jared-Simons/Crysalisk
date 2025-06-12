@@ -11,6 +11,12 @@
 
 bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer)
 {
+	if (bufferSize <= 0)
+	{
+		LOG_ERROR("Cannot create a Vulkan buffer with a size < 1. Size provided: %d", bufferSize);
+		return false;
+	}
+
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	bufferInfo.pNext = nullptr;
 	bufferInfo.flags = 0;

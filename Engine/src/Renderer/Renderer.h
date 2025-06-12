@@ -10,6 +10,7 @@
 #include "Core/Logging.h"
 #include "Defines.h"
 #include "Resources/ResourceTypes.h"
+#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 // Forward Declarations
 class IRendererBackend;
@@ -28,26 +29,30 @@ struct RendererConfig_t
 class Renderer
 {
 public:
-	bool	Initialize(RendererConfig_t& pConfig);
-	void	Shutdown();
-	bool	Update(struct RenderPacket_t& pRenderData);
+	bool			Initialize(RendererConfig_t& pConfig);
+	void			Shutdown();
+	bool			Update(struct RenderPacket_t& pRenderData);
 
-	bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void	ReleaseTextureResources(class Texture& pTexture);
+	bool			AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
+	void			ReleaseTextureResources(class Texture* pTexture);
 
-	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
+	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
+	void			DestroyShader(class Shader* pShader);
 
-	bool			AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
-	void			ReleaseShaderResources(class Shader& pShader);
+	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID);
 
-	void			BindShader(class Shader& pShader);
+	void			BindShader(class Shader* pShader);
+	void			BindShaderPerFrameUniforms(class Shader* pShader);
+	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID);
+
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData);
 
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 
 	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry);
 
-	void			DrawGeometry(GeometryInstance_t& pGeometry);
+	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer);
 
 	// Temp geometry stuff
 	bool	CreateTempGeometry();
@@ -71,6 +76,8 @@ public:
 
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
+
+	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};

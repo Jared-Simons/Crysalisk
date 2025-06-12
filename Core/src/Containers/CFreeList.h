@@ -10,6 +10,9 @@
 
 #include <new> // for placement new
 
+// Enable this to test if the freelist is placing nodes in the appropriate order when freeing memory.
+#define DEBUG_FREELIST_MEMORY_ORDER 1
+
 namespace Utl
 {
 	struct FreeListNode_t
@@ -89,8 +92,9 @@ namespace Utl
 							pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 						}
 						ReleaseNodeBackToFreelist(pCurrentNode);
-						CAssert(retDataOffset != 0);
+						//CAssert(retDataOffset != 0);
 						return retDataOffset; // Early return here since pCurrentNode will be nullified.
+						CAssert(retDataOffset != 2);
 					}
 				}
 
@@ -98,6 +102,7 @@ namespace Utl
 				pCurrentNode = pCurrentNode->pNextNode;
 			}
 
+			CAssert(retDataOffset != 2);
 			return retDataOffset;
 		}
 		void	Free(size_t size, size_t offset)
@@ -197,6 +202,27 @@ namespace Utl
 				pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 				ReleaseNodeBackToFreelist(pCurrentNode);
 			}
+
+#ifdef DEBUG_FREELIST_MEMORY_ORDER
+			FreeListNode_t* pDebugCurNode = m_HeadNode;
+			FreeListNode_t* pDebugNextNode = nullptr;
+
+			while (pDebugCurNode)
+			{
+				pDebugNextNode = pDebugCurNode->pNextNode;
+
+				if (pDebugNextNode)
+				{
+					if (pDebugNextNode->Offset < (pDebugCurNode->Offset + pDebugCurNode->Size))
+					{
+						//LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
+						//CAssert(0);
+					}
+				}
+
+				pDebugCurNode = pDebugNextNode;
+			}
+#endif
 		}
 
 	private:

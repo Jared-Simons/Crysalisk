@@ -14,6 +14,7 @@
 #include "VulkanTypes.h"
 
 #include <Containers/CVector.h>
+#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 class CVulkanRenderer : public IRendererBackend
 {
@@ -27,7 +28,7 @@ public:
 	virtual bool	StartRenderpass(RendererView& pRendererView) override;
 	virtual void	EndRenderpass() override;
 
-	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry, struct MaterialReference& pMaterial) override;
+	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
 	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
@@ -36,15 +37,30 @@ public:
 	virtual bool	CreateRendererViewInternal(RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
-	virtual bool	AcquireTextureResources(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
-	virtual void	ReleaseTextureResources(class Texture& pTexture) override;
+	virtual bool	AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources(class Texture* pTexture) override;
+
+	virtual bool	AcquireTextureResources_OLD(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources_OLD(class Texture& pTexture) override;
 
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
-	virtual bool	AcquireShaderResources(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
+	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
+	virtual void	DestroyShader(class Shader* pShader) override;
+
+	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID) override;
+
+	virtual void	BindShader(class Shader* pShader) override;
+
+	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) override;
+	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, unsigned int hInstanceID) override;
+
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
+
+	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
 	virtual void	ReleaseShaderResources(class Shader& pShader) override;
 
-	virtual void	BindShader(class Shader& pShader) override;
+	virtual void	BindShader_OLD(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
@@ -98,6 +114,7 @@ public:
 	// Internal shader data
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
+	VulkanShaderInternal* m_pCurrentlyBoundShader{ nullptr };
 
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };

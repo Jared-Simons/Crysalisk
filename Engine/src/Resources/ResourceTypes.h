@@ -8,6 +8,7 @@
 
 #include "Defines.h"
 
+#include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
 #include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
@@ -33,6 +34,7 @@ enum class eTextureType
 	MAX_TEXTURE_TYPES,
 };
 
+// TODO: MOVE THIS TO THE TEXTURE SYSTEM INTERNALLY AND USE HANDLES EVERYWHERE ELSE
 class Texture
 {
 public:
@@ -44,7 +46,7 @@ public:
 	inline const char* GetName() const { return pszTextureName; }
 	inline TextureFlags GetFlags() const { return textureFlags; }
 
-private:
+public:
 	int32_t width;
 	int32_t height;
 	int32_t numChannels; // TODO: Image format
@@ -64,39 +66,93 @@ enum ShaderTopologyType
 
 using FontHandle_t = uint32_t;
 
-struct FontAtlas_t
-{
-	size_t	Width;
-	size_t	Height;
-};
-
 class Font
 {
 public:
-	FontAtlas_t m_Atlas{};
-	void* m_pInternalData{ nullptr };
+	uint32_t		m_InternalInstanceID{ kInvalidID_U32 };
+	void*			m_pInternalData{ nullptr };	// DEPRECATED!
 	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
+	void*			m_pInternalFontAtlasData{ nullptr };
 };
 
 using ShaderHandle_t = uint32_t;
 
+// Core known texture types.
+enum eKnownTextureTypes
+{
+	TEXTURE_TYPE_UNDEFINED = -1,
+	TEXTURE_TYPE_DIFFUSE,
+	TEXTURE_TYPE_SPECULAR,
+	TEXTURE_TYPE_NORMAL,
+};
+
+enum class eShaderStage
+{
+	UNDEFINED,
+	VERTEX,
+	FRAGMENT,
+	GEOMETRY,
+	COMPUTE,
+};
+
+enum eShaderTopologyType
+{
+	SHADER_TOPOLOGY_TYPE_UNDEFINED,
+	SHADER_TOPOLOGY_TYPE_LINE_LIST,
+	SHADER_TOPOLOGY_TYPE_TRIANGLE_LIST,
+};
+
+struct ShaderModuleConfig_t
+{
+	eShaderStage		stage{ UNDEFINED };
+	size_t				codeSize{ 0 };
+	Utl::CVector<byte>	byteCode{};
+};
+
 struct ShaderConfig_t
 {
-	const char* pszShaderName{ nullptr };
-	int			numShaderStages{ 0 };
-	Utl::CVector<char*> pszShaderStageFileNames{};
-	unsigned int eTopologyTypes{ UNDEFINED };
-	Utl::CVector<VertexAttribute_t> vertexAttributes{};
-	size_t		vertexStride{};
+	const char*							pszShaderName{ nullptr };
+	Utl::CVector<ShaderModuleConfig_t>	moduleConfigs{};
+	unsigned int						eTopologyTypes{ UNDEFINED };
+	bool								bDepthTestingEnabled{ false };
+	bool								bColorBlendingEnabled{ false };
+	Utl::CVector<VertexAttribute_t>		vertexAttributes{};
+	size_t								vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
-	RendererView	m_RendererView{};
+	size_t								perFrameUBOStride{ 0 };
+	size_t								perMaterialUBOStride{ 0 };
+	size_t								perDrawUBOStride{ 0 };
+	RendererView						m_RendererView{};
+
+	// Deprecated!
+	int									numShaderStages{ 0 };
+	Utl::CVector<char*>					pszShaderStageFileNames{};
+	Utl::CVector<eKnownTextureTypes>	samplerTypes{};
+};
+
+struct ShaderUniform_t
+{
+	size_t				Offset{ 0 };
+	size_t				Stride{ 0 };
+	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
+	eShaderUniformGroup	eGroup{ eShaderUniformGroup::PER_FRAME };
 };
 
 class Shader
 {
 public:
-	const char*		m_szShaderName{ nullptr };
-	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	const char*					m_szShaderName{ nullptr };
+	unsigned int				m_iInternalHandle{ kInvalidID_U32 };
+	size_t						m_iRendererFrame{ kInvalidID_U64 };
+	Utl::CHashMap<char*, int>	m_UniformLookup{};
+	size_t						m_iUniformCount{ 0 };
+	ShaderUniform_t*			m_pUniforms{ nullptr };
+
+	size_t						m_iPerFrameUBOSize{ 0 };
+	size_t						m_iPerInstanceUBOSize{ 0 };
+	size_t						m_iUniformBufferAlignmentRequirement{ 0 };
+
+	void*						m_pInternalData{ nullptr };// DEPRECATED!
 };
 
 using MaterialHandle_t = uint32_t;
@@ -223,7 +279,10 @@ struct GeometryInstance_t
 	size_t indexDataOffset{ kInvalidID_U64 };
 	size_t indexDataStride{ kInvalidID_U64 };
 
-	MaterialReference hMaterial;
+	MaterialHandle_t	hMaterial;
+	bool				bIsTransparent;
+
+	MaterialReference hMaterial_OLD;// DEPRECATED!!!
 };
 
 struct Mesh

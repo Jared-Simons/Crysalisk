@@ -55,6 +55,11 @@ namespace Utl
 
 		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(pMemoryBlock) - kAllocHeaderSize);
 
+		/*CAssert(pHeader->Offset != 2);
+		if (pHeader->Offset == 2)
+		{
+			pHeader = (AllocHeader_t*)((uint8_t*)pMemoryBlock - 24);
+		}*/
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);
 

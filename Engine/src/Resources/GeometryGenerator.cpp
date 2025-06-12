@@ -370,7 +370,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			// Acquire material resources.
 			if (szCurrentMaterialName != nullptr)
 			{
-				newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+				//newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 				StringFree(szCurrentMaterialName);
 				szCurrentMaterialName = nullptr;
@@ -409,13 +409,13 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newVertex{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newVertex.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newVertex.y = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newVertex.z = String_ATOF(pCurrValue);
 
 						vertices.PushBack(newVertex);
@@ -428,13 +428,13 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector3D newNormal{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newNormal.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newNormal.y = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newNormal.z = String_ATOF(pCurrValue);
 
 						normals.PushBack(newNormal);
@@ -447,10 +447,10 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 						Vector2D newTexCoord{};
 						char pCurrValue[512];
 					
-						size_t currValLength = StringTrim(&szCurrentLine[2], pCurrValue);
+						size_t currValLength = StringTrimInPlace(&szCurrentLine[2], pCurrValue);
 						newTexCoord.x = String_ATOF(pCurrValue);
 
-						currValLength += StringTrim(&szCurrentLine[2 + currValLength], pCurrValue);
+						currValLength += StringTrimInPlace(&szCurrentLine[2 + currValLength], pCurrValue);
 						newTexCoord.y = String_ATOF(pCurrValue);
 
 						texCoords.PushBack(newTexCoord);
@@ -628,7 +628,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		// Acquire material resources.
 		if (szCurrentMaterialName != nullptr)
 		{
-			newMesh.m_Geometries[newGeometryIndex].hMaterial = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+			//newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 			StringFree(szCurrentMaterialName);
 			szCurrentMaterialName = nullptr;
@@ -712,10 +712,10 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 						if (currentMaterialConfig.pszMaterialName != nullptr)
 						{
 							// A config currently exists, acquire it's resources now.
-							if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+							/*if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
 							{
 								LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
-							}
+							}*/
 							//currentMaterialConfig.~MaterialConfig_t();
 							currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 						}
@@ -789,10 +789,10 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 	}
 
 	// Flush the last config and acquire it's resources.
-	if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+	/*if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
 	{
 		LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
-	}
+	}*/
 	//currentMaterialConfig.~MaterialConfig_t();
 	currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 

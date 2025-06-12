@@ -1,26 +1,35 @@
 name="Core.Phong"
 num_shader_stages=2
-vertex_file="core.vert.spv"
-fragment_file="core.frag.spv"
-topology_type=triangle_list
 
-# Vertex attributes
-# attribute=Name,type
-# NOTE: The order these are listed in must match the order they're declared in the vertex shader!
-attribute=position,vec3
-attribute=texcoord,vec2
-attribute=normal,vec3
-attribute=tangent,vec3
+stages
+{
+	"core.vert.spv", "vertex"
+	"core.frag.spv", "fragment"
+}
+
+topology_type="triangle_list" 
+enable_depth_testing="true"
+enable_blending="true"
+
+# Vertex attributes 
+attributes
+{
+	"position", "vec3"
+	"texcoord", "vec2"
+	"normal", "vec3"
+	"tangent", "vec3"
+}
 
 # Uniforms
-# uniform=Name,Type,Descriptor Level
-uniform=projection,mat4,0
-uniform=view,mat4,0
-uniform=viewPos,vec3,0
-uniform=dirLightPos,vec3,0
-uniform=renderMode,int,0
-uniform=shininess,int,1
-uniform=color,vec3,1
-uniform=textures,texture[3],1
-uniform=model,mat4,2
- 
+uniforms
+{
+	"projection", 	"mat4", 		"frame" 
+	"view", 		"mat4", 		"frame" 
+	"viewPos", 		"vec3", 		"frame" 
+	"dirLightPos", 	"vec3", 		"frame" 
+	"renderMode", 	"int", 			"frame" 
+	"shininess", 	"float32", 		"material" 
+	"color",		"vec3", 		"material" 
+	"texture_maps", "sampler[3]", 	"material" 
+	"model", 		"mat4", 		"draw" 
+} 
