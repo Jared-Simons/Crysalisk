@@ -29,17 +29,12 @@ struct RendererConfig_t
 class Renderer
 {
 public:
-	bool	Initialize(RendererConfig_t& pConfig);
-	void	Shutdown();
-	bool	Update(struct RenderPacket_t& pRenderData);
+	bool			Initialize(RendererConfig_t& pConfig);
+	void			Shutdown();
+	bool			Update(struct RenderPacket_t& pRenderData);
 
 	bool			AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(class Texture* pTexture);
-
-	bool	AcquireTextureResources_OLD(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void	ReleaseTextureResources_OLD(class Texture& pTexture);
-
-	bool	AcquireMaterialResources_OLD(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData);
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
@@ -51,11 +46,6 @@ public:
 	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID);
 
 	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData);
-
-	bool			AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig);
-	void			ReleaseShaderResources(class Shader& pShader);
-
-	void			BindShader_OLD(class Shader& pShader);
 
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 

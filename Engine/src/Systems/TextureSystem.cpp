@@ -290,7 +290,7 @@ TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, 
 		newTexture->numChannels = 1; // TODO: Configurable.
 
 		// Send the data off to the renderer to be uploaded to the GPU.
-		if (!g_pRenderer->AcquireTextureResources_OLD(*newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
 		{
 			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
 			return m_pDefaultTextureLookup->TextureIndex;
@@ -330,7 +330,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.textureFlags & TEXTURE_FLAG_DEFAULT_TEXTURE)
 		return;
 
-	g_pRenderer->ReleaseTextureResources_OLD(pTexture);
+	g_pRenderer->ReleaseTextureResources(&pTexture);
 	if (pTexture.pszTextureName)
 		StringFree(pTexture.pszTextureName);
 
@@ -443,7 +443,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
 		defaultDiffuseTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources_OLD(*defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
@@ -486,7 +486,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		defaultWhiteTexture->width = defaultWhiteTexture->height = 8;
 		defaultWhiteTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources_OLD(*defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
@@ -529,7 +529,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		pDefaultSpecularTexture->width = pDefaultSpecularTexture->height = 8;
 		pDefaultSpecularTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources_OLD(*pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default specular texture.");
 			return false;
@@ -572,7 +572,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		pDefaultNormalTexture->width = pDefaultNormalTexture->height = 8;
 		pDefaultNormalTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources_OLD(*pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!g_pRenderer->AcquireTextureResources(pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default normal texture.");
 			return false;
@@ -593,21 +593,21 @@ bool CTextureSystem::CreateDefaultTextures()
 void CTextureSystem::DestroyDefaultTextures()
 {
 	Texture* pDefaultTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultTextureLookup->TextureIndex];
-	g_pRenderer->ReleaseTextureResources_OLD(*pDefaultTexture);
+	g_pRenderer->ReleaseTextureResources(pDefaultTexture);
 	pDefaultTexture->m_pInternalData = nullptr;
 
 	if (pDefaultTexture->pszTextureName)
 		StringFree(pDefaultTexture->pszTextureName);
 
 	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
-	g_pRenderer->ReleaseTextureResources_OLD(*pDefaultWhiteTexture);
+	g_pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
 	pDefaultWhiteTexture->m_pInternalData = nullptr;
 
 	if (pDefaultWhiteTexture->pszTextureName)
 		StringFree(pDefaultWhiteTexture->pszTextureName);
 
 	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
-	g_pRenderer->ReleaseTextureResources_OLD(*pDefaultSpecularTexture);
+	g_pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
 	pDefaultSpecularTexture->m_pInternalData = nullptr;
 
 	if (pDefaultSpecularTexture->pszTextureName)
@@ -615,7 +615,7 @@ void CTextureSystem::DestroyDefaultTextures()
 
 
 	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
-	g_pRenderer->ReleaseTextureResources_OLD(*pDefaultNormalTexture);
+	g_pRenderer->ReleaseTextureResources(pDefaultNormalTexture);
 	pDefaultNormalTexture->m_pInternalData = nullptr;
 
 	if (pDefaultNormalTexture->pszTextureName)

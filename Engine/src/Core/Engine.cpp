@@ -73,7 +73,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	m_engineConfig = engineConfig;
 
-	// Stand up our memory manager.
+	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
 	memoryConfig.totalMemoryBudget = MEBIBYTES(100);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
@@ -98,12 +98,14 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Platform layer.
 	if (!Platform::InitializePlatformLayer())
 	{
 		LOG_FATAL("Failed to initialize platform layer! Application cannot continue.");
 		return false;
 	}
 
+	// Setup the main engine window.
 	Platform::WindowParams_t windowParams{};
 	windowParams.Name = "Crysalisk Engine\0";
 	windowParams.X = 100;
@@ -147,7 +149,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
 
-	// Renderer
+	// Renderer.
 	RendererConfig_t rendererConfig{};
 	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
 	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
@@ -200,8 +202,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempGeometry();
-	
-	MaterialHandle_t testMaterialHandle = g_pMaterialSystemInternal->AcquireMaterial("testmaterial2");
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -213,7 +213,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 }
 
 //-------------------------------------------------------------------------
-// Runs a single engine frame.
+// Purpose: Runs a single engine frame.
+// Input:	none.
+// Output:	bool - Returns true on successful frame, otherwise false.
 //-------------------------------------------------------------------------
 bool CEngine::Run()
 {
@@ -237,7 +239,9 @@ bool CEngine::Run()
 }
 
 //-------------------------------------------------------------------------
-// Shutdows down the engine.
+// Purpose:	Shutdows down the engine.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CEngine::Shutdown()
 {
@@ -372,9 +376,11 @@ static bool Event_WindowResizedUnpause(EventData_t data)
 }
 
 //-------------------------------------------------------------------------
-// Method to pass our interface objects down to the interface registry.
+// Purpose: Registers our .dll interfaces with the core registry.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
-bool ReturnInterfacesToRegistry()
+void ReturnInterfacesToRegistry()
 {
 	LOG_DEBUG("Engine.dll passing interfaces down to Core.dll");
 
@@ -400,8 +406,6 @@ bool ReturnInterfacesToRegistry()
 	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
 	materialSystem.szSystemName = StringDuplicate("material_system");
 	Platform::RegisterInterface(materialSystem);
-
-	return true;
 }
 
 //-------------------------------------------------------------------------

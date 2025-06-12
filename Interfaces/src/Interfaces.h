@@ -39,10 +39,10 @@ static class IMaterialSystem*	g_pMaterialSystem{ nullptr };
 //			This is supposed to call Platform::RegisterInterface() on all
 //			of it's shared interfaces so they can be propagated out to all other libs.
 // 
-// Input: none.
-// Output: bool - Returns true on successfully returned interfaces.
+// Input:  none.
+// Output: none.
 //-------------------------------------------------------------------------
-bool ReturnInterfacesToRegistry();
+void ReturnInterfacesToRegistry();
 
 //-------------------------------------------------------------------------
 // Purpose: This function will go through and populate all of the above

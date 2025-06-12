@@ -103,7 +103,7 @@ void CShaderSystem::Shutdown()
 	{
 		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle != kInvalidID_U32)
 		{
-			g_pRenderer->ReleaseShaderResources(m_ShaderDictionary.m_ShaderArray[idx]);
+			g_pRenderer->DestroyShader(&m_ShaderDictionary.m_ShaderArray[idx]);
 			m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle = kInvalidID_U32;
 		}
 	}

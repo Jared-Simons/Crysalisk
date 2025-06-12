@@ -210,17 +210,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		}
 	}
 
-	// TEMP BADNESS
-	//g_pShaderSystem->BindShader(0);
-	//g_pShaderSystem->BindPerInstanceUniforms(0);
-	//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
-	/*for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
-	{
-		// Bind the appropriate material.
-		g_pMaterialSystemInternal->ApplyMaterialInstance(m_SponzaModel.m_Geometries[idx].hMaterial);
-		DrawGeometry(m_SponzaModel.m_Geometries[idx]);
-	}*/
-
 	m_RendererBackend->EndRenderpass();
 
 	/*if (s_bLevelGeometryLoaded)
@@ -249,22 +238,6 @@ bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, siz
 void Renderer::ReleaseTextureResources(Texture* pTexture)
 {
 	m_RendererBackend->ReleaseTextureResources(pTexture);
-}
-
-bool Renderer::AcquireTextureResources_OLD(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
-{
-	// No work to be done here, pass it right through to the backend.
-	return m_RendererBackend->AcquireTextureResources_OLD(pTexture, internalIndex, nPixelDataSize, pPixelData);
-}
-
-void Renderer::ReleaseTextureResources_OLD(Texture& pTexture)
-{
-	m_RendererBackend->ReleaseTextureResources_OLD(pTexture);
-}
-
-bool Renderer::AcquireMaterialResources_OLD(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData)
-{
-	return m_RendererBackend->AcquireMaterialResources(pMaterial, pMaterialInstanceData);
 }
 
 bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
@@ -300,22 +273,6 @@ void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInst
 void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
-}
-
-bool Renderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
-{
-	return m_RendererBackend->AcquireShaderResources_OLD(pShader, pShaderConfig);
-}
-
-void Renderer::ReleaseShaderResources(Shader& pShader)
-{
-	//return m_RendererBackend->ReleaseShaderResources(pShader);
-	m_RendererBackend->DestroyShader(&pShader);
-}
-
-void Renderer::BindShader_OLD(Shader& pShader)
-{
-	m_RendererBackend->BindShader_OLD(pShader);
 }
 
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)

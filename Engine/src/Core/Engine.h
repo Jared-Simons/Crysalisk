@@ -28,10 +28,15 @@ public:
 
 	// Initialize the engine and it's required subsystems.
 	virtual bool	Initialize(EngineConfig_t engineConfig) = 0;
+
+	// Runs an engine frame.
 	virtual bool	Run() = 0;
+
+	// Shuts down the engine.
 	virtual void	Shutdown() = 0;
 };
 
+// Global interface to the engine context.
 extern IEngine* g_pEngine;
 
 ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
