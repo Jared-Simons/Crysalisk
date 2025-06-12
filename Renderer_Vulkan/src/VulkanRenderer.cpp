@@ -520,10 +520,9 @@ void CVulkanRenderer::EndRenderpass()
 //-------------------------------------------------------------------------
 // Purpose: Draws geometry. This must happen while a frame is being rendered!
 // Input: pGeometry - The geometry to be rendered.
-//		  pMaterial - The material to be rendered with the geometry.
 // Output: none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, MaterialReference& pMaterial)
+void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	CAssert(m_pCurrentlyBoundShader);
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -554,47 +553,6 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	{
 		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}
-
-	//vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pCurrentlyBoundShader->m_Pipeline);
-
-	int descriptorIndex = (pGeometry.hMaterial_OLD.m_iInternalHandle) ? pMaterial.m_iInternalHandle : 1; // TODO: Save off a handle to the default texture. Assuming that it will be at index 1 is bad!
-	
-	// Instance data not needed for now
-	/* Test instance descriptor.
-	{
-		if (descriptorIndex == 6)
-		{
-			double time = (M_SIN(Platform::GetAbsoluteTime()) / 2.0) + 0.5;
-			InstanceUniformObject_t instanceData;
-			Vector4D colorVec{};
-			colorVec.y = time;
-			m_InstanceUniformData[descriptorIndex].Reserved0 = colorVec;
-
-			void* pUniformData;
-			VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(InstanceUniformObject_t) * (descriptorIndex));
-			vkMapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(InstanceUniformObject_t), 0, &pUniformData);
-			memcpy(pUniformData, &m_InstanceUniformData[descriptorIndex], sizeof(InstanceUniformObject_t));
-			vkUnmapMemory(m_Device.m_Device, m_UniformBuffers[m_ImageIndex].m_Memory);
-		}
-	}*/
-
-	// Bind the global descriptor set.
-	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pCurrentlyBoundShader->m_PipelineLayout, 0, 1, &m_pCurrentlyBoundShader->m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-
-	// Bind instance descriptor set.
-	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[descriptorIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-	//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pCurrentlyBoundShader->m_PipelineLayout, 1, 1, &m_pCurrentlyBoundShader->m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-
-	// Update our matrices.
-	//Matrix4x4 model{};
-	//model = Matrix4x4(1.0f);
-	//model = Matrix4x4::Scale(model, Vector3D(0.5f, 0.5f, 0.5f));
-	//model = Matrix4x4::Rotate(model, M_DEG2RAD_F((float)m_RendererClock.GetElapsedTime()) * 60.0f, Vector3D(0, 1, 0));
-	//model = Matrix4x4::Translate(model, Vector3D(0.0f, 0.0f, -150.0f));
-
-	// Push our model matrix as well.
-	//vkCmdPushConstants(commandBuffer, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrix4x4), &model);
 
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != 0)

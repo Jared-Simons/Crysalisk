@@ -48,11 +48,10 @@ public:
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
 
-	virtual MaterialReference	GetDefaultMaterialReference() override;
+	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 private:
 	void						CreateDefaultMaterial();
-	MaterialConfig_t			ParseMaterialConfig(char* pszMaterialPathFile);
 
 	MaterialHandle_t			FindFirstFreeMaterialHandle() const;
 
@@ -75,7 +74,6 @@ private:
 
 	MaterialDictionary	m_MaterialDictionary{};
 
-	Material			m_DefaultMaterial{};
 	MaterialLookup		m_DefaultMaterialLookup{};
 
 	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
@@ -98,10 +96,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	m_MaterialDictionary.m_MaterialArray = (Material*)new Material[m_Config.MaxMaterials];
 	m_MaterialDictionary.m_MaterialInstanceData = (MaterialInstanceData_t*)new MaterialInstanceData_t[m_Config.MaxMaterials];
 
-	// Default material.
-	// TODO: Make this work with new shader system.
-	//CreateDefaultMaterial();
-
 	// Setup shader locations.
 	m_DefaultMaterialShader = g_pShaderSystem->AcquireShader("Core.Phong");
 	phongShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "projection");
@@ -113,6 +107,10 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	phongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
 	phongShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "texture_maps");
 	phongShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "model");
+
+	// Default material.
+	// TODO: Make this work with new shader system.
+	CreateDefaultMaterial();
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
@@ -221,7 +219,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle);
 
 		// Texture maps.
-		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
+		int								textureMapCount = pInResource.textureMapConfigs.Count();
 		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
 
 		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
@@ -250,7 +248,6 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		{
 			if (StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
 			{
-				// TODO: FIX THIS SO WE CAN USE THIS IN THE SHADER!
 				float flShininess = String_ATOF(pInResource.pszCustomValues[idx]);
 				// Set the instance uniform.
 				g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
@@ -310,15 +307,9 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 //-------------------------------------------------------------------------
 // Returns a reference to the default texture.
 //-------------------------------------------------------------------------
-MaterialReference CMaterialSystem::GetDefaultMaterialReference()
+MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 {
-	MaterialReference defaultMaterialRef{};
-
-	defaultMaterialRef.m_iInternalHandle = m_DefaultMaterial.m_iInternalHandle;
-	defaultMaterialRef.m_hShaderHandle = m_DefaultMaterial.m_hShaderHandle;
-	defaultMaterialRef.m_hDiffuseTextureHandle = m_DefaultMaterial.m_hDiffuseTextureHandle;
-
-	return defaultMaterialRef;
+	return m_DefaultMaterialLookup.MaterialIndex;
 }
 
 //-------------------------------------------------------------------------
@@ -326,104 +317,41 @@ MaterialReference CMaterialSystem::GetDefaultMaterialReference()
 //-------------------------------------------------------------------------
 void CMaterialSystem::CreateDefaultMaterial()
 {
-	m_DefaultMaterial.m_szMaterialName = StringDuplicate("_DefaultMaterial");
-	//m_DefaultMaterial.m_hShaderHandle = g_pShaderSystem->AcquireShader_OLD("Core.Phong");	// TODO: NEW SHADER METHOD
-	m_DefaultMaterial.m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
-	m_DefaultMaterial.m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
-	m_DefaultMaterial.m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
+	int matIdx = FindFirstFreeMaterialHandle();
+	Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+
+	pNewMaterial->m_szMaterialName = StringDuplicate("_DefaultMaterial");
+	pNewMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");	// TODO: NEW SHADER METHOD
+	pNewMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
+	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
+	pNewMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
 	MaterialInstanceData_t defaultInstanceData{};
 	defaultInstanceData.Shininess = 32;
 
-	int matIdx = 0;
-	Material* pNewMaterial = nullptr;
-	for (matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx)
-	{
-		if (m_MaterialDictionary.m_MaterialArray[matIdx].m_iInternalHandle == kInvalidID_U32)
-		{
-			pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
-			break;
-		}
-	}
-
-	MaterialLookup* newMaterialLookup = &m_MaterialDictionary.m_MaterialHashmap[m_DefaultMaterial.m_szMaterialName];
+	MaterialLookup* newMaterialLookup = &m_DefaultMaterialLookup;
 	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
 	newMaterialLookup->MaterialIndex = matIdx;
 
-	g_pRenderer->AcquireMaterialResources_OLD(m_DefaultMaterial, defaultInstanceData);
-}
+	// Acquire shader instance resources for this material.
+	g_pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle);
 
-//-------------------------------------------------------------------------
-// TODO: Documentation pls.
-//-------------------------------------------------------------------------
-MaterialConfig_t CMaterialSystem::ParseMaterialConfig(char* pszMaterialFilePath)
-{
-	MaterialConfig_t newMatConfig{};
+	// Texture maps.
+	Utl::CVector<TextureHandle_t>	textureHandles(3);
+	textureHandles.PushBack(pNewMaterial->m_hDiffuseTextureHandle);
+	textureHandles.PushBack(pNewMaterial->m_hSpecularTextureHandle);
+	textureHandles.PushBack(pNewMaterial->m_hNormalTextureHandle);
 
-	// Open the material file.
-	// (after appending the extension to the path).
-	char* formattedPath = StringConcat(pszMaterialFilePath, ".cmat");
-	FileHandle_t matConfigFile{};
-	if (!FileSystem::OpenFile(formattedPath, eFileMode::FILEMODE_READ, false, &matConfigFile))
+	// Bind the texture maps to the shader instance.
+	for (int texIdx = 0; texIdx < textureHandles.Count(); texIdx++)
 	{
-		LOG_ERROR("ParseMaterialConfig -> Could not find material file '%s'. Nothing was done.", pszMaterialFilePath);
-		StringFree(formattedPath);
-		return newMatConfig;
+		// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
+		int iTextureArrayIndex = texIdx;
+		g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
-	while (!FileSystem::IsEOF(&matConfigFile))
-	{
-		char currentLine[14000]; // Would be a suprise if this is not enough...
-		size_t currentLineLength{ 0 };
-		size_t bytesRead{ 0 };
-		size_t equalIndex{ 0 };
-		char key[500];
-		char value[500];
-		FileSystem::ReadLine(currentLine, 14000, &bytesRead, &matConfigFile);
-		currentLineLength = StringLength(currentLine);
-
-		if (currentLineLength <= 0 || currentLine[0] == '#') // Blank line or comment
-			continue;
-
-		equalIndex = StringIndexOf(currentLine, '=');
-		memcpy(key, currentLine, equalIndex);
-		key[equalIndex] = '\0';
-		memcpy(value, &currentLine[equalIndex + 1], bytesRead - equalIndex);
-		value[bytesRead - 1] = '\0';
-
-		if (StringCompare(key, "name"))
-		{
-			newMatConfig.pszMaterialName = StringDuplicate(value);
-		}
-		else if (StringCompare(key, "shader"))
-		{
-			newMatConfig.pszShaderName = StringDuplicate(value);
-		}
-		else if (StringCompare(key, "shininess"))
-		{
-			newMatConfig.iShininess = String_ATOI(value);
-		}
-		else if (StringCompare(key, "map_diffuse"))
-		{
-			newMatConfig.pszDiffuseTextureName = StringDuplicate(value);
-		}
-		else if (StringCompare(key, "map_specular"))
-		{
-			newMatConfig.pszSpecularTextureName = StringDuplicate(value);
-		}
-		else if (StringCompare(key, "map_normal"))
-		{
-			newMatConfig.pszNormalTextureName = StringDuplicate(value);
-		}
-		else
-		{
-			LOG_WARN("Failed to parse material key: '%s'.", key);
-		}
-	}
-
-	StringFree(formattedPath);
-	FileSystem::CloseFile(&matConfigFile);
-
-	return newMatConfig;
+	float flShininess = defaultInstanceData.Shininess;
+	// Set the instance uniform.
+	g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
 }
 
 //-------------------------------------------------------------------------

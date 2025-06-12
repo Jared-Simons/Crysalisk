@@ -117,6 +117,16 @@ void main()
 		outColor = vec4(abs(fsInput.Normal), 1.0);
 		return;
 	}
+	else if (global_ubo.renderMode == 8) // Tangents - world space.
+	{
+		outColor = vec4(abs(tangent), 1.0);
+		return;
+	}
+	else if (global_ubo.renderMode == 9) // Bitangents - world space.
+	{
+		outColor = vec4(abs(bitangent), 1.0);
+		return;
+	}
 	
 	vec3 test = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
 	outColor = vec4(test, 1.0);

@@ -29,7 +29,7 @@ public:
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
 
-	virtual MaterialReference	GetDefaultMaterialReference() = 0;
+	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 };
 
 DLL_EXPORT IMaterialSystem* g_pMaterialSystemInternal;

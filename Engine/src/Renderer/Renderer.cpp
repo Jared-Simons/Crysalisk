@@ -335,10 +335,7 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry)
 {
-	// Acquire the default material if our own material's resources aren't yet available.
-	MaterialReference& pMaterial = (pGeometry.hMaterial_OLD.m_iInternalHandle == kInvalidID_U32) ? g_pMaterialSystemInternal->GetDefaultMaterialReference() : pGeometry.hMaterial_OLD;
-
-	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry, pMaterial);
+	m_RendererBackend->DrawGeometry(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometry);
 }
 
 bool Renderer::CreateTempGeometry()
