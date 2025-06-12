@@ -317,7 +317,6 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 
 //-------------------------------------------------------------------------
 // TODO: Documentation
-// TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
 //-------------------------------------------------------------------------
 uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
 {

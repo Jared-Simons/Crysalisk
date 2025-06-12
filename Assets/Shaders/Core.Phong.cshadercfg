@@ -28,7 +28,7 @@ uniforms
 	"viewPos", 		"vec3", 		"frame" 
 	"dirLightPos", 	"vec3", 		"frame" 
 	"renderMode", 	"int", 			"frame" 
-	"shininess", 	"int", 			"material" 
+	"shininess", 	"float32", 		"material" 
 	"color",		"vec3", 		"material" 
 	"texture_maps", "sampler[3]", 	"material" 
 	"model", 		"mat4", 		"draw" 

@@ -25,7 +25,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 
 layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 {
-	int shininess;
+	float shininess;
 	vec3 color;
 } instance_ubo;
 
@@ -85,12 +85,10 @@ void main()
 		return;
 	}
 	
-	// Specular lighting
+	// Specular lighting	
 	vec3 viewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
-	vec3 halfwayVector = normalize(lightDir + viewDir);
-	//float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), instance_ubo.shininess);
-	float specularFactor = pow(max(dot(normal, halfwayVector), 0.0), 10);
-	specularFactor = 0.0;
+	vec3 reflectDir = reflect(-lightDir, normal);
+	float specularFactor = pow(max(dot(viewDir, reflectDir), 0.0), instance_ubo.shininess);
 	vec3 lightColorSpecular = vec3(1.0);
 	vec3 specular = lightColorSpecular * specularFactor * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
 	

@@ -474,6 +474,11 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 		newUniformConfig.eType = ShaderAttribute_t::Int32;
 		newUniformConfig.iStride = sizeof(int32_t);
 	}
+	else if (StringCompareInsensitive(pszAttributeStr, "float32"))
+	{
+		newUniformConfig.eType = ShaderAttribute_t::Float32;
+		newUniformConfig.iStride = sizeof(float);
+	}
 	else if (StringCompareInsensitive(pszAttributeStr, "vec2") || StringCompareInsensitive(pszAttributeStr, "vector2d"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector2;
@@ -561,6 +566,7 @@ static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAtt
 	switch (typeToAlign)
 	{
 	case ShaderAttribute_t::Int32:
+	case ShaderAttribute_t::Float32:
 		boundaryToAlignTo = 4;
 		break;
 
@@ -831,6 +837,10 @@ ShaderAttribute_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
 	if (StringCompare(pszType, "int"))
 	{
 		return ShaderAttribute_t::Int32;
+	}
+	else if (StringCompare(pszType, "float32"))
+	{
+		return ShaderAttribute_t::Float32;
 	}
 	else if (StringCompare(pszType, "vec2"))
 	{

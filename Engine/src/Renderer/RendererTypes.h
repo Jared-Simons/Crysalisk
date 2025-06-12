@@ -46,6 +46,7 @@ enum class ShaderAttribute_t
 {
 	Undefined,
 	Int32,
+	Float32,
 	Vector2,
 	Vector3,
 	Vector4,
