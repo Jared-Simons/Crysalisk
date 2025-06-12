@@ -463,12 +463,6 @@ static bool RendererEvent_WindowResized(EventData_t data)
 
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
-	if (*data.c == 'T' && s_Renderer.m_Cube2.hMaterial_OLD.m_iInternalHandle == kInvalidID_U32)
-	{
-		LOG_DEBUG("Loading test material.");
-		s_Renderer.m_Cube2.hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
-	}
-
 	// Let other listeners handle this event.
 	return false;
 }

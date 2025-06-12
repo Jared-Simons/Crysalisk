@@ -29,12 +29,6 @@ public:
 
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
 
-	virtual MaterialHandle_t	AcquireMaterial_OLD(const char* pszMaterialName) = 0;
-	virtual MaterialReference	AcquireMaterialReference(const char* pszMaterialName) = 0;
-
-	virtual MaterialHandle_t	AcquireMaterialFromConfig(MaterialConfig_t& pConfig) = 0;
-	virtual MaterialReference	AcquireMaterialInternal(const char* pszMaterialName) = 0;
-
 	virtual MaterialReference	GetDefaultMaterialReference() = 0;
 };
 

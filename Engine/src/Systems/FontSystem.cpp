@@ -208,7 +208,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pFontPath)
 		newFontConfig.pszDiffuseTextureName = StringDuplicate(pFontPath);
 		newFontConfig.pszMaterialName = StringDuplicate("NewFontMaterial");
 		newFontConfig.pszShaderName = StringDuplicate("Core.UI");
-		MaterialHandle_t newMaterial = g_pMaterialSystemInternal->AcquireMaterialFromConfig(newFontConfig);
+		//MaterialHandle_t newMaterial = g_pMaterialSystemInternal->AcquireMaterialFromConfig(newFontConfig);
 
 		// Delete the original pixel buffer.
 		delete[] pFontPixelBuffer;

@@ -370,7 +370,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 			// Acquire material resources.
 			if (szCurrentMaterialName != nullptr)
 			{
-				newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+				//newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 				StringFree(szCurrentMaterialName);
 				szCurrentMaterialName = nullptr;
@@ -628,7 +628,7 @@ Mesh OBJModelLoader::CreateConfigFromFile(const char* pszFilePath)
 		// Acquire material resources.
 		if (szCurrentMaterialName != nullptr)
 		{
-			newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
+			//newMesh.m_Geometries[newGeometryIndex].hMaterial_OLD = g_pMaterialSystemInternal->AcquireMaterialInternal(szCurrentMaterialName);
 
 			StringFree(szCurrentMaterialName);
 			szCurrentMaterialName = nullptr;
@@ -712,10 +712,10 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 						if (currentMaterialConfig.pszMaterialName != nullptr)
 						{
 							// A config currently exists, acquire it's resources now.
-							if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+							/*if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
 							{
 								LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
-							}
+							}*/
 							//currentMaterialConfig.~MaterialConfig_t();
 							currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 						}
@@ -789,10 +789,10 @@ void OBJModelLoader::ParseMaterialLibFile(const char* pszFilePath)
 	}
 
 	// Flush the last config and acquire it's resources.
-	if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
+	/*if (g_pMaterialSystemInternal->AcquireMaterialFromConfig(currentMaterialConfig) == kInvalidID_U32)
 	{
 		LOG_ERROR("Failed to acquire material '%s'.", currentMaterialConfig.pszMaterialName);
-	}
+	}*/
 	//currentMaterialConfig.~MaterialConfig_t();
 	currentMaterialConfig.vecDiffuseColor = { 0,0,0 };
 
