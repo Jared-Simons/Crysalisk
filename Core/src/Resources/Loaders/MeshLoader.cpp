@@ -19,6 +19,7 @@ namespace MeshLoader
 
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource);
+	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig);
 
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
@@ -125,6 +126,8 @@ namespace MeshLoader
 			size_t	bytesRead{ 0 };
 			char	firstChar{};
 			char	secondChar{};
+			static bool bTestBool = false;
+			static int iTestInt = 0;
 
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hObjFile);
 			currentLineLength = StringLength(szCurrentLine);
@@ -153,6 +156,14 @@ namespace MeshLoader
 					pCurrentObject = pOutResource.pObjects.Back();
 				}
 				CAssert(pCurrentObject);
+
+				// Check for duplicate vertices.
+				if (pCurrentGroup && iTestInt < 5)
+				{
+					DeduplicateGeometry(pCurrentGroup);
+					bTestBool = true;
+					iTestInt++;
+				}
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
@@ -247,7 +258,8 @@ namespace MeshLoader
 
 					CAssert(pCurrentGroup && pCurrentObject);
 
-					pCurrentGroup->Vertices.PushBack(newVertices[idx]);
+					size_t currIdx = pCurrentGroup->Vertices.PushBack(newVertices[idx]);
+					//pCurrentGroup->Indices.PushBack(currIdx);
 				}
 
 				break;
@@ -469,5 +481,61 @@ namespace MeshLoader
 		FileSystem::CloseFile(&hMtlFile);
 
 		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig)
+	{
+		size_t					totalDuplicateVerts{ 0 };
+		size_t					originalVertCount{ pGeometryConfig->Vertices.Count() };
+		bool					bUniqueVert{ true };
+		Utl::CVector<Vertex3D>	uniqueVerts(pGeometryConfig->Vertices.Count());
+
+		for (int outerIdx = 0; outerIdx < pGeometryConfig->Vertices.Count(); outerIdx++)
+		{
+			for (int innerIdx = outerIdx + 1; innerIdx < pGeometryConfig->Vertices.Count(); innerIdx++)
+			{
+				bUniqueVert = true;
+				if (pGeometryConfig->Vertices[outerIdx] == pGeometryConfig->Vertices[innerIdx])
+				{
+					bUniqueVert = false;
+				}
+			}
+
+			if (bUniqueVert)
+			{
+				// Store off the unique vertices.
+				uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
+			}
+			else
+			{
+				totalDuplicateVerts++;
+			}
+		}
+
+		// Use the original vertex data to create indices into the unique vert array.
+		bool bFoundVert{ false };
+		for (int origVertIdx = 0; origVertIdx < pGeometryConfig->Vertices.Count(); origVertIdx++)
+		{
+			bFoundVert = false;
+			for (int newVertIdx = 0; newVertIdx < uniqueVerts.Count() && !bFoundVert; newVertIdx++)
+			{
+				if (pGeometryConfig->Vertices[origVertIdx] == uniqueVerts[newVertIdx])
+				{
+					pGeometryConfig->Indices.PushBack(newVertIdx);
+					bFoundVert = true;
+				}
+			}
+		}
+
+		// Kill the old vertex data and save off the unique verts.
+		pGeometryConfig->Vertices.Clear();
+		pGeometryConfig->Vertices = uniqueVerts;
+
+		CAssert(originalVertCount - totalDuplicateVerts == uniqueVerts.Count());
+
+		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
 	}
 }

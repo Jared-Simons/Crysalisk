@@ -153,7 +153,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 
 	if (!pszFontName)
 	{
-		LOG_ERROR("AcquireTexture() was called with null texture name! Returning default texture.");
+		LOG_ERROR("AcquireFontResources() was called with null font name! Returning default font.");
 		return 0; // TODO: Default font.
 	}
 

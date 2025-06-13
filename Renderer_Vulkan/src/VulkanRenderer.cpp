@@ -557,7 +557,8 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, (uint32_t)pGeometry.indexDataOffset, (int32_t)pGeometry.vertexDataOffset, 0);
+		//vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, (uint32_t)pGeometry.indexDataOffset, (int32_t)pGeometry.vertexDataOffset, 0);
+		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, 0, 0, 0);
 	}
 	else
 	{
@@ -2305,6 +2306,7 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 		}
 
 		copyRegion.size = stagingBuffer.m_BufferSize;
+		copyRegion.dstOffset = finalBufferOffset;
 		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
 
 		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);

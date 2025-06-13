@@ -30,9 +30,9 @@ public:
 
 	bool operator==(const Vertex3D& pOther)
 	{
-		return ((Pos == pOther.Pos),
-				(TexCoord == pOther.TexCoord),
-				(Normal == pOther.Normal),
+		return ((Pos == pOther.Pos) &&
+				(TexCoord == pOther.TexCoord) &&
+				(Normal == pOther.Normal) &&
 				(Tangent == pOther.Tangent));
 	}
 
