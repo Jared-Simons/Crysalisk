@@ -11,7 +11,7 @@
 #include "Math/MathLib.h"
 
 // Vector elements must be within this range to be considered 'equal'.
-const float kVectorElementEpsilon = 0.000000001f;
+const float kVectorElementEpsilon = 1.192092896e-07f;
 
 class Vector2D
 {
@@ -179,9 +179,9 @@ public:
 
 	bool operator==(const Vector3D& pOther)
 	{
-		return ((x - pOther.x) < kVectorElementEpsilon &&
-				(y - pOther.y) < kVectorElementEpsilon &&
-				(z - pOther.z) < kVectorElementEpsilon);
+		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
+				M_ABS(y - pOther.y) < kVectorElementEpsilon &&
+				M_ABS(z - pOther.z) < kVectorElementEpsilon);
 	}
 
 	Vector3D operator+(const float scalar)

@@ -162,7 +162,7 @@ namespace MeshLoader
 				{
 					DeduplicateGeometry(pCurrentGroup);
 					bTestBool = true;
-					iTestInt++;
+					//iTestInt++;
 				}
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
@@ -495,38 +495,24 @@ namespace MeshLoader
 
 		for (int outerIdx = 0; outerIdx < pGeometryConfig->Vertices.Count(); outerIdx++)
 		{
-			for (int innerIdx = outerIdx + 1; innerIdx < pGeometryConfig->Vertices.Count(); innerIdx++)
+			bUniqueVert = true;
+			for (int innerIdx = 0; innerIdx < uniqueVerts.Count(); innerIdx++)
 			{
-				bUniqueVert = true;
-				if (pGeometryConfig->Vertices[outerIdx] == pGeometryConfig->Vertices[innerIdx])
+				if (pGeometryConfig->Vertices[outerIdx] == uniqueVerts[innerIdx])
 				{
+					// This vertex already exists in the uniqueVerts array, just use this index.
 					bUniqueVert = false;
+					totalDuplicateVerts++;
+					pGeometryConfig->Indices.PushBack(innerIdx);
+					break;
 				}
 			}
 
 			if (bUniqueVert)
 			{
-				// Store off the unique vertices.
-				uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
-			}
-			else
-			{
-				totalDuplicateVerts++;
-			}
-		}
-
-		// Use the original vertex data to create indices into the unique vert array.
-		bool bFoundVert{ false };
-		for (int origVertIdx = 0; origVertIdx < pGeometryConfig->Vertices.Count(); origVertIdx++)
-		{
-			bFoundVert = false;
-			for (int newVertIdx = 0; newVertIdx < uniqueVerts.Count() && !bFoundVert; newVertIdx++)
-			{
-				if (pGeometryConfig->Vertices[origVertIdx] == uniqueVerts[newVertIdx])
-				{
-					pGeometryConfig->Indices.PushBack(newVertIdx);
-					bFoundVert = true;
-				}
+				// Add this vertex over to the unique array.
+				size_t currIdx = uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
+				pGeometryConfig->Indices.PushBack(currIdx);
 			}
 		}
 
@@ -534,8 +520,9 @@ namespace MeshLoader
 		pGeometryConfig->Vertices.Clear();
 		pGeometryConfig->Vertices = uniqueVerts;
 
-		CAssert(originalVertCount - totalDuplicateVerts == uniqueVerts.Count());
+		CAssert(pGeometryConfig->Vertices.Count() + totalDuplicateVerts == originalVertCount);
+		CAssert(pGeometryConfig->Indices.Count() == originalVertCount);
 
-		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
+ 		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
 	}
 }

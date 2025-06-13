@@ -254,7 +254,9 @@ void MeshGenerator::GenerateTangentData(GeometryConfig_t& pConfig)
 		Vector2D dUV1 = pConfig.Vertices[(triIdx * 3) + 1].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
 		Vector2D dUV2 = pConfig.Vertices[(triIdx * 3) + 2].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
 
-		float f = 1.0f / (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+		float dividend = (dUV1.x * dUV2.y - dUV2.x * dUV1.y);		
+		float f = 1.0f / dividend;
+		
 		for (int vertIdx = 0; vertIdx < 3; vertIdx++)
 		{
 			pConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);

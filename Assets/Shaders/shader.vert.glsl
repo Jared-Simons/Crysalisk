@@ -36,12 +36,12 @@ layout(push_constant) uniform push_constants
 void main()
 {
 	vsOutput.TexCoord = fragTexCoord;
-	vsOutput.Normal = mat3(transpose(inverse(u_PushConstants.model))) * inNormal;
-	vsOutput.Tangent = normalize(vec3(u_PushConstants.model * vec4(inTangent, 0.0)));
+	
+	mat3 modelMat = mat3(u_PushConstants.model);
+	vsOutput.Normal = normalize(modelMat * inNormal);
+	vsOutput.Tangent = normalize(modelMat * inTangent);
 	vsOutput.Bitangent = cross(vsOutput.Normal, vsOutput.Tangent);
 	vsOutput.FragPos = vec3(u_PushConstants.model * vec4(inPosition, 1.0));
-
-	mat3 normalMatrix = transpose(inverse(mat3(u_PushConstants.model)));
 
 	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }
