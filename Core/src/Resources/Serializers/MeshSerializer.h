@@ -31,4 +31,15 @@ namespace MeshSerializer
 		uint64_t	iSubmeshDataSize{ 0 };
 		uint64_t	iSubmeshDataStride{ 0 };
 	};
+
+	struct CModel_SubmeshHeader_t
+	{
+		uint64_t	iSubmeshMagic{ 0xBC };
+
+		uint64_t	iVertexStride{ 0 };
+		uint64_t	iVertexCount{ 0 };
+
+		uint64_t	iIndexStride{ 0 };
+		uint64_t	iIndexCount{ 0 };
+	};
 }

@@ -45,17 +45,6 @@ namespace MeshSerializer
 			}
 		}
 
-		// Get the total number of indices in this model.
-		uint32_t totalIndices{ 0 };
-
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
-			{
-				totalIndices += pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Count();
-			}
-		}
-
 		// Get the total number of submeshes in this model.
 		uint32_t totalSubmeshes{ 0 };
 
@@ -71,44 +60,33 @@ namespace MeshSerializer
 		// Vertex data info.
 		fileHeader.iVertexDataOffset = sizeof(uint32_t) + sizeof(CModel_FileHeader_t);
 		fileHeader.iVertexElementStride = sizeof(Vertex3D);
-		fileHeader.iVertexDataCount = totalVerts;
-
-		// Index data info.
-		fileHeader.iIndexDataOffset = fileHeader.iVertexDataOffset + (fileHeader.iVertexDataCount * fileHeader.iVertexElementStride);
-		fileHeader.iIndexElementStride = sizeof(uint32_t);
-		fileHeader.iIndexDataCount = totalIndices;
 
 		// Submesh data info.
-		fileHeader.iSubmeshDataOffset = fileHeader.iIndexDataOffset + (fileHeader.iIndexDataCount * fileHeader.iIndexElementStride);
+		fileHeader.iSubmeshDataOffset = sizeof(CModel_FileHeader_t);
 		fileHeader.iSubmeshDataStride = sizeof(MeshLoader::MeshResource_t::GeometryGroup_t);
 		fileHeader.iSubmeshDataSize = totalSubmeshes;
 
 		FileSystem::WriteBytes(&fileHeader, sizeof(CModel_FileHeader_t), &pCModelFileHandle);
 
-		// Write out all of the vertex data.
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
-			{
-				Utl::CVector<Vertex3D>& pVertices = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices;
-				FileSystem::WriteBytes(pVertices.Data(), pVertices.Count() * pVertices.Stride(), &pCModelFileHandle);
-			}
-		}
-
-		// Write out all of the index data.
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
-			{
-				Utl::CVector<uint32_t>& pIndices = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices;
-				FileSystem::WriteBytes(pIndices.Data(), pIndices.Count() * pIndices.Stride(), &pCModelFileHandle);
-			}
-		}
-
 		// Write out all of the submesh data.
 		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
 		{
-			FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups.Data(), sizeof(MeshLoader::MeshResource_t::GeometryGroup_t) * pInResource.pObjects[objIdx]->pGroups.Count(), &pCModelFileHandle);
+			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
+			{
+				CModel_SubmeshHeader_t subMesh{};
+
+				subMesh.iVertexCount = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Count();
+				subMesh.iVertexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Stride();
+
+				subMesh.iIndexCount = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Count();
+				subMesh.iIndexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Stride();
+
+				// Write the header, then the data.
+				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);
+				
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);
+			}
 		}
 
 		FileSystem::CloseFile(&pCModelFileHandle);

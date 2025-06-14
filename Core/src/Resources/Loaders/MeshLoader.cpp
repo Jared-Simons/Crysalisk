@@ -84,13 +84,27 @@ namespace MeshLoader
 			return false;
 		}
 
+		// Setup a new mesh object.
+		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
+
 		// File header.
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pMagicNumber + 4);
 
-		// Process vertex data.
-		for (int idx = 0; idx < pFileHeader->iVertexDataCount; idx++)
+		// Process mesh data.
+		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
 		{
-			Vertex3D* pCurrVert = (Vertex3D*)(((uint8_t*)modelBytes.Data() + pFileHeader->iVertexDataOffset) + (sizeof(Vertex3D) * idx));
+			// Allocate a new geometry group.
+			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
+
+			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)(modelBytes.Data() + sizeof(uint32_t) + pFileHeader->iSubmeshDataOffset));
+			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
+
+			// Vertex data.
+			for (int vertIdx = 0; vertIdx < pCurrentMesh->iVertexCount; vertIdx++)
+			{
+				Vertex3D* newVert = (Vertex3D*)((uint8_t*)modelBytes.Data() + sizeof(uint32_t) + pFileHeader->iSubmeshDataOffset + (pCurrentMesh->iVertexStride * vertIdx));
+				pOutResource.pObjects.Back()->pGroups[meshIdx]->Vertices.PushBack(*newVert);
+			}
 		}
 
 		FileSystem::CloseFile(&hCModelFile);
@@ -318,7 +332,7 @@ namespace MeshLoader
 		// Write it without the original extension
 		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
 		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
-		//MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
 		StringFree(pTempNameBuffer);
 
 		return true;
