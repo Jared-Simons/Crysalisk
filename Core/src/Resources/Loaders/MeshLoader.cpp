@@ -87,6 +87,12 @@ namespace MeshLoader
 		// File header.
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pMagicNumber + 4);
 
+		// Process vertex data.
+		for (int idx = 0; idx < pFileHeader->iVertexDataCount; idx++)
+		{
+			Vertex3D* pCurrVert = (Vertex3D*)(((uint8_t*)modelBytes.Data() + pFileHeader->iVertexDataOffset) + (sizeof(Vertex3D) * idx));
+		}
+
 		FileSystem::CloseFile(&hCModelFile);
 
 		return true;
@@ -312,7 +318,7 @@ namespace MeshLoader
 		// Write it without the original extension
 		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
 		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
-		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+		//MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
 		StringFree(pTempNameBuffer);
 
 		return true;
