@@ -379,9 +379,6 @@ bool Renderer::CreateTempGeometry()
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 			{
-				// Generate tangent data.
-				MeshGenerator::GenerateTangentData(newConfig);
-
 				GeometryInstance_t newGeometry{};
 				g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
 

@@ -32,8 +32,8 @@ public:
 	{
 		return ((Pos == pOther.Pos) &&
 				(TexCoord == pOther.TexCoord) &&
-				(Normal == pOther.Normal) &&
-				(Tangent == pOther.Tangent));
+				(Normal == pOther.Normal) /* &&
+				(Tangent == pOther.Tangent)*/);		// NOTE: We don't want to consider tangent data in the equality of a vertex.
 	}
 
 	Vector3D Pos;

@@ -20,6 +20,7 @@ namespace MeshLoader
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource);
 	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig);
+	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig);
 
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
@@ -161,6 +162,9 @@ namespace MeshLoader
 				if (pCurrentGroup && iTestInt < 5)
 				{
 					DeduplicateGeometry(pCurrentGroup);
+					
+					// Generate our tangent data here as well.
+					GenerateTangentData(pCurrentGroup);
 					bTestBool = true;
 					//iTestInt++;
 				}
@@ -524,5 +528,39 @@ namespace MeshLoader
 		CAssert(pGeometryConfig->Indices.Count() == originalVertCount);
 
  		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
+	}
+
+	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig)
+	{
+		for (int idx = 0; idx < pConfig->Indices.Count(); idx += 3)
+		{
+			Vertex3D& vert0 = pConfig->Vertices[pConfig->Indices[idx]];
+			Vertex3D& vert1 = pConfig->Vertices[pConfig->Indices[idx + 1]];
+			Vertex3D& vert2 = pConfig->Vertices[pConfig->Indices[idx + 2]];
+
+			Vector3D edge1 = vert1.Pos - vert0.Pos;
+			Vector3D edge2 = vert2.Pos - vert0.Pos;
+
+			Vector2D deltaUV1 = vert1.TexCoord - vert0.TexCoord;
+			Vector2D deltaUV2 = vert2.TexCoord - vert0.TexCoord;
+
+			float dividend = deltaUV1.x - deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			float f = 1.0f / dividend;
+
+			Vector3D vecTangent{};
+			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			vert0.Tangent += vecTangent;
+			vert1.Tangent += vecTangent;
+			vert2.Tangent += vecTangent;
+		}
+
+		// Make sure to normalize all the new tangent data.
+		for (int idx = 0; idx < pConfig->Vertices.Count(); idx++)
+		{
+			pConfig->Vertices[idx].Tangent.NormalizeInPlace();
+		}
 	}
 }
