@@ -3,4 +3,4 @@ shader=Core.Phong
 map_diffuse=Assets/Textures/Models/vase_hanging.tga
 map_specular=Assets/Textures/Models/vase_hanging_spec.tga
 map_normal=Assets/Textures/Models/vase_hanging_ddn.tga
-Shininess=10.0000
+shininess=10.0000

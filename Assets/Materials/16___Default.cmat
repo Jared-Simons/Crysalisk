@@ -1,4 +1,4 @@
 name=16___Default
 shader=Core.Phong
 map_diffuse=Assets/Textures/Models/gi_flag.tga
-Shininess=10.0000
+shininess=10.0000

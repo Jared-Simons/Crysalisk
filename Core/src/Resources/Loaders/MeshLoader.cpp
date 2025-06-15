@@ -465,7 +465,7 @@ namespace MeshLoader
 
 				case 's':	// Specular exponent.
 				{
-					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("Shininess"));
+					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("shininess"));
 					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex + 1]));
 					break;
 				}
