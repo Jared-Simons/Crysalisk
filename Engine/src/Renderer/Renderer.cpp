@@ -349,12 +349,13 @@ bool Renderer::CreateTempGeometry()
 	//s_FontTest.SetText("Some Test Text!");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
-	MeshLoader::MeshResource_t testResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", testResource);
+	MeshLoader::MeshResource_t sponzaResource{};
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
 
 	// Test mesh.
-	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	//MeshLoader::MeshResource_t sponzaResource{};
+	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	//m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS

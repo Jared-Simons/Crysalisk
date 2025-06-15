@@ -83,9 +83,9 @@ namespace MeshSerializer
 
 				// Write the header, then the data.
 				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);
-				
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
+
 				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
 			}
 		}
 

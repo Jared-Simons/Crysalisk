@@ -76,6 +76,9 @@ namespace MeshLoader
 		modelBytes.Resize(modelDataSize);
 		FileSystem::ReadWholeBinaryFile(modelBytes.Data(), modelDataSize, &bytesRead, &hCModelFile);
 
+		void*		pDataPtr = modelBytes.Data();
+		uint64_t	currOffset{ 0 };
+
 		// First up is the magic number.
 		uint32_t* pMagicNumber = (uint32_t*)modelBytes.Data();
 		if (*pMagicNumber != MeshSerializer::kModelResourceMagicNumber)
@@ -84,11 +87,17 @@ namespace MeshLoader
 			return false;
 		}
 
+		// Advance to the header.
+		currOffset += sizeof(uint32_t);
+
 		// Setup a new mesh object.
 		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
 
 		// File header.
-		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pMagicNumber + 4);
+		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
+
+		// Advance to the mesh data.
+		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
 
 		// Process mesh data.
 		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
@@ -96,15 +105,34 @@ namespace MeshLoader
 			// Allocate a new geometry group.
 			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
 
-			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)(modelBytes.Data() + sizeof(uint32_t) + pFileHeader->iSubmeshDataOffset));
+			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
+
+			// Get at the vertex data.
+			//currOffset += pFileHeader->iSubmeshDataStride;
+			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
+			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
 
 			// Vertex data.
 			for (int vertIdx = 0; vertIdx < pCurrentMesh->iVertexCount; vertIdx++)
 			{
-				Vertex3D* newVert = (Vertex3D*)((uint8_t*)modelBytes.Data() + sizeof(uint32_t) + pFileHeader->iSubmeshDataOffset + (pCurrentMesh->iVertexStride * vertIdx));
+				Vertex3D* newVert = &pVertexTable[vertIdx];
 				pOutResource.pObjects.Back()->pGroups[meshIdx]->Vertices.PushBack(*newVert);
 			}
+
+			// Get at the index data.
+			currOffset += pCurrentMesh->iVertexCount * pCurrentMesh->iVertexStride;
+			uint32_t* pIndexTable = (uint32_t*)((uint8_t*)pDataPtr + currOffset);
+
+			// Index data.
+			for (int idx = 0; idx < pCurrentMesh->iIndexCount; idx++)
+			{
+				uint32_t* newIdx = &pIndexTable[idx];
+				pOutResource.pObjects.Back()->pGroups[meshIdx]->Indices.PushBack(*newIdx);
+			}
+
+			// Get to the next submesh.
+			currOffset += pCurrentMesh->iIndexCount * pCurrentMesh->iIndexStride;
 		}
 
 		FileSystem::CloseFile(&hCModelFile);
