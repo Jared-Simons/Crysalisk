@@ -41,5 +41,7 @@ namespace MeshSerializer
 
 		uint64_t	iIndexStride{ 0 };
 		uint64_t	iIndexCount{ 0 };
+
+		uint64_t	iMaterialNameLength{ 0 };
 	};
 }

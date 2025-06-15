@@ -8,6 +8,7 @@
 
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Resources/Serializers/MaterialSerializer.h"
 #include "Resources/Serializers/MeshSerializer.h"
 
 #include <stdio.h> // For sscanf()
@@ -108,9 +109,16 @@ namespace MeshLoader
 			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
 
+			// Material name is next.
+			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
+			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName,
+								((uint8_t*)pDataPtr + currOffset),
+								pCurrentMesh->iMaterialNameLength);
+
 			// Get at the vertex data.
 			//currOffset += pFileHeader->iSubmeshDataStride;
-			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
+			currOffset += pCurrentMesh->iMaterialNameLength;
 			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
 
 			// Vertex data.
@@ -360,7 +368,13 @@ namespace MeshLoader
 		// Write it without the original extension
 		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
 		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
-		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+		//MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+
+		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
+		{
+			MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
+		}
+
 		StringFree(pTempNameBuffer);
 
 		return true;
@@ -452,7 +466,7 @@ namespace MeshLoader
 				case 's':	// Specular exponent.
 				{
 					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("Shininess"));
-					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex]));
+					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex + 1]));
 					break;
 				}
 				}
@@ -467,7 +481,7 @@ namespace MeshLoader
 				{
 					// TODO: Clean up this string parsing some...
 					// Diffuse map.
-					if (StringCompare(pKey, "map_Kd ") || StringCompare(pKey, "map_Ka "))
+					if (StringCompare(pKey, "map_Kd ") /* || StringCompare(pKey, "map_Ka ")*/)
 					{
 						//CAssert(currLine != 50);
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t diffuseMap{};
