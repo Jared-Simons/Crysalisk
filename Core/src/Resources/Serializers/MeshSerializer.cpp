@@ -78,10 +78,12 @@ namespace MeshSerializer
 				subMesh.iIndexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Stride();
 
 				// Material data.
+				subMesh.iSubmeshNameLength = StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
 				subMesh.iMaterialNameLength = StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
 
 				// Write the header, then the data.
 				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName, subMesh.iSubmeshNameLength, &pCModelFileHandle);
 				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName, subMesh.iMaterialNameLength, &pCModelFileHandle);
 
 				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);

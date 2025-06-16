@@ -109,15 +109,21 @@ namespace MeshLoader
 			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
 
-			// Material name is next.
+			// Next up is the mesh name.
 			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
+			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName = new char[pCurrentMesh->iSubmeshNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName,
+								((uint8_t*)pDataPtr + currOffset),
+								pCurrentMesh->iSubmeshNameLength);
+
+			// Material name is next.
+			currOffset += pCurrentMesh->iSubmeshNameLength;
 			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
 			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName,
 								((uint8_t*)pDataPtr + currOffset),
 								pCurrentMesh->iMaterialNameLength);
 
 			// Get at the vertex data.
-			//currOffset += pFileHeader->iSubmeshDataStride;
 			currOffset += pCurrentMesh->iMaterialNameLength;
 			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
 
