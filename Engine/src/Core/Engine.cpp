@@ -107,7 +107,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Setup the main engine window.
 	Platform::WindowParams_t windowParams{};
-	windowParams.Name = "Crysalisk Engine\0";
+	windowParams.pszName = "Crysalisk Engine\0";
 	windowParams.X = 100;
 	windowParams.Y = 100;
 	windowParams.Width = 800;

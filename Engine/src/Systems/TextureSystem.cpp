@@ -282,7 +282,7 @@ TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, 
 
 	if (!pszTextureName)
 	{
-		LOG_ERROR("CTextureSystem::WrapTextureInternal() requires a path to the texture to load! Returning default texture.");
+		LOG_ERROR("CTextureSystem::WrapTextureInternal() requires a pszPath to the texture to load! Returning default texture.");
 		return m_pDefaultTextureLookup->TextureIndex;
 	}
 

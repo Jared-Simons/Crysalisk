@@ -6,194 +6,278 @@
 //=============================================================================
 #include "FileSystem.h"
 
+#include "Core/Assertions.h"
 #include "Core/Logging.h"
 #include "Memory/MemoryManager.h"
+#include "Platform/Platform.h"
 
 #include "Strings/String_Utils.h"
 
+#include <io.h>		// _access()
 #include <stdio.h>	// Needed for FILE type
-#include <string>
-#include <io.h>
 
+//-------------------------------------------------------------------------
+// Purpose: Destructor.
+//-------------------------------------------------------------------------
 FileHandle_t::~FileHandle_t()
 {
 	// If we are still open, we need to release our resources.
-	if (isValid || internalData)
+	if (bIsValid || pInternalData)
 	{
 		FileSystem::CloseFile(this);
 	}
+
+	if (pszPath != nullptr)
+	{
+		StringFree(pszPath);
+		pszPath = nullptr;
+	}
 }
 
-bool FileSystem::OpenFile(const char* filePath, eFileMode fileMode, bool bIsBinary, FileHandle_t* pOutFileHandle)
+//-------------------------------------------------------------------------
+// Purpose: Attempts to open a file at the provided path. 
+//				Creates a new file if a file wasn't found.
+// 
+// Input:  pszFilePath - The path to the file, relative to the root directory
+//							of the project.
+//		   eFileMode - The mode to open the file in, usually either read or write.
+//		   bIsBinary - Indicates whether or not to interpret the file's contents
+//							as binary data or plain text.
+//		   pOutFileHandle - A pointer to the file handle that manages this file's contents.
+// Output: bool - Returns true on opening/creating the file, otherwise false.
+//-------------------------------------------------------------------------
+bool FileSystem::OpenFile(const char* pszFilePath, eFileMode eFileMode, bool bIsBinary, FileHandle_t* pOutFileHandle)
 {
-	char* modeString;
+	char* pszModeString;
 
-	if (!pOutFileHandle || !filePath)
+	if (!pOutFileHandle || !pszFilePath)
 	{
-		LOG_ERROR("FileSystem->OpenFile() requires a file path and a valid pointer to a file handle");
+		LOG_ERROR("FileSystem->OpenFile() requires a pFileHandle pszPath and a valid pointer to a pFileHandle handle");
 		return false;
 	}
 
-	if (fileMode == eFileMode::FILEMODE_READ)
+	// Do nothing if the file is already opened.
+	if (pOutFileHandle->bIsValid)
+		return true;
+
+	if (eFileMode == eFileMode::FILEMODE_READ)
 	{
 		if (bIsBinary)
-			modeString = "rb";
+			pszModeString = "rb";
 		else
-			modeString = "r";
+			pszModeString = "r";
 	}
-	else if (fileMode == eFileMode::FILEMODE_WRITE)
+	else if (eFileMode == eFileMode::FILEMODE_WRITE)
 	{
 		if (bIsBinary)
-			modeString = "wb";
+			pszModeString = "wb";
 		else
-			modeString = "w";
+			pszModeString = "w";
 	}
 	else
 	{
-		LOG_ERROR("FileSystem->OpenFile() cannot open a file using UNKNOWN File Mode!");
+		LOG_ERROR("FileSystem->OpenFile() cannot open a pFileHandle using UNKNOWN File Mode!");
 		return false;
 	}
 
-	FILE* tempHandle = reinterpret_cast<FILE*>(pOutFileHandle->internalData);
+	FILE* pInternalHandle = reinterpret_cast<FILE*>(pOutFileHandle->pInternalData);
 
-	if (fopen_s(&tempHandle, filePath, modeString) != 0)
+	if (fopen_s(&pInternalHandle, pszFilePath, pszModeString) != 0)
 	{
-		LOG_ERROR("FileSystem->OpenFile() cannot find/open file '%s'.", filePath);
+		LOG_ERROR("FileSystem->OpenFile() cannot find/open pFileHandle '%s'.", pszFilePath);
 		return false;
 	}
 
-	pOutFileHandle->internalData = tempHandle;
+	pOutFileHandle->pInternalData = pInternalHandle;
 
-	pOutFileHandle->fileAccessMode = fileMode;
-	pOutFileHandle->isValid = true;
-	//pOutFileHandle->path = StringDuplicate(filePath);
-	pOutFileHandle->path = const_cast<char*>(filePath);
+	pOutFileHandle->eFileAccessMode = eFileMode;
+	pOutFileHandle->bIsValid = true;
+	pOutFileHandle->pszPath = StringDuplicate(pszFilePath);
 
 	return true;
 }
 
-bool FileSystem::CloseFile(FileHandle_t* fileHandle)
+//-------------------------------------------------------------------------
+// Purpose: Attempts to close the file associated with the provided handle.
+// 
+// Input:  pFileHandle - A pointer to the file handle to be closed.
+// Output: none.
+//-------------------------------------------------------------------------
+void FileSystem::CloseFile(FileHandle_t* pFileHandle)
 {
-	if (!fileHandle)
+	if (!pFileHandle)
 	{
-		LOG_ERROR("FileSystem->CloseFile() requires a valid pointer to a file handle.");
-		return false;
+		return;
 	}
 
-	if (fclose(reinterpret_cast<FILE*>(fileHandle->internalData)) != 0)
+	if (fclose(reinterpret_cast<FILE*>(pFileHandle->pInternalData)) != 0)
 	{
-		LOG_ERROR("FileSystem->CloseFile() failed to close file '%s'", fileHandle->path);
-		return false;
+		LOG_ERROR("FileSystem->CloseFile() failed to close pFileHandle '%s'", pFileHandle->pszPath);
 	}
-	fileHandle->internalData = nullptr;
+	pFileHandle->pInternalData = nullptr;
 
-	fileHandle->isValid = false;
-	if (fileHandle->path)
+	pFileHandle->bIsValid = false;
+	if (pFileHandle->pszPath)
 	{
-		//StringFree(fileHandle->path);
-		fileHandle->path = nullptr;
+		StringFree(pFileHandle->pszPath);
+		pFileHandle->pszPath = nullptr;
 	}
-
-	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Checks to see if a file exists at the provided path.
+// Input:  pszFilePath - The path to the file, relative to the root directory
+//							of the project.
+// Output: bool - Returns true if the file exists, otherwise false.
+//-------------------------------------------------------------------------
 bool FileSystem::FileExists(const char* pszFileName)
 {
-	return _access(pszFileName, 0) == 0;
+	if (!pszFileName)
+		return false;
+
+	return (_access(pszFileName, 0) == 0);
 }
 
-size_t FileSystem::FileSize(FileHandle_t* fileHandle)
+//-------------------------------------------------------------------------
+// Purpose: Checks to see if a file exists at the provided path.
+// Input:  pszFilePath - The path to the file, relative to the root directory
+//							of the project.
+// Output: bool - Returns true if the file exists, otherwise false.
+//-------------------------------------------------------------------------
+size_t FileSystem::FileSize(FileHandle_t* pFileHandle)
 {
-	if (!fileHandle || !fileHandle->isValid)
+	if (!pFileHandle || !pFileHandle->bIsValid)
 	{
-		LOG_ERROR("FileSystem->FileSize(fileHandle_t*) Requires a pointer to a valid file handle. Returning 0.");
+		LOG_ERROR("FileSystem->FileSize(fileHandle_t*) Requires a pointer to a valid pFileHandle handle. Returning 0.");
 		return 0;
 	}
-	FILE* pinternalData = reinterpret_cast<FILE*>(fileHandle->internalData);
+	FILE* pInternalData = reinterpret_cast<FILE*>(pFileHandle->pInternalData);
 
-	fseek(pinternalData, 0, SEEK_END);
+	fseek(pInternalData, 0, SEEK_END);
 
-	size_t fileSize = ftell((FILE*)fileHandle->internalData);
+	size_t fileSize = ftell((FILE*)pFileHandle->pInternalData);
 
-	// Return the file pointer back to the top of the file... else all further file reads will fail
-	rewind(pinternalData);
+	// Return the file pointer back to the top of the file... else all further file reads will fail.
+	rewind(pInternalData);
 
 	return fileSize;
 }
 
-bool FileSystem::ReadLine(char* pBuffer, i32 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
+//-------------------------------------------------------------------------
+// Purpose: Reads the current line to the provided buffer.
+// Input:  pBuffer - The buffer to read the line's contents into.
+//		   bufferSize - The size in bytes of pBuffer.
+//		   pOutBytesRead - Will contain the size of bytes read by this function.
+//		   pFileHandle - A pointer to the file handle to read from.
+// Output: bool - Returns true on successful read, otherwise false.
+//-------------------------------------------------------------------------
+bool FileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
-	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
+	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
-		LOG_ERROR("FileSystem->ReadLine() requires a valid pointer to a file handle, buffer, Buffer Size, and Out Bytes Read");
+		LOG_ERROR("FileSystem->ReadLine() requires a valid pointer to a pFileHandle handle, buffer, Buffer Size, and Out Bytes Read");
 		return false;
 	}
 
 	// Zero out the buffer
-	memset(pBuffer, 0, bufferSize);
+	Platform::MemorySet(pBuffer, 0, bufferSize);
 
 	// Read the contents of the line into the buffer
-	if (fgets(pBuffer, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData)) == 0)
+	if (fgets(pBuffer, bufferSize, reinterpret_cast<FILE*>(pFileHandle->pInternalData)) == 0)
 	{
 		return false;
 	}
 
-	*pOutBytesRead = strlen(pBuffer);
+	*pOutBytesRead = StringLength(pBuffer);
 	pBuffer[*pOutBytesRead - 1] = '\0';
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Reads the whole file to the provided buffer.
+// Input:  pBuffer - The buffer to read the file's contents into.
+//		   bufferSize - The size in bytes of pBuffer.
+//		   pOutBytesRead - Will contain the size of bytes read by this function.
+//		   pFileHandle - A pointer to the file handle to read from.
+// Output: bool - Returns true on successful read, otherwise false.
+//-------------------------------------------------------------------------
 bool FileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
-	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
+	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
-		LOG_ERROR("FileSystem->ReadWholeFile() requires a valid pointer to a file handle, buffer, Buffer Size, and Out Bytes Read");
+		LOG_ERROR("FileSystem->ReadWholeFile() requires a valid pointer to a pFileHandle handle, buffer, Buffer Size, and Out Bytes Read");
 		return false;
 	}
 
 	// Zero out the buffer
-	memset(pBuffer, 0, bufferSize);
+	Platform::MemorySet(pBuffer, 0, bufferSize);
 
 	// Read the contents into the buffer
-	*pOutBytesRead = fread(pBuffer, bufferSize, 1, reinterpret_cast<FILE*>(pFileHandle->internalData));
+	*pOutBytesRead = fread(pBuffer, bufferSize, 1, reinterpret_cast<FILE*>(pFileHandle->pInternalData));
 
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Reads the whole file as bytes to the provided buffer.
+// Input:  pBuffer - The buffer to read the file's contents into.
+//		   bufferSize - The size in bytes of pBuffer.
+//		   pOutBytesRead - Will contain the size of bytes read by this function.
+//		   pFileHandle - A pointer to the file handle to read from.
+// Output: bool - Returns true on successful read, otherwise false.
+//-------------------------------------------------------------------------
 bool FileSystem::ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
-	if (!pFileHandle || !pFileHandle->isValid || !pBuffer || !bufferSize || !pOutBytesRead)
+	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
-		LOG_ERROR("FileSystem->ReadWholeBinaryFile() requires a valid pointer to a file handle, buffer, Buffer Size, and Out Bytes Read");
+		LOG_ERROR("FileSystem->ReadWholeBinaryFile() requires a valid pointer to a pFileHandle handle, buffer, Buffer Size, and Out Bytes Read");
 		return false;
 	}
 
-	*pOutBytesRead = fread_s(pBuffer, bufferSize, 1, bufferSize, reinterpret_cast<FILE*>(pFileHandle->internalData));
+	*pOutBytesRead = fread_s(pBuffer, bufferSize, 1, bufferSize, reinterpret_cast<FILE*>(pFileHandle->pInternalData));
 
 	return true;
 }
 
-bool FileSystem::IsEOF(FileHandle_t* file)
+//-------------------------------------------------------------------------
+// Purpose: Returns whether or not the internal pointer for this handle has reached the end of the file.
+// Input:  pFileHandle - A pointer to the file handle to check.
+// Output: bool - Returns true if EOF, otherwise false.
+//-------------------------------------------------------------------------
+bool FileSystem::IsEOF(FileHandle_t* pFileHandle)
 {
-	if (!feof((FILE*)file->internalData))
+	if (!feof((FILE*)pFileHandle->pInternalData))
 	{
 		return false;
 	}
 	return true;
 }
 
-void FileSystem::WriteLine(char* pBuffer, FileHandle_t* file)
+//-------------------------------------------------------------------------
+// Purpose: Writes the text data in pBuffer to the provided file.
+// Input:  pBuffer - The buffer to write to the file.  
+//		   pFileHandle - A pointer to the file handle to write to.
+// Output: none.
+//-------------------------------------------------------------------------
+void FileSystem::WriteLine(char* pBuffer, FileHandle_t* pFileHandle)
 {
-	if (pBuffer && file)
+	if (pBuffer && pFileHandle)
 	{
-		fputs(pBuffer, (FILE*)file->internalData);
+		fputs(pBuffer, (FILE*)pFileHandle->pInternalData);
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Writes the binary data in pBytes to the provided file.
+// Input:  pBytes - The buffer to write to the file.  
+//		   dataSize - The size in bytes of pBytes.
+//		   pFileHandle - A pointer to the file handle to write to.
+// Output: none.
+//-------------------------------------------------------------------------
 void FileSystem::WriteBytes(const void* pBytes, size_t dataSize, FileHandle_t* pFileHandle)
 {
 	if (pBytes && pFileHandle)
 	{
-		fwrite(pBytes, 1, dataSize, (FILE*)pFileHandle->internalData);
+		fwrite(pBytes, 1, dataSize, (FILE*)pFileHandle->pInternalData);
 	}
 }

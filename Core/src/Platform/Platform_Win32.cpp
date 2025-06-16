@@ -176,7 +176,7 @@ namespace Platform {
 		HWND hWndInit = CreateWindowExA(
 			0,
 			windowClassName,
-			newWindow->GetParams().Name,
+			newWindow->GetParams().pszName,
 			windowStyle,
 			windowX,
 			windowY,
@@ -570,7 +570,7 @@ namespace Platform {
 	{
 		if (!pModulePath)
 		{
-			LOG_ERROR("Platform::LoadSysModule requires a path to the module to load! Returning nullptr.");
+			LOG_ERROR("Platform::LoadSysModule requires a pszPath to the module to load! Returning nullptr.");
 			return nullptr;
 		}
 

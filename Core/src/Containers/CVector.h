@@ -53,7 +53,8 @@ namespace Utl {
 			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
 			//m_pValues = new T[initialCapacity];
-			m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
+			if (initialCapacity > 0)
+				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
