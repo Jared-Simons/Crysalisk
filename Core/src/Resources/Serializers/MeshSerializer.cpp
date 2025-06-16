@@ -57,10 +57,6 @@ namespace MeshSerializer
 		CModel_FileHeader_t fileHeader{};
 		fileHeader.iFileVersion = kCurrentModelVersion;
 
-		// Vertex data info.
-		fileHeader.iVertexDataOffset = sizeof(uint32_t) + sizeof(CModel_FileHeader_t);
-		fileHeader.iVertexElementStride = sizeof(Vertex3D);
-
 		// Submesh data info.
 		fileHeader.iSubmeshDataOffset = sizeof(CModel_FileHeader_t);
 		fileHeader.iSubmeshDataStride = sizeof(MeshLoader::MeshResource_t::GeometryGroup_t);

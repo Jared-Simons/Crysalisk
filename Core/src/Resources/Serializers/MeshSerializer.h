@@ -19,14 +19,6 @@ namespace MeshSerializer
 	{
 		uint32_t	iFileVersion{ 0 };
 
-		uint64_t	iVertexDataOffset{ 0 };
-		uint64_t	iVertexDataCount{ 0 };
-		uint64_t	iVertexElementStride{ 0 };
-
-		uint64_t	iIndexDataOffset{ 0 };
-		uint64_t	iIndexDataCount{ 0 };
-		uint64_t	iIndexElementStride{ 0 };
-
 		uint64_t	iSubmeshDataOffset{ 0 };
 		uint64_t	iSubmeshDataSize{ 0 };
 		uint64_t	iSubmeshDataStride{ 0 };
