@@ -29,11 +29,11 @@ struct MouseState_t
 	// The position of the cursor on the screen.
 	float m_XPos;
 	float m_YPos;
-	unsigned int m_MouseFlags;
+	unsigned int m_bitsMouseButtons;
 };
 
 //-------------------------------------------------------------------------
-// The interface to the event system.
+// The interface to the input system.
 //-------------------------------------------------------------------------
 class IInputSystem
 {

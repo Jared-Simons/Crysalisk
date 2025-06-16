@@ -10,9 +10,8 @@
 #pragma once
 
 #include "Core/Assertions.h"
-
 #include "Memory/MemoryManager.h"
-#include <string.h> // for memcpy (TODO: Maybe abstract this so we don't include the whole header?)
+#include "Platform/Platform.h"
 
 namespace Utl {
 
@@ -75,7 +74,7 @@ namespace Utl {
 			{
 				//m_pValues = new T[m_Capacity];
 				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
 
@@ -106,12 +105,10 @@ namespace Utl {
 		~CVector()
 		{
 			// TODO: Custom allocators.
-			static int timesCalled{ 0 };
-			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
+			if (m_pValues && m_Capacity > 0)
 				g_pMemoryManager->Free(m_pValues);
 				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			m_pValues = nullptr;
-			timesCalled++;
 
 			m_Count = 0;
 			m_Capacity = 0;
@@ -137,7 +134,7 @@ namespace Utl {
 			{
 				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
 				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
 			return *this;
@@ -287,7 +284,7 @@ namespace Utl {
 			CAssert(pNewArray);
 
 			// Copy the current array over.
-			memcpy(pNewArray, m_pValues, m_ValueStride * m_Count);
+			Platform::MemoryCopy(pNewArray, m_pValues, m_ValueStride * m_Count);
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)

@@ -706,9 +706,9 @@ void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, Sh
 			continue;
 
 		equalIndex = StringIndexOf(currentLine, '=');
-		memcpy(key, currentLine, equalIndex);
+		Platform::MemoryCopy(key, currentLine, equalIndex);
 		key[equalIndex] = '\0';
-		memcpy(value, &currentLine[equalIndex + 1], bytesRead - equalIndex);
+		Platform::MemoryCopy(value, &currentLine[equalIndex + 1], bytesRead - equalIndex);
 		value[bytesRead - 1] = '\0';
 
 		if (StringCompare(key, "name"))

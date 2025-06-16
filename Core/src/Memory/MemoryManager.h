@@ -8,11 +8,15 @@
 
 #include <Defines.h>
 
+// Some configuration parameters for the application-wide memory manager.
 struct ApplicationMemoryConfiguration_t
 {
 	size_t totalMemoryBudget;	// The amount of memory to request from the OS on initialization.
 };
 
+//-------------------------------------------------------------------------
+// The interface to the memory manager.
+//-------------------------------------------------------------------------
 class CORE_API IMemoryManager
 {
 public:
@@ -23,8 +27,10 @@ public:
 	// This should be among the first things that gets set up (and should happen prior to any dynamic memory allocation).
 	static bool			CreateMemorySystem(ApplicationMemoryConfiguration_t config);
 
+	// Shuts down the memory manager.
 	virtual void		Shutdown() = 0;
 
+	// Allocate/free memory from the application-wide memory manager.
 	virtual void*		Allocate(size_t sizeInBytes) = 0;	// TODO: Memory-Tagging?
 	virtual void		Free(void* pMemBlock) = 0;
 
@@ -32,4 +38,5 @@ public:
 	virtual void		PrintMemoryStats() = 0;
 };
 
+// A global interface pointer to the application's memory manager.
 CORE_API extern IMemoryManager* g_pMemoryManager;
