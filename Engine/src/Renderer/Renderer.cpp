@@ -376,7 +376,7 @@ bool Renderer::CreateTempGeometry()
 			GeometryConfig_t newConfig{};
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
 			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
-			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)	// TODO: Save the names off in the .cmodel_c file!
+			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)
 				newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
