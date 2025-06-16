@@ -2257,6 +2257,12 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
 
+	// Store off the name as well.
+	if (pGeometryConfig.pszDebugName)
+	{
+		pOutInstance.pszDebugName = StringDuplicate(pGeometryConfig.pszDebugName);
+	}
+
 	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
 

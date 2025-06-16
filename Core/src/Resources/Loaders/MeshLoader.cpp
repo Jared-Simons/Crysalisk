@@ -218,7 +218,7 @@ namespace MeshLoader
 				if (pCurrentGroup && iTestInt < 5)
 				{
 					DeduplicateGeometry(pCurrentGroup);
-					
+
 					// Generate our tangent data here as well.
 					GenerateTangentData(pCurrentGroup);
 					bTestBool = true;
@@ -319,7 +319,6 @@ namespace MeshLoader
 					CAssert(pCurrentGroup && pCurrentObject);
 
 					size_t currIdx = pCurrentGroup->Vertices.PushBack(newVertices[idx]);
-					//pCurrentGroup->Indices.PushBack(currIdx);
 				}
 
 				break;
@@ -592,8 +591,12 @@ namespace MeshLoader
  		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
 	}
 
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
 	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig)
 	{
+		size_t invalidTangentCount{ 0 };
 		for (int idx = 0; idx < pConfig->Indices.Count(); idx += 3)
 		{
 			Vertex3D& vert0 = pConfig->Vertices[pConfig->Indices[idx]];
@@ -606,8 +609,17 @@ namespace MeshLoader
 			Vector2D deltaUV1 = vert1.TexCoord - vert0.TexCoord;
 			Vector2D deltaUV2 = vert2.TexCoord - vert0.TexCoord;
 
-			float dividend = deltaUV1.x - deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			float dividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
 			float f = 1.0f / dividend;
+			CAssert(!(vert0 == vert1));
+			CAssert(!(vert1 == vert2));
+			CAssert(!(vert0 == vert2));
+			if (M_ABS(dividend) < 1.192092896e-07f)	// NOTE: Get an epsilon in here.
+			{
+				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
+				invalidTangentCount++;
+				continue;
+			}
 
 			Vector3D vecTangent{};
 			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
@@ -623,6 +635,12 @@ namespace MeshLoader
 		for (int idx = 0; idx < pConfig->Vertices.Count(); idx++)
 		{
 			pConfig->Vertices[idx].Tangent.NormalizeInPlace();
+		}
+
+		// Report invalid tangents.
+		if (invalidTangentCount > 0)
+		{
+			LOG_WARN("GenerateTangentData(): Submesh '%s' contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", pConfig->pszDebugName, invalidTangentCount);
 		}
 	}
 }
