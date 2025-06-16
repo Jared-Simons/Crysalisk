@@ -371,7 +371,7 @@ namespace MeshLoader
 
 		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
 		{
-			MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
+			//MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
 		}
 
 		StringFree(pTempNameBuffer);

@@ -46,8 +46,8 @@ public:
 
 	bool operator==(const Vector2D& pOther)
 	{
-		return ((x - pOther.x) < kVectorElementEpsilon &&
-				(y - pOther.y) < kVectorElementEpsilon);
+		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
+				M_ABS(y - pOther.y) < kVectorElementEpsilon);
 	}
 
 	Vector2D operator*(const float scalar)

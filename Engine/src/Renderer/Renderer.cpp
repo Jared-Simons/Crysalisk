@@ -349,13 +349,12 @@ bool Renderer::CreateTempGeometry()
 	//s_FontTest.SetText("Some Test Text!");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
-	//MeshLoader::MeshResource_t sponzaResource{};
-	//MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
+	MeshLoader::MeshResource_t sponzaResource{};
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
 
 	// Test mesh.
-	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
-	//m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
+	//MeshLoader::MeshResource_t sponzaResource{};
+	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS
@@ -377,7 +376,8 @@ bool Renderer::CreateTempGeometry()
 			GeometryConfig_t newConfig{};
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
 			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
-			newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
+			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)	// TODO: Save the names off in the .cmodel_c file!
+				newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 			{
@@ -391,7 +391,8 @@ bool Renderer::CreateTempGeometry()
 				m_SponzaModel.m_Geometries.PushBack(newGeometry);
 
 				// Free temp string data.
-				StringFree(newConfig.pszDebugName);
+				if (newConfig.pszDebugName)
+					StringFree(newConfig.pszDebugName);
 			}
 		}
 	}
