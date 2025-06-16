@@ -1,0 +1,6 @@
+name=chain
+shader=Core.Phong
+map_diffuse=Assets/Textures/Models/chain_texture.tga
+map_specular=Assets/Textures/Models/chain_texture_spec.tga
+map_normal=Assets/Textures/Models/chain_texture_ddn.tga
+shininess=10.0000

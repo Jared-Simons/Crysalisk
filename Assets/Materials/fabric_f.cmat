@@ -1,0 +1,6 @@
+name=fabric_f
+shader=Core.Phong
+map_diffuse=Assets/Textures/Models/sponza_curtain_green_diff.tga
+map_specular=Assets/Textures/Models/sponza_curtain_spec.tga
+map_normal=Assets/Textures/Models/sponza_curtain_ddn.tga
+shininess=10.0000

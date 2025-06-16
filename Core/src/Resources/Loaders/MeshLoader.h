@@ -26,6 +26,7 @@ namespace MeshLoader
 		{
 			char*					pszDebugName{ nullptr };
 			Utl::CVector<Vertex3D>	Vertices{};
+			Utl::CVector<uint32_t>	Indices{};
 			char*					pszMaterialName{ nullptr };
 
 			GeometryGroup_t() {}
@@ -38,6 +39,7 @@ namespace MeshLoader
 					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
 
 				Vertices = pOther.Vertices;
+				Indices = pOther.Indices;
 			}
 
 			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
@@ -48,6 +50,7 @@ namespace MeshLoader
 					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
 
 				Vertices = pOther.Vertices;
+				Indices = pOther.Indices;
 
 				return *this;
 			}

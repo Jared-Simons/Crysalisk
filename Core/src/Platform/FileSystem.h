@@ -44,6 +44,8 @@ public:
 	static bool			IsEOF(FileHandle_t* file);
 
 	static void			WriteLine(char* pBuffer, FileHandle_t* file);
+	static void			WriteBytes(const void* pBytes, size_t dataSize, FileHandle_t* pFileHandle);
+
 	/*
 	static u64			FileSize(const char* filePath) = 0;
 

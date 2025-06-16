@@ -1,0 +1,6 @@
+name=column_c
+shader=Core.Phong
+map_diffuse=Assets/Textures/Models/sponza_column_c_diff.tga
+map_specular=Assets/Textures/Models/sponza_column_c_spec.tga
+map_normal=Assets/Textures/Models/sponza_column_c_ddn.tga
+shininess=10.0000

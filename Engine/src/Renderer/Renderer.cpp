@@ -349,9 +349,12 @@ bool Renderer::CreateTempGeometry()
 	//s_FontTest.SetText("Some Test Text!");
 	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
-	// Test mesh.
 	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
+
+	// Test mesh.
+	//MeshLoader::MeshResource_t sponzaResource{};
+	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
 	// TEMP MATERIALS
@@ -372,12 +375,12 @@ bool Renderer::CreateTempGeometry()
 		{
 			GeometryConfig_t newConfig{};
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
+			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
+			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)
+				newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 			{
-				// Generate tangent data.
-				MeshGenerator::GenerateTangentData(newConfig);
-
 				GeometryInstance_t newGeometry{};
 				g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
 
@@ -386,6 +389,10 @@ bool Renderer::CreateTempGeometry()
 				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
 
 				m_SponzaModel.m_Geometries.PushBack(newGeometry);
+
+				// Free temp string data.
+				if (newConfig.pszDebugName)
+					StringFree(newConfig.pszDebugName);
 			}
 		}
 	}
@@ -395,7 +402,7 @@ bool Renderer::CreateTempGeometry()
 
 	// TEMP TEST FONT
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-	testText.SetText("Poggers text!");
+	testText.SetText("Some test text!");
 	// END TEMP
 
 	return true;

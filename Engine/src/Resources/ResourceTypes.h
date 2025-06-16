@@ -267,6 +267,7 @@ struct GeometryConfig_t
 	Utl::CVector<Vertex3D> Vertices{};
 	Utl::CVector<uint32_t> Indices{};
 	MaterialReference MaterialReference{};
+	char* pszDebugName{ nullptr }; // TODO: FREE THIS!
 };
 
 // TODO: This is temporary and should NOT stick around
@@ -281,6 +282,8 @@ struct GeometryInstance_t
 
 	MaterialHandle_t	hMaterial;
 	bool				bIsTransparent;
+
+	char*				pszDebugName{ nullptr }; // TODO: FREE THIS!
 
 	MaterialReference hMaterial_OLD;// DEPRECATED!!!
 };

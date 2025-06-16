@@ -8,14 +8,20 @@
 
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Resources/Serializers/MaterialSerializer.h"
+#include "Resources/Serializers/MeshSerializer.h"
 
 #include <stdio.h> // For sscanf()
 
 namespace MeshLoader
 {
 	// Helper functions.
+	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
+
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource);
+	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig);
+	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig);
 
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
@@ -32,7 +38,11 @@ namespace MeshLoader
 		// Grab the extension from the path.
 		char* pszFileExtension = StringGetFilenameExtension(pszMeshFileName);
 
-		if (StringCompare(pszFileExtension, ".obj"))
+		if (StringCompare(pszFileExtension, ".cmodel_c"))
+		{
+			LoadCModelMeshResource(pszMeshFileName, pOutResource);
+		}
+		else if (StringCompare(pszFileExtension, ".obj"))
 		{
 			LoadOBJMeshResource(pszMeshFileName, pOutResource);
 		}
@@ -44,6 +54,102 @@ namespace MeshLoader
 
 		// Free temp string data.
 		StringFree(pszFileExtension);
+
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
+	{
+		Utl::CVector<uint8_t> modelBytes{};
+		FileHandle_t hCModelFile;
+		size_t modelDataSize{ 0 };
+		size_t bytesRead{ 0 };
+
+		if (!FileSystem::OpenFile(pszMeshFileName, eFileMode::FILEMODE_READ, true, &hCModelFile))
+		{
+			return false;
+		}
+
+		modelDataSize = FileSystem::FileSize(&hCModelFile);
+		modelBytes.Resize(modelDataSize);
+		FileSystem::ReadWholeBinaryFile(modelBytes.Data(), modelDataSize, &bytesRead, &hCModelFile);
+
+		void*		pDataPtr = modelBytes.Data();
+		uint64_t	currOffset{ 0 };
+
+		// First up is the magic number.
+		uint32_t* pMagicNumber = (uint32_t*)modelBytes.Data();
+		if (*pMagicNumber != MeshSerializer::kModelResourceMagicNumber)
+		{
+			LOG_ERROR("'%s' mesh does not contain kModelResourceMagicNumber, resource reading failed.");
+			return false;
+		}
+
+		// Advance to the header.
+		currOffset += sizeof(uint32_t);
+
+		// Setup a new mesh object.
+		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
+
+		// File header.
+		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
+
+		// Advance to the mesh data.
+		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
+
+		// Process mesh data.
+		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
+		{
+			// Allocate a new geometry group.
+			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
+
+			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
+			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
+
+			// Next up is the mesh name.
+			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
+			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName = new char[pCurrentMesh->iSubmeshNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName,
+								((uint8_t*)pDataPtr + currOffset),
+								pCurrentMesh->iSubmeshNameLength);
+
+			// Material name is next.
+			currOffset += pCurrentMesh->iSubmeshNameLength;
+			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName,
+								((uint8_t*)pDataPtr + currOffset),
+								pCurrentMesh->iMaterialNameLength);
+
+			// Get at the vertex data.
+			currOffset += pCurrentMesh->iMaterialNameLength;
+			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
+
+			// Vertex data.
+			for (int vertIdx = 0; vertIdx < pCurrentMesh->iVertexCount; vertIdx++)
+			{
+				Vertex3D* newVert = &pVertexTable[vertIdx];
+				pOutResource.pObjects.Back()->pGroups[meshIdx]->Vertices.PushBack(*newVert);
+			}
+
+			// Get at the index data.
+			currOffset += pCurrentMesh->iVertexCount * pCurrentMesh->iVertexStride;
+			uint32_t* pIndexTable = (uint32_t*)((uint8_t*)pDataPtr + currOffset);
+
+			// Index data.
+			for (int idx = 0; idx < pCurrentMesh->iIndexCount; idx++)
+			{
+				uint32_t* newIdx = &pIndexTable[idx];
+				pOutResource.pObjects.Back()->pGroups[meshIdx]->Indices.PushBack(*newIdx);
+			}
+
+			// Get to the next submesh.
+			currOffset += pCurrentMesh->iIndexCount * pCurrentMesh->iIndexStride;
+		}
+
+		FileSystem::CloseFile(&hCModelFile);
 
 		return true;
 	}
@@ -83,6 +189,8 @@ namespace MeshLoader
 			size_t	bytesRead{ 0 };
 			char	firstChar{};
 			char	secondChar{};
+			static bool bTestBool = false;
+			static int iTestInt = 0;
 
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hObjFile);
 			currentLineLength = StringLength(szCurrentLine);
@@ -111,6 +219,17 @@ namespace MeshLoader
 					pCurrentObject = pOutResource.pObjects.Back();
 				}
 				CAssert(pCurrentObject);
+
+				// Check for duplicate vertices.
+				if (pCurrentGroup && iTestInt < 5)
+				{
+					DeduplicateGeometry(pCurrentGroup);
+
+					// Generate our tangent data here as well.
+					GenerateTangentData(pCurrentGroup);
+					bTestBool = true;
+					//iTestInt++;
+				}
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
@@ -205,7 +324,7 @@ namespace MeshLoader
 
 					CAssert(pCurrentGroup && pCurrentObject);
 
-					pCurrentGroup->Vertices.PushBack(newVertices[idx]);
+					size_t currIdx = pCurrentGroup->Vertices.PushBack(newVertices[idx]);
 				}
 
 				break;
@@ -248,6 +367,20 @@ namespace MeshLoader
 		}
 
 		FileSystem::CloseFile(&hObjFile);
+
+		// Write the resource out to our engine-specific format.
+
+		// Write it without the original extension
+		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
+		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
+		//MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+
+		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
+		{
+			//MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
+		}
+
+		StringFree(pTempNameBuffer);
 
 		return true;
 	}
@@ -337,8 +470,8 @@ namespace MeshLoader
 
 				case 's':	// Specular exponent.
 				{
-					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("Shininess"));
-					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex]));
+					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("shininess"));
+					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex + 1]));
 					break;
 				}
 				}
@@ -353,7 +486,7 @@ namespace MeshLoader
 				{
 					// TODO: Clean up this string parsing some...
 					// Diffuse map.
-					if (StringCompare(pKey, "map_Kd ") || StringCompare(pKey, "map_Ka "))
+					if (StringCompare(pKey, "map_Kd ") /* || StringCompare(pKey, "map_Ka ")*/)
 					{
 						//CAssert(currLine != 50);
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t diffuseMap{};
@@ -419,5 +552,101 @@ namespace MeshLoader
 		FileSystem::CloseFile(&hMtlFile);
 
 		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig)
+	{
+		size_t					totalDuplicateVerts{ 0 };
+		size_t					originalVertCount{ pGeometryConfig->Vertices.Count() };
+		bool					bUniqueVert{ true };
+		Utl::CVector<Vertex3D>	uniqueVerts(pGeometryConfig->Vertices.Count());
+
+		for (int outerIdx = 0; outerIdx < pGeometryConfig->Vertices.Count(); outerIdx++)
+		{
+			bUniqueVert = true;
+			for (int innerIdx = 0; innerIdx < uniqueVerts.Count(); innerIdx++)
+			{
+				if (pGeometryConfig->Vertices[outerIdx] == uniqueVerts[innerIdx])
+				{
+					// This vertex already exists in the uniqueVerts array, just use this index.
+					bUniqueVert = false;
+					totalDuplicateVerts++;
+					pGeometryConfig->Indices.PushBack(innerIdx);
+					break;
+				}
+			}
+
+			if (bUniqueVert)
+			{
+				// Add this vertex over to the unique array.
+				size_t currIdx = uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
+				pGeometryConfig->Indices.PushBack(currIdx);
+			}
+		}
+
+		// Kill the old vertex data and save off the unique verts.
+		pGeometryConfig->Vertices.Clear();
+		pGeometryConfig->Vertices = uniqueVerts;
+
+		CAssert(pGeometryConfig->Vertices.Count() + totalDuplicateVerts == originalVertCount);
+		CAssert(pGeometryConfig->Indices.Count() == originalVertCount);
+
+ 		LOG_DEBUG("Geometry Deduplication '%s': %u/%u", pGeometryConfig->pszDebugName, originalVertCount, pGeometryConfig->Vertices.Count());
+	}
+
+	//-------------------------------------------------------------------------
+	// TODO: Documentation
+	//-------------------------------------------------------------------------
+	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig)
+	{
+		size_t invalidTangentCount{ 0 };
+		for (int idx = 0; idx < pConfig->Indices.Count(); idx += 3)
+		{
+			Vertex3D& vert0 = pConfig->Vertices[pConfig->Indices[idx]];
+			Vertex3D& vert1 = pConfig->Vertices[pConfig->Indices[idx + 1]];
+			Vertex3D& vert2 = pConfig->Vertices[pConfig->Indices[idx + 2]];
+
+			Vector3D edge1 = vert1.Pos - vert0.Pos;
+			Vector3D edge2 = vert2.Pos - vert0.Pos;
+
+			Vector2D deltaUV1 = vert1.TexCoord - vert0.TexCoord;
+			Vector2D deltaUV2 = vert2.TexCoord - vert0.TexCoord;
+
+			float dividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			float f = 1.0f / dividend;
+			CAssert(!(vert0 == vert1));
+			CAssert(!(vert1 == vert2));
+			CAssert(!(vert0 == vert2));
+			if (M_ABS(dividend) < 1.192092896e-07f)	// NOTE: Get an epsilon in here.
+			{
+				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
+				invalidTangentCount++;
+				continue;
+			}
+
+			Vector3D vecTangent{};
+			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			vert0.Tangent += vecTangent;
+			vert1.Tangent += vecTangent;
+			vert2.Tangent += vecTangent;
+		}
+
+		// Make sure to normalize all the new tangent data.
+		for (int idx = 0; idx < pConfig->Vertices.Count(); idx++)
+		{
+			pConfig->Vertices[idx].Tangent.NormalizeInPlace();
+		}
+
+		// Report invalid tangents.
+		if (invalidTangentCount > 0)
+		{
+			LOG_WARN("GenerateTangentData(): Submesh '%s' contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", pConfig->pszDebugName, invalidTangentCount);
+		}
 	}
 }

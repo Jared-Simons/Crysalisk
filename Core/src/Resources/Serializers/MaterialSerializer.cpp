@@ -1,0 +1,85 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 6/14/2025
+// 
+// Purpose: Material file serialization utilities.
+//=============================================================================
+#include "MaterialSerializer.h"
+
+#include "Platform/FileSystem.h"
+
+namespace MaterialSerializer
+{
+	static const char*	kMaterialFileExtension = ".cmat";
+	static const char*	kDefaultMaterialAssetPath = "Assets/Materials/";
+
+	bool SerializeMaterialResources(const char* pszMaterialName, struct MaterialLoader::MaterialResource_t& pInResource)
+	{
+		// Create and setup the file.
+
+		// Chop off the file extension.
+		size_t nameLength = StringLength(pszMaterialName);
+		size_t pathLength = StringLength(kDefaultMaterialAssetPath);
+		size_t extensionLength = StringLength(kMaterialFileExtension);
+
+		char* pTempNameBuffer = new char[nameLength + pathLength + extensionLength + 1];
+		StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);
+
+		FileHandle_t hCMaterialFile{};
+		if (!FileSystem::OpenFile(pTempNameBuffer, eFileMode::FILEMODE_WRITE, false, &hCMaterialFile))
+		{
+			LOG_ERROR("Failed to write CMaterial for material '%s'.", pszMaterialName);
+		}
+
+		char tempDataBuffer[512];
+
+		// Write out the material data.
+		// First the name - this is required.
+		StringFormat_V("name=%s\n", tempDataBuffer, pInResource.pszMaterialName);
+		FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
+
+		// Next up the shader - this is also required.
+		if (pInResource.pszShaderName == nullptr)
+		{
+			// Default hardcoded shader.
+			// TODO: Probably don't hardcode this.
+			pInResource.pszShaderName = "Core.Phong";
+		}
+
+		tempDataBuffer[0] = 0;
+		StringFormat_V("shader=%s\n", tempDataBuffer, pInResource.pszShaderName);
+		FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
+
+		// Some texture type to string mappings.
+		char	pszTexTypeStrings[3][10] = {	"diffuse",
+												"specular",
+												"normal" };	// NOTE: This maps directly to the MaterialLoader::MaterialResource_t::eTextureType enum!
+
+		// Next are texture maps.
+		for (int texIdx = 0; texIdx < pInResource.textureMapConfigs.Count(); texIdx++)
+		{
+			tempDataBuffer[0] = 0;
+			CAssert(pInResource.textureMapConfigs[texIdx].eType != MaterialLoader::MaterialResource_t::eTextureType::UNDEFINED);
+
+			StringFormat_V("map_%s=%s\n", tempDataBuffer, pszTexTypeStrings[(int)pInResource.textureMapConfigs[texIdx].eType], pInResource.textureMapConfigs[texIdx].pszTextureName);
+			FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
+		}
+
+		// Finally, write out any other key-value pairs.
+		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
+		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
+		{
+			tempDataBuffer[0] = 0;
+
+			StringFormat_V("%s=%s\n", tempDataBuffer, pInResource.pszCustomKeys[idx], pInResource.pszCustomValues[idx]);
+			FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
+		}
+
+		// Close the file
+		FileSystem::CloseFile(&hCMaterialFile);
+
+		delete[] pTempNameBuffer;
+
+		return true;
+	}
+}

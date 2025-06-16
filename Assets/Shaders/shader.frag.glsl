@@ -51,11 +51,8 @@ void main()
 	mat3 TBN = mat3(tangent, bitangent, normal);
 
 	// Get a normal from the normal map.
-	normal = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
-	normal = normalize(normal * 2.0 - 1.0);
-	
-	// Bring our normals into world space.
-	normal = normalize(TBN * normal);
+	vec3 normalMapSamp = 2.0 * texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb - 1.0;
+	normal = normalize(TBN * normalMapSamp);
 
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
 	

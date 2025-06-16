@@ -189,3 +189,11 @@ void FileSystem::WriteLine(char* pBuffer, FileHandle_t* file)
 		fputs(pBuffer, (FILE*)file->internalData);
 	}
 }
+
+void FileSystem::WriteBytes(const void* pBytes, size_t dataSize, FileHandle_t* pFileHandle)
+{
+	if (pBytes && pFileHandle)
+	{
+		fwrite(pBytes, 1, dataSize, (FILE*)pFileHandle->internalData);
+	}
+}
