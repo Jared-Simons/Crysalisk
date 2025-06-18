@@ -132,8 +132,8 @@ struct ShaderConfig_t
 
 struct ShaderUniform_t
 {
-	size_t				Offset{ 0 };
-	size_t				Stride{ 0 };
+	uint32_t			Offset{ 0 };
+	uint32_t			Stride{ 0 };
 	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
 	eShaderUniformGroup	eGroup{ eShaderUniformGroup::PER_FRAME };
 };
@@ -273,15 +273,15 @@ struct GeometryConfig_t
 // TODO: This is temporary and should NOT stick around
 struct GeometryInstance_t
 {
-	size_t vertexCount{ kInvalidID_U64 };
-	size_t vertexDataOffset{ kInvalidID_U64 };
-	size_t vertexDataStride{ kInvalidID_U64 };
-	size_t indexDataSize{ kInvalidID_U64 };
-	size_t indexDataOffset{ kInvalidID_U64 };
-	size_t indexDataStride{ kInvalidID_U64 };
+	uint32_t vertexCount{ kInvalidID_U32 };
+	uint32_t vertexDataOffset{ kInvalidID_U32 };
+	uint32_t vertexDataStride{ kInvalidID_U32 };
+	uint32_t indexDataSize{ kInvalidID_U32 };
+	uint32_t indexDataOffset{ kInvalidID_U32 };
+	uint32_t indexDataStride{ kInvalidID_U32 };
 
-	MaterialHandle_t	hMaterial;
-	bool				bIsTransparent;
+	MaterialHandle_t	hMaterial{ kInvalidID_U32 };
+	bool				bIsTransparent{ false };
 
 	char*				pszDebugName{ nullptr }; // TODO: FREE THIS!
 

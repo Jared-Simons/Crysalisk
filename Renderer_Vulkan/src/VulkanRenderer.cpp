@@ -1529,7 +1529,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		}
 
 		// Update the descriptor sets.
-		vkUpdateDescriptorSets(m_Device.m_Device, descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	// Bump up the next available descriptor set index.
@@ -1571,8 +1571,8 @@ void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned
 void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
-	VkDeviceSize uniformOffset{ 0 };
-	VkDeviceSize uniformStride{ 0 };
+	uint32_t uniformOffset{ 0 };
+	uint32_t uniformStride{ 0 };
 
 	// Textures/samplers are handled differently from uniform data.
 	if (pUniform->eType != ShaderAttribute_t::Texture)

@@ -44,7 +44,7 @@ namespace FontLoader
 		// The number of fonts in this resource.
 		size_t							FontCount{ 0 };
 		// The size of this font.
-		unsigned int					FontSize{ 0 };
+		float							FontSize{ 0.0f };
 
 		// An array of data needed for rendering these characters.
 		Utl::CVector<FontChar_t>		charData{};

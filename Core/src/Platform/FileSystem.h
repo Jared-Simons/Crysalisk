@@ -59,7 +59,7 @@ public:
 	static size_t		FileSize(FileHandle_t* fileHandle);
 
 	// Reads a line of text from the provided file and places it into pBuffer.
-	static bool 		ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle);
+	static bool 		ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Reads the entire file and places it into pBuffer.
 	static bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Reads the entire file in binary mode, and places the bytes into pBuffer.
