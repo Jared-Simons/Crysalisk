@@ -304,7 +304,4 @@ FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 			return fontIdx;
 		}
 	}
-
-	LOG_ERROR("No free slot was found in the font dictionary! Returning invalid ID");
-	return kInvalidID_U32;
 }

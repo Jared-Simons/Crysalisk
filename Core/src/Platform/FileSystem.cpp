@@ -171,7 +171,7 @@ size_t FileSystem::FileSize(FileHandle_t* pFileHandle)
 //		   pFileHandle - A pointer to the file handle to read from.
 // Output: bool - Returns true on successful read, otherwise false.
 //-------------------------------------------------------------------------
-bool FileSystem::ReadLine(char* pBuffer, int bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
