@@ -20,12 +20,16 @@ namespace MeshLoader
 
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource);
-	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig);
-	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig);
+	static void DeduplicateGeometry(MeshResource_t::GeometryObject_t* pGeometryConfig);
+	static void GenerateTangentData(MeshResource_t::GeometryObject_t* pConfig);
 
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to load an existing mesh asset from disk.
+	// 
+	// Input:	pszMeshFileName - The path to the image to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
 	bool LoadMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
@@ -59,7 +63,11 @@ namespace MeshLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to a Crysalisk model (CModel) at the given path.
+	// 
+	// Input:	pszMeshFileName - The path to the model to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
@@ -92,7 +100,7 @@ namespace MeshLoader
 		currOffset += sizeof(uint32_t);
 
 		// Setup a new mesh object.
-		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
+		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryGroup_t);
 
 		// File header.
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
@@ -104,7 +112,7 @@ namespace MeshLoader
 		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
 		{
 			// Allocate a new geometry group.
-			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
+			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
 
 			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
@@ -155,7 +163,11 @@ namespace MeshLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to an .OBJ model asset at the given path.
+	// 
+	// Input:	pszMeshFileName - The path to the model to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool	LoadOBJMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
@@ -167,8 +179,8 @@ namespace MeshLoader
 		}
 
 		// Some helper variables.
-		MeshResource_t::GeometryObject_t*		pCurrentObject{ nullptr };
-		MeshResource_t::GeometryGroup_t*		pCurrentGroup{ nullptr };
+		MeshResource_t::GeometryGroup_t*		pCurrentObject{ nullptr };
+		MeshResource_t::GeometryObject_t*		pCurrentGroup{ nullptr };
 		int										nObjectsProcessed{ 0 };
 		Utl::CVector<Vector3D>					vertexPositions{};
 		Utl::CVector<Vector2D>					vertexTexCoords{};
@@ -205,7 +217,7 @@ namespace MeshLoader
 			switch (firstChar)
 			{
 			case 'o':	// Objects
-				pOutResource.pObjects.PushBack(new MeshResource_t::GeometryObject_t);
+				pOutResource.pObjects.PushBack(new MeshResource_t::GeometryGroup_t);
 				pCurrentObject = pOutResource.pObjects.Back();
 				pCurrentObject->pszDebugName = StringDuplicate(&szCurrentLine[2]);
 				nObjectsProcessed++;
@@ -215,7 +227,7 @@ namespace MeshLoader
 				if (!pCurrentObject)
 				{
 					// If we recieved an OBJ without objects, then create one for everything.
-					pOutResource.pObjects.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
+					pOutResource.pObjects.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
 					pCurrentObject = pOutResource.pObjects.Back();
 				}
 				CAssert(pCurrentObject);
@@ -231,7 +243,7 @@ namespace MeshLoader
 					//iTestInt++;
 				}
 
-				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryGroup_t);
+				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
 				pCurrentGroup->pszDebugName = StringDuplicate(&szCurrentLine[2]);
 				break;
@@ -339,13 +351,13 @@ namespace MeshLoader
 					bMaterialDefinedBeforeNewGroup = true;
 
 					// Create a new group.
-					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
+					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
 					pCurrentGroup = pCurrentObject->pGroups.Back();
 				}
 				else if (bMaterialDefinedBeforeNewGroup)
 				{
 					// We need to create a new group to work with here.
-					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
+					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
 					pCurrentGroup = pCurrentObject->pGroups.Back();
 				}
 
@@ -386,7 +398,12 @@ namespace MeshLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to load the contents of an .OBJ's material library into
+	//				a MaterialResource_t table associated with the mesh resource.
+	// 
+	// Input:	pszMtlLibFileName - The path to the material library to be parsed.
+	//			pOutResource - The mesh associated with this material library.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool LoadOBJMaterialLibrary(const char* pszMtlLibFileName, MeshResource_t& pMeshResource)
 	{
@@ -555,9 +572,13 @@ namespace MeshLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Given a geometry object, this method attempts to find duplicate vertices
+	//				and removes them, as well as setting up a proper index buffer.
+	// 
+	// Input:	pGeometryConfig - A piece of geometry to be processed.
+	// Output:	none.
 	//-------------------------------------------------------------------------
-	static void DeduplicateGeometry(MeshResource_t::GeometryGroup_t* pGeometryConfig)
+	static void DeduplicateGeometry(MeshResource_t::GeometryObject_t* pGeometryConfig)
 	{
 		size_t					totalDuplicateVerts{ 0 };
 		size_t					originalVertCount{ pGeometryConfig->Vertices.Count() };
@@ -598,9 +619,13 @@ namespace MeshLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Given a geometry object, this method attempts to generate tangent data
+	//				required for proper lighting calculations.
+	// 
+	// Input:	pGeometryConfig - A piece of geometry to be processed.
+	// Output:	none.
 	//-------------------------------------------------------------------------
-	static void GenerateTangentData(MeshResource_t::GeometryGroup_t* pConfig)
+	static void GenerateTangentData(MeshResource_t::GeometryObject_t* pConfig)
 	{
 		size_t invalidTangentCount{ 0 };
 		for (int idx = 0; idx < pConfig->Indices.Count(); idx += 3)
@@ -620,7 +645,7 @@ namespace MeshLoader
 			CAssert(!(vert0 == vert1));
 			CAssert(!(vert1 == vert2));
 			CAssert(!(vert0 == vert2));
-			if (M_ABS(dividend) < 1.192092896e-07f)	// NOTE: Get an epsilon in here.
+			if (M_ABS(dividend) < 1.192092896e-07f)	// TODO: Get an epsilon in here.
 			{
 				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
 				invalidTangentCount++;

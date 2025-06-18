@@ -35,6 +35,9 @@ namespace Platform
 	typedef void (*Platform_MouseMoveEventCallback)(const float mouseXPos, const float mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
+	//-------------------------------------------------------------------------
+	// Interface for a platform-specific window.
+	//-------------------------------------------------------------------------
 	class IPlatformWindow
 	{
 	public:

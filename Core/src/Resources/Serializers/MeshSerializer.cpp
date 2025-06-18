@@ -10,9 +10,19 @@
 
 namespace MeshSerializer
 {
+	// Specific file extension for the Crysalisk model file format (CModels).
 	static const char*		kCModelFileExtension = ".cmodel_c";
+	// The current most up-to-date version of the CModel file format.
 	static const uint32_t	kCurrentModelVersion = 1;
 
+	//-------------------------------------------------------------------------
+	// Purpose: Takes an existing mesh resource imported from another file type, 
+	// and writes it out to disk in our own binary format.
+	// 
+	// Input:	pszModelName - The name of the model.
+	//			pInResource - The resource data to be serialized.
+	// Output:	bool - Returns true on successful serialization, otherwise false.
+	//-------------------------------------------------------------------------
 	bool SerializeMeshResource(const char* pszModelName, MeshLoader::MeshResource_t& pInResource)
 	{
 		// Create and setup the file.
@@ -59,7 +69,7 @@ namespace MeshSerializer
 
 		// Submesh data info.
 		fileHeader.iSubmeshDataOffset = sizeof(CModel_FileHeader_t);
-		fileHeader.iSubmeshDataStride = sizeof(MeshLoader::MeshResource_t::GeometryGroup_t);
+		fileHeader.iSubmeshDataStride = sizeof(MeshLoader::MeshResource_t::GeometryObject_t);
 		fileHeader.iSubmeshDataSize = totalSubmeshes;
 
 		FileSystem::WriteBytes(&fileHeader, sizeof(CModel_FileHeader_t), &pCModelFileHandle);

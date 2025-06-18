@@ -131,7 +131,10 @@ void CMemoryManager::Free(void* pMemBlock)
 		CAssert(pMemBlock != nullptr);
 		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
 		m_iNumBytesAllocated -= bytesFreed;
+		return;
 	}
+
+	// TODO: Handle these issues gracefully.
 }
 
 //-------------------------------------------------------------------------

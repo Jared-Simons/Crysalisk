@@ -20,9 +20,12 @@
 #include <Windows.h>
 #include <malloc.h>
 
-namespace Platform {
-
-	struct Platform_Win32_InternalData
+namespace Platform 
+{
+	//-------------------------------------------------------------------------
+	// Win32-Specific Platform State.
+	//-------------------------------------------------------------------------
+	struct Win32_InternalState
 	{
 		HINSTANCE hInstance = 0;
 		IPlatformWindow* window = nullptr; // TODO: Make this an array where the windows are owned.
@@ -32,9 +35,12 @@ namespace Platform {
 		inline static LARGE_INTEGER m_ClockStartTime;
 	};
 
-	static Platform_Win32_InternalData* s_pWin32PlatformData{ nullptr };
+	static Win32_InternalState* s_pWin32PlatformData{ nullptr };
 	static Utl::CVector<class CSysModule> s_ModuleRegistry{};
 
+	//-------------------------------------------------------------------------
+	// Win32-Specific Window Implementation.
+	//-------------------------------------------------------------------------
 	class CWindowsWindow : public IPlatformWindow
 	{
 	public:
@@ -50,7 +56,7 @@ namespace Platform {
 			}
 		}
 
-		virtual void	GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) override
+		virtual void GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) override
 		{
 			RECT rect;
 			if (GetClientRect(m_HWND, &rect))
@@ -89,11 +95,16 @@ namespace Platform {
 	// Default Window Procedure
 	static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	static void CreateWin32Clock();
+	static void InitializeWin32Clock();
 	static int ProcessWin32Input_Key(WPARAM wParam);
 	static int ProcessWin32Input_MouseButton(UINT uMsg);
 	static int ProcessWin32Input_MouseMove(LPARAM lParam);
 
+	//-------------------------------------------------------------------------
+	// Purpose: Initialize the platform-specific state.
+	// Input:	none.
+	// Output:	bool - Returns true on successful initialization, otherwise false.
+	//-------------------------------------------------------------------------
 	bool InitializePlatformLayer()
 	{
 		if (s_pWin32PlatformData != nullptr)
@@ -102,13 +113,18 @@ namespace Platform {
 			return true;
 		}
 
-		s_pWin32PlatformData = new Platform_Win32_InternalData;
+		s_pWin32PlatformData = new Win32_InternalState;
 		s_pWin32PlatformData->hInstance = GetModuleHandleA(0);
 		
 		LOG_INFO("Platform Layer Initialized!");
 		return true;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Shuts down platform layer.
+	// Input:	none.
+	// Output:	none.
+	//-------------------------------------------------------------------------
 	void ShutdownPlatformLayer()
 	{
 		// clear out allocated platform state.
@@ -120,6 +136,12 @@ namespace Platform {
 		CleanupInterfaceRegistry();
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Factory function that creates a Win32 Window.
+	// Input:	params - Parameters to configure the new window.
+	//			bShow - Indicates if the window should be focused upon creation.
+	// Output:	Returns a handle to the new window. (TODO: Make this return a handle!)
+	//-------------------------------------------------------------------------
 	IPlatformWindow* CreatePlatformWindow(WindowParams_t params, bool bShow)
 	{
 		CWindowsWindow* newWindow = new CWindowsWindow(params);
@@ -131,8 +153,7 @@ namespace Platform {
 		}
 
 		// Create the Win32 window.
-		//LPCSTR windowClassName = params.Name;
-		LPCSTR windowClassName = "MyEngine";
+		LPCSTR windowClassName = params.pszName;
 
 		if (s_pWin32PlatformData->window == nullptr)
 		{
@@ -218,7 +239,9 @@ namespace Platform {
 		}
 	}
 
-
+	// ============================================================================
+	//  Main WIN32 Event Processing.
+	// ============================================================================
 	static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)
@@ -280,7 +303,7 @@ namespace Platform {
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
 
-	void CreateWin32Clock()
+	void InitializeWin32Clock()
 	{
 		LARGE_INTEGER frequency;
 		QueryPerformanceFrequency(&frequency);
@@ -496,19 +519,52 @@ namespace Platform {
 	#define WHITE			15
 	*/
 
-	void LogMessage(int level, const char* message)
+	//-------------------------------------------------------------------------
+	// Purpose: Logs a message to the platform-specific output.
+	// Input:	iLevel - The severity of the console message.
+	//			pszMessage - The message to be logged.
+	// Output:	none.
+	//-------------------------------------------------------------------------
+	void LogMessage(int iLevel, const char* pszMessage)
 	{
 		HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 
 		static char levelColor[6] = { 64, 4, 6, 3, 5, 8 };
-		SetConsoleTextAttribute(consoleHandle, levelColor[level]);
-		size_t length = strlen(message);
-		WriteConsoleA(consoleHandle, message, (DWORD)length, 0, 0);
+		SetConsoleTextAttribute(consoleHandle, levelColor[iLevel]);
+		size_t length = strlen(pszMessage);
+		WriteConsoleA(consoleHandle, pszMessage, (DWORD)length, 0, 0);
 
 		// Clear the console back to light gray after printing the message.
 		SetConsoleTextAttribute(consoleHandle, 15);
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Displays a message box, typically in response to application-crashing scenarios.
+	// Input:   pWindow - A handle to the window to associate the message with.
+	//			pszMessageText - The message text to display.
+	//			pszMessageBoxTitle - The title for the message box.
+	//			bIsErrorRecoverable - Indicates if this error should end the process.
+	// Output:	bool - Returns true if the application can continue, otherwise false.
+	//-------------------------------------------------------------------------
+	bool DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable)
+	{
+		int messageBoxResult = 0;
+		if (pWindow)
+		{
+			messageBoxResult = MessageBoxExA((HWND)pWindow->GetInternalHandle(), pszMessageText, pszMessageBoxTitle, (bIsErrorRecoverable ? MB_CANCELTRYCONTINUE : MB_OK), 0);
+		}
+		else
+		{
+			messageBoxResult = MessageBoxExA(0, pszMessageText, pszMessageBoxTitle, (bIsErrorRecoverable ? MB_CANCELTRYCONTINUE : MB_OK), 0);
+		}
+		return (messageBoxResult == IDCONTINUE);
+	}
+
+	//-------------------------------------------------------------------------
+	// Purpose: Returns the current timestamp from platform code.
+	// Input:	none.
+	// Output:	double - The current timestep.
+	//-------------------------------------------------------------------------
 	double GetAbsoluteTime()
 	{
 		double elapsedTime = 0.0;
@@ -516,7 +572,7 @@ namespace Platform {
 		// If the clock has not yet been initialized.
 		if (s_pWin32PlatformData->m_ClockFreq == -1)
 		{
-			CreateWin32Clock();
+			InitializeWin32Clock();
 		}
 
 		LARGE_INTEGER currentTime;
@@ -566,29 +622,34 @@ namespace Platform {
 		char* m_szModuleName;
 	};
 
-	ISysModule* LoadSysModule(const char* pModulePath)
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to load a .dll from disk.
+	// Input:	pszModulePath - The path to the .dll to attempt loading.
+	// Output:	A handle to the module. (TODO: Make this return a handle).
+	//-------------------------------------------------------------------------
+	ISysModule* LoadSysModule(const char* pszModulePath)
 	{
-		if (!pModulePath)
+		if (!pszModulePath)
 		{
 			LOG_ERROR("Platform::LoadSysModule requires a pszPath to the module to load! Returning nullptr.");
 			return nullptr;
 		}
 
 		CSysModule* pNewModule = new CSysModule;
-		pNewModule->m_Module = LoadLibraryA(pModulePath);
+		pNewModule->m_Module = LoadLibraryA(pszModulePath);
 
 		if (!pNewModule->m_Module)
 		{
 			// Try to append the .dll extension to the path and load again.
 			char formattedPath[512];
-			StringFormat("%s.%s", pModulePath, "dll", formattedPath);
+			StringFormat("%s.%s", pszModulePath, "dll", formattedPath);
 
 			pNewModule->m_Module = LoadLibraryA(formattedPath);
 
 			// If we still have nothing then there's probably no module here.
 			if (!pNewModule->m_Module)
 			{
-				LOG_ERROR("Failed to load '%s.dll'. LoadSysModule returning nullptr.", pModulePath);
+				LOG_ERROR("Failed to load '%s.dll'. LoadSysModule returning nullptr.", pszModulePath);
 				delete pNewModule;
 				return nullptr;
 			}
@@ -599,7 +660,7 @@ namespace Platform {
 
 		if (!pNewModule->m_ObtainInterfacesFunc)
 		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ObtainInterfaces()' from library '%s.dll' the module may not work as intended!", pModulePath);
+			LOG_WARN("Platform::LoadSysModule could not find required function 'ObtainInterfaces()' from library '%s.dll' the module may not work as intended!", pszModulePath);
 		}
 
 		// Attempt to get at the module's 'ConnectInterface' function to bridge the gap!
@@ -607,10 +668,10 @@ namespace Platform {
 
 		if (!pNewModule->m_ConnectInterfaceFunc)
 		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pModulePath);
+			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pszModulePath);
 		}
 
-		pNewModule->m_szModuleName = StringDuplicate(pModulePath);
+		pNewModule->m_szModuleName = StringDuplicate(pszModulePath);
 
 		// Register this module.
 		s_ModuleRegistry.PushBack(pNewModule);
@@ -618,25 +679,19 @@ namespace Platform {
 		return pNewModule;
 	}
 
+	//-------------------------------------------------------------------------
+	// TODO: DO WE NEED THIS HERE???
+	//-------------------------------------------------------------------------
 	void SetupExternalInterfaces()
 	{
 		::AssignInterfaces(GetRegisteredInterfaces());
 	}
 
-	bool DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable)
-	{
-		int messageBoxResult = 0;
-		if (pWindow)
-		{
-			messageBoxResult = MessageBoxExA((HWND)pWindow->GetInternalHandle(), pszMessageText, pszMessageBoxTitle, (bIsErrorRecoverable ? MB_CANCELTRYCONTINUE : MB_OK), 0);
-		}
-		else
-		{
-			messageBoxResult = MessageBoxExA(0, pszMessageText, pszMessageBoxTitle, (bIsErrorRecoverable ? MB_CANCELTRYCONTINUE : MB_OK), 0);
-		}
-		return (messageBoxResult == IDCONTINUE);
-	}
-
+	//-------------------------------------------------------------------------
+	// Purpose: Stores off pointers to all exposed interfaces within all loaded .dlls.
+	// Input:	none.
+	// Output:	none.
+	//-------------------------------------------------------------------------
 	void ObtainLibraryInterfaces()
 	{
 		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
@@ -652,6 +707,13 @@ namespace Platform {
 		}
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Connects all previously-obtained interface pointers for all registered .dlls.
+	//				After 'ObtainLibraryInterfaces()' and this, each registered .dll should have
+	//				access to all registered interfaces.
+	// Input:	none.
+	// Output:	none.
+	//-------------------------------------------------------------------------
 	void ConnectLibraryInterfaces()
 	{
 		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
@@ -666,6 +728,13 @@ namespace Platform {
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
 	//-----------------------------------------------------------------------------
+
+	//-------------------------------------------------------------------------
+	// Purpose: Allocates a block of memory from the platform allocator.
+	// 
+	// Input:	size - The size in bytes of the allocation to make.
+	// Output:	A pointer to the allocated memory.
+	//-------------------------------------------------------------------------
 	void* MemoryAllocate(size_t size)
 	{
 		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, size);
@@ -673,6 +742,12 @@ namespace Platform {
 		return pMemBlock;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Frees a block of memory.
+	// 
+	// Input:	pMemBlock - A pointer to the block of memory.
+	// Output:	none.
+	//-------------------------------------------------------------------------
 	void MemoryFree(void* pMemBlock)
 	{
 		if (pMemBlock)
@@ -681,30 +756,50 @@ namespace Platform {
 		}
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to re-allocate a block of memory.
+	// 
+	// Input:	memory - A pointer to the block of memory.
+	//			newSize - The size of the new memory block.
+	// Output:	none.
+	//-------------------------------------------------------------------------
 	void* MemoryReallocate(void* memory, size_t newSize)
 	{
 		if (memory && newSize)
 			return realloc(memory, newSize);
 
-		//LOG_ERROR("Platform_MemoryRealloc() - Invalid memory pointer passed, returning nullptr.");
 		return nullptr;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to perform a memory copy.
+	// 
+	// Input:	dest - The memory location to copy to.
+	//			source - The memory location to be copied.
+	//			size - The size of memory in bytes to be copied.
+	// Output:	A pointer to the new block of memory.
+	//-------------------------------------------------------------------------
 	void* MemoryCopy(void* dest, const void* source, size_t size)
 	{
 		if (dest && source && size)
 			return memcpy(dest, source, size);
 
-		//LOG_ERROR("Platform_MemoryCopy() - Invalid memory pointer(s) passed, returning nullptr.");
 		return nullptr;
 	}
 
-	void* MemorySet(void* memory, i32 value, size_t size)
+	//-------------------------------------------------------------------------
+	// Purpose: Sets a range of memory to a given value.
+	// 
+	// Input:	memory - The memory location to be set.
+	//			source - The value to uniformally set to the memory block.
+	//			size - The size of memory in bytes to be set.
+	// Output:	A pointer to the block of memory.
+	//-------------------------------------------------------------------------
+	void* MemorySet(void* memory, int value, size_t size)
 	{
 		if (memory)
 			return memset(memory, value, size);
 
-		//LOG_ERROR("Platform_MemorySet() - Invalid memory pointer(s) passed, returning nullptr.");
 		return nullptr;
 	}
 }

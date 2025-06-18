@@ -11,16 +11,21 @@
 
 namespace Platform 
 {
-
+	//-------------------------------------------------------------------------
+	// Contains details about interfaces to be registered.
+	//-------------------------------------------------------------------------
 	struct SystemInterface_t
 	{
 		void* pSystemAddr;			// A pointer to the system's interface.
 		char* szSystemName;			// The name of the system.
 	};
 
-	CORE_API void RegisterInterface(SystemInterface_t& interfaceData);
-	CORE_API Utl::CVector<SystemInterface_t>& GetRegisteredInterfaces();
+	// Registers the provided interface with the interface registry.
+	CORE_API void RegisterInterface(SystemInterface_t& pInterfaceData);
 
-	void CleanupInterfaceRegistry();
+	// Returns a copy of the registered interfaces.
+	CORE_API Utl::CVector<SystemInterface_t> GetRegisteredInterfaces();
 
+	// Cleans up the interface registry.
+	CORE_API void CleanupInterfaceRegistry();
 }

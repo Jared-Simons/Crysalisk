@@ -42,7 +42,7 @@ static bool Event_WindowResizedPause(EventData_t data);
 static bool Event_WindowResizedUnpause(EventData_t data);
 
 //-------------------------------------------------------------------------
-// Implementation of the core engine class
+// Implementation of the core engine class.
 //-------------------------------------------------------------------------
 class CEngine : public IEngine
 {
@@ -261,6 +261,7 @@ void CEngine::Shutdown()
 		m_pEngineWindow = nullptr;
 	}
 
+	Platform::CleanupInterfaceRegistry();
 	Platform::ShutdownPlatformLayer();
 	g_pInputSystem->Shutdown();
 	g_pEngineEvents->Shutdown();

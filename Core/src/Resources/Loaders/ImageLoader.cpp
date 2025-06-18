@@ -16,6 +16,13 @@
 namespace ImageLoader
 {
 	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to load an existing image asset from disk.
+	// 
+	// Input:	pszImagePath - The path to the image to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
+	//-------------------------------------------------------------------------
 	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
 	{
 		const int kRequiredChannelCount = 4;
@@ -82,6 +89,11 @@ namespace ImageLoader
 		return true;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Releases resources allocated during image resource acquisition.
+	// 
+	// Input:	pResource - Contains the resources to be released.
+	//-------------------------------------------------------------------------
 	void ReleaseImageResource(ImageResource_t& pResource)
 	{
 		// For now, all we care about is freeing the pixel array.

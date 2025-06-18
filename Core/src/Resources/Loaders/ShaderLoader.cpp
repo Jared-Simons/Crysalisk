@@ -26,7 +26,11 @@ namespace ShaderLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to load an existing shader asset from disk.
+	// 
+	// Input:	pszShaderPath - The path to the shader configuration to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
 	bool LoadShaderResource(const char* pszShaderPath, ShaderResource_t& pOutResource)
 	{
@@ -228,7 +232,11 @@ namespace ShaderLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to process a shader module configuration.
+	// 
+	// Input:	pszConfigData - The shader module config to be parsed.
+	//			pOutResource - The shader associated with this module.
+	// Output:	bool - Returns true on successful parsing, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool ProcessShaderModule(char* pszConfigData, ShaderResource_t& pOutResource)
 	{
@@ -304,7 +312,11 @@ namespace ShaderLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to process a shader vertex attribute configuration.
+	// 
+	// Input:	pszConfigData - The attribute config to be parsed.
+	//			pOutResource - The shader associated with this attribute.
+	// Output:	bool - Returns true on successful parsing, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool	ProcessShaderVertexAttribute(char* pszConfigData, ShaderResource_t& pOutResource)
 	{
@@ -342,7 +354,11 @@ namespace ShaderLoader
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to process a shader uniform configuration.
+	// 
+	// Input:	pszConfigData - The uniform config to be parsed.
+	//			pOutResource - The shader associated with this uniform.
+	// Output:	bool - Returns true on successful parsing, otherwise false.
 	//-------------------------------------------------------------------------
 	static bool ProcessShaderUniforms(char* pszConfigData, ShaderResource_t& pOutResource)
 	{
