@@ -325,29 +325,7 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	// Acquire materials
-	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
 	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
-
-	// TEMP SHADER TEST CODE
-	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
-	// END TEMP
-
-	// Load a test model.
-	//LOG_DEBUG("Bytes allocated before model loading:");
-	//g_pMemoryManager->PrintMemoryStats();
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
-	//LOG_DEBUG("Bytes allocated after model loading:");
-
-	// Font test.
-	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
-
-	// Acquire geometry resources for this text.
-	//s_FontTest.SetText("Some Test Text!");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
 	MeshLoader::MeshResource_t sponzaResource{};
 	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
