@@ -282,7 +282,7 @@ namespace MeshLoader
 					case ' ':	// Vertex position.
 					{
 						Vector3D newVertex{};
-						int numElements = sscanf(&szCurrentLine[2], "%f %f %f", &newVertex.x, &newVertex.y, &newVertex.z);
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newVertex.x, &newVertex.y, &newVertex.z);
 
 						CAssert(numElements == 3);
 						// Add it to the array.
@@ -293,7 +293,7 @@ namespace MeshLoader
 					case 't':	// Vertex texture coordinates.
 					{
 						Vector2D newTexCoord{};
-						int numElements = sscanf(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
 
 						CAssert(numElements == 2);
 						// Add it to the array.
@@ -304,7 +304,7 @@ namespace MeshLoader
 					case 'n':	// Vertex normals.
 					{
 						Vector3D newNormal{};
-						int numElements = sscanf(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
 
 						CAssert(numElements == 3);
 						// Add it to the array.
@@ -321,7 +321,7 @@ namespace MeshLoader
 				uint32_t	texCoordIndices[3];
 				uint32_t	normalIndices[3];
 
-				int elements = sscanf(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndices[0], &texCoordIndices[0], &normalIndices[0], &vertexIndices[1], &texCoordIndices[1], &normalIndices[1], &vertexIndices[2], &texCoordIndices[2], &normalIndices[2]);
+				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndices[0], &texCoordIndices[0], &normalIndices[0], &vertexIndices[1], &texCoordIndices[1], &normalIndices[1], &vertexIndices[2], &texCoordIndices[2], &normalIndices[2]);
 
 				CAssert(elements == 9);
 
@@ -603,7 +603,7 @@ namespace MeshLoader
 			if (bUniqueVert)
 			{
 				// Add this vertex over to the unique array.
-				size_t currIdx = uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
+				uint32_t currIdx = (uint32_t)uniqueVerts.PushBack(pGeometryConfig->Vertices[outerIdx]);
 				pGeometryConfig->Indices.PushBack(currIdx);
 			}
 		}

@@ -31,7 +31,7 @@ public:
 
 	virtual uint32_t			GetTextureFlags(TextureHandle_t hTexture) const override;
 
-	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) override;
+	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData) override;
 
 			// This variant exists to free textures in the array without having to access the hashmap from the calling function. This really only exists to easily clear the textures on shutdown.
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
@@ -268,7 +268,7 @@ uint32_t CTextureSystem::GetTextureFlags(TextureHandle_t hTexture) const
 // Takes already created pixel data and wraps it in a texture object.
 // This returns a handle to that texture.
 //-------------------------------------------------------------------------
-TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData)
+TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData)
 {
 	Texture* newTexture = nullptr;
 	int texIdx = 0;

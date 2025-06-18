@@ -117,11 +117,11 @@ struct ShaderConfig_t
 	bool								bDepthTestingEnabled{ false };
 	bool								bColorBlendingEnabled{ false };
 	Utl::CVector<VertexAttribute_t>		vertexAttributes{};
-	size_t								vertexStride{};
+	uint32_t							vertexStride{};
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
-	size_t								perFrameUBOStride{ 0 };
-	size_t								perMaterialUBOStride{ 0 };
-	size_t								perDrawUBOStride{ 0 };
+	uint32_t							perFrameUBOStride{ 0 };
+	uint32_t							perMaterialUBOStride{ 0 };
+	uint32_t							perDrawUBOStride{ 0 };
 	RendererView						m_RendererView{};
 
 	// Deprecated!
@@ -132,8 +132,8 @@ struct ShaderConfig_t
 
 struct ShaderUniform_t
 {
-	size_t				Offset{ 0 };
-	size_t				Stride{ 0 };
+	uint32_t			Offset{ 0 };
+	uint32_t			Stride{ 0 };
 	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
 	eShaderUniformGroup	eGroup{ eShaderUniformGroup::PER_FRAME };
 };

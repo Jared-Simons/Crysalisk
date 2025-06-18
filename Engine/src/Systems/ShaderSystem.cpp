@@ -73,8 +73,8 @@ static eShaderStage				GetShaderStageFromString(const char* pszString);
 static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
 static VertexAttribute_t		GetVertexAttributeDataFromString(const char* pszString);
 static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr);
-static inline size_t			GetAttributeStride(ShaderAttribute_t inAttribute);
-static size_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
+static inline uint32_t			GetAttributeStride(ShaderAttribute_t inAttribute);
+static uint32_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
 static void						AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig);
 
 //-------------------------------------------------------------------------
@@ -222,13 +222,13 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
 		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
-		size_t	iRunningPerFrameOffset{ 0 };
-		size_t	iRunningPerMaterialOffset{ 0 };
+		uint32_t	iRunningPerFrameOffset{ 0 };
+		uint32_t	iRunningPerMaterialOffset{ 0 };
 		for (int idx = 0; idx < uniformCount; idx++)
 		{
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
 			// Find all our buffer offsets and save off our groups.
-			size_t currentStride = GetAttributeStride(pCurrentConfig.eType);
+			uint32_t currentStride = GetAttributeStride(pCurrentConfig.eType);
 			if (pCurrentConfig.eFrequency == eShaderUniformGroup::PER_FRAME)
 			{
 				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_FRAME;
@@ -536,7 +536,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 //-------------------------------------------------------------------------
 // TODO: Documentation pls.
 //-------------------------------------------------------------------------
-inline size_t GetAttributeStride(ShaderAttribute_t inAttribute) 
+static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute) 
 {
 	switch (inAttribute)
 	{
@@ -560,9 +560,9 @@ inline size_t GetAttributeStride(ShaderAttribute_t inAttribute)
 //-------------------------------------------------------------------------
 // TODO: Documentation pls.
 //-------------------------------------------------------------------------
-static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign)
+static uint32_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign)
 {
-	size_t boundaryToAlignTo{ 0 };
+	uint32_t boundaryToAlignTo{ 0 };
 	switch (typeToAlign)
 	{
 	case ShaderAttribute_t::Int32:
@@ -603,9 +603,9 @@ static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAtt
 //-------------------------------------------------------------------------
 static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig)
 {
-	size_t iCurrentPerFrameOffset{ 0 };
-	size_t iCurrentPerMaterialOffset{ 0 };
-	size_t iCurrentPerDrawOffset{ 0 };
+	uint32_t iCurrentPerFrameOffset{ 0 };
+	uint32_t iCurrentPerMaterialOffset{ 0 };
+	uint32_t iCurrentPerDrawOffset{ 0 };
 
 	size_t uniformCount = pShader->m_iUniformCount;
 	size_t currentStride = 0;

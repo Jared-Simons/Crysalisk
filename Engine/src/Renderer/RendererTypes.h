@@ -35,7 +35,7 @@ struct GlobalUniformObject_t
 
 struct MaterialInstanceData_t
 {
-	int			Shininess;
+	float		Shininess;
 	Vector3D	vecDiffuseColor;
 	Vector4D	Reserved0;
 	Vector4D	Reserved2;
@@ -56,9 +56,9 @@ enum class ShaderAttribute_t
 
 struct VertexAttribute_t
 {
-	char*			szName;
-	ShaderAttribute_t	type;
-	size_t			stride;
+	char*				szName{ nullptr };
+	ShaderAttribute_t	type{ ShaderAttribute_t::Undefined };
+	uint32_t			stride{ 0 };
 
 	VertexAttribute_t()
 		: szName{ nullptr }
@@ -102,7 +102,7 @@ struct ShaderUniformConfig_t
 	char*							szName;
 	ShaderAttribute_t				eType;
 	eShaderUniformGroup				eFrequency;
-	size_t							iStride;	// The length of a single element in bytes (does not account for a whole array).
+	uint32_t						iStride;	// The length of a single element in bytes (does not account for a whole array).
 	int								iArraySize;
 
 	ShaderUniformConfig_t()
@@ -116,6 +116,8 @@ struct ShaderUniformConfig_t
 	{
 		if (pOther.szName)
 			szName = StringDuplicate(pOther.szName);
+		else
+			szName = nullptr;
 		eType = pOther.eType;
 		eFrequency = pOther.eFrequency;
 		iStride = pOther.iStride;

@@ -215,7 +215,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 	newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
 
 	InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
-	size_t currVertIndex{ 0 };
+	uint32_t currVertIndex{ 0 };
 
 	// TODO: Configurable position and size
 	Vector2D position{ -0.9f, -0.9f };
@@ -304,4 +304,7 @@ FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 			return fontIdx;
 		}
 	}
+
+	LOG_ERROR("No free slot was found in the font dictionary! Returning invalid ID");
+	return kInvalidID_U32;
 }

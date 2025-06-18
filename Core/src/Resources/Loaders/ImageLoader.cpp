@@ -54,7 +54,7 @@ namespace ImageLoader
 
 		// Load the image data into our buffer. (This must be freed by the caller).
 		// NOTE: We are forcing each image to be loaded as 4 channels because support for R8G8B8 images on some hardware is dodgy, whereas R8G8B8A8 is seemingly universal.
-		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, kRequiredChannelCount);
+		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), (int)bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, kRequiredChannelCount);
 
 		// Check the image for transparency.
 		// We (currently) only care about this if there is an alpha channel.

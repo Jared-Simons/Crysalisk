@@ -51,7 +51,7 @@ namespace MeshSerializer
 		{
 			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
 			{
-				totalVerts += pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Count();
+				totalVerts += (uint32_t)pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Count();
 			}
 		}
 
@@ -60,7 +60,7 @@ namespace MeshSerializer
 
 		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
 		{
-			totalSubmeshes += pInResource.pObjects[objIdx]->pGroups.Count();
+			totalSubmeshes += (uint32_t)pInResource.pObjects[objIdx]->pGroups.Count();
 		}
 
 		// Write out the header.

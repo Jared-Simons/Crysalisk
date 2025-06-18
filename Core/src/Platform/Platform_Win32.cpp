@@ -585,7 +585,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Interface and factory methods for code modules (.dlls)
 	//-------------------------------------------------------------------------
-	typedef Utl::CVector<SystemInterface_t>(*PFN_ObtainInterfaces)();
+	typedef void (*PFN_ObtainInterfaces)(Utl::CVector<SystemInterface_t>& pOutInterfaces);
 	typedef void* (*PFN_ConnectInterface)(Utl::CVector<SystemInterface_t>& pInterfaceState);
 	class CSysModule : public ISysModule
 	{
@@ -698,7 +698,8 @@ namespace Platform
 		{
 			if (s_ModuleRegistry[idx].m_ObtainInterfacesFunc)
 			{
-				Utl::CVector<SystemInterface_t> incomingInterfaces = s_ModuleRegistry[idx].m_ObtainInterfacesFunc();
+				Utl::CVector<SystemInterface_t> incomingInterfaces{};
+				s_ModuleRegistry[idx].m_ObtainInterfacesFunc(incomingInterfaces);
 				for (int iface = 0; iface < incomingInterfaces.Count(); iface++)
 				{
 					RegisterInterface(incomingInterfaces[iface]);
