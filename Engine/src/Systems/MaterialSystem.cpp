@@ -69,7 +69,6 @@ private:
 	{
 		Utl::CHashMap<const char*, MaterialLookup> m_MaterialHashmap{};
 		Material* m_MaterialArray{ nullptr };
-		MaterialInstanceData_t* m_MaterialInstanceData{ nullptr };
 	};
 
 	MaterialDictionary	m_MaterialDictionary{};
@@ -94,7 +93,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 
 	// Allocate memory for our material array.
 	m_MaterialDictionary.m_MaterialArray = (Material*)new Material[m_Config.MaxMaterials];
-	m_MaterialDictionary.m_MaterialInstanceData = (MaterialInstanceData_t*)new MaterialInstanceData_t[m_Config.MaxMaterials];
 
 	// Setup shader locations.
 	m_DefaultMaterialShader = g_pShaderSystem->AcquireShader("Core.Phong");
@@ -124,7 +122,6 @@ void CMaterialSystem::Shutdown()
 {
 	g_pShaderSystem->ReleaseShader(m_DefaultMaterialShader);
 
-	delete[] m_MaterialDictionary.m_MaterialInstanceData;
 	delete[] m_MaterialDictionary.m_MaterialArray;
 	LOG_WARN("TODO: IMPLEMENT MATERIAL SYSTEM RESOURCE RELEASE METHOD!!!");
 }
@@ -325,8 +322,6 @@ void CMaterialSystem::CreateDefaultMaterial()
 	pNewMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
 	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
 	pNewMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
-	MaterialInstanceData_t defaultInstanceData{};
-	defaultInstanceData.Shininess = 32;
 
 	MaterialLookup* newMaterialLookup = &m_DefaultMaterialLookup;
 	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
@@ -349,7 +344,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 		g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
-	float flShininess = defaultInstanceData.Shininess;
+	float flShininess = 32;
 	// Set the instance uniform.
 	g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
 }

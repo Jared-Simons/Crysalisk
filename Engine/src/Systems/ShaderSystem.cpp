@@ -501,7 +501,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	}
 	else if (StringCompareInsensitive(pszAttributeStr, "texture") || StringCompareInsensitive(pszAttributeStr, "sampler"))
 	{
-		newUniformConfig.eType = ShaderAttribute_t::Texture;
+		newUniformConfig.eType = ShaderAttribute_t::Sampler;
 		newUniformConfig.iStride = 0; // Samplers have no size.
 	}
 	else
@@ -552,7 +552,7 @@ static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute)
 		return sizeof(Vector4D);
 	case ShaderAttribute_t::Matrix4x4:
 		return sizeof(Matrix4x4);
-	case ShaderAttribute_t::Texture:
+	case ShaderAttribute_t::Sampler:
 		return 0; // Samplers don't count.
 	}
 }
@@ -580,7 +580,7 @@ static uint32_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderA
 		boundaryToAlignTo = 16;
 		break;
 
-	case ShaderAttribute_t::Texture:
+	case ShaderAttribute_t::Sampler:
 		return 0;
 
 	default:
@@ -860,7 +860,7 @@ ShaderAttribute_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
 	}
 	else if (StringCompare(pszType, "texture"))
 	{
-		return ShaderAttribute_t::Texture;
+		return ShaderAttribute_t::Sampler;
 	}
 	else
 	{
@@ -871,7 +871,7 @@ ShaderAttribute_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
 
 void CShaderSystem::ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes)
 {
-	LOG_DEBUG("Sampler types: %s", pszTypeString);
+	LOG_DEBUG("Texture types: %s", pszTypeString);
 	char* pszTypes = StringDuplicate(pszTypeString);
 	int commaIndex = StringIndexOf(pszTypeString, ',');
 	int startIndex = 0;

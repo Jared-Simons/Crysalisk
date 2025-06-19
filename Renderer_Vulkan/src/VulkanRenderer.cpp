@@ -567,48 +567,7 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 //-------------------------------------------------------------------------
 void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
-	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
-	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-
-	// Render our test text.
-	// TODO: NO HARD CODING WITH SHADERS!
-	VulkanShaderInternal& pShader = m_pInternalShaderData[1];
-	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
-
-	VkDeviceSize offsets[2] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
-
-	if (pGeometry.indexDataSize > 0)
-	{
-		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
-	}
-
-	// Bind our pipeline.
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
-	m_CurrentlyBoundShaderIndex = 1;
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-
-	// Copy the global data over.
-	// TODO: DO THIS ON SHADER BIND!
-	void* pUniformData;
-	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
-
-	// Bind instance descriptor set.
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
-
-	if (pGeometry.indexDataSize > 0)
-	{
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, 0, (int32_t)pGeometry.vertexDataOffset, 0);
-	}
-	else
-	{
-		vkCmdDraw(commandBuffer, (uint32_t)pGeometry.vertexCount, 1, 0, 0);
-	}
+	
 }
 
 static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferUsage usage)
@@ -738,135 +697,6 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 
 bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInstanceData_t& pMaterialInstanceData)
 {
-	// Get at our shader.
-	// TODO: What to do if this shader's resources have not been loaded yet.
-	// (We probably shouldn't get in here if that's the case)
-	if (pMaterial.m_hShaderHandle == kInvalidID_U32)
-	{
-		pMaterial.m_hShaderHandle = 0; // TODO: Default shader handle or something.
-	}
-	//CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
-	VulkanShaderInternal* pShader = &m_pInternalShaderData[pMaterial.m_hShaderHandle];
-	if (!pShader)
-	{
-		CAssert(0); // TODO: Handle this.
-		return false;
-	}
-
-	// Get the instance descriptor set layout.
-	VkDescriptorSetLayout instanceDescriptorLayout{};
-	for (int idx = 0; idx < pShader->m_DescriptorSetLayouts.Capacity(); idx++)
-	{
-		if (pShader->m_DescriptorSetLayouts[idx].m_FrequencyLevel == eShaderUniformGroup::PER_MATERIAL)
-		{
-			instanceDescriptorLayout = pShader->m_DescriptorSetLayouts[idx].m_Layout;
-			break;
-		}
-	}
-	Utl::CVector<VkDescriptorSetLayout> instanceLayouts(m_MaxImagesInFlight);
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		instanceLayouts[idx] = instanceDescriptorLayout;
-	}
-
-	// Allocate object descriptor sets.
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = m_DescriptorPool;
-	allocInfo.descriptorSetCount = (uint32_t)m_MaxImagesInFlight;
-	allocInfo.pSetLayouts = instanceLayouts.Data();
-	VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets));
-
-	// Acquire descriptor resources.
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkWriteDescriptorSet descriptorWrites[1]{};
-
-		// First descriptor is the uniform buffer.
-		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = pShader->m_UniformBuffers[frameIdx].m_Handle;
-		uniformBufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1)); // NOTE: we add the global UBO size here because the global uniforms live at the start of the uniform memory block.
-		uniformBufferInfo.range = sizeof(MaterialInstanceData_t);
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
-
-		// Copy over the material instance data.
-		void* pUniformData;
-		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
-		vkMapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
-		memcpy(pUniformData, &pMaterialInstanceData, sizeof(MaterialInstanceData_t));
-		vkUnmapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory);
-	}
-
-	// TODO: Make this configurable
-	// Diffuse descriptors
-	VkWriteDescriptorSet imageWrites[3]{};
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE];
-
-		imageWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[0].dstBinding = 1;
-		imageWrites[0].dstArrayElement = 0;
-		imageWrites[0].descriptorCount = 1;
-		imageWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[0].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[0], 0, nullptr);
-	}
-
-	// Specular descriptors
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_SPECULAR];
-
-		imageWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[1].dstBinding = 1;
-		imageWrites[1].dstArrayElement = 1;
-		imageWrites[1].descriptorCount = 1;
-		imageWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[1].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[1], 0, nullptr);
-	}
-
-	// Normal descriptors
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_NORMAL];
-
-		imageWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[2].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[2].dstBinding = 1;
-		imageWrites[2].dstArrayElement = 2;
-		imageWrites[2].descriptorCount = 1;
-		imageWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[2].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[2], 0, nullptr);
-	}
-
-	pMaterial.m_iInternalHandle = pShader->m_NextFreeDescriptorSetIndex;
-	// Bump up next free descriptor index.
-	pShader->m_NextFreeDescriptorSetIndex++;
-
 	return true;
 }
 
@@ -1081,7 +911,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	{
 		if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::PER_FRAME)
 		{
-			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Sampler)
 			{
 				iPerFrameUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
@@ -1092,7 +922,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		}
 		else if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::PER_MATERIAL)
 		{
-			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Sampler)
 			{
 				iPerMaterialUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
@@ -1498,7 +1328,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	VkDeviceSize uniformStride{ 0 };
 
 	// Textures/samplers are handled differently from uniform data.
-	if (pUniform->eType != ShaderAttribute_t::Texture)
+	if (pUniform->eType != ShaderAttribute_t::Sampler)
 	{
 		switch (pUniform->eGroup)
 		{
