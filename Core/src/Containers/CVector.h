@@ -10,6 +10,7 @@
 #pragma once
 
 #include "Core/Assertions.h"
+#include "Memory/MemoryAllocatorBase.h"
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
@@ -54,7 +55,7 @@ namespace Utl {
 			// Allocate memory for our array.
 			//m_pValues = new T[initialCapacity];
 			if (initialCapacity > 0)
-				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
@@ -74,7 +75,7 @@ namespace Utl {
 			if (m_Capacity > 0)
 			{
 				//m_pValues = new T[m_Capacity];
-				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -107,7 +108,7 @@ namespace Utl {
 		{
 			// TODO: Custom allocators.
 			if (m_pValues && m_Capacity > 0)
-				g_pMemoryManager->Free(m_pValues);
+				m_Allocator.Free(m_pValues);
 				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			m_pValues = nullptr;
 
@@ -134,7 +135,7 @@ namespace Utl {
 			if (m_Capacity > 0)
 			{
 				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
-				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
@@ -218,7 +219,7 @@ namespace Utl {
 		void Clear()
 		{
 			if (m_pValues)
-				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
 			//delete[] m_pValues;
 			m_pValues = nullptr;
 			m_Capacity = 0;
@@ -280,7 +281,7 @@ namespace Utl {
 			}
 
 			// Allocate some new memory.
-			void* pNewData = g_pMemoryManager->Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
+			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			T* pNewArray = (T*)pNewData;												// For example, using new[] here seems to be inconsistent with returning a pointer to the correct address allocated, or an address that is some amount of bytes ahead of the allocated address.
 			CAssert(pNewArray);
 
@@ -289,7 +290,7 @@ namespace Utl {
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
 				//delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 
@@ -322,6 +323,9 @@ namespace Utl {
 
 		/* The multiplier to be used when the vector resizes to make more room. */
 		size_t m_ResizeFactor;
+
+		/* TODO: Documentation. */
+		Utl::CBaseMemoryAllocator m_Allocator{};
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;
