@@ -4,7 +4,6 @@
 // 
 // Purpose: A Custom Dynamically-Resizable Array.
 // 
-// TODO: Make this work with custom allocators.
 // TODO: Create an iterator for use with range-based for loops.
 //=============================================================================
 #pragma once
@@ -14,9 +13,9 @@
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
-namespace Utl {
-
-	template<typename T>
+namespace Utl 
+{
+	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
 	class CVector
 	{
 	public:
@@ -51,7 +50,6 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
 			//m_pValues = new T[initialCapacity];
 			if (initialCapacity > 0)
@@ -71,6 +69,9 @@ namespace Utl {
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
+
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
 
 			if (m_Capacity > 0)
 			{
@@ -95,6 +96,9 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+
 			// Release the other vector's referece to these resources.
 			pOtherVector.m_pValues = nullptr;
 			pOtherVector.m_Count = 0;
@@ -106,7 +110,6 @@ namespace Utl {
 		//--------------------------------------------------
 		~CVector()
 		{
-			// TODO: Custom allocators.
 			if (m_pValues && m_Capacity > 0)
 				m_Allocator.Free(m_pValues);
 				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
@@ -131,6 +134,9 @@ namespace Utl {
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
+
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
 
 			if (m_Capacity > 0)
 			{
@@ -325,7 +331,7 @@ namespace Utl {
 		size_t m_ResizeFactor;
 
 		/* TODO: Documentation. */
-		Utl::CBaseMemoryAllocator m_Allocator{};
+		Allocator m_Allocator{};
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;

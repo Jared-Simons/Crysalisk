@@ -7,13 +7,22 @@
 #pragma once
 
 #include <Defines.h>
+#include "Memory/IMemoryAllocator.h"
 
 namespace Utl
 {
-	class CORE_API CBaseMemoryAllocator
+	class CORE_API CBaseMemoryAllocator : public IBaseMemoryAllocator
 	{
 	public:
-		void*	Allocate(size_t numBytes);
-		void	Free(void* pMemBlock);
+		virtual void*	Allocate(size_t numBytes) override;
+		virtual void	Free(void* pMemBlock) override;
+
+		// Factory method to return a default memory allocator.
+		CBaseMemoryAllocator	CreateDefaultMemoryAllocator()
+		{
+			CBaseMemoryAllocator newAllocator{};
+
+			return newAllocator;
+		}
 	};
 } // namespace Utl
