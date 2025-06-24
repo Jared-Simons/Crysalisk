@@ -200,7 +200,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		pMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialHandle];
 
 		// Acquire material resources.
-		pMaterial->m_szMaterialName = StringDuplicate(pInResource.pszMaterialName);
+		pMaterial->m_pszMaterialName = StringDuplicate(pInResource.pszMaterialName);
 
 		if (pInResource.pszShaderName)
 		{
@@ -317,7 +317,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	int matIdx = FindFirstFreeMaterialHandle();
 	Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
 
-	pNewMaterial->m_szMaterialName = StringDuplicate("_DefaultMaterial");
+	pNewMaterial->m_pszMaterialName = StringDuplicate("_DefaultMaterial");
 	pNewMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");	// TODO: NEW SHADER METHOD
 	pNewMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
 	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();

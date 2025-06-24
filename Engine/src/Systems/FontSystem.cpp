@@ -298,7 +298,7 @@ FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 	// Get the first free font slot.
 	for (int fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
 	{
-		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalData)
+		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalFontAtlasData)
 		{
 			// Found one!
 			return fontIdx;

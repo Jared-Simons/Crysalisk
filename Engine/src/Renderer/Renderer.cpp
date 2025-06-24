@@ -456,10 +456,6 @@ bool Renderer::CreateTempGeometry()
 				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
 
 				m_SponzaModel.m_Geometries.PushBack(newGeometry);
-
-				// Free temp string data.
-				if (newConfig.pszDebugName)
-					StringFree(newConfig.pszDebugName);
 			}
 		}
 	}

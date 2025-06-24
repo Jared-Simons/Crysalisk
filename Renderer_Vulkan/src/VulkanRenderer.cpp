@@ -715,7 +715,7 @@ static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inSta
 static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
 {
 	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-	shaderModuleInfo.codeSize = pConfig.codeSize;
+	shaderModuleInfo.codeSize = pConfig.iCodeSize;
 	shaderModuleInfo.pCode = (uint32_t*)pConfig.byteCode.Data();
 
 	VulkanShaderModule_t newModule{};
@@ -724,7 +724,7 @@ static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderI
 		LOG_ERROR("Failed to create shader module.");
 		return false;
 	}
-	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.stage);
+	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.eStage);
 
 	// Add the module to the shader.
 	pOutModules.PushBack(newModule);
@@ -766,8 +766,7 @@ static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
 	// Get the internal shader data.
-	pShader->m_pInternalData = &m_pInternalShaderData[pShader->m_iInternalHandle];
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 
 	// Piece together the shader modules.
 	Utl::CVector<VulkanShaderModule_t>				modules{};
@@ -1032,7 +1031,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Setup uniform buffers.
 	pInternalShader->m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perMaterialUBOStride * kMaxVulkanInstances);
+	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perInstanceUBOStride * kMaxVulkanInstances);
 	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader->m_UniformBuffers[idx]))
@@ -1081,7 +1080,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader->m_PipelineLayout));
 
 	// Renderpass
-	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_RendererView.m_pInternalData);
+	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_pRendererView.m_pInternalData);
 
 	// Graphics pipeline object
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
@@ -1291,8 +1290,6 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 void CVulkanRenderer::BindShader(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
-	CAssert(pShader->m_pInternalData);
-	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	vkCmdBindPipeline(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_Pipeline);
 
@@ -1433,12 +1430,6 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
-
-	// Store off the name as well.
-	if (pGeometryConfig.pszDebugName)
-	{
-		pOutInstance.pszDebugName = StringDuplicate(pGeometryConfig.pszDebugName);
-	}
 
 	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
