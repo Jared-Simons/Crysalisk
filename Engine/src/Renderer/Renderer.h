@@ -42,8 +42,8 @@ public:
 	void			Shutdown();
 	bool			Update(struct RenderPacket_t& pRenderData);
 
-	bool			AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void			ReleaseTextureResources(class Texture* pTexture);
+	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
+	void			ReleaseTextureResources(struct Texture* pTexture);
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);

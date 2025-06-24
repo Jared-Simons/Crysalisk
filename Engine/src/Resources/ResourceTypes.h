@@ -15,15 +15,20 @@
 #include <Renderer/RendererTypes.h>
 #include <Strings/String_Utils.h>
 
+// A unique identifier for a texture.
 using TextureHandle_t = uint32_t;
 using TextureFlags = uint8_t;
 
+// Bit-flags for specific texture attributes.
 enum TextureFlags_t
 {
+	// Is this texture a default texture?
 	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01,
+	// Is this texture transparent in any way?
 	TEXTURE_FLAG_IS_TRANSPARENT = 0x02,
 };
 
+// Different 'known' texture types.
 enum class eTextureType
 {
 	UNDEFINED = -1,
@@ -34,27 +39,23 @@ enum class eTextureType
 	MAX_TEXTURE_TYPES,
 };
 
-// TODO: MOVE THIS TO THE TEXTURE SYSTEM INTERNALLY AND USE HANDLES EVERYWHERE ELSE
-class Texture
+// The internal representation of a texture.
+// This structure should not be used by anything except the texture system and internal renderer.
+// Everything else should maintain references to textures via TextureHandle_t.
+struct Texture
 {
-public:
-	inline void	SetInternalTextureData(void* pInternalData) { m_pInternalData = pInternalData; }
-	inline void*	GetInternalData() const { return m_pInternalData; } // TODO: I don't like this :(
-	inline int32_t	GetWidth() const { return width; }
-	inline int32_t GetHeight() const { return height; }
-	inline int32_t GetNumChannels() const { return numChannels; }
-	inline const char* GetName() const { return pszTextureName; }
-	inline TextureFlags GetFlags() const { return textureFlags; }
-
-public:
-	int32_t width;
-	int32_t height;
-	int32_t numChannels; // TODO: Image format
-	char* pszTextureName{ nullptr };
-	TextureFlags textureFlags{ 0 };
-	void* m_pInternalData{ nullptr };
-
-	friend class CTextureSystem;
+	// The width of the texture.
+	int32_t			width;
+	// The height of the texture.
+	int32_t			height;
+	// The number of channels this texture contains.
+	int32_t			numChannels; // TODO: Image format
+	// The name of this texture.
+	char*			pszTextureName{ nullptr };
+	// Texture flags.
+	TextureFlags	textureFlags{ 0 };
+	// The internal handle for the texture.
+	uint32_t		internalHandle{ kInvalidID_U32 };
 };
 
 enum ShaderTopologyType

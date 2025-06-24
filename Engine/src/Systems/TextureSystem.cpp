@@ -115,9 +115,9 @@ void CTextureSystem::Shutdown()
 	// Free any texture resources in use by the renderer.
 	for (int idx = 0; idx < m_Config.MaxTextures; idx++)
 	{
-		if (m_TextureDictionary.m_TextureArray[idx].m_pInternalData != nullptr)
+		if (m_TextureDictionary.m_TextureArray[idx].internalHandle != kInvalidID_U32)
 		{
-			ReleaseTextureAtIndex(m_TextureDictionary.m_TextureArray[idx], true); // True to force the texture system to release resources.
+			ReleaseTextureAtIndex(m_TextureDictionary.m_TextureArray[idx], true); // True to force the texture system to release internal resources.
 		}
 	}
 
@@ -247,6 +247,7 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	{
 		// Release internal texture data.
 		g_pRenderer->ReleaseTextureResources(pTexture);
+		pTexture->internalHandle = kInvalidID_U32;
 
 		// Clear the hashmap and texture data.
 		ClearTextureDictionaryEntry(pTexture->pszTextureName);
@@ -358,7 +359,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.pszTextureName)
 		StringFree(pTexture.pszTextureName);
 
-	pTexture.m_pInternalData = nullptr;
+	pTexture.internalHandle = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------
@@ -390,7 +391,7 @@ TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 
 	for (int texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 	{
-		if (!s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+		if (s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].internalHandle == kInvalidID_U32)
 		{
 			// Found a free slot, return!
 			return texIdx;
@@ -418,7 +419,7 @@ void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 	if (pTexture->pszTextureName)
 		StringFree(pTexture->pszTextureName);
 
-	if (pTexture->m_pInternalData)
+	if (pTexture->internalHandle != kInvalidID_U32)
 	{
 		// TODO: Free any internal resources that may be leftover.
 	}
@@ -618,21 +619,21 @@ void CTextureSystem::DestroyDefaultTextures()
 {
 	Texture* pDefaultTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultTextureLookup->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultTexture);
-	pDefaultTexture->m_pInternalData = nullptr;
+	pDefaultTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultTexture->pszTextureName)
 		StringFree(pDefaultTexture->pszTextureName);
 
 	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
-	pDefaultWhiteTexture->m_pInternalData = nullptr;
+	pDefaultWhiteTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultWhiteTexture->pszTextureName)
 		StringFree(pDefaultWhiteTexture->pszTextureName);
 
 	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
-	pDefaultSpecularTexture->m_pInternalData = nullptr;
+	pDefaultSpecularTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultSpecularTexture->pszTextureName)
 		StringFree(pDefaultSpecularTexture->pszTextureName);
@@ -640,7 +641,7 @@ void CTextureSystem::DestroyDefaultTextures()
 
 	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultNormalTexture);
-	pDefaultNormalTexture->m_pInternalData = nullptr;
+	pDefaultNormalTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultNormalTexture->pszTextureName)
 		StringFree(pDefaultNormalTexture->pszTextureName);

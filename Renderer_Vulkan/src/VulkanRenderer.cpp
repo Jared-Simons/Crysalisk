@@ -657,8 +657,8 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// The internal data for a Vulkan texture is the image data.
-	pTexture->m_pInternalData = &m_pInternalTextureData[internalIndex];
-	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+	pTexture->internalHandle = internalIndex;
+	VulkanImage* pImageInternal = &m_pInternalTextureData[internalIndex].m_Image;
 
 	// Set up the internal image data.
 	VkFormat format = ConvertChannelNumberToVulkanFormat(pTexture->numChannels);
@@ -686,13 +686,11 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 	// Make sure the resource isn't in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
 
-	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+	VulkanImage* pImageInternal = &m_pInternalTextureData[pTexture->internalHandle].m_Image;
 	CAssert(pImageInternal);
 
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
-
-	pTexture->m_pInternalData = nullptr;
 }
 
 bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInstanceData_t& pMaterialInstanceData)

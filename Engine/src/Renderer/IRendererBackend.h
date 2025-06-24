@@ -37,8 +37,8 @@ public:
 	virtual bool	CreateRendererViewInternal(RendererView& pOutView) = 0;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) = 0;
 
-	virtual bool	AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
-	virtual void	ReleaseTextureResources(class Texture* pTexture) = 0;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
+	virtual void	ReleaseTextureResources(struct Texture* pTexture) = 0;
 
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) = 0;
 

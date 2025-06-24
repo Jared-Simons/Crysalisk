@@ -37,8 +37,8 @@ public:
 	virtual bool	CreateRendererViewInternal(RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
-	virtual bool	AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
-	virtual void	ReleaseTextureResources(class Texture* pTexture) override;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
 
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
