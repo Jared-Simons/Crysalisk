@@ -63,8 +63,8 @@ IEngine* g_pEngine = &s_Engine;
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
-// Input: engineConfig - A configuration passed in by the calling application.
-// Output: bool - Returns true on successful initialization, otherwise false.
+// Input:	engineConfig - A configuration passed in by the calling application.
+// Output:	bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
 bool CEngine::Initialize(EngineConfig_t engineConfig)
 {

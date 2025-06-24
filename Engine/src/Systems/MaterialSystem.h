@@ -10,11 +10,17 @@
 #include <Resources/Loaders/MaterialLoader.h>
 #include "Resources/ResourceTypes.h"
 
+//-------------------------------------------------------------------------
+// Configuration for the material system.
+//-------------------------------------------------------------------------
 struct MaterialSystemConfig_t
 {
 	size_t	MaxMaterials{ 0 };
 };
 
+//-------------------------------------------------------------------------
+// Interface for the material system.
+//-------------------------------------------------------------------------
 class IMaterialSystem
 {
 public:
@@ -32,4 +38,5 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 };
 
+// Global interface to the material system context.
 DLL_EXPORT IMaterialSystem* g_pMaterialSystemInternal;

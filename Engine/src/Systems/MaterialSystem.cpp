@@ -39,43 +39,64 @@ PhongShaderLocations_t phongShaderLocations{};
 class CMaterialSystem : public IMaterialSystem
 {
 public:
+	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) override;
 	virtual void				Shutdown() override;
 
+	// Acquires the resources for a given material.
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
+	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
+
+	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
 
+	// Applies a given material.
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
 
+	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 private:
+	// Creates the default textures to be used in the engine.
 	void						CreateDefaultMaterial();
 
+	// Returns the first available handle in the material dictionary.
 	MaterialHandle_t			FindFirstFreeMaterialHandle() const;
 
 private:
+	// The material system configuration passed in from the application configuration.
 	MaterialSystemConfig_t	m_Config{};
 
+	// A lookup for a particular material.
 	struct MaterialLookup
 	{
+		// The internal handle of the material.
 		MaterialHandle_t MaterialIndex{ kInvalidID_U32 };
+		// The current reference count of the material.
 		int				 ReferenceCount{ 0 };
+		// Indicates if this reference should automatically release it's resources when it's reference count reaches 0.
+		// NOTE: This can only be set when first acquiring the material.
 		bool			 AutoRelease{ false };
 	};
 
 	struct MaterialDictionary
 	{
-		Utl::CHashMap<const char*, MaterialLookup> m_MaterialHashmap{};
-		Material* m_MaterialArray{ nullptr };
+		// Allows for string-based lookups for materials.
+		Utl::CHashMap<const char*, MaterialLookup>	m_MaterialHashmap{};
+		// An array of materials.
+		Material*									m_MaterialArray{ nullptr };
 	};
 
+	// The material dictionary.
 	MaterialDictionary	m_MaterialDictionary{};
 
+	// The lookup for the default material.
 	MaterialLookup		m_DefaultMaterialLookup{};
 
+	// The currently bound shader instance (corresponds to the currently bound material).
 	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
+	// The default material shader (in case a custom shader is not available).
 	ShaderHandle_t		m_DefaultMaterialShader{ kInvalidID_U32 };
 };
 

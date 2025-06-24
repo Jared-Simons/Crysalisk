@@ -16,6 +16,13 @@
 
 #include <stdio.h> // for scanf()
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a simple quad configuration that can be used for rendering.
+// Input:	vecOrigin - The origin of the quad in world space.
+//			flWidth - The width of the quad.
+//			flHeight - The height of the quad.
+// Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
+//-------------------------------------------------------------------------
 GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight)
 {
 	GeometryConfig_t quadConfig{};
@@ -38,15 +45,30 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 	quadConfig.Vertices[4].TexCoord = { 1.0f, 1.0f };
 	quadConfig.Vertices[5].TexCoord = { 0.0f, 1.0f };
 
-	// TODO: This needs normal and tangent generation as well!
-	/*for (int i = 0; i < 6; i++)
-	{
-		LOG_DEBUG("%.3f, %.3f, %.3f", quadConfig.Vertices[i].Pos.x, quadConfig.Vertices[i].Pos.y, quadConfig.Vertices[i].Pos.z);
-	}*/
+	// Normals.
+	quadConfig.Vertices[0].Normal = { 0.0f, 1.0f, 0.0f };
+	quadConfig.Vertices[1].Normal = { 0.0f, 1.0f, 0.0f };
+	quadConfig.Vertices[2].Normal = { 0.0f, 1.0f, 0.0f };
+	quadConfig.Vertices[3].Normal = { 0.0f, 1.0f, 0.0f };
+	quadConfig.Vertices[4].Normal = { 0.0f, 1.0f, 0.0f };
+	quadConfig.Vertices[5].Normal = { 0.0f, 1.0f, 0.0f };
+
+	// Make sure we get our tangents as well.
+	GenerateTangentData(quadConfig);
+
+	quadConfig.Vertices.SetCount(6);
 
 	return quadConfig;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a simple cube configuration that can be used for rendering.
+// Input:	vecOrigin - The origin of the cube in world space.
+//			flWidth - The width of the cube.
+//			flHeight - The height of the cube.
+//			flDepth - The depth of the cube.
+// Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
+//-------------------------------------------------------------------------
 GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth)
 {
 	GeometryConfig_t cubeConfig{};
@@ -240,6 +262,11 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 	return cubeConfig;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Given a geometry configuration, generates tangent data necessary for lighting calculations.
+// Input:	pConfig - The geometry config to generate tangents for.
+// Output:	none.
+//-------------------------------------------------------------------------
 void MeshGenerator::GenerateTangentData(GeometryConfig_t& pConfig)
 {
 	size_t triCount = pConfig.Vertices.Count() / 3;
