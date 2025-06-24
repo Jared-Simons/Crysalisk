@@ -28,10 +28,10 @@ struct PhongShaderLocations_t
 	uint16_t	renderMode{ kInvalidID_U16 };
 	uint16_t	shininess{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	texture_maps{ kInvalidID_U16 };
+	uint16_t	textureMaps{ kInvalidID_U16 };
 	uint16_t	model{ kInvalidID_U16 };
 };
-PhongShaderLocations_t phongShaderLocations{};
+static PhongShaderLocations_t phongShaderLocations{};
 
 //-------------------------------------------------------------------------
 // Material System Implementation.
@@ -43,7 +43,7 @@ public:
 	virtual bool				Initialize(MaterialSystemConfig_t config) override;
 	virtual void				Shutdown() override;
 
-	// Acquires the resources for a given material.
+	// Acquires the resources for the provided material.
 	virtual MaterialHandle_t	AcquireMaterial(const char* pszMaterialName) override;
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
@@ -124,7 +124,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	phongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
 	phongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
 	phongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
-	phongShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "texture_maps");
+	phongShaderLocations.textureMaps = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "texture_maps");
 	phongShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "model");
 
 	// Default material.
@@ -148,7 +148,9 @@ void CMaterialSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Attempts to acquire the resources for a given material.
+// Input:	pszMaterialName - The material to acquire resources for.
+// Output:	Returns a handle to the new material.
 //-------------------------------------------------------------------------
 MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 {
@@ -185,6 +187,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	else
 	{
 		// The material is already loaded, just return the handle.
+		// TODO: Handle reference counting.
 		newMaterialHandle = pLookup->MaterialIndex;
 	}
 
@@ -192,7 +195,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Acquires a material given an existing resource.
+// Input:	pInResource - The resource to use for the new material.
+// Output:	Returns a handle to the new material.
 //-------------------------------------------------------------------------
 MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource)
 {
@@ -251,7 +256,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		{
 			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
 			int iTextureArrayIndex = (int)pInResource.textureMapConfigs[texIdx].eType;
-			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.textureMaps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 
 			// Use the diffuse map to determine material transparency.
 			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
@@ -290,7 +295,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose:	Returns the state of a material's transparency.
+// Input:	hMaterial - The material whose transparency to check for.
+// Output:	Returns true if the material is transparent in any way, otherwise false.
 //-------------------------------------------------------------------------
 uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
 {
@@ -304,7 +311,9 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose:	Binds a given material.
+// Input:	hMaterial - The material to be bound.
+// Output:	none.
 // TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
 //-------------------------------------------------------------------------
 void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
@@ -331,7 +340,9 @@ MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose:	Creates the default, fallback material.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CMaterialSystem::CreateDefaultMaterial()
 {
@@ -339,7 +350,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
 
 	pNewMaterial->m_pszMaterialName = StringDuplicate("_DefaultMaterial");
-	pNewMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");	// TODO: NEW SHADER METHOD
+	pNewMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");
 	pNewMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
 	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
 	pNewMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
@@ -362,7 +373,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	{
 		// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
 		int iTextureArrayIndex = texIdx;
-		g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.texture_maps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+		g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, phongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
 	float flShininess = 32;
@@ -371,7 +382,9 @@ void CMaterialSystem::CreateDefaultMaterial()
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Find the first available handle in the material dictionary.
+// Input:	none.
+// Output:	Returns the first available material handle.
 //-------------------------------------------------------------------------
 MaterialHandle_t CMaterialSystem::FindFirstFreeMaterialHandle() const
 {

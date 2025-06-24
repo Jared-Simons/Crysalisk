@@ -13,9 +13,6 @@
 #include "Renderer/Renderer.h"
 #include <Resources/Loaders/ImageLoader.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
-
 //-------------------------------------------------------------------------
 // Texture System Implementation.
 //-------------------------------------------------------------------------
@@ -271,77 +268,9 @@ uint32_t CTextureSystem::GetTextureFlags(TextureHandle_t hTexture) const
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData)
 {
-	Texture* newTexture = nullptr;
-	int texIdx = 0;
-
-	// Make sure our state is ready to go.
-	if (!m_TextureDictionary.m_TextureArray)
-	{
-		LOG_WARN("CTextureSystem::WrapTextureInternal() called before texture system was initialized! Returning NULL handle.");
-		return 0; // TODO: Invalid ID.
-	}
-
-	if (!pszTextureName)
-	{
-		LOG_ERROR("CTextureSystem::WrapTextureInternal() requires a pszPath to the texture to load! Returning default texture.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	// We need to flip standard images.
-	stbi_set_flip_vertically_on_load(true);
-
-	// Get an entry into the hashmap.
-	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
-
-	if (!newTextureLookup)
-	{
-		LOG_ERROR("Failed to find free space for new texture in texture hashmap, returning default.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
-	{
-		// Get at the first free texture.
-		texIdx = GetFirstFreeTextureHandle();
-		newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-
-		if (!newTexture)
-		{
-			LOG_ERROR("Could not load texture '%s' because all texture slots were full, returning default texture.", pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-		newTexture->width = iTexWidth;
-		newTexture->height = iTexHeight;
-		newTexture->numChannels = 1; // TODO: Configurable.
-
-		// Send the data off to the renderer to be uploaded to the GPU.
-		if (!g_pRenderer->AcquireTextureResources(newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
-		{
-			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		newTexture->pszTextureName = StringDuplicate(pszTextureName);
-	}
-	else
-	{
-		newTexture = &m_TextureDictionary.m_TextureArray[newTextureLookup->TextureIndex];
-	}
-
-	if (!newTexture)
-	{
-		LOG_ERROR("Failed to find resources to load/create texture '%s'. Returning default texture.", pszTextureName);
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32)
-		newTextureLookup->TextureIndex = texIdx;
-
-	newTextureLookup->ReferenceCount++;
-	newTextureLookup->AutoRelease = true; // TODO: Configurable.
-
-	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
-	return newTextureLookup->TextureIndex;
+	// TODO: IMPLEMENT THIS!
+	CAssert(0);
+	return 0;
 }
 
 //-------------------------------------------------------------------------
@@ -453,7 +382,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultDiffuseTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
-		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -496,7 +425,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultWhiteTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
-		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -539,7 +468,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultSpecularTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultSpecularTexturePixels[8][8][4];
-		memset(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -582,7 +511,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultNormalTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultNormalTexturePixels[8][8][4];
-		memset(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
