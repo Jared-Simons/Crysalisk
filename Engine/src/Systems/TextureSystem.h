@@ -30,7 +30,7 @@ public:
 	virtual TextureHandle_t		AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease) = 0;
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) = 0;
 
-	virtual uint32_t			GetTextureFlags(TextureHandle_t hTexture) const = 0;
+	virtual bool				IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const = 0;
 
 	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData) = 0;
 

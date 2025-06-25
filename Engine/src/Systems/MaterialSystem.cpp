@@ -75,7 +75,7 @@ private:
 		MaterialHandle_t MaterialIndex{ kInvalidID_U32 };
 		// The current reference count of the material.
 		int				 ReferenceCount{ 0 };
-		// Indicates if this reference should automatically release it's resources when it's reference count reaches 0.
+		// Indicates if this material should automatically release it's resources when it's reference count reaches 0.
 		// NOTE: This can only be set when first acquiring the material.
 		bool			 AutoRelease{ false };
 	};
@@ -261,7 +261,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			// Use the diffuse map to determine material transparency.
 			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
 			{
-				pMaterial->m_bIsTransparent = (g_pTextureSystem_Internal->GetTextureFlags(textureHandles[texIdx]) & TEXTURE_FLAG_IS_TRANSPARENT) != 0;
+				pMaterial->m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(textureHandles[texIdx], TEXTURE_FLAG_IS_TRANSPARENT);
 			}
 		}
 

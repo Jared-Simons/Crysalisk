@@ -4,7 +4,6 @@
 // 
 // Purpose: Implements the core engine loop.
 //=============================================================================
-
 #include "Engine.h"
 
 #include <Containers/CHashMap.h>
