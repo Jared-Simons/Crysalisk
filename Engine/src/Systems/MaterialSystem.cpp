@@ -245,21 +245,30 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
 		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
 
+		// Set some default textures, just in case.
+		TextureHandle_t hDefaultDiffuse = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
+		TextureHandle_t hDefaultSpecular = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
+		TextureHandle_t hDefaultNormal = g_pTextureSystem_Internal->GetDefaultNormalTexture();
+
+		textureHandles.PushBack(hDefaultDiffuse);
+		textureHandles.PushBack(hDefaultSpecular);
+		textureHandles.PushBack(hDefaultNormal);
+
 		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
 		{
 			TextureHandle_t hTexture = g_pTextureSystem_Internal->AcquireTexture(pInResource.textureMapConfigs[texIdx].pszTextureName, true);
-			textureHandles.PushBack(hTexture);
+			textureHandles[texIdx] = hTexture;
 		}
 
 		// Bind the texture maps to the shader instance.
-		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		for (int texIdx = 0; texIdx < 3; texIdx++)
 		{
 			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
-			int iTextureArrayIndex = (int)pInResource.textureMapConfigs[texIdx].eType;
+			int iTextureArrayIndex = texIdx;
 			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.textureMaps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 
 			// Use the diffuse map to determine material transparency.
-			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
+			if (texIdx < textureMapCount && pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
 			{
 				pMaterial->m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(textureHandles[texIdx], TEXTURE_FLAG_IS_TRANSPARENT);
 			}
