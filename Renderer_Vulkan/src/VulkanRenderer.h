@@ -97,9 +97,6 @@ public:
 	VkSemaphore m_RenderFinishedSemaphore{ VK_NULL_HANDLE };
 	VkFence		m_InFlightFence{ VK_NULL_HANDLE };
 
-	// Descriptor Pool
-	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
-
 	// Internal Vulkan texture tata
 	VulkanTextureInternal* m_pInternalTextureData{ nullptr };
 

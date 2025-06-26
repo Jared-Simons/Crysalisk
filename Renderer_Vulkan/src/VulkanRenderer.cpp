@@ -37,6 +37,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData);
 
+// Renderer event handlers.
 static bool RendererEvent_WindowResized(EventData_t data);
 static bool RendererEvent_KeyPressed(EventData_t data);
 
@@ -77,8 +78,8 @@ DLL_EXPORT void* GetRendererBackendState()
 
 //-------------------------------------------------------------------------
 // Purpose: Initializes the Vulkan renderer.
-// Input: pConfig - Renderer specific configuration provided by the calling application.
-// Output: bool - Returns true on successful initialization, otherwise false.
+// Input:	pConfig - Renderer specific configuration provided by the calling application.
+// Output:	bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 {
@@ -197,6 +198,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// TODO: We shouldn't need these passes anymore...
 	// Main Renderpass
 	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, true, m_MainRenderPass))
 	{
@@ -226,23 +228,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	VK_CHECK(vkCreateSemaphore(m_Device.m_Device, &semaphoreInfo, m_Allocator, &m_RenderFinishedSemaphore));
 	VK_CHECK(vkCreateFence(m_Device.m_Device, &fenceInfo, m_Allocator, &m_InFlightFence));
 
-	// Create Global Descriptor Pool
-	VkDescriptorPoolSize poolSizes[2]{};
-	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = (uint32_t)(m_MaxImagesInFlight + (3 * kMaxVulkanInstances));		// Enough for global uniforms and max object instances.
-
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = 10 + ((int)eTextureType::MAX_TEXTURE_TYPES * kMaxVulkanInstances);									// Enough for 10 global textures and kMaxVulkanInstances of materials.
-
-	VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	descriptorPoolInfo.pNext = nullptr;
-	descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	descriptorPoolInfo.poolSizeCount = 2;
-	descriptorPoolInfo.pPoolSizes = poolSizes;
-	descriptorPoolInfo.maxSets = (uint32_t)(poolSizes[0].descriptorCount + poolSizes[1].descriptorCount);
-
-	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, nullptr, &m_DescriptorPool));
-
 	// Allocate resources for our image data.
 	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
@@ -261,33 +246,22 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Register for input events.
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
-	//s_MainCamera.RecalculateCameraVectors();
-	// TEMP CAMERA POSITION
-	//s_MainCamera.vecPosition = { 3072, 464, -5660 };
-
 	return true;
 }
 
 //-------------------------------------------------------------------------
 // Purpose: Shuts down the Vulkan renderer.
-// Input: none.
-// Output: none.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	// Make sure none of our resources are in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
 
-	// Destroy our temp geometry.
-	// THIS IS TEMPORARY
-	//DestroyDefaultGeometry();
-
 	// Free internal texture/shader data.
 	delete[] m_pInternalShaderData;
 	delete[] m_pInternalTextureData;
-
-	// Descriptor Pool
-	vkDestroyDescriptorPool(m_Device.m_Device, m_DescriptorPool, m_Allocator);
 
 	// Sync objects.
 	vkDestroyFence(m_Device.m_Device, m_InFlightFence, m_Allocator);
@@ -328,8 +302,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 //-------------------------------------------------------------------------
 // Purpose: Begins a renderer frame.
-// Input: pRenderData - Frame specific render data provided by the application.
-// Output: bool - Returns true on successful start, otherwise false.
+// Input:	pRenderData - Frame specific render data provided by the application.
+// Output:	bool - Returns true on successful start, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 {
@@ -419,8 +393,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 //-------------------------------------------------------------------------
 // Purpose: Ends a renderer frame.
-// Input: pRenderData - Frame specific render data provided by the application.
-// Output: bool - Returns true on successful end, otherwise false.
+// Input:	pRenderData - Frame specific render data provided by the application.
+// Output:	bool - Returns true on successful end, otherwise false.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 {
@@ -483,6 +457,9 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Begins a provided renderpass.
+// Input:	pRendererView - The renderpass to be started.
+// Output:	Returns true on successfull pass start, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 {
@@ -505,18 +482,23 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Ends the current renderpass.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::EndRenderpass()
 {
+	// TODO: Maybe store the current renderpass in a stack or something?
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-
 //-------------------------------------------------------------------------
 // Purpose: Draws geometry. This must happen while a frame is being rendered!
-// Input: pGeometry - The geometry to be rendered.
-// Output: none.
+// Input:	pVertexBuffer - The vertex buffer associated with the geometry.
+//			pIndexBuffer - The index buffer associated with the geometry.
+//			pGeometry - The geometry instance to be rendered.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
@@ -564,12 +546,18 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 
 //-------------------------------------------------------------------------
 // Purpose: This is a temporary test method to render some text!
+// TODO: GET RID OF THIS!
 //-------------------------------------------------------------------------
 void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Converts an engine-generic buffer usage format to a Vulkan-specific format.
+// Input:	usage - The engine-generic buffer usage.
+// Output:	The Vulkan-specific buffer usage.
+//-------------------------------------------------------------------------
 static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferUsage usage)
 {
 	switch (usage)
@@ -587,6 +575,14 @@ static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferU
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates an internal Vulkan buffer, and hooks it up to the generic buffer structure.
+// Input:	bufferSize - The size in bytes of the buffer.
+//			bufferUsage - Indicates the buffer's usage (i.e. Vertex, Index, Uniform).
+//			bUseFreelist - Indicates if this buffer will use a freelist to track it's memory.
+//			pOutBuffer - The generic buffer structure that will hold this buffer.
+// Output:	Returns true on successful buffer creation, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
 {
 	// Allocate our internal buffer.
@@ -597,11 +593,19 @@ bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBuffe
 	VkBufferUsageFlags vkBufferUsage = ConvertGenericBufferUsageToVulkanFormat(bufferUsage);
 
 	// Create the buffer.
-	VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer);
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer))
+	{
+		return false;
+	}
 
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Destroys an internal Vulkan Buffer.
+// Input:	pRenderBuffer - The buffer whose internal resources to destroy.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 {
 	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
@@ -612,6 +616,9 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Creates an internal Vulkan renderpass and sets it up to the generic renderer view.
+// Input:	pOutView - The generic renderer view structure that will hold this renderpass.
+// Output:	Returns true on successful renderpass creation, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
 {
@@ -623,6 +630,9 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Destroys an internal Vulkan Renderpass.
+// Input:	pView - The renderer view whose internal resources to destroy.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 {
@@ -634,7 +644,9 @@ void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Gets a Vulkan-specific format for a number of channels.
+// Input:	iChannelCount - The channel count to get a Vulkan format for.
+// Output:	The Vulkan-specific format that represents the channel count.
 //-------------------------------------------------------------------------
 static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 {
@@ -652,7 +664,12 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Acquires Vulkan-specific resources for images/textures.
+// Input:	pTexture - The generic front-end texture structure.
+//			internalIndex - The front-end handle that represents this texture. This should match on the backend.
+//			nPixelDataSize - The size in bytes of the pixel data for this image.
+//			pPixelData - The pixel array for this image.
+// Output:	Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
@@ -679,7 +696,9 @@ bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalInd
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Releases Vulkan-specific resources for images/textures.
+// Input:	pTexture - The generic texture whose resources are to be released.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 {
@@ -693,11 +712,17 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
 }
 
+// TODO: GET RID OF THIS!
 bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInstanceData_t& pMaterialInstanceData)
 {
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader stage flag from a generic type.
+// Input:	inStage - The generic shader stage.
+// Output:	The Vulkan-specific shader stage flag.
+//-------------------------------------------------------------------------
 static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inStage)
 {
 	switch (inStage)
@@ -712,6 +737,14 @@ static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inSta
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a Vulkan shader module from the given configuration.
+// Input:	pRenderingContext - The owning Vulkan context.
+//			pInternalShader - The internal shader that will own this module.
+//			pConfig - The configuration for this shader module.
+//			pOutModules - An array of shader modules that will hold the created module.
+// Output:	Returns true on successful module creation, otherwise false.
+//-------------------------------------------------------------------------
 static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
 {
 	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
@@ -732,6 +765,11 @@ static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderI
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader topology type from a generic type.
+// Input:	inStage - The generic shader topology type.
+// Output:	The Vulkan-specific shader topology type flag.
+//-------------------------------------------------------------------------
 static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 {
 	switch (inType)
@@ -745,6 +783,11 @@ static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader topology type from a generic type.
+// Input:	inStage - The generic shader topology type.
+// Output:	The Vulkan-specific shader topology type flag.
+//-------------------------------------------------------------------------
 static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 {
 	switch (pType)
@@ -763,6 +806,12 @@ static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a Vulkan shader from the given configuration.
+// Input:	pShader - The generic front-end shader that will own this shader.
+//			pConfig - The configuration for this shader.
+// Output:	Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
 	// Get the internal shader data.
@@ -1162,6 +1211,11 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan shader resources for the provided shader.
+// Input:	pShader - The generic front-end shader to release internal resources for.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyShader(Shader* pShader)
 {
 	// Make sure no resources are in use.
@@ -1201,6 +1255,12 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 		vkDestroyDescriptorPool(m_Device.m_Device, pInternalShader->m_DescriptorPool, m_Allocator);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the shader resources needed for rendering an instance with the provided shader.
+// Input:	pShader - The generic front-end shader to acquire resources for.
+//			pOutInstanceID - A pointer to hold the instance of the new instance ID.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
 {
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
@@ -1287,6 +1347,11 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	pInternalShader->m_NextFreeDescriptorSetIndex++;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds a given shader for use in rendering ops.
+// Input:	pShader - The shader to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindShader(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
@@ -1298,6 +1363,11 @@ void CVulkanRenderer::BindShader(Shader* pShader)
 	m_CurrentlyBoundShaderIndex = pShader->m_iInternalHandle;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds the provided shader's per-frame uniforms.
+// Input:	pShader - The shader whose uniforms are to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
@@ -1308,6 +1378,12 @@ void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 0, 1, &pInternalShader->m_DescriptorSets[descriptorSetIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds the provided shader's per-instance uniforms (for the provided instance).
+// Input:	pShader - The shader whose uniforms are to be bound.
+//			hInstanceID - The instance to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned int hInstanceID)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
@@ -1316,6 +1392,15 @@ void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 1, 1, &pInternalShader->m_DescriptorSets[hInstanceID].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Sets a particular shader uniform.
+// Input:	pShader - The shader whose uniform to set.
+//			pUniform - The uniform to be set.
+//			iUniformArrayIndex - The array index of the uniform to set. Some uniforms can be arrays, others just single values.
+//			hInstanceID - The instance to be set, this only matters for per-instance uniforms. Not relevant for other groups.
+//			pData - An opaque pointer to the value to be set.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
@@ -1394,6 +1479,11 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific format for a shader attribute.
+// Input:	inAttribute - The generic shader attribute type.
+// Output:	The Vulkan-specific format.
+//-------------------------------------------------------------------------
 static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
@@ -1409,6 +1499,11 @@ static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets the stride for a shader attribute.
+// Input:	inAttribute - The generic shader attribute type.
+// Output:	The stride of the attribute.
+//-------------------------------------------------------------------------
 static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
@@ -1426,6 +1521,15 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+// TODO: THIS SHOULDN'T RETURN ANYTHING!
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -1497,6 +1601,15 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+// TODO: THIS SHOULDN'T RETURN ANYTHING!
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -1568,6 +1681,13 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases the renderer-specific resources for geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometry - The geometry instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -1583,6 +1703,11 @@ void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Checks to make sure that support for all required validation layers are present.
+// Input:	expectedLayers - Validation layers that are required to be supported.
+// Output:	Returns true if all validation layers are supported, otherwise false.
+//-------------------------------------------------------------------------
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
 {
 	LOG_DEBUG("Querying Vulkan validation layer support");
@@ -1617,6 +1742,11 @@ static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expecte
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Checks to make sure that support for all required instance extensions are present.
+// Input:	expectedExtensions - Instance extensions that are required to be supported.
+// Output:	Returns true if all instance extensions are supported, otherwise false.
+//-------------------------------------------------------------------------
 static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expectedExtensions)
 {
 	LOG_DEBUG("Querying Vulkan instance extension support");
@@ -1651,6 +1781,14 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Debug logger callback function.
+// Input:	messageSeverity - The severity of the message (duh!).
+//			messageType - The type of the message (...)
+//			pCallbackData - Contains the callback message.
+//			pUserData - Unused.
+// Output:	VkBool32.
+//-------------------------------------------------------------------------
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1676,6 +1814,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	return VK_FALSE;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Debug logger callback function.
+// Input:	messageSeverity - The severity of the message (duh!).
+//			messageType - The type of the message (...)
+//			pCallbackData - Contains the callback message.
+//			pUserData - Unused.
+// Output:	VkBool32.
+//-------------------------------------------------------------------------
 static bool RendererEvent_WindowResized(EventData_t data)
 {
 	s_VulkanContext.m_bWindowResized = true;
@@ -1684,6 +1830,9 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	return false;
 }
 
+//-------------------------------------------------------------------------
+// Renderer-backend event handlers.
+//-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
 	if (data.c[0] >= 0  && data.c[0] <= 9)
@@ -1729,6 +1878,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	return false;
 }
 
+// TODO: This should be removed!
 void CVulkanRenderer::DestroyDefaultGeometry()
 {
 }

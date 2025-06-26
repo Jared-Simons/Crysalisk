@@ -398,7 +398,7 @@ uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* p
 //			iUniformArrayIndex - The array index of the uniform to set. Some uniforms can be arrays, others just single values.
 //			hInstanceID - The instance to be set, this only matters for per-instance uniforms. Not relevant for other groups.
 //			pData - An opaque pointer to the value to be set.
-// Output:	The location of the uniform in the shader.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
