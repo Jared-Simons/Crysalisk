@@ -10,8 +10,12 @@
 
 #include <new> // for placement new
 
+#ifdef _DEBUG
 // Enable this to test if the freelist is placing nodes in the appropriate order when freeing memory.
 #define DEBUG_FREELIST_MEMORY_ORDER 1
+#else
+#define DEBUG_FREELIST_MEMORY_ORDER 0
+#endif
 
 namespace Utl
 {
@@ -31,9 +35,6 @@ namespace Utl
 		{
 
 		}
-
-		// Custom placement delete
-		// TODO: IMPLEMENT!
 
 		void	SetNumBytesToTrack(size_t bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = bytesToTrack / (sizeof(void*) * sizeof(FreeListNode_t)); }
 		size_t	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes; }
@@ -215,8 +216,8 @@ namespace Utl
 				{
 					if (pDebugNextNode->Offset < (pDebugCurNode->Offset + pDebugCurNode->Size))
 					{
-						//LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
-						//CAssert(0);
+						LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
+						CAssert(0);
 					}
 				}
 
@@ -237,7 +238,8 @@ namespace Utl
 				}
 			}
 
-			CAssert(0); // TODO: HANDLE THIS
+			LOG_FATAL("Error in attempting to get a new freelist node! No nodes we're available! Memory corruption is almost certain!");
+			CAssert(0);
 			return nullptr;
 		}
 

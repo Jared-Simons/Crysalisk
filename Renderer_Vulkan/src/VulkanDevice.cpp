@@ -8,13 +8,19 @@
 
 #include <Strings/String_Utils.h>
 
+// Forward declarations.
 static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice);
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a Vulkan device.
+// Input:	pRenderingContext - The owning rendering context.
+//			pOutDevice - The structure that will hold the created device.
+// Output:	bool - Returns true on successful device creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pOutDevice)
 {
 	// Select physical device.
 	// TODO: Pass in a configuration from the front-end to query device features.
-
 	unsigned int physicalDeviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, nullptr);
 	Utl::CVector<VkPhysicalDevice> availableDevices(physicalDeviceCount);
@@ -127,11 +133,22 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Destroys a Vulkan logical device.
+// Input:	pRenderingContext - The owning rendering context.
+//			pBuffer - The device to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanDevice::DestroyDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pDevice)
 {
 	vkDestroyDevice(pDevice.m_Device, pRenderingContext.m_Allocator);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Finds the appropriate index given a type filter and memory properties.
+// Input:	typeFilter && properties - The criteria for selecting an index.
+// Output:	Returns the selected index.
+//-------------------------------------------------------------------------
 uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	for (uint32_t typeIndex = 0; typeIndex < m_MemoryProperties.memoryTypeCount; typeIndex++)
@@ -146,6 +163,11 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 	return 0;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Finds a supported/ideal depth format.
+// Input:	none.
+// Output:	The selected depth format.
+//-------------------------------------------------------------------------
 VkFormat VulkanDevice::FindSupportedDepthFormat()
 {
 	// TODO: make this work when checking out device candidates, not just after selecting a device.
@@ -169,6 +191,11 @@ VkFormat VulkanDevice::FindSupportedDepthFormat()
 	return VK_FORMAT_UNDEFINED;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Querys the provided device for required extension support.
+// Input:	pDevice - The device to query extension support for.
+// Output:	True if all required extensions were found, otherwise false.
+//-------------------------------------------------------------------------
 static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 {
 	// Check for required device extensions.

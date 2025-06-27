@@ -12,17 +12,21 @@
 
 namespace ShaderLoader
 {
+	// Attempts to load an existing shader asset from disk.
 	CORE_API bool LoadShaderResource(const char* pszShaderPath, struct ShaderResource_t& pOutResource);
 
-	//-------------------------------------------------------------------------
-	// TODO: Documentation
-	//-------------------------------------------------------------------------
+	// A shader resource generated from a configuration file on disk.
+	// Can be used by the engine at runtime to create shaders.
 	struct ShaderResource_t
 	{
+		// Represents the configuration for an individual shader stage.
 		struct ShaderStageResource_t
 		{
+			// A string representing this stage (e.g. 'vert' or 'frag').
 			char*				pszStageString{ nullptr };
+			// The size in bytes of this module's bytecode.
 			size_t				CodeDataSize{ 0 };
+			// The bytecode for this shader stage.
 			Utl::CVector<byte>	pShaderModuleBytecode{};
 
 			ShaderStageResource_t()
@@ -55,9 +59,12 @@ namespace ShaderLoader
 			}
 		};
 
+		// Represents the configuration for a single vertex attribute.
 		struct ShaderVertexAttributeConfig_t
 		{
+			// The name of the attribute.
 			char*	pszName{ nullptr };
+			// The attribute's type.
 			char*	pszType { nullptr };
 
 			ShaderVertexAttributeConfig_t() {}
@@ -92,11 +99,16 @@ namespace ShaderLoader
 			}
 		};
 
+		// Represents the configuration for a single shader uniform.
 		struct ShaderUniformConfig_t
 		{
+			// The name of the uniform.
 			char*	pszName{ nullptr };
+			// The uniform's type.
 			char*	pszType{ nullptr };
+			// The frequency at which the uniform is updated (per-frame, per-instance, per-draw).
 			char*	pszFreq{ nullptr };
+			// The array size of this uniform.
 			int		iArraySize{ 1 };
 
 			ShaderUniformConfig_t() {}
@@ -144,12 +156,19 @@ namespace ShaderLoader
 			}
 		};
 
+		// The name of the shader.
 		char*										pszShaderName{ nullptr };
+		// An array of shader stage configurations.
 		Utl::CVector<ShaderStageResource_t>			ShaderStages{};
+		// The type of topology rendering this shader supports.
 		char*										pszTopologyType;
+		// Whether or not this shader will perform depth testing.
 		bool										bDepthTestingEnabled{ false };
+		// Whether or not this shader will perform color blending.
 		bool										bColorBlendingEnabled{ false };
+		// An array of shader vertex attribute configurations.
 		Utl::CVector<ShaderVertexAttributeConfig_t>	ShaderAttributes{};
+		// An array of shader uniform configurations.
 		Utl::CVector<ShaderUniformConfig_t>			ShaderUniforms{};
 
 		~ShaderResource_t()

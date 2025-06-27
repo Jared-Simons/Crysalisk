@@ -6,6 +6,17 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the resources for a new Vulkan image.
+// Input:	pRenderingContext - The owning rendering context.
+//			width - The width of the new image.
+//			height - The height of the new image.
+//			imageFormat - The format of the new image.
+//			usageFlags - Determines how the image will be used.
+//			aspectFlags - Indicates resources included in the image view.
+//			pOutImage - The structure that will hold the created image.
+// Output:	Returns true on successful image creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -54,6 +65,12 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan image resources.
+// Input:	pRenderingContext - The owning rendering context.
+//			pImage - The image to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanImage::DestroyImage(CVulkanRenderer& pRenderingContext, VulkanImage& pImage)
 {
 	vkDestroyImageView(pRenderingContext.m_Device.m_Device, pImage.m_View, pRenderingContext.m_Allocator);
@@ -61,7 +78,14 @@ void VulkanImage::DestroyImage(CVulkanRenderer& pRenderingContext, VulkanImage& 
 	vkDestroyImage(pRenderingContext.m_Device.m_Device, pImage.m_Image, pRenderingContext.m_Allocator);
 }
 
-bool VulkanImage::TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout)
+//-------------------------------------------------------------------------
+// Purpose: Transitions an image from one layout to another.
+// Input:	pRenderingContext - The owning rendering context.
+//			oldLayout - The previous (or current) layout.
+//			newLayout - The layout to be transitioned to.
+// Output:	Returns true on successful layout transition, otherwise false.
+//-------------------------------------------------------------------------
+bool VulkanImage::TransitionImageLayout(CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	VulkanCommandBuffer commandBuffer{};
 	commandBuffer.CreateAndBeginSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
@@ -122,6 +146,15 @@ bool VulkanImage::TransitionImageLayout(class CVulkanRenderer& pRenderingContext
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Writes pixel data to the Vulkan image.
+// Input:	pRenderingContext - The owning rendering context.
+//			width - The data's width.
+//			height - The data's height.
+//			numChannels - The data's number of channels.
+//			pPixelData - An array of the pixels to be written to the image.
+// Output:	Returns true on successful data write operation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData)
 {
 	// Put the image data into a nice staging buffer.

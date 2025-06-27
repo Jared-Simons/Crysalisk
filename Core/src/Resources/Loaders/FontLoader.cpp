@@ -14,11 +14,20 @@
 
 namespace FontLoader
 {
+	// The codepoint of the first char we include in our fonts.
 	const uint32_t kCodePointOfFirstChar = 32;
+	// The number of characters we include in our font atlases.
 	const uint32_t kCharsToIncludeInFontAtlas = 95;
 
-	// TODO: This only supports True Type Fonts.
 	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to load an existing font asset from disk 
+	//				(NOTE: This currently only supports True-Type fonts!)
+	// 
+	// Input:	pszFontPath - The path to the font to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
+	//-------------------------------------------------------------------------
 	bool LoadFontResource(const char* pszFontPath, FontResource_t& pOutResource)
 	{
 		// Make sure the file actually exists.

@@ -16,6 +16,13 @@
 namespace ImageLoader
 {
 	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// Purpose: Attempts to load an existing image asset from disk.
+	// 
+	// Input:	pszImagePath - The path to the image to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
+	//-------------------------------------------------------------------------
 	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
 	{
 		const int kRequiredChannelCount = 4;
@@ -47,7 +54,7 @@ namespace ImageLoader
 
 		// Load the image data into our buffer. (This must be freed by the caller).
 		// NOTE: We are forcing each image to be loaded as 4 channels because support for R8G8B8 images on some hardware is dodgy, whereas R8G8B8A8 is seemingly universal.
-		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, kRequiredChannelCount);
+		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), (int)bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, kRequiredChannelCount);
 
 		// Check the image for transparency.
 		// We (currently) only care about this if there is an alpha channel.
@@ -82,6 +89,11 @@ namespace ImageLoader
 		return true;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Releases resources allocated during image resource acquisition.
+	// 
+	// Input:	pResource - Contains the resources to be released.
+	//-------------------------------------------------------------------------
 	void ReleaseImageResource(ImageResource_t& pResource)
 	{
 		// For now, all we care about is freeing the pixel array.

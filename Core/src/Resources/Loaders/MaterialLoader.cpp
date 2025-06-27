@@ -14,9 +14,13 @@ namespace MaterialLoader
 {
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
-	// TODO: Documentation
+	// Purpose: Attempts to load a material asset from disk.
+	// 
+	// Input:	pszMaterialPath - The path to the material to be loaded.
+	//			pOutResource - The loaded resource data.
+	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadMaterialResource(const char* pszMaterialPath, struct MaterialResource_t& pOutResource)
+	bool LoadMaterialResource(const char* pszMaterialPath, MaterialResource_t& pOutResource)
 	{
 		// Make sure the file actually exists first.
 		if (!FileSystem::FileExists(pszMaterialPath))

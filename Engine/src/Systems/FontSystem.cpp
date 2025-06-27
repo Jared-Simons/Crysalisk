@@ -12,16 +12,11 @@
 #include "Renderer/Renderer.h"
 #include <Resources/Loaders/FontLoader.h>
 #include "Systems/TextureSystem.h"
-#include "Systems/MaterialSystem.h" // TODO: REMOVE THIS ASAP!
 #include "Systems/ShaderSystem.h"
-
-#define STB_TRUETYPE_IMPLEMENTATION
-#include <Vendor/stb_truetype.h>
 
 //-------------------------------------------------------------------------
 // Indices for each of the UI shader lookups.
 //-------------------------------------------------------------------------
-// UI Shader Locations
 struct UIShaderLocations_t
 {
 	uint16_t	projection{ kInvalidID_U16 };
@@ -31,11 +26,19 @@ struct UIShaderLocations_t
 	uint16_t	model{ kInvalidID_U16 };
 };
 
+// UI Shader Locations
 static UIShaderLocations_t s_UIShaderLocations{};
 
+// The codepoint of the first character we include in our font atlases.
 const uint32_t kCodePointOfFirstChar = 32;
+// The number of characters we include in our font atlases.
 const uint32_t kCharsToIncludeInFontAtlas = 95;
 
+//-------------------------------------------------------------------------
+// Purpose: Sets the actual text to be rendered with this text object.
+// Input:	pszText - The new string to be rendered with this object.
+// Output:	none.
+//-------------------------------------------------------------------------
 void TextObject::SetText(const char* pszText)
 {
 	if (m_pszText)
@@ -56,21 +59,24 @@ void TextObject::SetText(const char* pszText)
 //-------------------------------------------------------------------------
 class CFontSystem : public IFontSystem
 {
-	virtual bool	Initialize(FontSystemConfig_t config) override;
-	virtual void	Shutdown() override;
+	// Initialization, shutdown.
+	virtual bool				Initialize(FontSystemConfig_t config) override;
+	virtual void				Shutdown() override;
 
+	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
-
-	virtual FontHandle_t		AcquireFontResources_OLD(const char* pFontPath) override;
-
+	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) override;
 
 private:
+	// Returns the first available handle in the font dictionary.
 	FontHandle_t	GetFirstFreeFontHandle() const;
 
 private:
+	// The font system config passed in from the application configuration.
 	FontSystemConfig_t m_Config{};
 
+	// A lookup for a particular font.
 	struct FontLookup
 	{
 		FontHandle_t	FontIndex{ kInvalidID_U32 };
@@ -78,11 +84,15 @@ private:
 
 	struct FontDictionary
 	{
-		Utl::CHashMap<const char*, FontLookup> m_FontHashmap{};
-		Font* m_FontArray{ nullptr };
+		// Allows for string-based lookups for fonts.
+		Utl::CHashMap<const char*, FontLookup>	m_FontHashmap{};
+		// An array of fonts.
+		Font*									m_FontArray{ nullptr };
 	};
 
+	// The font dictionary.
 	FontDictionary	m_FontDictionary{};
+	// The default UI shader, in case a different shader is not available.
 	ShaderHandle_t	m_hDefaultUIShader{ kInvalidID_U32 };
 };
 
@@ -90,12 +100,8 @@ private:
 static CFontSystem s_FontSystem;
 IFontSystem* g_pFontSystem = &s_FontSystem;
 
-struct TrueTypeFontInternalData_t
-{
-	stbtt_packedchar packedChar[kCharsToIncludeInFontAtlas];
-	stbtt_aligned_quad alignedQuads[kCharsToIncludeInFontAtlas];
-};
-
+// The internal font atlas data for a font.
+// Can be accessed through pFont->m_pInternalData.
 struct InternalFontAtlasData_t
 {
 	Utl::CVector<FontLoader::FontChar_t>		charData{};
@@ -142,7 +148,9 @@ void CFontSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Attempts to acquire the resources for a given font.
+// Input:	pszFontName - The font to acquire resources for.
+// Output:	Returns a handle to the new font.
 //-------------------------------------------------------------------------
 FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 {
@@ -198,13 +206,11 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 }
 
 //-------------------------------------------------------------------------
-// Loads a font at the provided path if it hasn't been loaded.
+// Purpose: Generates the geometry necessary to render a piece of text.
+// Input:	pText - The string to acquire resources for.
+//			hFont - The font associated with this text object.
+// Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-FontHandle_t CFontSystem::AcquireFontResources_OLD(const char* pFontPath)
-{
-	return 0;
-}
-
 // Shoutouts to shreyaspranav for the stb_truetype example! :)
 // https://github.com/shreyaspranav/stb-truetype-example/blob/main/Main.cpp
 // TODO: Handle escape sequences here
@@ -215,7 +221,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 	newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
 
 	InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
-	size_t currVertIndex{ 0 };
+	uint32_t currVertIndex{ 0 };
 
 	// TODO: Configurable position and size
 	Vector2D position{ -0.9f, -0.9f };
@@ -287,21 +293,31 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 
 		// Push the current position forward by the current character's advance.
 		position.x += pCurrPackedChar->Advance * flPixelScale * flSize;
+
+		// TODO: Handle newlines.
 	}
 	newConfig.Vertices.SetCount(currVertIndex);
 
 	return newConfig;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Find the first available handle in the font dictionary.
+// Input:	none.
+// Output:	Returns the first available font handle.
+//-------------------------------------------------------------------------
 FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 {
 	// Get the first free font slot.
 	for (int fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
 	{
-		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalData)
+		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalFontAtlasData)
 		{
 			// Found one!
 			return fontIdx;
 		}
 	}
+
+	LOG_ERROR("No free slot was found in the font dictionary! Returning invalid ID");
+	return kInvalidID_U32;
 }

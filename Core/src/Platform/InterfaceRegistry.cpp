@@ -1,24 +1,48 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 2/15/2025
+// 
+// Purpose: This file holds opaque pointers to all the engine's systems,
+// so that each dll can keep it's own copy with Interfaces.lib.
+//=============================================================================
 #include "InterfaceRegistry.h"
 
 #include "Strings/String_Utils.h"
-#include <malloc.h> // THIS IS TEMPORARY UNTIL WE HAVE ALL MEMORY ALLOCATING FROM A SHARED ALLOCATOR
 
-namespace Platform {
+namespace Platform 
+{
+	// An array of all the registered interfaces.
+	// This is the 'point-of-truth' for the entire codebase,
+	// If an interface pointer changes somewhere, it needs to be updated here to be 'valid'.
+	static Utl::CVector<SystemInterface_t> s_RegisteredInterfaces{};
 
-	static Utl::CVector<SystemInterface_t> registeredSystems{};
-
-	void RegisterInterface(SystemInterface_t& interfaceData)
+	//-------------------------------------------------------------------------
+	// Purpose: Registers the provided interface with the interface registry.
+	// Input:  pInterfaceData - The interface to be registered.
+	// Output: none.
+	//-------------------------------------------------------------------------
+	void RegisterInterface(SystemInterface_t& pInterfaceData)
 	{
-		registeredSystems.PushBack(interfaceData);
+		s_RegisteredInterfaces.PushBack(pInterfaceData);
 	}
 
-	Utl::CVector<SystemInterface_t>& GetRegisteredInterfaces()
+	//-------------------------------------------------------------------------
+	// Purpose: Returns a copy of the registered interfaces.
+	// Input:  none.
+	// Output: The registered interfaces.
+	//-------------------------------------------------------------------------
+	Utl::CVector<SystemInterface_t> GetRegisteredInterfaces()
 	{
-		return registeredSystems;
+		return s_RegisteredInterfaces;
 	}
 
+	//-------------------------------------------------------------------------
+	// Purpose: Cleans up the interface registry.
+	// Input:  none.
+	// Output: none.
+	//-------------------------------------------------------------------------
 	void CleanupInterfaceRegistry()
 	{
+		s_RegisteredInterfaces.Clear();
 	}
-
 }

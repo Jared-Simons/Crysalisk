@@ -10,10 +10,20 @@
 
 namespace MaterialSerializer
 {
+	// Specific file extension for the Crysalisk material file format (CMaterials).
 	static const char*	kMaterialFileExtension = ".cmat";
+	// The default asset path to store material in.
 	static const char*	kDefaultMaterialAssetPath = "Assets/Materials/";
 
-	bool SerializeMaterialResources(const char* pszMaterialName, struct MaterialLoader::MaterialResource_t& pInResource)
+	//-------------------------------------------------------------------------
+	// Purpose: Takes an existing material resource imported from another file type, 
+	// and writes it out to disk in our own material format.
+	// 
+	// Input:	pszMaterialName - The name of the material.
+	//			pInResource - The resource data to be serialized.
+	// Output:	bool - Returns true on successful serialization, otherwise false.
+	//-------------------------------------------------------------------------
+	bool SerializeMaterialResources(const char* pszMaterialName, MaterialLoader::MaterialResource_t& pInResource)
 	{
 		// Create and setup the file.
 

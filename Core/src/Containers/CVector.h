@@ -4,19 +4,18 @@
 // 
 // Purpose: A Custom Dynamically-Resizable Array.
 // 
-// TODO: Make this work with custom allocators.
 // TODO: Create an iterator for use with range-based for loops.
 //=============================================================================
 #pragma once
 
 #include "Core/Assertions.h"
-
+#include "Memory/MemoryAllocatorBase.h"
 #include "Memory/MemoryManager.h"
-#include <string.h> // for memcpy (TODO: Maybe abstract this so we don't include the whole header?)
+#include "Platform/Platform.h"
 
-namespace Utl {
-
-	template<typename T>
+namespace Utl 
+{
+	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
 	class CVector
 	{
 	public:
@@ -51,10 +50,10 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// TODO: Make this work with custom allocators.
 			// Allocate memory for our array.
 			//m_pValues = new T[initialCapacity];
-			m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(initialCapacity * m_ValueStride));
+			if (initialCapacity > 0)
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
@@ -71,11 +70,14 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+
 			if (m_Capacity > 0)
 			{
 				//m_pValues = new T[m_Capacity];
-				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
 
@@ -94,6 +96,9 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+
 			// Release the other vector's referece to these resources.
 			pOtherVector.m_pValues = nullptr;
 			pOtherVector.m_Count = 0;
@@ -105,13 +110,10 @@ namespace Utl {
 		//--------------------------------------------------
 		~CVector()
 		{
-			// TODO: Custom allocators.
-			static int timesCalled{ 0 };
-			if (m_pValues && m_Capacity > 0 && g_pMemoryManager->IsInitialized()) // TODO: WE SHOULDN'T NEED TO ACCESS THE MEMORY MANAGER HERE
-				g_pMemoryManager->Free(m_pValues);
+			if (m_pValues && m_Capacity > 0)
+				m_Allocator.Free(m_pValues);
 				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			m_pValues = nullptr;
-			timesCalled++;
 
 			m_Count = 0;
 			m_Capacity = 0;
@@ -133,11 +135,14 @@ namespace Utl {
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
+			// Make sure to copy over a custom allocator, if we have one!
+			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+
 			if (m_Capacity > 0)
 			{
 				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
-				m_pValues = reinterpret_cast<T*>(g_pMemoryManager->Allocate(m_Capacity * m_ValueStride));
-				memcpy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
 			return *this;
@@ -220,7 +225,7 @@ namespace Utl {
 		void Clear()
 		{
 			if (m_pValues)
-				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
 			//delete[] m_pValues;
 			m_pValues = nullptr;
 			m_Capacity = 0;
@@ -282,16 +287,16 @@ namespace Utl {
 			}
 
 			// Allocate some new memory.
-			void* pNewData = g_pMemoryManager->Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
+			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
 			T* pNewArray = (T*)pNewData;												// For example, using new[] here seems to be inconsistent with returning a pointer to the correct address allocated, or an address that is some amount of bytes ahead of the allocated address.
 			CAssert(pNewArray);
 
 			// Copy the current array over.
-			memcpy(pNewArray, m_pValues, m_ValueStride * m_Count);
+			Platform::MemoryCopy(pNewArray, m_pValues, m_ValueStride * m_Count);
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				g_pMemoryManager->Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
+				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
 				//delete[] m_pValues;
 			m_pValues = reinterpret_cast<T*>(pNewArray);
 
@@ -324,6 +329,9 @@ namespace Utl {
 
 		/* The multiplier to be used when the vector resizes to make more room. */
 		size_t m_ResizeFactor;
+
+		/* TODO: Documentation. */
+		Allocator m_Allocator{};
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;
