@@ -373,11 +373,11 @@ namespace MeshLoader
 		// Write it without the original extension
 		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
 		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
-		//MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
+		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
 
 		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
 		{
-			//MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
+			MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
 		}
 
 		StringFree(pTempNameBuffer);

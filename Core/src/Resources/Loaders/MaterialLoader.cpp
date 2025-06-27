@@ -88,7 +88,9 @@ namespace MaterialLoader
 			}
 			else
 			{
-				LOG_WARN("Failed to parse material key: '%s'.", szKey);
+				// Must be a custom keyvalue.
+				pOutResource.pszCustomKeys.PushBack(StringDuplicate(szKey));
+				pOutResource.pszCustomValues.PushBack(StringDuplicate(szValue));
 			}
 
 			int myBreakPoint = 0;

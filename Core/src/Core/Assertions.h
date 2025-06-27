@@ -10,12 +10,18 @@
 
 #include <Core/Logging.h>
 
+#ifdef _DEBUG
 #define CAssert(expr)																						\
 	if (!(expr))																							\
 		{																									\
 			LOG_ERROR("Assertion Failure! File: %s, Line: %d", __FILE__, __LINE__);							\
 			__debugbreak();																					\
 		}
+#else
+
+#define CAssert(expr)
+
+#endif
 
 #define CASSERTMSG(expr, msg)																				\
 	if (!(expr))																							\

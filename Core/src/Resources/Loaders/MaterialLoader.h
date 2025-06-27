@@ -99,7 +99,19 @@ namespace MaterialLoader
 				StringFree(pszShaderName);
 
 			textureMapConfigs.Clear();
+
+			/*for (int idx = 0; idx < pszCustomKeys.Count(); idx++)
+			{
+				if (pszCustomKeys[idx])
+					StringFree(pszCustomKeys[idx]);
+			}*/
 			pszCustomKeys.Clear();
+			
+			/*for (int idx = 0; idx < pszCustomValues.Count(); idx++)
+			{
+				if (pszCustomValues[idx])
+					StringFree(pszCustomValues[idx]);
+			}*/
 			pszCustomValues.Clear();
 		}
 	};

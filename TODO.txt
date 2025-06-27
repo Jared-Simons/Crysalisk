@@ -17,3 +17,6 @@ Features to be developed:
 - We need a solution for allocating memory prior to the memory manager being initialized.
 - There is a bug with the overloaded new/delete operators where they allocate x address but actually return an address x + a few bytes, but this is inconsistent.	
 	- This is possibly an alignment issue which we need to support memory alignment in our own allocators anyways.
+	
+- Default textures are not being bound properly, they must be defined in the order of diffuse->specular->normal.
+	- This means that if a material does not have a specular map, then the normal map will get defined with the specular sampler.
