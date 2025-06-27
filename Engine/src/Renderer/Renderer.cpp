@@ -235,71 +235,160 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires renderer-specific resources for a texture.
+// Input:	pTexture - The texture to get resources for.
+//			internalIndex - The internal handle for this texture.
+//			nPixelDataSize - The size in bytes of the pixel data.
+//			pPixelData - An array of the texture's pixel data.
+// Output:	bool - Returns true on successful resource acquisition, otherwise false.
+//-------------------------------------------------------------------------
 bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases renderer-specific resources for a texture.
+// Input:	pTexture - The texture to release resources for.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::ReleaseTextureResources(Texture* pTexture)
 {
 	m_RendererBackend->ReleaseTextureResources(pTexture);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates/Acquires the renderer-specific resources for a shader.
+// Input:	pShader - The shader to get resources for.
+//			pConfig - Some shader configuration details.
+// Output:	bool - Returns true on successful resource acquisition, otherwise false.
+//-------------------------------------------------------------------------
 bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
 	return m_RendererBackend->CreateShader(pShader, pConfig); 
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases renderer-specific resources for a shader.
+// Input:	pShader - The shader to release resources for.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::DestroyShader(Shader* pShader)
 {
 	m_RendererBackend->DestroyShader(pShader);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires instance-level resources for a shader.
+//				Typically called when setting up a material or similar scenarios.
+// Input:	pShader - The shader to get set up an instance for.
+//			pOutInstanceID - A pointer to an int to hold the ID of the instance.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
 {
 	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds a shader for use in rendering operations.
+// Input:	pShader - The shader to bind.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::BindShader(Shader* pShader)
 {
 	m_RendererBackend->BindShader(pShader);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds a shader's per-frame uniforms.
+// Input:	pShader - The shader who's uniforms to bind.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
 {
 	m_RendererBackend->BindPerFrameShaderDescriptors(pShader);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds a shader's per-instance uniforms.
+// Input:	pShader - The shader who's uniforms to bind.
+//			hInstanceID - The instance to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
 {
 	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Sets a shader's uniform.
+// Input:	pShader - The shader who's uniform is to be set.
+//			pUniform - A pointer to the uniform to be set.
+//			iUniformArrayIndex - The array index of the uniform to be set.
+//			hInstanceID - The instance to be set.
+//			pData - An opaque pointer to the value to be set in the uniform.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometryConfig, pOutInstance);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig, pOutInstance);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases the renderer-specific resources for geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometry - The geometry instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Renders a piece of geometry (MUST BE CALLED DURING THE RENDERING OF A FRAME!!)
+// Input:	pGeometry - The geometry instance to be drawn.
+//			pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
 {
 	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: A temporary function to create geometry for testing.
+// Input:	none.
+// Output:	True on successful geometry creation, otherwise false.
+//-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
 	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
@@ -325,29 +414,7 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	// Acquire materials
-	//m_Cube1.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial");
-	//m_Cube2.hMaterial = g_pMaterialSystemInternal->AcquireMaterialReference("Assets/Materials/testmaterial2");
 	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
-
-	// TEMP SHADER TEST CODE
-	//testShaderHandle = g_pShaderSystem->AcquireShader("CoreShader");
-	// END TEMP
-
-	// Load a test model.
-	//LOG_DEBUG("Bytes allocated before model loading:");
-	//g_pMemoryManager->PrintMemoryStats();
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/a4_c17_water_tower.obj");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/water_tower_test.obj");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/combine_soldier.obj");
-	//LOG_DEBUG("Bytes allocated after model loading:");
-
-	// Font test.
-	//FontHandle_t testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/arial.ttf");
-
-	// Acquire geometry resources for this text.
-	//s_FontTest.SetText("Some Test Text!");
-	//m_SponzaModel = g_pOBJLoader->CreateConfigFromFile("Assets/Models/Sponza.obj");
 
 	MeshLoader::MeshResource_t sponzaResource{};
 	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
@@ -389,10 +456,6 @@ bool Renderer::CreateTempGeometry()
 				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
 
 				m_SponzaModel.m_Geometries.PushBack(newGeometry);
-
-				// Free temp string data.
-				if (newConfig.pszDebugName)
-					StringFree(newConfig.pszDebugName);
 			}
 		}
 	}
@@ -408,6 +471,11 @@ bool Renderer::CreateTempGeometry()
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases all temp geometry resources.
+// Input:	none.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Renderer::DestroyTempGeometry()
 {
 	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
@@ -416,6 +484,11 @@ void Renderer::DestroyTempGeometry()
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: An event handler for window resizes.
+// Input:	data - Event-specific data (this contains the new dimensions of the window).
+// Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
+//-------------------------------------------------------------------------
 static bool RendererEvent_WindowResized(EventData_t data)
 {
 	// Handle minimized contexts.
@@ -432,6 +505,11 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	return false;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: An event handler for key pressed.
+// Input:	data - Event-specific data (this contains the relevant pressed key-codes).
+// Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
+//-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
 	// Let other listeners handle this event.

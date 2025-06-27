@@ -9,6 +9,16 @@
 #include <Containers/CFreeList.h>
 #include <Math/VertexTypes.h>
 
+//-------------------------------------------------------------------------
+// Purpose: Creates and acquires the resources for a Vulkan buffer.
+// Input:	pRenderingContext - The owning rendering context.
+//			bufferSize - The size in bytes that the buffer should have. Must be > 0.
+//			bufferUsgae - Flags determining the buffer's usage.
+//			memoryProperties - Flags determining the buffer's associated memory properties.
+//			bUseFreelist - Determines if the buffer's memory should be tracked using a freelist (otherwise will use a linear allocation method).
+//			pOutBuffer - The structure that will hold the created buffer.
+// Output:	bool - Returns true on successful buffer creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer)
 {
 	if (bufferSize <= 0)
@@ -55,6 +65,12 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan buffer resources.
+// Input:	pRenderingContext - The owning rendering context.
+//			pBuffer - The buffer to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer)
 {
 	if (pBuffer.m_pFreelistMemory)
@@ -68,6 +84,13 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffe
 	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer.m_Handle, pRenderingContext.m_Allocator);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Uploads data to the buffer.
+// Input:	pRenderingContext - The owning rendering context.
+//			dataSize - The size of data in bytes to be uploaded.
+//			pData - An opaque pointer to the data to be uploaded.
+// Output:	The offset in the buffer that this data was placed.
+//-------------------------------------------------------------------------
 size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData)
 {
 	if (dataSize <= 0)
@@ -95,6 +118,13 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 	return outOffset;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Frees a data range in the buffer.
+// Input:	pRenderingContext - The owning rendering context.
+//			dataOffset - The offset in the buffer this data lives.
+//			dataSize - The size of data in bytes to be freed.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize)
 {
 	// This only works for buffers that track their memory with a freelist.
@@ -109,6 +139,13 @@ void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t data
 	m_Freelist.Free(dataSize, dataOffset);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Factory method that creates command buffers.
+// Input:	pRenderingContext - The owning rendering context.
+//			bIsPrimary - Indicates if this command buffer should be primary level or secondary level.
+//			pOutCommandBuffer - The structure that will hold the created commandbuffer.
+// Output:	bool - Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer& pRenderingContext, bool bIsPrimary, VulkanCommandBuffer& pOutCommandBuffer)
 {
 	VkCommandBufferAllocateInfo allocateInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -121,11 +158,23 @@ bool VulkanCommandBuffer::CreateCommandBuffer(CVulkanRenderer& pRenderingContext
 	return true;
 }
 
-void VulkanCommandBuffer::DestroyCommandBuffer(class CVulkanRenderer& pRenderingContext, VulkanCommandBuffer& pCommandBuffer)
+//-------------------------------------------------------------------------
+// Purpose: Releases command buffers.
+// Input:	pRenderingContext - The owning rendering context.
+//			pCommandBuffer - The command buffer to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void VulkanCommandBuffer::DestroyCommandBuffer(CVulkanRenderer& pRenderingContext, VulkanCommandBuffer& pCommandBuffer)
 {
 	vkFreeCommandBuffers(pRenderingContext.m_Device.m_Device, pRenderingContext.m_GraphicsCommandPool, 1, &pCommandBuffer.m_Handle);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates and begins a single-use command buffer.
+// Input:	pRenderingContext - The owning rendering context.
+//			pCommandPool - The command pool to allocate this buffer from.
+// Output:	bool - Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanCommandBuffer::CreateAndBeginSingleUse(CVulkanRenderer& pRenderingContext, VkCommandPool pCommandPool)
 {
 	VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -141,7 +190,13 @@ bool VulkanCommandBuffer::CreateAndBeginSingleUse(CVulkanRenderer& pRenderingCon
 	return true;
 }
 
-void VulkanCommandBuffer::EndSingleUse(class CVulkanRenderer& pRenderingContext, VkCommandPool pCommandPool)
+//-------------------------------------------------------------------------
+// Purpose: Ends and submits a single-use command buffer.
+// Input:	pRenderingContext - The owning rendering context.
+//			pCommandPool - The command pool that allocated this buffer.
+// Output:	none.
+//-------------------------------------------------------------------------
+void VulkanCommandBuffer::EndSingleUse(CVulkanRenderer& pRenderingContext, VkCommandPool pCommandPool)
 {
 	VK_CHECK(vkEndCommandBuffer(m_Handle));
 

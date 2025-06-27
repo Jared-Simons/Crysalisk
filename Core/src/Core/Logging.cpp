@@ -90,7 +90,7 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 	sprintf_s(finalOutBuffer, "%s%s\n", logLevelStrings[logLevel], formattedMessageBuffer);
 
 	// Write the message out to file, if possible.
-	if (s_LoggerFile.isValid)
+	if (s_LoggerFile.bIsValid)
 	{
 		FileSystem::WriteLine(finalOutBuffer, &s_LoggerFile);
 	}

@@ -70,7 +70,7 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
 	// setup m_MouseState table
 	m_MouseState.m_XPos = 0.0f;
 	m_MouseState.m_YPos = 0.0f;
-	m_MouseState.m_MouseFlags = 0;
+	m_MouseState.m_bitsMouseButtons = 0;
 
 	// Register our callbacks with the platform layer.
 	pEngineWindow.SetKeyboardEventCallback(API_ProcessKeyInput);
@@ -148,17 +148,17 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 {
 	if (pressed)
 	{
-		m_MouseState.m_MouseFlags = mouseButtonFlags;
+		m_MouseState.m_bitsMouseButtons = mouseButtonFlags;
 
-		if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_LEFT)
+		if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_LEFT)
 		{
 			LOG_INFO("Left Mouse Button pressed.");
 		}
-		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
+		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
 		{
 			LOG_INFO("Right Mouse Button pressed.");
 		}
-		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
+		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
 		{
 			LOG_INFO("Middle Mouse Button pressed.");
 		}
@@ -169,21 +169,21 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 	}
 	else
 	{
-		if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_LEFT)
+		if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_LEFT)
 		{
 			LOG_INFO("Left Mouse Button released.");
 		}
-		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
+		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
 		{
 			LOG_INFO("Right Mouse Button released.");
 		}
-		else if (m_MouseState.m_MouseFlags & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
+		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
 		{
 			LOG_INFO("Middle Mouse Button released.");
 		}
 
 		// Zero out the pressed mouse buttons.
-		m_MouseState.m_MouseFlags = 0;
+		m_MouseState.m_bitsMouseButtons = 0;
 
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;

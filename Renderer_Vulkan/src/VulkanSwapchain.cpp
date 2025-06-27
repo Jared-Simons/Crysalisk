@@ -6,6 +6,9 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
+//-------------------------------------------------------------------------
+// Contains various details about swapchain support.
+//-------------------------------------------------------------------------
 struct SwapchainSupportDetails
 {
 	VkSurfaceCapabilitiesKHR			SurfaceCapabilities;
@@ -13,6 +16,12 @@ struct SwapchainSupportDetails
 	Utl::CVector<VkPresentModeKHR>		PresentModes;
 };
 
+//-------------------------------------------------------------------------
+// Purpose: Creates and acquires the resources for a Vulkan swapchain.
+// Input:	pRenderingContext - The owning rendering context.
+//			pOutSwapchain - The structure that will hold the created swapchain.
+// Output:	bool - Returns true on successful swapchain creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pOutSwapchain)
 {
 	// Query our device for swapchain support.
@@ -131,6 +140,12 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, Vulkan
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan swapchain resources.
+// Input:	pRenderingContext - The owning rendering context.
+//			pSwapchain - The swapchain to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
 	for (int imageIdx = 0; imageIdx < pSwapchain.m_Framebuffers.Capacity(); imageIdx++)
@@ -148,6 +163,12 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, Vulka
 	vkDestroySwapchainKHR(pRenderingContext.m_Device.m_Device, pSwapchain.m_Handle, pRenderingContext.m_Allocator);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates and acquires the resources for swapchain-owned framebuffers.
+// Input:	pRenderingContext - The owning rendering context.
+//			pSwapchain - The structure that will hold the created framebuffers.
+// Output:	bool - Returns true on successful framebuffer creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
 	// Create our framebuffers
@@ -173,6 +194,12 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Recreates the swapchain, when necessary (i.e. window-resize).
+// Input:	pRenderingContext - The owning rendering context.
+//			pSwapchain - The swapchain to be recreated.
+// Output:	none.
+//-------------------------------------------------------------------------
 void VulkanSwapchain::RecreateSwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
 	LOG_DEBUG("Recreating swapchain");

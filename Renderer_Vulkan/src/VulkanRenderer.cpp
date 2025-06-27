@@ -37,22 +37,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData);
 
+// Renderer event handlers.
 static bool RendererEvent_WindowResized(EventData_t data);
 static bool RendererEvent_KeyPressed(EventData_t data);
 
 //-------------------------------------------------------------------------
 // Purpose: Gets opaque pointers to interfaces that will be exposed to the rest of the engine.
-// Input: none.
-// Output: An array of pointers and names to interfaces this library will provide.
+// Input:	pOutInterfaces - An array to add our interfaces to.
+// Output:	none.
 //-------------------------------------------------------------------------
-DLL_EXPORT Utl::CVector<Platform::SystemInterface_t> ObtainInterfaces()
+DLL_EXPORT void ObtainInterfaces(Utl::CVector<Platform::SystemInterface_t>& pOutInterfaces)
 {
-	Utl::CVector<Platform::SystemInterface_t> interfaces{};
-
 	// For this, right now we only care about the backend pointer.
-	interfaces.PushBack({ g_pRendererBackend, "Renderer_Backend" });
-
-	return interfaces;
+	pOutInterfaces.PushBack({ g_pRendererBackend, "Renderer_Backend" });
 }
 
 //-------------------------------------------------------------------------
@@ -81,8 +78,8 @@ DLL_EXPORT void* GetRendererBackendState()
 
 //-------------------------------------------------------------------------
 // Purpose: Initializes the Vulkan renderer.
-// Input: pConfig - Renderer specific configuration provided by the calling application.
-// Output: bool - Returns true on successful initialization, otherwise false.
+// Input:	pConfig - Renderer specific configuration provided by the calling application.
+// Output:	bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 {
@@ -201,6 +198,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// TODO: We shouldn't need these passes anymore...
 	// Main Renderpass
 	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, true, m_MainRenderPass))
 	{
@@ -230,23 +228,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	VK_CHECK(vkCreateSemaphore(m_Device.m_Device, &semaphoreInfo, m_Allocator, &m_RenderFinishedSemaphore));
 	VK_CHECK(vkCreateFence(m_Device.m_Device, &fenceInfo, m_Allocator, &m_InFlightFence));
 
-	// Create Global Descriptor Pool
-	VkDescriptorPoolSize poolSizes[2]{};
-	poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSizes[0].descriptorCount = (uint32_t)(m_MaxImagesInFlight + (3 * kMaxVulkanInstances));		// Enough for global uniforms and max object instances.
-
-	poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	poolSizes[1].descriptorCount = 10 + ((int)eTextureType::MAX_TEXTURE_TYPES * kMaxVulkanInstances);									// Enough for 10 global textures and kMaxVulkanInstances of materials.
-
-	VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	descriptorPoolInfo.pNext = nullptr;
-	descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	descriptorPoolInfo.poolSizeCount = 2;
-	descriptorPoolInfo.pPoolSizes = poolSizes;
-	descriptorPoolInfo.maxSets = (uint32_t)(poolSizes[0].descriptorCount + poolSizes[1].descriptorCount);
-
-	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, nullptr, &m_DescriptorPool));
-
 	// Allocate resources for our image data.
 	m_pInternalTextureData = (VulkanTextureInternal*)new VulkanTextureInternal[pConfig.MaxTextures];
 
@@ -265,33 +246,22 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Register for input events.
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
-	//s_MainCamera.RecalculateCameraVectors();
-	// TEMP CAMERA POSITION
-	//s_MainCamera.vecPosition = { 3072, 464, -5660 };
-
 	return true;
 }
 
 //-------------------------------------------------------------------------
 // Purpose: Shuts down the Vulkan renderer.
-// Input: none.
-// Output: none.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::RendererBackend_Shutdown()
 {
 	// Make sure none of our resources are in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
 
-	// Destroy our temp geometry.
-	// THIS IS TEMPORARY
-	//DestroyDefaultGeometry();
-
 	// Free internal texture/shader data.
 	delete[] m_pInternalShaderData;
 	delete[] m_pInternalTextureData;
-
-	// Descriptor Pool
-	vkDestroyDescriptorPool(m_Device.m_Device, m_DescriptorPool, m_Allocator);
 
 	// Sync objects.
 	vkDestroyFence(m_Device.m_Device, m_InFlightFence, m_Allocator);
@@ -332,8 +302,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 //-------------------------------------------------------------------------
 // Purpose: Begins a renderer frame.
-// Input: pRenderData - Frame specific render data provided by the application.
-// Output: bool - Returns true on successful start, otherwise false.
+// Input:	pRenderData - Frame specific render data provided by the application.
+// Output:	bool - Returns true on successful start, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 {
@@ -423,8 +393,8 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 //-------------------------------------------------------------------------
 // Purpose: Ends a renderer frame.
-// Input: pRenderData - Frame specific render data provided by the application.
-// Output: bool - Returns true on successful end, otherwise false.
+// Input:	pRenderData - Frame specific render data provided by the application.
+// Output:	bool - Returns true on successful end, otherwise false.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 {
@@ -487,6 +457,9 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Begins a provided renderpass.
+// Input:	pRendererView - The renderpass to be started.
+// Output:	Returns true on successfull pass start, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 {
@@ -509,18 +482,23 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Ends the current renderpass.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::EndRenderpass()
 {
+	// TODO: Maybe store the current renderpass in a stack or something?
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
 }
 
-
 //-------------------------------------------------------------------------
 // Purpose: Draws geometry. This must happen while a frame is being rendered!
-// Input: pGeometry - The geometry to be rendered.
-// Output: none.
+// Input:	pVertexBuffer - The vertex buffer associated with the geometry.
+//			pIndexBuffer - The index buffer associated with the geometry.
+//			pGeometry - The geometry instance to be rendered.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
@@ -568,53 +546,18 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 
 //-------------------------------------------------------------------------
 // Purpose: This is a temporary test method to render some text!
+// TODO: GET RID OF THIS!
 //-------------------------------------------------------------------------
 void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
-	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
-	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-
-	// Render our test text.
-	// TODO: NO HARD CODING WITH SHADERS!
-	VulkanShaderInternal& pShader = m_pInternalShaderData[1];
-	pShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
-
-	VkDeviceSize offsets[2] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
-
-	if (pGeometry.indexDataSize > 0)
-	{
-		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
-	}
-
-	// Bind our pipeline.
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[1].m_Pipeline); // TODO: NO HARD CODING!
-	m_CurrentlyBoundShaderIndex = 1;
-
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 0, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[0].m_DescriptorSets[m_ImageIndex], 0, nullptr);
-
-	// Copy the global data over.
-	// TODO: DO THIS ON SHADER BIND!
-	void* pUniformData;
-	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &pShader.m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, pShader.m_UniformBuffers[m_ImageIndex].m_Memory);
-
-	// Bind instance descriptor set.
-	vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_PipelineLayout, 1, 1, &m_pInternalShaderData[m_CurrentlyBoundShaderIndex].m_DescriptorSets[1].m_DescriptorSets[m_ImageIndex], 0, nullptr); // TODO: NO HARD CODING!
-
-	if (pGeometry.indexDataSize > 0)
-	{
-		vkCmdDrawIndexed(commandBuffer, pGeometry.indexDataSize, 1, 0, pGeometry.vertexDataOffset, 0);
-	}
-	else
-	{
-		vkCmdDraw(commandBuffer, pGeometry.vertexCount, 1, 0, 0);
-	}
+	
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Converts an engine-generic buffer usage format to a Vulkan-specific format.
+// Input:	usage - The engine-generic buffer usage.
+// Output:	The Vulkan-specific buffer usage.
+//-------------------------------------------------------------------------
 static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferUsage usage)
 {
 	switch (usage)
@@ -632,6 +575,14 @@ static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferU
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates an internal Vulkan buffer, and hooks it up to the generic buffer structure.
+// Input:	bufferSize - The size in bytes of the buffer.
+//			bufferUsage - Indicates the buffer's usage (i.e. Vertex, Index, Uniform).
+//			bUseFreelist - Indicates if this buffer will use a freelist to track it's memory.
+//			pOutBuffer - The generic buffer structure that will hold this buffer.
+// Output:	Returns true on successful buffer creation, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
 {
 	// Allocate our internal buffer.
@@ -642,11 +593,19 @@ bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBuffe
 	VkBufferUsageFlags vkBufferUsage = ConvertGenericBufferUsageToVulkanFormat(bufferUsage);
 
 	// Create the buffer.
-	VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer);
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, bufferSize, vkBufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, bUseFreelist, *pInternalBuffer))
+	{
+		return false;
+	}
 
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Destroys an internal Vulkan Buffer.
+// Input:	pRenderBuffer - The buffer whose internal resources to destroy.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 {
 	VulkanBuffer* pInternalBuffer = reinterpret_cast<VulkanBuffer*>(pRenderBuffer.m_pInternalData);
@@ -657,6 +616,9 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Creates an internal Vulkan renderpass and sets it up to the generic renderer view.
+// Input:	pOutView - The generic renderer view structure that will hold this renderpass.
+// Output:	Returns true on successful renderpass creation, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
 {
@@ -668,6 +630,9 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Destroys an internal Vulkan Renderpass.
+// Input:	pView - The renderer view whose internal resources to destroy.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 {
@@ -679,7 +644,9 @@ void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Gets a Vulkan-specific format for a number of channels.
+// Input:	iChannelCount - The channel count to get a Vulkan format for.
+// Output:	The Vulkan-specific format that represents the channel count.
 //-------------------------------------------------------------------------
 static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 {
@@ -697,13 +664,18 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Acquires Vulkan-specific resources for images/textures.
+// Input:	pTexture - The generic front-end texture structure.
+//			internalIndex - The front-end handle that represents this texture. This should match on the backend.
+//			nPixelDataSize - The size in bytes of the pixel data for this image.
+//			pPixelData - The pixel array for this image.
+// Output:	Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
 {
 	// The internal data for a Vulkan texture is the image data.
-	pTexture->m_pInternalData = &m_pInternalTextureData[internalIndex];
-	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+	pTexture->internalHandle = internalIndex;
+	VulkanImage* pImageInternal = &m_pInternalTextureData[internalIndex].m_Image;
 
 	// Set up the internal image data.
 	VkFormat format = ConvertChannelNumberToVulkanFormat(pTexture->numChannels);
@@ -724,229 +696,33 @@ bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalInd
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation
+// Purpose: Releases Vulkan-specific resources for images/textures.
+// Input:	pTexture - The generic texture whose resources are to be released.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 {
 	// Make sure the resource isn't in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
 
-	VulkanImage* pImageInternal = (VulkanImage*)pTexture->m_pInternalData;
+	VulkanImage* pImageInternal = &m_pInternalTextureData[pTexture->internalHandle].m_Image;
 	CAssert(pImageInternal);
 
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
-
-	pTexture->m_pInternalData = nullptr;
 }
 
-//-------------------------------------------------------------------------
-// Purpose: Acquire Vulkan specific texture resources.
-// Input: pTexture		 - The texture to acquire resources for.
-//		  internalIndex  - The array index/handle this texture is using.
-//		  nPixelDataSize - The size (in bytes) of the texture's pixel data.
-//		  pPixelData	 - A byte array containing the raw pixel data.
-// Output: bool - Returns true on successful resource acquisition, otherwise false.
-//-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireTextureResources_OLD(Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
-{
-	// Allocate space for Vulkan texture data.
-	VulkanTextureInternal* pInternalData = nullptr;
-
-	// We're gonna use the same index as the one on the frontend.
-	pInternalData = &m_pInternalTextureData[internalIndex];
-	CAssert(pInternalData->m_Generation == kInvalidID_U8 && pInternalData->m_Image.m_Image == VK_NULL_HANDLE); // This image must not be in use (or else we most likely have a hash collision)
-
-	if (!pInternalData)
-	{
-		LOG_ERROR("No more free texture slots in Vulkan backend! Aborting texture creation!");
-		return false;
-	}
-
-	// TODO: No hard coding!
-	VkFormat format = internalIndex == 68 ? VK_FORMAT_R8_UNORM : VK_FORMAT_R8G8B8A8_UNORM;
-	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, pInternalData->m_Image))
-	{
-		LOG_ERROR("Failed to create Vulkan resources for texture. Nothing was done.");
-		return false;
-	}
-
-	if (!pInternalData->m_Image.WriteDataToImage(s_VulkanContext, pTexture.GetWidth(), pTexture.GetHeight(), pTexture.numChannels, pPixelData))
-	{
-		LOG_ERROR("Failed to write pixel data to texture. Nothing was done.");
-		VulkanImage::DestroyImage(s_VulkanContext, pInternalData->m_Image);
-		return false;
-	}
-
-	// If we got here, the image should be loaded and ready for use. Mark it as such...
-	pInternalData->m_Generation = 0;
-
-	// Hook us up to the frontend.
-	pTexture.SetInternalTextureData(pInternalData);
-
-	return true;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Releases Vulkan specific texture resources.
-// Input: pTexture - The texture to release resources for.
-// Output: none.
-//-------------------------------------------------------------------------
-void CVulkanRenderer::ReleaseTextureResources_OLD(Texture& pTexture)
-{
-	// Make sure the resource isn't in use.
-	vkDeviceWaitIdle(m_Device.m_Device);
-
-	// Get at the Vulkan specific data.
-	VulkanTextureInternal* pInternalData = reinterpret_cast<VulkanTextureInternal*>(pTexture.GetInternalData());
-
-	if (!pInternalData)
-	{
-		LOG_ERROR("Failed to get Vulkan data when freeing texture '%s'. Texture release failed.", pTexture.GetName());
-		return;
-	}
-
-	// Make sure we do not render anymore...
-	pInternalData->m_Generation = kInvalidID_U8;
-
-	// Release our image resources.
-	VulkanImage::DestroyImage(s_VulkanContext, pInternalData->m_Image);
-}
-
+// TODO: GET RID OF THIS!
 bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInstanceData_t& pMaterialInstanceData)
 {
-	// Get at our shader.
-	// TODO: What to do if this shader's resources have not been loaded yet.
-	// (We probably shouldn't get in here if that's the case)
-	if (pMaterial.m_hShaderHandle == kInvalidID_U32)
-	{
-		pMaterial.m_hShaderHandle = 0; // TODO: Default shader handle or something.
-	}
-	//CAssert(pMaterial.m_hShaderHandle != kInvalidID_U32);
-	VulkanShaderInternal* pShader = &m_pInternalShaderData[pMaterial.m_hShaderHandle];
-	if (!pShader)
-	{
-		CAssert(0); // TODO: Handle this.
-		return false;
-	}
-
-	// Get the instance descriptor set layout.
-	VkDescriptorSetLayout instanceDescriptorLayout{};
-	for (int idx = 0; idx < pShader->m_DescriptorSetLayouts.Capacity(); idx++)
-	{
-		if (pShader->m_DescriptorSetLayouts[idx].m_FrequencyLevel == eShaderUniformGroup::PER_MATERIAL)
-		{
-			instanceDescriptorLayout = pShader->m_DescriptorSetLayouts[idx].m_Layout;
-			break;
-		}
-	}
-	Utl::CVector<VkDescriptorSetLayout> instanceLayouts(m_MaxImagesInFlight);
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		instanceLayouts[idx] = instanceDescriptorLayout;
-	}
-
-	// Allocate object descriptor sets.
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = m_DescriptorPool;
-	allocInfo.descriptorSetCount = (uint32_t)m_MaxImagesInFlight;
-	allocInfo.pSetLayouts = instanceLayouts.Data();
-	VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets));
-
-	// Acquire descriptor resources.
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkWriteDescriptorSet descriptorWrites[1]{};
-
-		// First descriptor is the uniform buffer.
-		VkDescriptorBufferInfo uniformBufferInfo{};
-		uniformBufferInfo.buffer = pShader->m_UniformBuffers[frameIdx].m_Handle;
-		uniformBufferInfo.offset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1)); // NOTE: we add the global UBO size here because the global uniforms live at the start of the uniform memory block.
-		uniformBufferInfo.range = sizeof(MaterialInstanceData_t);
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].pBufferInfo = &uniformBufferInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
-
-		// Copy over the material instance data.
-		void* pUniformData;
-		VkDeviceSize uniformOffset = sizeof(GlobalUniformObject_t) + (sizeof(MaterialInstanceData_t) * (pShader->m_NextFreeDescriptorSetIndex - 1));
-		vkMapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory, uniformOffset, sizeof(MaterialInstanceData_t), 0, &pUniformData);
-		memcpy(pUniformData, &pMaterialInstanceData, sizeof(MaterialInstanceData_t));
-		vkUnmapMemory(m_Device.m_Device, pShader->m_UniformBuffers[frameIdx].m_Memory);
-	}
-
-	// TODO: Make this configurable
-	// Diffuse descriptors
-	VkWriteDescriptorSet imageWrites[3]{};
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hDiffuseTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE];
-
-		imageWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[0].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[0].dstBinding = 1;
-		imageWrites[0].dstArrayElement = 0;
-		imageWrites[0].descriptorCount = 1;
-		imageWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[0].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[0], 0, nullptr);
-	}
-
-	// Specular descriptors
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hSpecularTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_SPECULAR];
-
-		imageWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[1].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[1].dstBinding = 1;
-		imageWrites[1].dstArrayElement = 1;
-		imageWrites[1].descriptorCount = 1;
-		imageWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[1].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[1], 0, nullptr);
-	}
-
-	// Normal descriptors
-	for (size_t frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
-	{
-		VkDescriptorImageInfo imageInfo{};
-		imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imageInfo.imageView = m_pInternalTextureData[pMaterial.m_hNormalTextureHandle].m_Image.m_View;
-		imageInfo.sampler = pShader->m_InstanceSamplers[eKnownTextureTypes::TEXTURE_TYPE_NORMAL];
-
-		imageWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		imageWrites[2].dstSet = pShader->m_DescriptorSets[pShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-		imageWrites[2].dstBinding = 1;
-		imageWrites[2].dstArrayElement = 2;
-		imageWrites[2].descriptorCount = 1;
-		imageWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imageWrites[2].pImageInfo = &imageInfo;
-
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &imageWrites[2], 0, nullptr);
-	}
-
-	pMaterial.m_iInternalHandle = pShader->m_NextFreeDescriptorSetIndex;
-	// Bump up next free descriptor index.
-	pShader->m_NextFreeDescriptorSetIndex++;
-
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader stage flag from a generic type.
+// Input:	inStage - The generic shader stage.
+// Output:	The Vulkan-specific shader stage flag.
+//-------------------------------------------------------------------------
 static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inStage)
 {
 	switch (inStage)
@@ -961,10 +737,18 @@ static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inSta
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a Vulkan shader module from the given configuration.
+// Input:	pRenderingContext - The owning Vulkan context.
+//			pInternalShader - The internal shader that will own this module.
+//			pConfig - The configuration for this shader module.
+//			pOutModules - An array of shader modules that will hold the created module.
+// Output:	Returns true on successful module creation, otherwise false.
+//-------------------------------------------------------------------------
 static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
 {
 	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-	shaderModuleInfo.codeSize = pConfig.codeSize;
+	shaderModuleInfo.codeSize = pConfig.iCodeSize;
 	shaderModuleInfo.pCode = (uint32_t*)pConfig.byteCode.Data();
 
 	VulkanShaderModule_t newModule{};
@@ -973,7 +757,7 @@ static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderI
 		LOG_ERROR("Failed to create shader module.");
 		return false;
 	}
-	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.stage);
+	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.eStage);
 
 	// Add the module to the shader.
 	pOutModules.PushBack(newModule);
@@ -981,6 +765,11 @@ static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderI
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader topology type from a generic type.
+// Input:	inStage - The generic shader topology type.
+// Output:	The Vulkan-specific shader topology type flag.
+//-------------------------------------------------------------------------
 static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 {
 	switch (inType)
@@ -994,6 +783,11 @@ static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific shader topology type from a generic type.
+// Input:	inStage - The generic shader topology type.
+// Output:	The Vulkan-specific shader topology type flag.
+//-------------------------------------------------------------------------
 static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 {
 	switch (pType)
@@ -1012,11 +806,16 @@ static VkFormat GetVertexFormatFromType(ShaderAttribute_t pType)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Creates a Vulkan shader from the given configuration.
+// Input:	pShader - The generic front-end shader that will own this shader.
+//			pConfig - The configuration for this shader.
+// Output:	Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 {
 	// Get the internal shader data.
-	pShader->m_pInternalData = &m_pInternalShaderData[pShader->m_iInternalHandle];
-	VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 
 	// Piece together the shader modules.
 	Utl::CVector<VulkanShaderModule_t>				modules{};
@@ -1062,7 +861,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		newAttribute.binding = 0;
 		newAttribute.location = attribIdx;
 		newAttribute.format = GetVertexFormatFromType(pConfig.vertexAttributes[attribIdx].type);
-		newAttribute.offset = runningOffset;
+		newAttribute.offset = (uint32_t)runningOffset;
 
 		vertexAttributes.PushBack(newAttribute);
 		runningOffset += pConfig.vertexAttributes[attribIdx].stride;
@@ -1070,7 +869,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.vertexAttributeDescriptionCount = attribCount;
+	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attribCount;
 	vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.Data();
 
 	// Input assembly
@@ -1148,17 +947,17 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	colorBlendState.pAttachments = &colorBlendAttachment;
 
 	// Setup uniform resources
-	size_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include samplers.
-	size_t iPerFrameSamplerCount{ 0 };
-	size_t iPerMaterialUniformCount{ 0 };	// Note: Does not include samplers.
-	size_t iPerMaterialSamplerCount{ 0 };
-	size_t iPerDrawUniformCount{ 0 };
+	uint32_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include samplers.
+	uint32_t iPerFrameSamplerCount{ 0 };
+	uint32_t iPerMaterialUniformCount{ 0 };	// Note: Does not include samplers.
+	uint32_t iPerMaterialSamplerCount{ 0 };
+	uint32_t iPerDrawUniformCount{ 0 };
 
 	for (int idx = 0; idx < pConfig.uniformConfigs.Count(); idx++)
 	{
 		if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::PER_FRAME)
 		{
-			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Sampler)
 			{
 				iPerFrameUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
@@ -1169,7 +968,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		}
 		else if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::PER_MATERIAL)
 		{
-			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Texture)
+			if (pConfig.uniformConfigs[idx].eType != ShaderAttribute_t::Sampler)
 			{
 				iPerMaterialUniformCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
@@ -1185,8 +984,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	}
 
 	// Descriptor pool
-	VkDescriptorPoolSize descriptorPoolSizes[2];
-	size_t				 descriptorPoolsNeeded{ 1 };
+	VkDescriptorPoolSize descriptorPoolSizes[2]{};
+	uint32_t			 descriptorPoolsNeeded{ 1 };
 
 	// Uniform buffer.
 	descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1238,7 +1037,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 		// Create the per-frame descriptor set layout.
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		descriptorSetLayoutInfo.bindingCount = perFrameDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.bindingCount = (uint32_t)perFrameDescriptorLayoutBindings.Count();
 		descriptorSetLayoutInfo.pBindings = perFrameDescriptorLayoutBindings.Data();
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[0].m_Layout));
 		pInternalShader->m_DescriptorSetLayouts[0].m_FrequencyLevel = eShaderUniformGroup::PER_FRAME;
@@ -1273,7 +1072,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 		// Create the per-material descriptor set layout.
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		descriptorSetLayoutInfo.bindingCount = perMaterialDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.bindingCount = (uint32_t)perMaterialDescriptorLayoutBindings.Count();
 		descriptorSetLayoutInfo.pBindings = perMaterialDescriptorLayoutBindings.Data();
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[1].m_Layout));
 		pInternalShader->m_DescriptorSetLayouts[1].m_FrequencyLevel = eShaderUniformGroup::PER_MATERIAL;
@@ -1281,8 +1080,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Setup uniform buffers.
 	pInternalShader->m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perMaterialUBOStride * kMaxVulkanInstances);
-	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perInstanceUBOStride * kMaxVulkanInstances);
+	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader->m_UniformBuffers[idx]))
 		{
@@ -1308,7 +1107,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		samplerInfo.compareEnable = VK_FALSE;
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		for (int idx = 0; idx < iPerMaterialSamplerCount; idx++)
+		for (unsigned int idx = 0; idx < iPerMaterialSamplerCount; idx++)
 		{
 			VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader->m_InstanceSamplers[idx]));
 		}
@@ -1323,18 +1122,18 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Pipeline layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.setLayoutCount = pInternalShader->m_DescriptorSetLayouts.Capacity();
+	pipelineLayoutInfo.setLayoutCount = (uint32_t)pInternalShader->m_DescriptorSetLayouts.Capacity();
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
 	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader->m_PipelineLayout));
 
 	// Renderpass
-	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_RendererView.m_pInternalData);
+	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_pRendererView.m_pInternalData);
 
 	// Graphics pipeline object
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-	graphicsPipelineInfo.stageCount = shaderStageInfos.Count();
+	graphicsPipelineInfo.stageCount = (uint32_t)shaderStageInfos.Count();
 	graphicsPipelineInfo.pStages = shaderStageInfos.Data();
 	graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
 	graphicsPipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -1374,7 +1173,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		return true;
 	}
 
-	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		allocInfo.descriptorPool = pInternalShader->m_DescriptorPool;
@@ -1386,7 +1185,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
 
 	// Bind the descriptor sets to our uniform buffer.
-	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		VkDescriptorBufferInfo bufferInfo{};
 		bufferInfo.buffer = pInternalShader->m_UniformBuffers[idx].m_Handle;
@@ -1412,6 +1211,11 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan shader resources for the provided shader.
+// Input:	pShader - The generic front-end shader to release internal resources for.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::DestroyShader(Shader* pShader)
 {
 	// Make sure no resources are in use.
@@ -1435,7 +1239,7 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 	}
 
 	// Uniform buffers
-	for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader->m_UniformBuffers[idx]);
 	}
@@ -1451,6 +1255,12 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 		vkDestroyDescriptorPool(m_Device.m_Device, pInternalShader->m_DescriptorPool, m_Allocator);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the shader resources needed for rendering an instance with the provided shader.
+// Input:	pShader - The generic front-end shader to acquire resources for.
+//			pOutInstanceID - A pointer to hold the instance of the new instance ID.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
 {
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
@@ -1469,7 +1279,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	}
 
 	// Bind resources once per image in flight.
-	for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 	{
 		// Allocate the descriptor set.
 		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -1529,7 +1339,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		}
 
 		// Update the descriptor sets.
-		vkUpdateDescriptorSets(m_Device.m_Device, descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	// Bump up the next available descriptor set index.
@@ -1537,11 +1347,14 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	pInternalShader->m_NextFreeDescriptorSetIndex++;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds a given shader for use in rendering ops.
+// Input:	pShader - The shader to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindShader(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
-	CAssert(pShader->m_pInternalData);
-	//VulkanShaderInternal* pInternalShader = reinterpret_cast<VulkanShaderInternal*>(pShader->m_pInternalData);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	vkCmdBindPipeline(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_Pipeline);
 
@@ -1550,6 +1363,11 @@ void CVulkanRenderer::BindShader(Shader* pShader)
 	m_CurrentlyBoundShaderIndex = pShader->m_iInternalHandle;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds the provided shader's per-frame uniforms.
+// Input:	pShader - The shader whose uniforms are to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
@@ -1560,6 +1378,12 @@ void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 0, 1, &pInternalShader->m_DescriptorSets[descriptorSetIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds the provided shader's per-instance uniforms (for the provided instance).
+// Input:	pShader - The shader whose uniforms are to be bound.
+//			hInstanceID - The instance to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned int hInstanceID)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
@@ -1568,6 +1392,15 @@ void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 1, 1, &pInternalShader->m_DescriptorSets[hInstanceID].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Sets a particular shader uniform.
+// Input:	pShader - The shader whose uniform to set.
+//			pUniform - The uniform to be set.
+//			iUniformArrayIndex - The array index of the uniform to set. Some uniforms can be arrays, others just single values.
+//			hInstanceID - The instance to be set, this only matters for per-instance uniforms. Not relevant for other groups.
+//			pData - An opaque pointer to the value to be set.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
@@ -1575,7 +1408,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	VkDeviceSize uniformStride{ 0 };
 
 	// Textures/samplers are handled differently from uniform data.
-	if (pUniform->eType != ShaderAttribute_t::Texture)
+	if (pUniform->eType != ShaderAttribute_t::Sampler)
 	{
 		switch (pUniform->eGroup)
 		{
@@ -1601,7 +1434,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			// Push-constants!
 			uniformOffset = pUniform->Offset;
 			uniformStride = pUniform->Stride;
-			vkCmdPushConstants(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, pInternalShader->m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, uniformOffset, uniformStride, pData);
+			vkCmdPushConstants(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, pInternalShader->m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, (uint32_t)uniformOffset, (uint32_t)uniformStride, pData);
 
 			return;	// We need to early-out here because this data is not going to get copied to a buffer.
 
@@ -1612,7 +1445,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		//CAssert(uniformOffset != 256);
 
 		// Copy data over to the GPU.
-		for (int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 		{
 			void* pUniformData{};
 			vkMapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[idx].m_Memory, uniformOffset, uniformStride, 0, &pUniformData);
@@ -1626,7 +1459,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		int imageIndex = *(int*)pData;
 
 		// Point the appropriate descriptor to the texture's image data.
-		for (int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+		for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 		{
 			VkDescriptorImageInfo imageInfo{};
 			imageInfo.sampler = pInternalShader->m_InstanceSamplers[iUniformArrayIndex];
@@ -1646,6 +1479,11 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets a Vulkan-specific format for a shader attribute.
+// Input:	inAttribute - The generic shader attribute type.
+// Output:	The Vulkan-specific format.
+//-------------------------------------------------------------------------
 static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
@@ -1661,6 +1499,11 @@ static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Gets the stride for a shader attribute.
+// Input:	inAttribute - The generic shader attribute type.
+// Output:	The stride of the attribute.
+//-------------------------------------------------------------------------
 static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
@@ -1678,590 +1521,19 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 	}
 }
 
-bool CVulkanRenderer::AcquireShaderResources_OLD(Shader& pShader, ShaderConfig_t& pShaderConfig)
-{
-	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
-	CAssert(pShader.m_iInternalHandle != kInvalidID_U32);
-
-	// Acquire our shader modules.
-	Utl::CVector<VkShaderModule> shaderModules(pShaderConfig.numShaderStages);
-	Utl::CVector<VkShaderStageFlagBits> shaderStageTypes(pShaderConfig.numShaderStages);
-
-	for (int idx = 0; idx < pShaderConfig.numShaderStages; idx++)
-	{
-		// Get the stage type.
-		VkShaderStageFlagBits stage;
-		{
-			size_t dotIndex = StringIndexOf(pShaderConfig.pszShaderStageFileNames[idx], '.');
-			char* stageName;
-			stageName = StringDuplicate_N(pShaderConfig.pszShaderStageFileNames[idx] + dotIndex + 1, 4);
-
-			if (StringCompare(stageName, "vert"))
-				stage = VK_SHADER_STAGE_VERTEX_BIT;
-			else if (StringCompare(stageName, "frag"))
-				stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			else
-			{
-				LOG_ERROR("Failed to parse shader stage '%s' in shader '%s'.", stageName, pShaderConfig.pszShaderName);
-				return false;
-			}
-
-			StringFree(stageName);
-			shaderStageTypes[idx] = stage;
-		}
-
-		// Read in the stage bytecode.
-		size_t		shaderFileSize{ 0 };
-		Utl::CVector<byte> shaderBytecode{};
-		{
-			char formattedFilePath[kScratchStringBufferLength];
-			StringFormat_V("%s/%s", formattedFilePath, "Assets/Shaders", pShaderConfig.pszShaderStageFileNames[idx]);
-
-			FileHandle_t shaderFilehandle{};
-			size_t bytesRead{ 0 };
-			if (!FileSystem::OpenFile(formattedFilePath, FILEMODE_READ, true, &shaderFilehandle))
-			{
-				LOG_ERROR("Failed to open shader file '%s'. Shader creation aborted.", formattedFilePath);
-				// TODO: Release resources.
-				return false;
-			}
-			shaderFileSize = FileSystem::FileSize(&shaderFilehandle);
-			shaderBytecode.Resize(shaderFileSize);
-			
-			FileSystem::ReadWholeBinaryFile(shaderBytecode.Data(), shaderFileSize, &bytesRead, &shaderFilehandle);
-
-			if (shaderFileSize != bytesRead)
-			{
-				LOG_WARN("Size mismatch on shader file read: '%s'.", pShaderConfig.pszShaderStageFileNames[idx]);
-			}
-
-			FileSystem::CloseFile(&shaderFilehandle);
-		}
-
-		// Piece together the module.
-		{
-			VkShaderModuleCreateInfo moduleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-			moduleInfo.pNext = nullptr;
-			moduleInfo.flags = 0;
-			moduleInfo.codeSize = shaderFileSize;
-			moduleInfo.pCode = (uint32_t*)shaderBytecode.Data();
-
-			VK_CHECK(vkCreateShaderModule(m_Device.m_Device, &moduleInfo, m_Allocator, &shaderModules[idx]));
-		}
-	}
-
-	// Create the shader's default pipeline object.
-	VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-
-	// Shader stages
-	Utl::CVector<VkPipelineShaderStageCreateInfo> shaderStages(pShaderConfig.numShaderStages);
-	for (int stage = 0; stage < pShaderConfig.numShaderStages; stage++)
-	{
-		shaderStages[stage].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shaderStages[stage].pNext = 0;
-		shaderStages[stage].flags = 0;
-		shaderStages[stage].stage = shaderStageTypes[stage];
-		shaderStages[stage].module = shaderModules[stage];
-		shaderStages[stage].pName = "main";
-		shaderStages[stage].pSpecializationInfo = nullptr;
-	}
-
-	// Vertex input state
-	VkPipelineVertexInputStateCreateInfo vertexInputState{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
-	VkVertexInputBindingDescription vertexBindingDescription{};
-	vertexBindingDescription.binding = 0;
-	vertexBindingDescription.stride = pShaderConfig.vertexStride;
-	vertexBindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-	Utl::CVector<VkVertexInputAttributeDescription> attributes(pShaderConfig.vertexAttributes.Count());
-	uint32_t currentAttributeOffset{ 0 };
-
-	// Vertex attributes.
-	for (int attrib = 0; attrib < pShaderConfig.vertexAttributes.Count(); attrib++)
-	{
-		attributes[attrib].binding = 0;
-		attributes[attrib].location = attrib;
-		attributes[attrib].format = VertexAttributeToVulkanType(pShaderConfig.vertexAttributes[attrib].type);
-		attributes[attrib].offset = currentAttributeOffset;
-
-		currentAttributeOffset += GetSizeOfVertexAttribute(pShaderConfig.vertexAttributes[attrib].type);
-	}
-
-	vertexInputState.vertexBindingDescriptionCount = 1;
-	vertexInputState.pVertexBindingDescriptions = &vertexBindingDescription;
-	vertexInputState.vertexAttributeDescriptionCount = (uint32_t)pShaderConfig.vertexAttributes.Count();
-	vertexInputState.pVertexAttributeDescriptions = attributes.Data();
-
-	// Input assembly state
-	VkPipelineInputAssemblyStateCreateInfo inputAssemblyState{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-	inputAssemblyState.topology = GetVulkanTopologyType(pShaderConfig.eTopologyTypes); // TODO: This only supports one type for now.
-	inputAssemblyState.primitiveRestartEnable = VK_FALSE;
-
-	// Tessellation state
-	VkPipelineTessellationStateCreateInfo tessellationState{ VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO };
-
-	// Viewport state
-	VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-	viewportState.pNext = nullptr;
-	viewportState.flags = 0;
-	VkDynamicState dynamicState[2] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-
-	VkViewport viewport{};
-	viewport.x = 0;
-	viewport.y = 0;
-	viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
-	viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
-	viewport.minDepth = 0.0f;
-	viewport.maxDepth = 1.0f;
-
-	VkRect2D scissor{};
-	scissor.offset = { 0, 0 };
-	scissor.extent = m_Swapchain.m_SwapchainExtent;
-
-	viewportState.viewportCount = 1;
-	viewportState.pViewports = &viewport;
-	viewportState.scissorCount = 1;
-	viewportState.pScissors = &scissor;
-
-	// Rasterizer
-	VkPipelineRasterizationStateCreateInfo rasterizer{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
-	rasterizer.pNext = nullptr;
-	rasterizer.flags = 0;
-	rasterizer.depthBiasEnable = VK_FALSE;
-	rasterizer.rasterizerDiscardEnable = VK_FALSE;
-	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	rasterizer.depthBiasEnable = VK_FALSE;
-	rasterizer.lineWidth = 1.0f;
-
-	// Multisampling
-	VkPipelineMultisampleStateCreateInfo multisampling{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisampling.pNext = nullptr;
-	multisampling.flags = 0;
-	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // No multisampling for now.
-
-	// Depth/Stencil testing
-	VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-	depthStencil.pNext = nullptr;
-	depthStencil.flags = 0;
-	depthStencil.depthTestEnable = VK_TRUE;
-	depthStencil.depthWriteEnable = VK_TRUE;
-	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-	depthStencil.depthBoundsTestEnable = VK_FALSE;
-	depthStencil.stencilTestEnable = VK_FALSE;
-
-	// Color blend state
-	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-	colorBlendAttachment.blendEnable = VK_TRUE;
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-	colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-	VkPipelineColorBlendStateCreateInfo colorBlend{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-	colorBlend.logicOpEnable = VK_FALSE;
-	colorBlend.attachmentCount = 1;
-	colorBlend.pAttachments = &colorBlendAttachment;
-
-	// Dynamic pipeline state
-	VkPipelineDynamicStateCreateInfo dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-	dynamicStateInfo.dynamicStateCount = 2;
-	dynamicStateInfo.pDynamicStates = dynamicState;
-
-	// Descriptor set layout
-	
-	// Check for global descriptors
-	bool bGlobalUniformsPresent = false;
-	uint32_t  iGlobalUniformCount = 0; // Running count of all global uniforms (NOT COUNTING SAMPLERS!)
-	uint32_t  iGlobalSamplerCount = 0;
-
-	bool bInstanceUniformsPresent = false;
-	uint32_t  iInstanceUniformCount = 0; // Running count of all instance level uniforms (NOT COUNTING SAMPLERS!)
-	uint32_t  iInstanceSamplerCount = 0;
-
-	// Get the details for per-draw uniforms here.
-	// They get used further down during pipeline layout creation (as they use push-constants).
-	bool bPerDrawUniformsPresent = false;
-	uint32_t  iPerDrawUniformCount = 0;
-	uint32_t  iPerDrawMemoryRequirement = 0;
-
-	for (int uniformIdx = 0; uniformIdx < pShaderConfig.uniformConfigs.Count(); uniformIdx++)
-	{
-		if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::PER_FRAME)
-		{
-			bGlobalUniformsPresent = true;
-			if (pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture)
-			{
-				iGlobalUniformCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
-			}
-			else
-			{
-				iGlobalSamplerCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
-			}
-		}
-		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::PER_MATERIAL)
-		{
-			bInstanceUniformsPresent = true;
-			if (pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture)
-			{
-				iInstanceUniformCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
-			}
-			else
-			{
-				iInstanceSamplerCount += pShaderConfig.uniformConfigs[uniformIdx].iArraySize;
-			}
-		}
-		else if (pShaderConfig.uniformConfigs[uniformIdx].eFrequency == eShaderUniformGroup::PER_DRAW)
-		{
-			CAssert(pShaderConfig.uniformConfigs[uniformIdx].eType != ShaderAttribute_t::Texture); // There may not be any per-draw samplers, as they can't use push-constants.
-			bPerDrawUniformsPresent = true;
-			iPerDrawUniformCount++;
-			iPerDrawMemoryRequirement += GetSizeOfVertexAttribute(pShaderConfig.uniformConfigs[uniformIdx].eType);
-		}
-	}
-
-	int descriptorSetLayoutCount = 0;
-	if (bGlobalUniformsPresent)
-		descriptorSetLayoutCount++;
-	if (bInstanceUniformsPresent)
-		descriptorSetLayoutCount++;
-
-	pInternalShader.m_DescriptorSetLayouts.Resize(descriptorSetLayoutCount);
-
-	int iCurrentDescriptorSetLayoutIndex = 0;
-	if (bGlobalUniformsPresent)
-	{
-		// Set up global uniform descriptor layout.
-		Utl::CVector<VkDescriptorSetLayoutBinding> globalBindings{};
-
-		// Uniform buffer
-		if (iGlobalUniformCount > 0)
-		{
-			VkDescriptorSetLayoutBinding globalUBOLayoutBinding{};
-			globalUBOLayoutBinding.binding = 0; // Uniform buffers are always at binding 0.
-			globalUBOLayoutBinding.descriptorCount = 1;
-			globalUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			globalUBOLayoutBinding.pImmutableSamplers = nullptr;
-			globalUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-			globalBindings.PushBack(globalUBOLayoutBinding);
-		}
-
-		// Global texture samplers
-		if (iGlobalSamplerCount > 0)
-		{
-			VkDescriptorSetLayoutBinding globalSamplerLayoutBinding{};
-			globalSamplerLayoutBinding.binding = 1; // Samplers are always at binding 1.
-			globalSamplerLayoutBinding.descriptorCount = iGlobalSamplerCount;
-			globalSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			globalSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // For now at least, samplers are only used in fragment shaders.
-
-			globalBindings.PushBack(globalSamplerLayoutBinding);
-		}
-
-		// Global descriptor set layout.
-		VkDescriptorSetLayoutCreateInfo globalLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		globalLayoutInfo.bindingCount = (uint32_t)globalBindings.Count();
-		globalLayoutInfo.pBindings = globalBindings.Data();
-
-		// TODO: Allocation callbacks.
-		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &globalLayoutInfo, nullptr, &pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_Layout));
-		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformGroup::PER_FRAME;
-
-		iCurrentDescriptorSetLayoutIndex++;
-	}
-
-	if (bInstanceUniformsPresent)
-	{
-		// Set up the instance descriptor layout.
-		Utl::CVector<VkDescriptorSetLayoutBinding> instanceBindings{};
-
-		// Instance uniform buffer.
-		if (iInstanceUniformCount > 0)
-		{
-			VkDescriptorSetLayoutBinding instanceUBOLayoutBinding{};
-			instanceUBOLayoutBinding.binding = 0; // Uniform buffers are always at binding 0.
-			instanceUBOLayoutBinding.descriptorCount = 1;
-			instanceUBOLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			instanceUBOLayoutBinding.pImmutableSamplers = nullptr;
-			instanceUBOLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-			instanceBindings.PushBack(instanceUBOLayoutBinding);
-		}
-
-		// Instance texture samplers.
-		if (iInstanceSamplerCount > 0)
-		{
-			VkDescriptorSetLayoutBinding instanceSamplerLayoutBinding{};
-			instanceSamplerLayoutBinding.binding = 1; // Samplers are always at binding 1.
-			instanceSamplerLayoutBinding.descriptorCount = iInstanceSamplerCount;
-			instanceSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			instanceSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; // For now at least, samplers are only used in fragment shaders.
-
-			instanceBindings.PushBack(instanceSamplerLayoutBinding);
-
-			pInternalShader.m_InstanceSamplers.Resize(iInstanceSamplerCount);
-
-			// Set up the actual samplers.
-			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-			samplerInfo.magFilter = VK_FILTER_LINEAR; // TODO: MAKE THIS CONFIGURABLE!!!
-			samplerInfo.minFilter = VK_FILTER_LINEAR;
-			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.anisotropyEnable = VK_FALSE;
-			samplerInfo.maxAnisotropy = m_Device.m_DeviceProperties.limits.maxSamplerAnisotropy;
-			samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-			samplerInfo.unnormalizedCoordinates = VK_FALSE;
-			samplerInfo.compareEnable = VK_FALSE;
-			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			for (int idx = 0; idx < iInstanceSamplerCount; idx++)
-			{
-				VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader.m_InstanceSamplers[idx]));
-			}
-		}
-
-		// Instance descriptor set layout.
-		VkDescriptorSetLayoutCreateInfo instanceLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		instanceLayoutInfo.bindingCount = (uint32_t)instanceBindings.Count();
-		instanceLayoutInfo.pBindings = instanceBindings.Data();
-
-		// TODO: Allocation callbacks.
-		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &instanceLayoutInfo, nullptr, &pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_Layout));
-		pInternalShader.m_DescriptorSetLayouts[iCurrentDescriptorSetLayoutIndex].m_FrequencyLevel = eShaderUniformGroup::PER_MATERIAL;
-
-		iCurrentDescriptorSetLayoutIndex++;
-	}
-
-	// Pipeline layout
-	Utl::CVector<VkDescriptorSetLayout> pDescriptorSetLayouts(descriptorSetLayoutCount);
-	for (int idx = 0; idx < descriptorSetLayoutCount; idx++)
-		pDescriptorSetLayouts[idx] = pInternalShader.m_DescriptorSetLayouts[idx].m_Layout;
-	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.setLayoutCount = descriptorSetLayoutCount;
-	pipelineLayoutInfo.pSetLayouts = pDescriptorSetLayouts.Data();
-
-	// Set up push constants for per-draw uniforms.
-	if (bPerDrawUniformsPresent)
-	{
-		VkPushConstantRange pushConstant{};
-		pushConstant.offset = 0;
-		pushConstant.size = iPerDrawMemoryRequirement;
-		pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-		pipelineLayoutInfo.pushConstantRangeCount = 1;
-		pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
-	}
-	else
-	{
-		pipelineLayoutInfo.pPushConstantRanges = 0;
-	}
-
-	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader.m_PipelineLayout));
-
-	// Create the pipeline.
-	pipelineInfo.pNext = nullptr;
-	pipelineInfo.flags = 0;
-	pipelineInfo.stageCount = (uint32_t)shaderStages.Capacity();
-	pipelineInfo.pStages = shaderStages.Data();
-	pipelineInfo.pVertexInputState = &vertexInputState;
-	pipelineInfo.pInputAssemblyState = &inputAssemblyState;
-	pipelineInfo.pTessellationState = &tessellationState;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
-	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pDepthStencilState = &depthStencil;
-	pipelineInfo.pColorBlendState = &colorBlend;
-	pipelineInfo.pDynamicState = &dynamicStateInfo;
-	pipelineInfo.layout = pInternalShader.m_PipelineLayout;
-	// TODO: Don't hardcode this, we should probably pass this in with the config.
-	pipelineInfo.renderPass = m_MainRenderPass.m_Handle; // Just using the singular renderpass for now.
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-	pipelineInfo.basePipelineIndex = 0;
-
-	VK_CHECK(vkCreateGraphicsPipelines(m_Device.m_Device, nullptr, 1, &pipelineInfo, m_Allocator, &pInternalShader.m_Pipeline));
-
-	// Release the shader modules, as they are no longer needed.
-	for (int idx = 0; idx < pShaderConfig.numShaderStages; idx++)
-	{
-		vkDestroyShaderModule(m_Device.m_Device, shaderModules[idx], m_Allocator);
-	}
-
-	// Set up our global uniform buffers.
-	pInternalShader.m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-	{
-		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, (sizeof(GlobalUniformObject_t)) + (sizeof(MaterialInstanceData_t) * kMaxVulkanInstances), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader.m_UniformBuffers[idx]))
-		{
-			LOG_ERROR("Failed to create uniform buffer.");
-			return false;
-		}
-	}
-
-	// Descriptor set resources.
-	int globalDescriptorSetCount = m_MaxImagesInFlight;							// one global descriptor set per frame in flight.
-	int objectDescriptorSetCount = m_MaxImagesInFlight * kMaxVulkanInstances;	// one object descriptor set per frame in flight, enough for kMaxVulkanInstances.
-	pInternalShader.m_DescriptorSets.Resize(globalDescriptorSetCount + objectDescriptorSetCount);
-
-	// We allocate our global descriptor sets now
-	// Object-level descriptor sets get allocated at shader resource acquisition.
-	if (bGlobalUniformsPresent)
-	{
-		VkDescriptorSetLayout pLayout = pInternalShader.m_DescriptorSetLayouts[0].m_Layout; // TODO: We shouldn't assume the global will always be at index 0.
-		Utl::CVector<VkDescriptorSetLayout> globalDescriptorSetLayouts(m_MaxImagesInFlight);
-
-		for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-			globalDescriptorSetLayouts[idx] = pLayout;
-
-		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		allocInfo.descriptorPool = m_DescriptorPool;
-		allocInfo.descriptorSetCount = (uint32_t)m_MaxImagesInFlight;
-		allocInfo.pSetLayouts = globalDescriptorSetLayouts.Data();
-
-		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, pInternalShader.m_DescriptorSets.Data()->m_DescriptorSets));
-
-		// Configure our new descriptors.
-		for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-		{
-			// TODO: This should be more configurable.
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = pInternalShader.m_UniformBuffers[idx].m_Handle;
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(GlobalUniformObject_t);
-
-			// TODO: Do we want global textures?
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-			VkWriteDescriptorSet descriptorWrites[2]{};
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = pInternalShader.m_DescriptorSets[0].m_DescriptorSets[idx];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = pInternalShader.m_DescriptorSets[0].m_DescriptorSets[idx];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			// NOTE: Only writing to the global uniform buffer for now.
-			vkUpdateDescriptorSets(m_Device.m_Device, 1, descriptorWrites, 0, nullptr);
-		}
-	}
-
-	// Bump this to 1, as that's where instance-level descriptors start...
-	pInternalShader.m_NextFreeDescriptorSetIndex = 1;
-
-	return true;
-}
-
-void CVulkanRenderer::ReleaseShaderResources(Shader& pShader)
-{
-	CAssert(pShader.m_iInternalHandle != kInvalidID_U32);
-	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
-	
-	vkDeviceWaitIdle(m_Device.m_Device);
-
-	for (int idx = 0; idx < pInternalShader.m_InstanceSamplers.Capacity(); idx++)
-	{
-		vkDestroySampler(m_Device.m_Device, pInternalShader.m_InstanceSamplers[idx], m_Allocator);
-	}
-
-	// Release uniform buffer resources.
-	for (size_t idx = 0; idx < m_MaxImagesInFlight; idx++)
-		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader.m_UniformBuffers[idx]);
-
-	if (pInternalShader.m_Pipeline)
-		vkDestroyPipeline(m_Device.m_Device, pInternalShader.m_Pipeline, s_VulkanContext.m_Allocator);
-
-	if (pInternalShader.m_PipelineLayout)
-		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader.m_PipelineLayout, s_VulkanContext.m_Allocator);
-
-	for (int idx = 0; idx < pInternalShader.m_DescriptorSetLayouts.Capacity(); idx++)
-	{
-		if (pInternalShader.m_DescriptorSetLayouts[idx].m_Layout)
-		{
-			vkDestroyDescriptorSetLayout(m_Device.m_Device, pInternalShader.m_DescriptorSetLayouts[idx].m_Layout, s_VulkanContext.m_Allocator);
-		}
-	}
-}
-
-/*
-VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
-	pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
-	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
-	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
-	pInternalShader.m_UniformData.Projection.data[5] *= -1;
-
-	pInternalShader.m_UniformData.ViewPos = s_MainCamera.vecPosition;
-
-	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
-		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
-
-	pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
-
-	// Copy to the GPU.
-	void* pUniformData;
-	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
-*/
-
-void CVulkanRenderer::BindShader_OLD(Shader& pShader)
-{
-	// TODO: Assert that a frame is being rendered.
-	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[pShader.m_iInternalHandle];
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-
-	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader.m_Pipeline);
-	m_CurrentlyBoundShaderIndex = pShader.m_iInternalHandle;
-
-	// If we have not updated our descriptors this frame, take care of that.
-	if (pInternalShader.m_CurrentRendererFrame != m_CurrentRendererFrame)
-	{
-		pInternalShader.m_CurrentRendererFrame = m_CurrentRendererFrame;
-
-		//pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
-		pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
-		pInternalShader.m_UniformData.Projection.data[5] *= -1;
-
-		if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
-			pInternalShader.m_UniformData.RenderMode = m_RenderMode;
-
-		pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
-
-		// Copy to the GPU.
-		void* pUniformData;
-		VkDeviceSize uniformOffset = { 0 };
-		vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-		//memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
-		vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
-	}
-}
-
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+// TODO: THIS SHOULDN'T RETURN ANYTHING!
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
-
-	// Store off the name as well.
-	if (pGeometryConfig.pszDebugName)
-	{
-		pOutInstance.pszDebugName = StringDuplicate(pGeometryConfig.pszDebugName);
-	}
 
 	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
@@ -2329,6 +1601,15 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+// TODO: THIS SHOULDN'T RETURN ANYTHING!
+//-------------------------------------------------------------------------
 bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -2400,6 +1681,13 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Releases the renderer-specific resources for geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometry - The geometry instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
@@ -2415,6 +1703,11 @@ void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	}
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Checks to make sure that support for all required validation layers are present.
+// Input:	expectedLayers - Validation layers that are required to be supported.
+// Output:	Returns true if all validation layers are supported, otherwise false.
+//-------------------------------------------------------------------------
 static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expectedLayers)
 {
 	LOG_DEBUG("Querying Vulkan validation layer support");
@@ -2449,6 +1742,11 @@ static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expecte
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Checks to make sure that support for all required instance extensions are present.
+// Input:	expectedExtensions - Instance extensions that are required to be supported.
+// Output:	Returns true if all instance extensions are supported, otherwise false.
+//-------------------------------------------------------------------------
 static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expectedExtensions)
 {
 	LOG_DEBUG("Querying Vulkan instance extension support");
@@ -2483,6 +1781,14 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 	return true;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Debug logger callback function.
+// Input:	messageSeverity - The severity of the message (duh!).
+//			messageType - The type of the message (...)
+//			pCallbackData - Contains the callback message.
+//			pUserData - Unused.
+// Output:	VkBool32.
+//-------------------------------------------------------------------------
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -2508,6 +1814,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	return VK_FALSE;
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Debug logger callback function.
+// Input:	messageSeverity - The severity of the message (duh!).
+//			messageType - The type of the message (...)
+//			pCallbackData - Contains the callback message.
+//			pUserData - Unused.
+// Output:	VkBool32.
+//-------------------------------------------------------------------------
 static bool RendererEvent_WindowResized(EventData_t data)
 {
 	s_VulkanContext.m_bWindowResized = true;
@@ -2516,6 +1830,9 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	return false;
 }
 
+//-------------------------------------------------------------------------
+// Renderer-backend event handlers.
+//-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
 	if (data.c[0] >= 0  && data.c[0] <= 9)
@@ -2561,8 +1878,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	return false;
 }
 
+// TODO: This should be removed!
 void CVulkanRenderer::DestroyDefaultGeometry()
 {
-	//VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryIndexBuffer);
-	//VulkanBuffer::DestroyBuffer(s_VulkanContext, m_GeometryVertexBuffer);
 }

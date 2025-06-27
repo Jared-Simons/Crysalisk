@@ -6,6 +6,13 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
+//-------------------------------------------------------------------------
+// Purpose: Creates and acquires the resources for a Vulkan renderpass.
+// Input:	pRenderingContext - The owning rendering context.
+//			bShouldClear - Indicates if the pass's target should be cleared prior to rendering.
+//			pOutRenderpass - The structure that will hold the created renderpass.
+// Output:	bool - Returns true on successful renderpass creation, otherwise false.
+//-------------------------------------------------------------------------
 bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass)
 {
 	// TODO: Make this configurable with some config.
@@ -81,7 +88,13 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool
 	return true;
 }
 
-void VulkanRenderPass::DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass)
+//-------------------------------------------------------------------------
+// Purpose: Releases Vulkan renderpass resources.
+// Input:	pRenderingContext - The owning rendering context.
+//			pRenderpass - The renderpass to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void VulkanRenderPass::DestroyRenderpass(CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass)
 {
 	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, pRenderingContext.m_Allocator);
 }

@@ -37,11 +37,8 @@ public:
 	virtual bool	CreateRendererViewInternal(RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
-	virtual bool	AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
-	virtual void	ReleaseTextureResources(class Texture* pTexture) override;
-
-	virtual bool	AcquireTextureResources_OLD(class Texture& pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
-	virtual void	ReleaseTextureResources_OLD(class Texture& pTexture) override;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
 
 	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
@@ -56,11 +53,6 @@ public:
 	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, unsigned int hInstanceID) override;
 
 	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
-
-	virtual bool	AcquireShaderResources_OLD(class Shader& pShader, struct ShaderConfig_t& pShaderConfig) override;
-	virtual void	ReleaseShaderResources(class Shader& pShader) override;
-
-	virtual void	BindShader_OLD(class Shader& pShader) override;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
@@ -104,9 +96,6 @@ public:
 	VkSemaphore	m_ImageAvailableSemaphore{ VK_NULL_HANDLE };
 	VkSemaphore m_RenderFinishedSemaphore{ VK_NULL_HANDLE };
 	VkFence		m_InFlightFence{ VK_NULL_HANDLE };
-
-	// Descriptor Pool
-	VkDescriptorPool	m_DescriptorPool{ VK_NULL_HANDLE };
 
 	// Internal Vulkan texture tata
 	VulkanTextureInternal* m_pInternalTextureData{ nullptr };

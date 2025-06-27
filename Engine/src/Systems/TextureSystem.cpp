@@ -4,7 +4,6 @@
 // 
 // Purpose: The texture manager.
 //=============================================================================
-
 #include "TextureSystem.h"
 
 #include <Containers/CHashMap.h>
@@ -13,29 +12,33 @@
 #include "Renderer/Renderer.h"
 #include <Resources/Loaders/ImageLoader.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <Vendor/stb_image.h>
-
 //-------------------------------------------------------------------------
 // Texture System Implementation.
 //-------------------------------------------------------------------------
 class CTextureSystem : public ITextureSystem
 {
 public:
-	virtual bool	Initialize(TextureSystemConfig_t config) override;
-	virtual void	Shutdown() override;
+	// Initialization, shutdown.
+	virtual bool				Initialize(TextureSystemConfig_t config) override;
+	virtual void				Shutdown() override;
 	
+	// Acquires the resources for the provided texture.
 	virtual TextureHandle_t		AcquireTexture(const char* pszTextureName, bool bAutoRelease) override;
+	// Acquires a texture given an existing resource.
 	virtual TextureHandle_t		AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease) override;
+	// Releases a reference to an existing texture.
 	virtual void				ReleaseTexture(TextureHandle_t hTexture) override;
 
-	virtual uint32_t			GetTextureFlags(TextureHandle_t hTexture) const override;
+	// Returns the state of a specific texture flag(s).
+	virtual bool				IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const override;
 
-	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData) override;
+	// TODO: Implement this and comment.
+	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData) override;
 
 			// This variant exists to free textures in the array without having to access the hashmap from the calling function. This really only exists to easily clear the textures on shutdown.
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
 
+	// Returns a texture's width/height.
 	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const override;
 	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const override;
 
@@ -43,38 +46,51 @@ public:
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
 
+	// Getters for default textures.
 	virtual TextureHandle_t		GetDefaultDiffuseTexture() override { return m_pDefaultTextureLookup->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultNormalTexture() override { return m_pDefaultNormalTexture->TextureIndex; }
 
 private:
-
+	// Returns the first available handle in the texture dictionary.
 	TextureHandle_t				GetFirstFreeTextureHandle() const;
+
+	// Clears a given texture dictionary entry.
 	void						ClearTextureDictionaryEntry(const char* pszTextureName);
 
-	bool			CreateDefaultTextures();
-	void			DestroyDefaultTextures();
+	// Create/Destroy default textures.
+	bool						CreateDefaultTextures();
+	void						DestroyDefaultTextures();
 
 private:
+	// The texture system configuration passed in from the application configuration.
 	TextureSystemConfig_t	m_Config{};
 
+	// A lookup for a particular texture.
 	struct TextureLookup
 	{
+		// The internal handle for the texture.
 		TextureHandle_t	TextureIndex{ kInvalidID_U32 };
+		// The current reference count of the texture.
 		int				ReferenceCount{ 0 };
+		// Indicates if this texture should automatically release it's resources when it's reference count reaches 0.
+		// NOTE: This can only be set when first acquiring the texture.
 		bool			AutoRelease{ false };
 	};
 
 	struct TextureDictionary
 	{
-		Utl::CHashMap<const char*, TextureLookup> m_TextureHashmap{};
-		Texture* m_TextureArray{ nullptr };
+		// Allows for string-based lookups for texture.
+		Utl::CHashMap<const char*, TextureLookup>	m_TextureHashmap{};
+		// An array of textures.
+		Texture*									m_TextureArray{ nullptr };
 	};
 
+	// The texture dictionary.
 	TextureDictionary	m_TextureDictionary{};
 
-	// Default textures:
+	// Default textures.
 	TextureLookup* m_pDefaultTextureLookup{ nullptr };
 	TextureLookup* m_pWhiteTextureLookup{ nullptr };
 	TextureLookup* m_pDefaultSpecularTexture{ nullptr };
@@ -115,9 +131,9 @@ void CTextureSystem::Shutdown()
 	// Free any texture resources in use by the renderer.
 	for (int idx = 0; idx < m_Config.MaxTextures; idx++)
 	{
-		if (m_TextureDictionary.m_TextureArray[idx].m_pInternalData != nullptr)
+		if (m_TextureDictionary.m_TextureArray[idx].internalHandle != kInvalidID_U32)
 		{
-			ReleaseTextureAtIndex(m_TextureDictionary.m_TextureArray[idx], true); // True to force the texture system to release resources.
+			ReleaseTextureAtIndex(m_TextureDictionary.m_TextureArray[idx], true); // True to force the texture system to release internal resources.
 		}
 	}
 
@@ -128,8 +144,11 @@ void CTextureSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// Loads a texture at the provided path if it hasn't been loaded.
-// Returns a handle to the texture.
+// Purpose: Attempts to acquire the resources for a given texture.
+// Input:	pszTextureName - The texture to acquire resources for.
+//			bAutoRelease - Indicates if the texture's resources should be released when its reference count reaches 0.
+//				NOTE: This only gets set when the texture is first acquired.
+// Output:	Returns a handle to the new texture.
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool bAutoRelease)
 {
@@ -179,7 +198,12 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Acquires a texture given an existing resource.
+// Input:	pszTextureName - The texture to acquire resources for.
+//			pResource - The existing resource data to use for the new texture.
+//			bAutoRelease - Indicates if the texture's resources should be released when its reference count reaches 0.
+//				NOTE: This only gets set when the texture is first acquired.
+// Output:	Returns a handle to the new texture.
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease)
 {
@@ -228,7 +252,9 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Releases an existing reference to a texture.
+// Input:	hTexture - The texture to release a reference to.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 {
@@ -247,6 +273,7 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	{
 		// Release internal texture data.
 		g_pRenderer->ReleaseTextureResources(pTexture);
+		pTexture->internalHandle = kInvalidID_U32;
 
 		// Clear the hashmap and texture data.
 		ClearTextureDictionaryEntry(pTexture->pszTextureName);
@@ -254,99 +281,35 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Returns the state of a specific texture flag(s).
+// Input:	hTexture - The texture whose flags to check.
+//			flagsToCheck - The flag(s) to check the state of.
+// Output:	True if the flag(s) are set, otherwise false.
 //-------------------------------------------------------------------------
-uint32_t CTextureSystem::GetTextureFlags(TextureHandle_t hTexture) const
+bool CTextureSystem::IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const
 {
 	CAssert(hTexture != kInvalidID_U32);
 	Texture* pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
 
-	return pTexture->textureFlags;
+	return (pTexture->textureFlags & flagsToCheck) != 0;
 }
 
 //-------------------------------------------------------------------------
 // Takes already created pixel data and wraps it in a texture object.
 // This returns a handle to that texture.
 //-------------------------------------------------------------------------
-TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, size_t iTexWidth, size_t iTexHeight, byte* pPixelData)
+TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData)
 {
-	Texture* newTexture = nullptr;
-	int texIdx = 0;
-
-	// Make sure our state is ready to go.
-	if (!m_TextureDictionary.m_TextureArray)
-	{
-		LOG_WARN("CTextureSystem::WrapTextureInternal() called before texture system was initialized! Returning NULL handle.");
-		return 0; // TODO: Invalid ID.
-	}
-
-	if (!pszTextureName)
-	{
-		LOG_ERROR("CTextureSystem::WrapTextureInternal() requires a path to the texture to load! Returning default texture.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	// We need to flip standard images.
-	stbi_set_flip_vertically_on_load(true);
-
-	// Get an entry into the hashmap.
-	TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
-
-	if (!newTextureLookup)
-	{
-		LOG_ERROR("Failed to find free space for new texture in texture hashmap, returning default.");
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32) // This texture does not exist in the hashmap yet.
-	{
-		// Get at the first free texture.
-		texIdx = GetFirstFreeTextureHandle();
-		newTexture = &m_TextureDictionary.m_TextureArray[texIdx];
-
-		if (!newTexture)
-		{
-			LOG_ERROR("Could not load texture '%s' because all texture slots were full, returning default texture.", pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-		newTexture->width = iTexWidth;
-		newTexture->height = iTexHeight;
-		newTexture->numChannels = 1; // TODO: Configurable.
-
-		// Send the data off to the renderer to be uploaded to the GPU.
-		if (!g_pRenderer->AcquireTextureResources(newTexture, texIdx, (newTexture->width * newTexture->height * newTexture->numChannels), pPixelData))
-		{
-			LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Returning default texture.", pszTextureName);
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
-		newTexture->pszTextureName = StringDuplicate(pszTextureName);
-	}
-	else
-	{
-		newTexture = &m_TextureDictionary.m_TextureArray[newTextureLookup->TextureIndex];
-	}
-
-	if (!newTexture)
-	{
-		LOG_ERROR("Failed to find resources to load/create texture '%s'. Returning default texture.", pszTextureName);
-		return m_pDefaultTextureLookup->TextureIndex;
-	}
-
-	if (newTextureLookup->TextureIndex == kInvalidID_U32)
-		newTextureLookup->TextureIndex = texIdx;
-
-	newTextureLookup->ReferenceCount++;
-	newTextureLookup->AutoRelease = true; // TODO: Configurable.
-
-	LOG_VERBOSE("Successfully acquired texture: '%s', at index: %d, ref. count: %d", newTexture->pszTextureName, newTextureLookup->TextureIndex, newTextureLookup->ReferenceCount);
-	return newTextureLookup->TextureIndex;
+	// TODO: IMPLEMENT THIS!
+	CAssert(0);
+	return 0;
 }
 
 //-------------------------------------------------------------------------
-// Same as above, except this goes right to the texture array, skipping the lookup in the hashmap.
-// This is used so that we don't need to get the table lookup on shutdown, when we just want to release all texture resources anyways.
-// NOTE THAT THIS WILL FREE RESOURCES WITH NO REGARD TO REF. COUNTING!!!
+// Purpose: Releases an existing texture, without care for reference counting.
+// Input:	pTexture - The internal texture to release resources for.
+//			bForceRelease - TODO: This currently does nothing...
+// Output:	none.
 //-------------------------------------------------------------------------
 void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease)
 {
@@ -358,11 +321,13 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.pszTextureName)
 		StringFree(pTexture.pszTextureName);
 
-	pTexture.m_pInternalData = nullptr;
+	pTexture.internalHandle = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Returns a texture's width.
+// Input:	hTexture - The texture whose width to return.
+// Output:	Returns the texture's width.
 //-------------------------------------------------------------------------
 int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 {
@@ -370,7 +335,9 @@ int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Returns a texture's height.
+// Input:	hTexture - The texture whose height to return.
+// Output:	Returns the texture's height.
 //-------------------------------------------------------------------------
 int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 {
@@ -378,7 +345,9 @@ int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Find the first available handle in the texture dictionary.
+// Input:	none.
+// Output:	Returns the first available texture handle.
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 {
@@ -390,7 +359,7 @@ TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 
 	for (int texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 	{
-		if (!s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].m_pInternalData)
+		if (s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].internalHandle == kInvalidID_U32)
 		{
 			// Found a free slot, return!
 			return texIdx;
@@ -402,7 +371,9 @@ TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Clears a given texture dictionary entry.
+// Input:	pszTextureName - The name of the texture whose entry to vacate.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 {
@@ -418,7 +389,7 @@ void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 	if (pTexture->pszTextureName)
 		StringFree(pTexture->pszTextureName);
 
-	if (pTexture->m_pInternalData)
+	if (pTexture->internalHandle != kInvalidID_U32)
 	{
 		// TODO: Free any internal resources that may be leftover.
 	}
@@ -452,7 +423,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultDiffuseTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
-		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -495,7 +466,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultWhiteTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
-		memset(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -538,7 +509,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultSpecularTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultSpecularTexturePixels[8][8][4];
-		memset(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -581,7 +552,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultNormalTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultNormalTexturePixels[8][8][4];
-		memset(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
+		Platform::MemorySet(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
 		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
@@ -618,21 +589,21 @@ void CTextureSystem::DestroyDefaultTextures()
 {
 	Texture* pDefaultTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultTextureLookup->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultTexture);
-	pDefaultTexture->m_pInternalData = nullptr;
+	pDefaultTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultTexture->pszTextureName)
 		StringFree(pDefaultTexture->pszTextureName);
 
 	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
-	pDefaultWhiteTexture->m_pInternalData = nullptr;
+	pDefaultWhiteTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultWhiteTexture->pszTextureName)
 		StringFree(pDefaultWhiteTexture->pszTextureName);
 
 	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
-	pDefaultSpecularTexture->m_pInternalData = nullptr;
+	pDefaultSpecularTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultSpecularTexture->pszTextureName)
 		StringFree(pDefaultSpecularTexture->pszTextureName);
@@ -640,7 +611,7 @@ void CTextureSystem::DestroyDefaultTextures()
 
 	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultNormalTexture);
-	pDefaultNormalTexture->m_pInternalData = nullptr;
+	pDefaultNormalTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultNormalTexture->pszTextureName)
 		StringFree(pDefaultNormalTexture->pszTextureName);

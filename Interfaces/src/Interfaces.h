@@ -83,8 +83,5 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 		}
 	}
 
-	if (g_pEngineEvents != nullptr && g_pInputSystem != nullptr)
-	{
-		LOG_INFO("'%s' - Interfaces connected!", DLLNAME);
-	}
+	LOG_INFO("'%s' - Interfaces connected!", DLLNAME);
 }

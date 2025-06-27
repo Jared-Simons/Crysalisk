@@ -15,23 +15,30 @@
 
 namespace MeshLoader
 {
+	// Attempts to load an existing mesh asset from disk.
 	CORE_API bool LoadMeshResource(const char* pszMeshFileName, struct MeshResource_t& pOutResource);
 
-	//-------------------------------------------------------------------------
-	// TODO: Documentation
-	//-------------------------------------------------------------------------
+	// A mesh resource generated from a file on disk.
+	// Can be used by the engine at runtime for rendering.
 	struct MeshResource_t
 	{
-		struct GeometryGroup_t
+		// This is an atomic piece of geometry (submesh) in the engine.
+		// Contains a table of vertices and indices for rendering.
+		// Can only be associated with one material.
+		struct GeometryObject_t
 		{
+			// The name of this submesh (used for debugging purposes).
 			char*					pszDebugName{ nullptr };
+			// An array of vertices in this submesh.
 			Utl::CVector<Vertex3D>	Vertices{};
+			// An array of indices in this submesh.
 			Utl::CVector<uint32_t>	Indices{};
+			// The name of the material associated with this submesh.
 			char*					pszMaterialName{ nullptr };
 
-			GeometryGroup_t() {}
+			GeometryObject_t() {}
 			
-			GeometryGroup_t(const GeometryGroup_t& pOther)
+			GeometryObject_t(const GeometryObject_t& pOther)
 			{
 				if (pOther.pszDebugName)
 					pszDebugName = StringDuplicate(pOther.pszDebugName);
@@ -42,7 +49,7 @@ namespace MeshLoader
 				Indices = pOther.Indices;
 			}
 
-			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
+			GeometryObject_t& operator=(const GeometryObject_t& pOther)
 			{
 				if (pOther.pszDebugName)
 					pszDebugName = StringDuplicate(pOther.pszDebugName);
@@ -55,7 +62,7 @@ namespace MeshLoader
 				return *this;
 			}
 
-			~GeometryGroup_t()
+			~GeometryObject_t()
 			{
 				// Make sure to free the strings.
 				if (pszDebugName)
@@ -66,14 +73,18 @@ namespace MeshLoader
 			}
 		};
 
-		struct GeometryObject_t
+		// This is a method of grouping submeshes together in the engine.
+		// Contains an array of submesh data.
+		struct GeometryGroup_t
 		{
+			// The name of the group.
 			char*							pszDebugName{ nullptr };
-			Utl::CVector<GeometryGroup_t*>	pGroups{};
+			// An array of submeshes.
+			Utl::CVector<GeometryObject_t*>	pGroups{};
 
-			GeometryObject_t() {}
+			GeometryGroup_t() {}
 
-			GeometryObject_t(const GeometryObject_t& pOther)
+			GeometryGroup_t(const GeometryGroup_t& pOther)
 			{
 				if (pOther.pszDebugName)
 					pszDebugName = StringDuplicate(pOther.pszDebugName);
@@ -81,7 +92,7 @@ namespace MeshLoader
 				pGroups = pOther.pGroups;
 			}
 
-			GeometryObject_t& operator=(const GeometryObject_t& pOther)
+			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
 			{
 				if (pOther.pszDebugName)
 					pszDebugName = StringDuplicate(pOther.pszDebugName);
@@ -91,7 +102,7 @@ namespace MeshLoader
 				return *this;
 			}
 
-			~GeometryObject_t()
+			~GeometryGroup_t()
 			{
 				if (pszDebugName)
 					StringFree(pszDebugName);
@@ -124,7 +135,9 @@ namespace MeshLoader
 			}
 		}
 
-		Utl::CVector<GeometryObject_t*>						pObjects{};
+		// An array of groups (which contain submesh data).
+		Utl::CVector<GeometryGroup_t*>						pObjects{};
+		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 	};
 }

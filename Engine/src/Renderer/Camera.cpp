@@ -1,7 +1,19 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/25/2025
+// 
+// Purpose: Camera types, typically used for rendering.
+//=============================================================================
 #include "Camera.h"
 
 #include "Core/Input.h"
 
+//-------------------------------------------------------------------------
+// Purpose: Recalculate's the camera's internal vectors, 
+//			this is typically needed when the camera's rotation changes.
+// Input:	none.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Camera_t::RecalculateCameraVectors()
 {
 	Vector3D front{};
@@ -17,6 +29,11 @@ void Camera_t::RecalculateCameraVectors()
 	vecUp = newUp.Normalize();
 }
 
+//-------------------------------------------------------------------------
+// Purpose: A simple update function.
+// Input:	deltaTime - The time elapsed since this function was last called.
+// Output:	none.
+//-------------------------------------------------------------------------
 void Camera_t::UpdateCameraData(double deltaTime)
 {
 	float velocity = (float)(2.5f * deltaTime);

@@ -16,16 +16,25 @@
 class IRendererBackend;
 struct RenderPacket_t;
 
+//-------------------------------------------------------------------------
+// Renderer configuration, to be set by the application.
+//-------------------------------------------------------------------------
 struct RendererConfig_t
 {
+	// The application's name.
 	const char* szApplicationName;
+	// An opaque pointer to the window we'll be rendering to.
 	void* pHWnd;
+	// A pointer to the loaded backend module.
 	Platform::ISysModule* pRendererBackendDLL;
 
 	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
 	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
 };
 
+//-------------------------------------------------------------------------
+// The renderer frontend.
+//-------------------------------------------------------------------------
 class Renderer
 {
 public:
@@ -33,8 +42,8 @@ public:
 	void			Shutdown();
 	bool			Update(struct RenderPacket_t& pRenderData);
 
-	bool			AcquireTextureResources(class Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void			ReleaseTextureResources(class Texture* pTexture);
+	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
+	void			ReleaseTextureResources(struct Texture* pTexture);
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
@@ -82,7 +91,7 @@ public:
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};
 	GeometryInstance_t	m_Cube3{};
-	Mesh	m_SponzaModel;
+	Mesh				m_SponzaModel;
 };
 
 extern Renderer* g_pRenderer;

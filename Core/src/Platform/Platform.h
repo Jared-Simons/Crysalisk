@@ -8,15 +8,23 @@
 
 #include "Defines.h"
 
-namespace Platform {
-
+namespace Platform 
+{
+	//-------------------------------------------------------------------------
+	// Configuration for a new window.
+	//-------------------------------------------------------------------------
 	struct WindowParams_t
 	{
+		// The starting X position of the window.
 		int X;
+		// The starting Y position of the window.
 		int Y;
+		// The starting width of the window.
 		int Width;
+		// The starting height of the window.
 		int Height;
-		const char* Name;
+		// The name of the window.
+		const char* pszName;
 	};
 
 	//-------------------------------------------------------------------------
@@ -27,6 +35,9 @@ namespace Platform {
 	typedef void (*Platform_MouseMoveEventCallback)(const float mouseXPos, const float mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
+	//-------------------------------------------------------------------------
+	// Interface for a platform-specific window.
+	//-------------------------------------------------------------------------
 	class IPlatformWindow
 	{
 	public:

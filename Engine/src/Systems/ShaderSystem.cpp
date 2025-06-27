@@ -20,48 +20,60 @@
 class CShaderSystem : public IShaderSystem
 {
 public:
+	// Initialization, shutdown.
 	virtual bool			Initialize(ShaderSystemConfig_t config) override;
 	virtual void			Shutdown() override;
 
+	// Acquires the resources for the provided shader name.
 	virtual ShaderHandle_t	AcquireShader(const char* pszShaderName) override;
+	// Releases an existing reference to a shader.
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
+	// Acquires a set of instance level resources for a shader.
 	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID) override;
 
+	// Binds a given shader for use in rendering ops.
 	virtual void			BindShader(ShaderHandle_t hShader) override;
 
+	// Binds the currently-bound shader's per-frame uniforms.
 	virtual void			BindPerFrameUniforms() override;
+	// Binds the currently-bound shader's per-instance uniforms (for the provided instance).
 	virtual void			BindPerInstanceUniforms(unsigned int hInstanceID) override;
 
+	// Gets the location for a particular shader uniform.
 	virtual uint16_t		GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName) override;
+	// Sets a particular shader uniform.
 	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
 
 private:
-	ShaderHandle_t	FindFirstFreeShaderHandle() const;
-
-	void				ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig);
-	ShaderAttribute_t	ParseVertexTypeFromString(const char* pszType);
-	void				ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes);
+	// Returns the first available handle in the shader dictionary.
+	ShaderHandle_t			FindFirstFreeShaderHandle() const;
 
 private:
+	// The shader system configuration passed in from the application configuration.
 	ShaderSystemConfig_t	m_Config{};
-	ShaderHandle_t			m_hCurrentlyBoundShader{ kInvalidID_U32 };
 
+	// A lookup for a particular shader.
 	struct ShaderLookup
 	{
+		// TODO: Handle ref-counting.
+		// The internal handle of the shader.
 		ShaderHandle_t	ShaderIndex{ kInvalidID_U32 };
 	};
 
 	struct ShaderDictionary
 	{
-		Utl::CHashMap<const char*, ShaderLookup> m_ShaderLookup{};
-		Shader* m_ShaderArray{ nullptr };
+		// Allows for string-based lookups for shaders.
+		Utl::CHashMap<const char*, ShaderLookup>	m_ShaderLookup{};
+		// An array of shaders.
+		Shader*										m_ShaderArray{ nullptr };
 	};
 
+	// The shader dictionary.
 	ShaderDictionary	m_ShaderDictionary{};
 
-	// DEPRECATED!!!
-	ShaderHandle_t			m_hCurrentlyBoundShader_OLD{ kInvalidID_U32 };
+	// The currently bound shader.
+	ShaderHandle_t		m_hCurrentlyBoundShader{ kInvalidID_U32 };
 };
 
 // Shader System context.
@@ -73,8 +85,8 @@ static eShaderStage				GetShaderStageFromString(const char* pszString);
 static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
 static VertexAttribute_t		GetVertexAttributeDataFromString(const char* pszString);
 static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr);
-static inline size_t			GetAttributeStride(ShaderAttribute_t inAttribute);
-static size_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
+static inline uint32_t			GetAttributeStride(ShaderAttribute_t inAttribute);
+static uint32_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
 static void						AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig);
 
 //-------------------------------------------------------------------------
@@ -112,7 +124,9 @@ void CShaderSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Acquires the resources for the provided shader name.
+// Input:	pszShaderName - The name of the shader to acquire resources for.
+// Output:	Returns a handle to the new shader.
 //-------------------------------------------------------------------------
 ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 {
@@ -154,7 +168,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		ShaderConfig_t	newShaderConfig{};
 
 		// Copy over config data.
-		pShader->m_szShaderName = StringDuplicate(newShaderResource.pszShaderName);
+		pShader->m_pszShaderName = StringDuplicate(newShaderResource.pszShaderName);
 		newShaderConfig.eTopologyTypes = GetTopologyTypeFromString(newShaderResource.pszTopologyType);
 		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
 		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;
@@ -166,9 +180,9 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		for (int stageIdx = 0; stageIdx < shaderStageCount; stageIdx++)
 		{
 			ShaderModuleConfig_t newConfig{};
-			newConfig.stage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
+			newConfig.eStage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
 			newConfig.byteCode = newShaderResource.ShaderStages[stageIdx].pShaderModuleBytecode;
-			newConfig.codeSize = newShaderResource.ShaderStages[stageIdx].CodeDataSize;
+			newConfig.iCodeSize = newShaderResource.ShaderStages[stageIdx].CodeDataSize;
 
 			newShaderConfig.moduleConfigs.PushBack(newConfig);
 		}
@@ -198,7 +212,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			if (newUniform.eFrequency == eShaderUniformGroup::PER_FRAME)
 				newShaderConfig.perFrameUBOStride += newUniform.iStride;
 			else if (newUniform.eFrequency == eShaderUniformGroup::PER_MATERIAL)
-				newShaderConfig.perMaterialUBOStride += newUniform.iStride;
+				newShaderConfig.perInstanceUBOStride += newUniform.iStride;
 			else
 				newShaderConfig.perDrawUBOStride += newUniform.iStride;
 		}
@@ -211,10 +225,10 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// TODO: Don't hardcode this.
-		newShaderConfig.m_RendererView = g_pRenderer->m_SceneView;
+		newShaderConfig.m_pRendererView = g_pRenderer->m_SceneView;
 		if (StringCompare(pszShaderName, "Core.UI"))
 		{
-			newShaderConfig.m_RendererView = g_pRenderer->m_UIView;
+			newShaderConfig.m_pRendererView = g_pRenderer->m_UIView;
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
@@ -222,13 +236,13 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
 		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
-		size_t	iRunningPerFrameOffset{ 0 };
-		size_t	iRunningPerMaterialOffset{ 0 };
+		uint32_t	iRunningPerFrameOffset{ 0 };
+		uint32_t	iRunningPerMaterialOffset{ 0 };
 		for (int idx = 0; idx < uniformCount; idx++)
 		{
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
 			// Find all our buffer offsets and save off our groups.
-			size_t currentStride = GetAttributeStride(pCurrentConfig.eType);
+			uint32_t currentStride = GetAttributeStride(pCurrentConfig.eType);
 			if (pCurrentConfig.eFrequency == eShaderUniformGroup::PER_FRAME)
 			{
 				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_FRAME;
@@ -258,7 +272,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Save off our UBO strides.
 		pShader->m_iPerFrameUBOSize = newShaderConfig.perFrameUBOStride;
-		pShader->m_iPerInstanceUBOSize = newShaderConfig.perMaterialUBOStride;
+		pShader->m_iPerInstanceUBOSize = newShaderConfig.perInstanceUBOStride;
 
 		// Set the internal shader handle.
 		pShader->m_iInternalHandle = newShaderHandle;
@@ -282,11 +296,12 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Releases an existing reference to a shader.
+// Input:	hShader - The shader to release a reference to.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 {
-	// TODO: clean this up and make it more flexible!
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 
 	if (pShader->m_pUniforms)
@@ -297,7 +312,10 @@ void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Acquires a set of instance level resources for a shader.
+// Input:	hShader - The shader to acquire instance resources from.
+//			pOutInstanceID - A pointer to hold the instance ID for the new instance.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID)
 {
@@ -308,15 +326,17 @@ void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsig
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Binds a given shader for use in rendering ops.
+// Input:	hShader - The shader to be bound.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::BindShader(ShaderHandle_t hShader)
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
-	CAssert(pShader && pShader->m_pInternalData); // Don't try to bind a nonexistant shader!
+	CAssert(pShader && pShader->m_iInternalHandle != kInvalidID_U32); // Don't try to bind a nonexistant shader!
 
 	m_hCurrentlyBoundShader = hShader;
-	// The renderer will do all the work for us.
+	// The renderer will do most of the work for us.
 	g_pRenderer->BindShader(pShader);
 
 	if (pShader->m_iRendererFrame != g_pRenderer->m_iCurrentRendererFrame)
@@ -329,7 +349,9 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Binds the currently-bound shader's per-frame uniforms.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::BindPerFrameUniforms()
 {
@@ -338,6 +360,11 @@ void CShaderSystem::BindPerFrameUniforms()
 	g_pRenderer->BindShaderPerFrameUniforms(pShader);
 }
 
+//-------------------------------------------------------------------------
+// Purpose: Binds the currently-bound shader's per-instance uniforms (for the provided instance).
+// Input:	hInstanceID - The instance to be bound.
+// Output:	none.
+//-------------------------------------------------------------------------
 void CShaderSystem::BindPerInstanceUniforms(unsigned int hInstanceID)
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
@@ -346,7 +373,10 @@ void CShaderSystem::BindPerInstanceUniforms(unsigned int hInstanceID)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Gets the location for a particular shader uniform.
+// Input:	hShader - The shader whose uniform to find.
+//			pszUniformName - The name of the uniform to find.
+// Output:	The location of the uniform in the shader.
 //-------------------------------------------------------------------------
 uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName)
 {
@@ -362,7 +392,13 @@ uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* p
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation.
+// Purpose: Sets a particular shader uniform.
+// Input:	hShader - The shader whose uniform to set.
+//			uniformLocation - The location (index) of the uniform to set.
+//			iUniformArrayIndex - The array index of the uniform to set. Some uniforms can be arrays, others just single values.
+//			hInstanceID - The instance to be set, this only matters for per-instance uniforms. Not relevant for other groups.
+//			pData - An opaque pointer to the value to be set.
+// Output:	none.
 //-------------------------------------------------------------------------
 void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
@@ -374,7 +410,9 @@ void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLoc
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Parses a shader stage from a string.
+// Input:	pszString - The string representing the shader stage type.
+// Output:	The typed shader stage value.
 //-------------------------------------------------------------------------
 static eShaderStage	GetShaderStageFromString(const char* pszString)
 {
@@ -391,13 +429,15 @@ static eShaderStage	GetShaderStageFromString(const char* pszString)
 	}
 	else
 	{
-		LOG_WARN("Failed to parse shader stage '%s'. Check shader configuration.", pszString);
+		LOG_WARN("Failed to parse shader eStage '%s'. Check shader configuration.", pszString);
 		return eShaderStage::UNDEFINED;
 	}
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Parses a shader topology type from a string.
+// Input:	pszString - The string representing the shader topology type.
+// Output:	The typed shader topology value.
 //-------------------------------------------------------------------------
 static eShaderTopologyType GetTopologyTypeFromString(const char* pszString)
 {
@@ -420,16 +460,23 @@ static eShaderTopologyType GetTopologyTypeFromString(const char* pszString)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Parses vertex attribute data from a string.
+// Input:	pszString - The string representing vertex attribute.
+// Output:	The typed vertex attribute.
 //-------------------------------------------------------------------------
 static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 {
 	VertexAttribute_t attrib{};
 
-	if (StringCompareInsensitive(pszString, "int"))
+	if (StringCompareInsensitive(pszString, "int") || StringCompareInsensitive(pszString, "int32"))
 	{
 		attrib.type = ShaderAttribute_t::Int32;
 		attrib.stride = sizeof(int32_t);
+	}
+	else if (StringCompareInsensitive(pszString, "float") || StringCompareInsensitive(pszString, "float32"))
+	{
+		attrib.type = ShaderAttribute_t::Float32;
+		attrib.stride = sizeof(float);
 	}
 	else if (StringCompareInsensitive(pszString, "vec2") || StringCompareInsensitive(pszString, "vector2d"))
 	{
@@ -462,7 +509,9 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Parses shader uniform data from a string.
+// Input:	pszString - The string representing shader uniform.
+// Output:	The typed shader uniform.
 //-------------------------------------------------------------------------
 static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttributeStr, const char* pszGroupStr)
 {
@@ -501,7 +550,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	}
 	else if (StringCompareInsensitive(pszAttributeStr, "texture") || StringCompareInsensitive(pszAttributeStr, "sampler"))
 	{
-		newUniformConfig.eType = ShaderAttribute_t::Texture;
+		newUniformConfig.eType = ShaderAttribute_t::Sampler;
 		newUniformConfig.iStride = 0; // Samplers have no size.
 	}
 	else
@@ -534,9 +583,11 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Gets a stride from the provided attribute.
+// Input:	inAttribute - The attribute's whose stride to obtain.
+// Output:	The attribute's stride.
 //-------------------------------------------------------------------------
-inline size_t GetAttributeStride(ShaderAttribute_t inAttribute) 
+static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute) 
 {
 	switch (inAttribute)
 	{
@@ -544,6 +595,8 @@ inline size_t GetAttributeStride(ShaderAttribute_t inAttribute)
 	case ShaderAttribute_t::Int32:
 	default:
 		return sizeof(int32_t);
+	case ShaderAttribute_t::Float32:
+		return sizeof(float);
 	case ShaderAttribute_t::Vector2:
 		return sizeof(Vector2D);
 	case ShaderAttribute_t::Vector3:
@@ -552,17 +605,46 @@ inline size_t GetAttributeStride(ShaderAttribute_t inAttribute)
 		return sizeof(Vector4D);
 	case ShaderAttribute_t::Matrix4x4:
 		return sizeof(Matrix4x4);
-	case ShaderAttribute_t::Texture:
+	case ShaderAttribute_t::Sampler:
 		return 0; // Samplers don't count.
 	}
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Parses a uniform group from a string.
+// Input:	pszString - The string representation of the uniform group.
+// Output:	The typed shader uniform group.
 //-------------------------------------------------------------------------
-static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign)
+static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString)
 {
-	size_t boundaryToAlignTo{ 0 };
+	if (StringCompareInsensitive(pszString, "frame"))
+	{
+		return eShaderUniformGroup::PER_FRAME;
+	}
+	else if (StringCompareInsensitive(pszString, "material"))
+	{
+		return eShaderUniformGroup::PER_MATERIAL;
+	}
+	else if (StringCompareInsensitive(pszString, "draw"))
+	{
+		return eShaderUniformGroup::PER_DRAW;
+	}
+	else
+	{
+		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszString);
+		return eShaderUniformGroup::PER_MATERIAL;
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Determines the amount of padding bytes that are required to align this offset to a specific boundary.
+// Input:	currentOffset - The current, unaligned offset.
+//			typeToAlign - The type/attribute to align to.
+// Output:	The number of extra padding bytes needed for alignment.
+//-------------------------------------------------------------------------
+static uint32_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign)
+{
+	uint32_t boundaryToAlignTo{ 0 };
 	switch (typeToAlign)
 	{
 	case ShaderAttribute_t::Int32:
@@ -580,7 +662,7 @@ static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAtt
 		boundaryToAlignTo = 16;
 		break;
 
-	case ShaderAttribute_t::Texture:
+	case ShaderAttribute_t::Sampler:
 		return 0;
 
 	default:
@@ -599,13 +681,16 @@ static size_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAtt
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Given a shader, this method aligns it's uniforms to necessary boundaries.
+// Input:	pShader - The shader whose uniforms are to be aligned.
+//			pShaderConfig - The shader's associated configuration.
+// Output:	none.
 //-------------------------------------------------------------------------
 static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig)
 {
-	size_t iCurrentPerFrameOffset{ 0 };
-	size_t iCurrentPerMaterialOffset{ 0 };
-	size_t iCurrentPerDrawOffset{ 0 };
+	uint32_t iCurrentPerFrameOffset{ 0 };
+	uint32_t iCurrentPerMaterialOffset{ 0 };
+	uint32_t iCurrentPerDrawOffset{ 0 };
 
 	size_t uniformCount = pShader->m_iUniformCount;
 	size_t currentStride = 0;
@@ -644,295 +729,20 @@ static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderCon
 
 	// Update the UBO strides.
 	pShaderConfig->perFrameUBOStride = iCurrentPerFrameOffset;
-	pShaderConfig->perMaterialUBOStride = iCurrentPerMaterialOffset;
+	pShaderConfig->perInstanceUBOStride = iCurrentPerMaterialOffset;
 	pShaderConfig->perDrawUBOStride = iCurrentPerDrawOffset;
 }
 
 //-------------------------------------------------------------------------
-// TODO: Documentation pls.
+// Purpose: Find the first available handle in the shader dictionary.
+// Input:	none.
+// Output:	Returns the first available shader handle.
 //-------------------------------------------------------------------------
-static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString) 
-{
-	if (StringCompareInsensitive(pszString, "frame"))
-	{
-		return eShaderUniformGroup::PER_FRAME;
-	}
-	else if (StringCompareInsensitive(pszString, "material"))
-	{
-		return eShaderUniformGroup::PER_MATERIAL;
-	}
-	else if (StringCompareInsensitive(pszString, "draw"))
-	{
-		return eShaderUniformGroup::PER_DRAW;
-	}
-	else
-	{
-		LOG_WARN("Failed to parse shader uniform group '%s'. Returning per-material.", pszString);
-		return eShaderUniformGroup::PER_MATERIAL;
-	}
-}
-
-//-------------------------------------------------------------------------
-// TODO: Documentation pls.
-//-------------------------------------------------------------------------
-void CShaderSystem::ParseShaderConfigurationFromFile(const char* pszFilePath, ShaderConfig_t& pOutShaderConfig)
-{
-	// Open the file
-	FileHandle_t shaderConfigFile{};
-	if (!FileSystem::OpenFile(pszFilePath, eFileMode::FILEMODE_READ, false, &shaderConfigFile))
-	{
-		LOG_ERROR("ParseShaderConfigurationFromFile -> Could not open file '%s'. Nothing was done.", pszFilePath);
-		FileSystem::CloseFile(&shaderConfigFile);
-	}
-
-	// TODO: We're resizing explicitly here because for whatever reason, something in memory allocation (during this resize) is stomping the memory that holds the names of the modules.
-	// This needs to be fixed in at the allocator level.
-	pOutShaderConfig.uniformConfigs.Resize(10);
-
-	// Parse the file's contents.
-	while (!FileSystem::IsEOF(&shaderConfigFile))
-	{
-		char currentLine[14000];
-		size_t currentLineLength{ 0 };
-		size_t bytesRead{ 0 };
-		size_t equalIndex{ 0 };
-		char key[500];
-		char value[500];
-
-		FileSystem::ReadLine(currentLine, 14000, &bytesRead, &shaderConfigFile);
-		currentLineLength = StringLength(currentLine);
-
-		if (currentLineLength <= 0 || currentLine[0] == '#') // Blank line or comment
-			continue;
-
-		equalIndex = StringIndexOf(currentLine, '=');
-		memcpy(key, currentLine, equalIndex);
-		key[equalIndex] = '\0';
-		memcpy(value, &currentLine[equalIndex + 1], bytesRead - equalIndex);
-		value[bytesRead - 1] = '\0';
-
-		if (StringCompare(key, "name"))
-		{
-			pOutShaderConfig.pszShaderName = StringStrip(value, *"\""); // Strip the quotes out of the value
-		}
-		else if (StringCompare(key, "num_shader_stages"))
-		{
-			pOutShaderConfig.numShaderStages = String_ATOI(value);
-			pOutShaderConfig.pszShaderStageFileNames.Resize(pOutShaderConfig.numShaderStages);
-		}
-		else if (StringCompare(key, "vertex_file") || StringCompare(key, "fragment_file"))
-		{
-			int newIdx = 0;
-			for (newIdx = 0; newIdx < pOutShaderConfig.numShaderStages; newIdx++)
-			{
-				if (pOutShaderConfig.pszShaderStageFileNames[newIdx] == nullptr)
-					break;
-			}
-
-			pOutShaderConfig.pszShaderStageFileNames.PushBack(StringStrip(value, *"\"")); // Strip the quotes out of the value
-		}
-		else if (StringCompare(key, "topology_type"))
-		{
-			if (StringCompare(value, "line_list"))
-			{
-				pOutShaderConfig.eTopologyTypes |= LINE_LIST;
-			}
-
-			if (StringCompare(value, "triangle_list"))
-			{
-				pOutShaderConfig.eTopologyTypes |= TRIANGLE_LIST;
-			}
-		}
-		else if (StringCompare(key, "attribute")) // Vertex attribute
-		{
-			// Vertex attributes are CSV lists.
-			char* currentChar = &value[0];
-			int commaIndex = StringIndexOf(currentChar, ',');
-			VertexAttribute_t currentAttribute{};
-
-			// Get the name first.
-			currentAttribute.szName = StringDuplicate_N(value, commaIndex);
-			currentChar = value + commaIndex + 1;
-			// Next the type.
-			currentAttribute.type = ParseVertexTypeFromString(currentChar);
-
-			pOutShaderConfig.vertexAttributes.PushBack(currentAttribute);
-		}
-		else if (StringCompare(key, "uniform"))
-		{
-			// Uniform configs are CSV lists.
-			char* currentChar = &value[0];
-			int commaIndex = StringIndexOf(currentChar, ',');
-			ShaderUniformConfig_t newUniform{};
-
-			// Get the name first.
-			newUniform.szName = StringDuplicate_N(value, commaIndex);
-			currentChar = value + commaIndex + 1;
-
-			// Next the type.
-			commaIndex = StringIndexOf(currentChar, ',');
-			char* pTypeString = StringDuplicate_N(currentChar, commaIndex);
-
-			// Check to see if the if this is uniform is an array.
-			int arrayStartIndex = StringIndexOf(pTypeString, '[');
-			if (arrayStartIndex != kInvalidID_U32)
-			{
-				int arrayEndIndex = StringIndexOf(pTypeString, ']');
-				if (arrayEndIndex == kInvalidID_U32)
-				{
-					// Syntax error in shader configuration!!!
-					CAssert(0);
-					LOG_ERROR("ParseShaderConfigurationFromFile() -> Shader Uniform '%s' declares an array type with a syntax error!", value);
-					continue;
-				}
-				else
-				{
-					// Get the array size and save it off.
-					int currIndex = arrayStartIndex + 1;
-					int currPower = 1;
-					while (currIndex != arrayEndIndex)
-					{
-						newUniform.iArraySize += (int)pow(pTypeString[currIndex] - '0', currPower);
-						currPower++;
-						currIndex++;
-					}
-				}
-			}
-			else
-			{
-				// No array, just one element.
-				newUniform.iArraySize = 1;
-			}
-
-			// Strip off the array elements.
-			if (arrayStartIndex != kInvalidID_U32)
-				pTypeString[arrayStartIndex] = '\0';
-
-			newUniform.eType = ParseVertexTypeFromString(pTypeString);
-			StringFree(pTypeString);
-			currentChar = currentChar + commaIndex + 1;
-
-			// Next the uniform update level.
-			int updateLevel = String_ATOI(currentChar);
-			newUniform.eFrequency = (eShaderUniformGroup)String_ATOI(currentChar);
-
-			pOutShaderConfig.uniformConfigs.PushBack(newUniform);
-		}
-		else if (StringCompare(key, "sampler_types"))
-		{
-			// Parse the sampler types.
-			ParseSamplerTypesFromString(value, pOutShaderConfig.samplerTypes);
-		}
-		else
-		{
-			LOG_WARN("Failed to parse shader config key: '%s'.", key);
-		}
-	}
-
-	FileSystem::CloseFile(&shaderConfigFile);
-}
-
-ShaderAttribute_t CShaderSystem::ParseVertexTypeFromString(const char* pszType)
-{
-	if (StringCompare(pszType, "int"))
-	{
-		return ShaderAttribute_t::Int32;
-	}
-	else if (StringCompare(pszType, "float32"))
-	{
-		return ShaderAttribute_t::Float32;
-	}
-	else if (StringCompare(pszType, "vec2"))
-	{
-		return ShaderAttribute_t::Vector2;
-	}
-	else if (StringCompare(pszType, "vec3"))
-	{
-		return ShaderAttribute_t::Vector3;
-	}
-	else if (StringCompare(pszType, "vec4"))
-	{
-		return ShaderAttribute_t::Vector4;
-	}
-	else if (StringCompare(pszType, "mat4"))
-	{
-		return ShaderAttribute_t::Matrix4x4;
-	}
-	else if (StringCompare(pszType, "texture"))
-	{
-		return ShaderAttribute_t::Texture;
-	}
-	else
-	{
-		LOG_WARN("ParseVertexTypeFromString() -> Failed to parse: '%s'", pszType);
-		return ShaderAttribute_t::Undefined;
-	}
-}
-
-void CShaderSystem::ParseSamplerTypesFromString(const char* pszTypeString, Utl::CVector<eKnownTextureTypes> pOutSamplerTypes)
-{
-	LOG_DEBUG("Sampler types: %s", pszTypeString);
-	char* pszTypes = StringDuplicate(pszTypeString);
-	int commaIndex = StringIndexOf(pszTypeString, ',');
-	int startIndex = 0;
-
-	while (commaIndex != kInvalidID_U32)
-	{
-		// TODO: Clean this logic up.
-		char* pszCurrentType = StringDuplicate_N(&pszTypeString[startIndex], commaIndex);
-
-		if (StringCompare(pszCurrentType, "diffuse"))
-		{
-			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
-		}
-		else if (StringCompare(pszCurrentType, "specular"))
-		{
-			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
-		}
-		else if (StringCompare(pszCurrentType, "normal"))
-		{
-			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
-		}
-		else
-		{
-			pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_UNDEFINED);
-		}
-
-		StringFree(pszCurrentType);
-		startIndex += commaIndex + 1;
-		commaIndex = StringIndexOf(&pszTypeString[startIndex], ',');
-
-		if (commaIndex == kInvalidID_U32)
-		{
-			// There should be one more type after the last comma.
-			pszCurrentType = StringDuplicate(&pszTypeString[startIndex]);
-			if (StringCompare(pszCurrentType, "diffuse"))
-			{
-				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_DIFFUSE);
-			}
-			else if (StringCompare(pszCurrentType, "specular"))
-			{
-				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_SPECULAR);
-			}
-			else if (StringCompare(pszCurrentType, "normal"))
-			{
-				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_NORMAL);
-			}
-			else
-			{
-				pOutSamplerTypes.PushBack(eKnownTextureTypes::TEXTURE_TYPE_UNDEFINED);
-			}
-
-			StringFree(pszCurrentType);
-		}
-	}
-}
-
 ShaderHandle_t CShaderSystem::FindFirstFreeShaderHandle() const
 {
 	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
 	{
-		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32 && m_ShaderDictionary.m_ShaderArray[idx].m_pInternalData == nullptr)
+		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32)
 			return idx;
 	}
 

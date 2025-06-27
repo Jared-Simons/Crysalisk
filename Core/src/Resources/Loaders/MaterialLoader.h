@@ -12,10 +12,13 @@
 
 namespace MaterialLoader
 {
+	// Attempts to load a material asset from disk.
 	CORE_API bool LoadMaterialResource(const char* pszMaterialPath, struct MaterialResource_t& pOutResource);
 
+	// A material resource configured from a cmat file on disk.
 	struct MaterialResource_t
 	{
+		// Different texture types.
 		enum class eTextureType
 		{
 			UNDEFINED = -1,
@@ -24,9 +27,13 @@ namespace MaterialLoader
 			NORMAL,
 		};
 
+		// A configuration for a texture map.
+		// Will be used by the engine at runtime to configure a material's textures.
 		struct eTextureMapConfig_t
 		{
+			// The name of the texture.
 			char*			pszTextureName{ nullptr };
+			// The type of the texture.
 			eTextureType	eType{ eTextureType::UNDEFINED };
 
 			eTextureMapConfig_t() {}
@@ -54,9 +61,13 @@ namespace MaterialLoader
 			}
 		};
 
+		// The material's name.
 		char*								pszMaterialName{ nullptr };
+		// The name of the material's shader.
 		char*								pszShaderName{ nullptr };
+		// An array of texture map configurations for the material.
 		Utl::CVector<eTextureMapConfig_t>	textureMapConfigs{};
+		// Arrays of custom key-values for material configuration.
 		Utl::CVector<char*>					pszCustomKeys{};
 		Utl::CVector<char*>					pszCustomValues{};
 

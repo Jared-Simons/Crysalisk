@@ -4,7 +4,6 @@
 // 
 // Purpose: Implements the core engine loop.
 //=============================================================================
-
 #include "Engine.h"
 
 #include <Containers/CHashMap.h>
@@ -42,7 +41,7 @@ static bool Event_WindowResizedPause(EventData_t data);
 static bool Event_WindowResizedUnpause(EventData_t data);
 
 //-------------------------------------------------------------------------
-// Implementation of the core engine class
+// Implementation of the core engine class.
 //-------------------------------------------------------------------------
 class CEngine : public IEngine
 {
@@ -63,8 +62,8 @@ IEngine* g_pEngine = &s_Engine;
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
-// Input: engineConfig - A configuration passed in by the calling application.
-// Output: bool - Returns true on successful initialization, otherwise false.
+// Input:	engineConfig - A configuration passed in by the calling application.
+// Output:	bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
 bool CEngine::Initialize(EngineConfig_t engineConfig)
 {
@@ -107,7 +106,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Setup the main engine window.
 	Platform::WindowParams_t windowParams{};
-	windowParams.Name = "Crysalisk Engine\0";
+	windowParams.pszName = "Crysalisk Engine\0";
 	windowParams.X = 100;
 	windowParams.Y = 100;
 	windowParams.Width = 800;
@@ -220,7 +219,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 bool CEngine::Run()
 {
 	while (!s_bApplicationQuitCalled)
-	{		
+	{
 		Platform::ProcessMessages();
 		// NOTE: We need to check for the application quit event again here, because it might've been set during 'Platform::ProcessMessages()' 
 		// and trying to run another frame may result in a fatal crash (the renderer attempting to render to a window that no longer exists, for example).
@@ -261,6 +260,7 @@ void CEngine::Shutdown()
 		m_pEngineWindow = nullptr;
 	}
 
+	Platform::CleanupInterfaceRegistry();
 	Platform::ShutdownPlatformLayer();
 	g_pInputSystem->Shutdown();
 	g_pEngineEvents->Shutdown();
