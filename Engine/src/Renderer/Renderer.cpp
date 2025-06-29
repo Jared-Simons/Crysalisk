@@ -137,8 +137,18 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
 	m_flLastFrameTime = currentFrameTime;
 
+	// Save off the frametime.
+	m_Metrics.FrameTime = pRenderData.DeltaTime;
+
 	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
+	// Update renderer matrics.
+	char szMetricsString[512]{};
+	StringFormat_V("Frametime: %.5f ms", szMetricsString, m_Metrics.FrameTime);
+	// Set the string.
+	testText.SetText(szMetricsString);
+
+	// Draw the frame!
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
 		return false;
@@ -214,6 +224,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->EndRenderpass();
 
+	if (testText.m_pszText != nullptr)
 	{
 		m_RendererBackend->StartRenderpass(m_UIView);
 
@@ -418,7 +429,7 @@ bool Renderer::CreateTempGeometry()
 
 	MeshLoader::MeshResource_t sponzaResource{};
 	//MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
-	MeshLoader::LoadMeshResource("Assets/Models/interior.obj", sponzaResource);
+	MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
 
 	// Test mesh.
 	//MeshLoader::MeshResource_t sponzaResource{};
@@ -466,7 +477,7 @@ bool Renderer::CreateTempGeometry()
 
 	// TEMP TEST FONT
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-	testText.SetText("Some test text!");
+	//testText.SetText("Some test text!");
 	// END TEMP
 
 	return true;

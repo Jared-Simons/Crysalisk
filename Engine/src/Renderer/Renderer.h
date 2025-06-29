@@ -75,6 +75,8 @@ private:
 	Clock	m_RendererClock{};
 	double	m_flLastFrameTime{};
 
+	RenderMetrics_t	m_Metrics{};
+
 	// TODO: These are temporary...
 public:
 	RendererView		m_SceneView{};
