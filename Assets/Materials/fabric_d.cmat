@@ -1,6 +1,0 @@
-name=fabric_d
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/sponza_fabric_blue_diff.tga
-map_specular=Assets/Textures/Models/sponza_fabric_spec.tga
-map_normal=Assets/Textures/Models/sponza_fabric_ddn.tga
-shininess=10.0000

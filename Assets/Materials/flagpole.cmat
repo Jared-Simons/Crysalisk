@@ -1,6 +1,0 @@
-name=flagpole
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/sponza_flagpole_diff.tga
-map_specular=Assets/Textures/Models/sponza_flagpole_spec.tga
-map_normal=Assets/Textures/Models/sponza_flagpole_ddn.tga
-shininess=10.0000

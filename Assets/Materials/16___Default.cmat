@@ -1,4 +1,0 @@
-name=16___Default
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/gi_flag.tga
-shininess=10.0000
