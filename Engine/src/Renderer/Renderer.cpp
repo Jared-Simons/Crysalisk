@@ -524,6 +524,12 @@ static bool RendererEvent_WindowResized(EventData_t data)
 //-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
+	if (data.c[0] == 'P')
+	{
+		// Print the camera's position and angles.
+		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
+	}
+
 	// Let other listeners handle this event.
 	return false;
 }

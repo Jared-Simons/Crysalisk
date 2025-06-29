@@ -28,7 +28,7 @@ struct RenderPacket_t
 struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
-	float	FrameTime{ 0.0f };
+	double	FrameTime{ 0.0 };
 	// The number of individual draw calls made this frame.
 	int		NumDrawCalls{ 0 };
 };

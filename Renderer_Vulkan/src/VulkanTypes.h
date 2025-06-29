@@ -12,9 +12,14 @@
 #include <Core/Assertions.h>
 #include <Renderer/RendererTypes.h>
 
+#ifdef _DEBUG
 #define VK_CHECK(expr)		\
 	if (expr != VK_SUCCESS)	\
-		CAssert(0);			\
+		CAssert(0);			
+#else
+#define VK_CHECK(expr)		\
+	expr
+#endif
 
 const int kMaxVulkanInstances = 2048;
 
