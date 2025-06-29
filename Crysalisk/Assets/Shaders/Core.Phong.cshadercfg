@@ -1,0 +1,35 @@
+name="Core.Phong"
+num_shader_stages=2
+
+stages
+{
+	"core.vert.spv", "vertex"
+	"core.frag.spv", "fragment"
+}
+
+topology_type="triangle_list" 
+enable_depth_testing="true"
+enable_blending="true"
+
+# Vertex attributes 
+attributes
+{
+	"position", "vec3"
+	"texcoord", "vec2"
+	"normal", "vec3"
+	"tangent", "vec3"
+}
+
+# Uniforms
+uniforms
+{
+	"projection", 	"mat4", 		"frame" 
+	"view", 		"mat4", 		"frame" 
+	"viewPos", 		"vec3", 		"frame" 
+	"dirLightPos", 	"vec3", 		"frame" 
+	"renderMode", 	"int", 			"frame" 
+	"shininess", 	"float32", 		"material" 
+	"color",		"vec3", 		"material" 
+	"texture_maps", "sampler[3]", 	"material" 
+	"model", 		"mat4", 		"draw" 
+} 
