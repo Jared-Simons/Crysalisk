@@ -428,8 +428,8 @@ bool Renderer::CreateTempGeometry()
 	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	MeshLoader::MeshResource_t sponzaResource{};
-	//MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
-	MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
+	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
+	//MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
 
 	// Test mesh.
 	//MeshLoader::MeshResource_t sponzaResource{};

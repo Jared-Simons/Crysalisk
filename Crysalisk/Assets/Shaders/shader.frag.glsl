@@ -37,20 +37,26 @@ layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 
 // Temp lighting values
 float ambientStrength = 0.3;
-vec3 lightColor = vec3(0.93, 0.94, 0.65);
-vec3 lightDir = vec3(-0.577350, -0.577350, -0.577350);
+vec3 lightDir = vec3(-0.577350, -0.577350, 0.577350);
+vec3 dirLightAmbient = vec3(0.05, 0.05f, 0.05f);
+vec3 lightColor = vec3(0.4f, 0.4f, 0.3f);
 
 // Point light test
 // 605 130 -748
 struct PointLight_t
 {
 	vec3 vecPosition;
+	vec3 lightColor;
 
 	float flConstant;
 	float flLinear;
 	float flQuadratic;
 };
 // End Temp 
+
+// Light calculations.
+vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir);
+vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir);
 
 void main()
 {
@@ -61,48 +67,41 @@ void main()
 	vec3 bitangent = cross(fsInput.Normal, fsInput.Tangent);
 	mat3 TBN = mat3(tangent, bitangent, normal);
 
+	vec3 vecViewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
+
 	// Get a normal from the normal map.
 	vec3 normalMapSamp = 2.0 * texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb - 1.0;
 	normal = normalize(TBN * normalMapSamp);
 
 	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
+
+	vec3 lightingResult = CalculateDirectionalLight(normal, vecViewDir);
+
+	// Point light tests.
+	{
+		PointLight_t light1;
+		light1.vecPosition = vec3(0.7f, 0.2f, 2.0f);
+		light1.lightColor = vec3(0.8f, 0.8f, 0.8f);
+		light1.flConstant = 1.0f;
+		light1.flLinear = 0.09f;
+		light1.flQuadratic = 0.032f;
+
+		lightingResult += CalculatePointLight(light1, normal, fsInput.FragPos, vecViewDir);
+
+		PointLight_t light2;
+		light2.vecPosition = vec3(133, 115, 165);
+		light2.lightColor = vec3(1.0f, 0.0f, 0.0f);
+		light2.flConstant = 1.0f;
+		light2.flLinear = 0.35f;
+		light2.flQuadratic = 0.44f;
+
+		lightingResult += CalculatePointLight(light2, normal, fsInput.FragPos, vecViewDir);
+	}
 	
 	if (global_ubo.renderMode == 1)	// Fullbright.
 	{
 		// Do no lighting calculations for fullbright rendering, boot out now.
 		outColor = diffuseSample;
-		return;
-	}
-	
-	// Ambient lighting
-	vec3 ambient = ambientStrength * lightColor;
-	
-	// Diffuse lighting 
-	float diffuseFactor = max(dot(normal, -lightDir), 0.0);
-	vec3 diffuse = diffuseFactor * lightColor;
-	
-	if (global_ubo.renderMode == 3) // Diffuse only.
-	{
-		outColor = vec4(diffuse, 1.0);
-		return;
-	}
-	
-	// Specular lighting	
-	vec3 viewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
-	vec3 reflectDir = reflect(-lightDir, normal);
-	float specularFactor = pow(max(dot(viewDir, reflectDir), 0.0), instance_ubo.shininess);
-	vec3 lightColorSpecular = vec3(1.0);
-	vec3 specular = lightColorSpecular * specularFactor * texture(samplers[SAMP_SPECULAR], fsInput.TexCoord).rgb;
-	
-	if (global_ubo.renderMode == 4) // Specular only.
-	{
-		outColor = vec4(specular, 1.0);
-		return;
-	}
-
-	if (global_ubo.renderMode == 2) // Lighting only.
-	{
-		outColor = vec4(ambient + diffuse + specular, 1.0);
 		return;
 	}
 	
@@ -136,44 +135,91 @@ void main()
 		return;
 	}
 	
-	vec3 test = texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb;
-	outColor = vec4(test, 1.0);
-	vec3 lightingResult = ambient + diffuse + specular;
+	outColor = vec4(lightingResult, 1.0);
+}
 
-	// Quick point light test.
+vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
+{
+	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
+	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
+
+	vec3 vecFragToLight = normalize(-lightDir);
+
+	// Diffuse lighting.
+	float diffuseFactor = (max(dot(normal, vecFragToLight), 0.0));
+
+	// Specular lighting.
+	vec3 vecHalfwayDir = normalize(lightDir + viewDir);
+	float specularFactor = pow(max(dot(normal, vecHalfwayDir), 0.0), instance_ubo.shininess);
+
+	vec3 ambientLight = dirLightAmbient;
+	vec3 diffuseLight = lightColor * diffuseFactor;
+	vec3 specularLight = vec3(specularFactor);
+
+	if (global_ubo.renderMode == 2)
 	{
-		PointLight_t	testLight;
-		//testLight.vecPosition = vec3(421, 175, -711);
-		testLight.vecPosition = vec3(0.7, 0.2, 2.0);
-		testLight.flConstant = 1.0;
-		testLight.flLinear = 0.09;
-		testLight.flQuadratic = 0.032;
-
-		vec3 pointLightDir = normalize(testLight.vecPosition - fsInput.FragPos);
-		// diffuse lighting
-		float pointDiffuseFactor = max(dot(normal, pointLightDir), 0.0);
-		// specular lighting
-		vec3 pointReflectDir = reflect(-pointLightDir, normal);
-		float pointSpecularFactor = pow(max(dot(viewDir, pointReflectDir), 0.0), instance_ubo.shininess);
-		// attenuation
-		float pointDistance = length(testLight.vecPosition - fsInput.FragPos);
-		float pointAttenuation = 1.0 / (testLight.flConstant + testLight.flLinear * pointDistance + testLight.flQuadratic * (pointDistance * pointDistance));
-
-		// Final results.
-		vec3 ambientLight = vec3(0.05f, 0.05f, 0.05f);
-		vec3 diffuseLight = vec3(1.0f, 0.3f, 0.2f);
-		vec3 specularLight = vec3(1.0f, 1.0f, 1.0f);
-		vec3 pointDiffuse = diffuseLight * pointDiffuseFactor;
-		vec3 pointSpecular = specularLight * pointSpecularFactor;
-
-		// attenuate.
-		ambientLight *= pointAttenuation;
-		pointDiffuse *= pointAttenuation;
-		pointSpecular *= pointAttenuation;
-
-		vec3 pointResult = ambientLight + pointDiffuse + pointSpecular;
-		lightingResult += pointResult;
+		return ambientLight + diffuseLight + specularLight;
 	}
-	
-	outColor = diffuseSample * vec4(lightingResult, 1.0);
+	else if (global_ubo.renderMode == 3)
+	{
+		return diffuseLight;
+	}
+	else if (global_ubo.renderMode == 4)
+	{
+		return specularLight;
+	}
+
+	ambientLight *= diffuseSample;
+	diffuseLight *= diffuseSample;
+	specularLight *= specularSample;
+
+	return vec3(ambientLight + diffuseLight + specularLight);
+}
+
+vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
+	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
+
+	vec3 vecLightDir = normalize(pLight.vecPosition - fragPos);
+
+	// Diffuse lighting.
+	float diffuseFactor = max(dot(normal, vecLightDir), 0.0);
+
+	// Specular lighting.
+	vec3 vecHalfwayDir = normalize(lightDir + viewDir);
+	float specularFactor = pow(max(dot(normal, vecHalfwayDir), 0.0), instance_ubo.shininess);
+
+	// Calculate attenuation factors.
+	float distance = length(pLight.vecPosition - fragPos);
+	float attenuation = 1.0 / (pLight.flConstant + pLight.flLinear * distance + pLight.flQuadratic * (distance * distance));
+
+	// Light results.
+	vec3 ambient = dirLightAmbient;
+	vec3 diffuse = pLight.lightColor * diffuseFactor;
+	vec3 specular = vec3(specularFactor);
+
+	// Attenuate results
+	ambient *= attenuation;
+	diffuse *= attenuation;
+	specular *= attenuation;
+
+	if (global_ubo.renderMode == 2)
+	{
+		return ambient + diffuse + specular;
+	}
+	else if (global_ubo.renderMode == 3)
+	{
+		vec3 lightVal = diffuse; // Return this WITHOUT the texture data, just lighting data.
+	}
+	else if (global_ubo.renderMode == 4)
+	{
+		return specular;
+	}
+
+	ambient *= diffuseSample;
+	diffuse *= diffuseSample;
+	specular *= specularSample;
+
+	return vec3(ambient + diffuse + specular);
 }
