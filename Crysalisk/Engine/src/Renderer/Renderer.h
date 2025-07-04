@@ -89,6 +89,7 @@ public:
 	RenderBuffer		m_UIIndexBuffer{};
 
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
+	uint8_t				m_iRendererDebugMode{ 0 };
 
 	GeometryInstance_t	m_Cube1{};
 	GeometryInstance_t	m_Cube2{};

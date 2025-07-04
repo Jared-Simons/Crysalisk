@@ -20,3 +20,5 @@ Features to be developed:
 	
 - Default textures are not being bound properly, they must be defined in the order of diffuse->specular->normal.
 	- This means that if a material does not have a specular map, then the normal map will get defined with the specular sampler.
+
+- Shader uniforms cannot be arrays unless they are samplers, other data types cannot have arrays yet.

@@ -24,8 +24,11 @@ struct PhongShaderLocations_t
 	uint16_t	projection{ kInvalidID_U16 };
 	uint16_t	view{ kInvalidID_U16 };
 	uint16_t	viewPos{ kInvalidID_U16 };
-	uint16_t	dirLightPos{ kInvalidID_U16 };
 	uint16_t	dirLight{ kInvalidID_U16 };
+	uint16_t	pointLight1{ kInvalidID_U16 };
+	uint16_t	pointLight2{ kInvalidID_U16 };
+	uint16_t	pointLight3{ kInvalidID_U16 };
+	uint16_t	pointLight4{ kInvalidID_U16 };
 	uint16_t	renderMode{ kInvalidID_U16 };
 	uint16_t	shininess{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
@@ -121,8 +124,11 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	phongShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "projection");
 	phongShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "view");
 	phongShaderLocations.viewPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "viewPos");
-	phongShaderLocations.dirLightPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "dirLightPos");
 	phongShaderLocations.dirLight = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "directionalLight");
+	phongShaderLocations.pointLight1 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight1");
+	phongShaderLocations.pointLight2 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight2");
+	phongShaderLocations.pointLight3 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight3");
+	phongShaderLocations.pointLight4 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight4");
 	phongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
 	phongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
 	phongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
@@ -134,7 +140,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	CreateDefaultMaterial();
 
 	// TEMP!
-	// Set up a temporary directional light source.
+	// Set up a temporary light sources.
 	{
 		struct DirectionalLight_t
 		{
@@ -146,15 +152,58 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 			float		flAmbientStrength{};
 		};
 
+		struct PointLight_t
+		{
+			Vector3D	vecPosition{};
+			float		padding1{};
+			Vector3D	lightColor{};
+
+			float		flConstant{};
+			float		flLinear{};
+			float		flQuadratic{};
+		};
+
 		DirectionalLight_t testLight{};
 		testLight.vecDirection = { -0.2f, -1.0f, -0.3f };
 		testLight.lightColor = { 1.0f, 0.785f, 0.534f };
 		testLight.ambientLightColor = { 0.592f, 0.679f, 0.812f };
-
 		testLight.flAmbientStrength = 0.3f;
+
+		PointLight_t	light1{};
+		light1.vecPosition = { 0.7f, 2.0f, 2.0f };
+		light1.lightColor = { 0.8f, 0.8f, 0.8f };
+		light1.flConstant = 1.0f;
+		light1.flLinear = 0.09f;
+		light1.flQuadratic = 0.032f;
+
+		PointLight_t	light2{};
+		light2.vecPosition = { 2.3f, 2.0f, -4.0f };
+		light2.lightColor = { 1.0f, 0.0f, 0.0f };
+		light2.flConstant = 1.0f;
+		light2.flLinear = 0.09f;
+		light2.flQuadratic = 0.032f;
+
+		PointLight_t	light3{};
+		light3.vecPosition = { -4.0f, 2.0f, -12.0f };
+		light3.lightColor = { 0.0f, 1.0f, 0.0f };
+		light3.flConstant = 1.0f;
+		light3.flLinear = 0.09f;
+		light3.flQuadratic = 0.032f;
+
+		PointLight_t	light4{};
+		light4.vecPosition = { 0.0f, 2.0f, -3.0f };
+		light4.lightColor = { 0.0f, 0.0f, 1.0f };
+		light4.flConstant = 1.0f;
+		light4.flLinear = 0.09f;
+		light4.flQuadratic = 0.032f;
+
 		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.dirLight, 0, 0, &testLight);
+		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.pointLight1, 0, 0, &light1);
+		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.pointLight2, 0, 0, &light2);
+		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.pointLight3, 0, 0, &light3);
+		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.pointLight4, 0, 0, &light4);
 	}
-	// END TEMP!
+	// END TEMP LIGHTING!
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 

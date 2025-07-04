@@ -367,10 +367,6 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	// TODO: MOVE THIS TO THE FRONTEND!
-	/*if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
-		pInternalShader.m_UniformData.RenderMode = m_RenderMode;*/
-
 	m_CurrentRendererFrame++;
 
 	return true;
@@ -1820,46 +1816,6 @@ static bool RendererEvent_WindowResized(EventData_t data)
 //-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
-	if (data.c[0] >= 0  && data.c[0] <= 9)
-	{
-		s_VulkanContext.m_RenderMode = data.c[0];
-
-		switch (data.c[0])
-		{
-		default:
-		case 0:
-			s_VulkanContext.m_RenderMode = 0;
-			LOG_INFO("Visualization mode set to default.");
-			break;
-		case 1:
-			LOG_INFO("Visualization mode set to fullbright.");
-			break;
-		case 2:
-			LOG_INFO("Visualization mode set to lighting only.");
-			break;
-		case 3:
-			LOG_INFO("Visualization mode set to diffuse lighting.");
-			break;
-		case 4:
-			LOG_INFO("Visualization mode set to specular lighting.");
-			break;
-		case 5:
-			LOG_INFO("Visualization mode set to normals - tangent space.");
-			break;
-		case 6:
-			LOG_INFO("Visualization mode set to normals - world space.");
-			break;
-		case 7:
-			LOG_INFO("Visualization mode set to geometric normal.");
-			break;
-		case 8:
-			LOG_INFO("Visualization mode set to tangent u - world space.");
-			break;
-		case 9:
-			LOG_INFO("Visualization mode set to tangent v - world space.");
-			break;
-		}
-	}
 	return false;
 }
 

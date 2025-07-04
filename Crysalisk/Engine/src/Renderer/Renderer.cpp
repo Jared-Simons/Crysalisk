@@ -171,7 +171,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
 	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
 	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
-	g_pShaderSystem->SetShaderUniform(0, 9, 0, 0, &model);
+	g_pShaderSystem->SetShaderUniform(0, 13, 0, 0, &model);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -529,6 +529,50 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		// Print the camera's position and angles.
 		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
 	}
+
+	if (data.c[0] >= 0  && data.c[0] <= 9)
+	{
+		g_pRenderer->m_iRendererDebugMode = data.c[0];
+
+		switch (data.c[0])
+		{
+		default:
+		case 0:
+			g_pRenderer->m_iRendererDebugMode = 0;
+			LOG_INFO("Visualization mode set to default.");
+			break;
+		case 1:
+			LOG_INFO("Visualization mode set to fullbright.");
+			break;
+		case 2:
+			LOG_INFO("Visualization mode set to lighting only.");
+			break;
+		case 3:
+			LOG_INFO("Visualization mode set to diffuse lighting.");
+			break;
+		case 4:
+			LOG_INFO("Visualization mode set to specular lighting.");
+			break;
+		case 5:
+			LOG_INFO("Visualization mode set to normals - tangent space.");
+			break;
+		case 6:
+			LOG_INFO("Visualization mode set to normals - world space.");
+			break;
+		case 7:
+			LOG_INFO("Visualization mode set to geometric normal.");
+			break;
+		case 8:
+			LOG_INFO("Visualization mode set to tangent u - world space.");
+			break;
+		case 9:
+			LOG_INFO("Visualization mode set to tangent v - world space.");
+			break;
+		}
+
+		g_pShaderSystem->SetShaderUniform(0, 9, 0, 0, &data.c[0]); // TODO: Don't hardcode these things!
+	}
+	return false;
 
 	// Let other listeners handle this event.
 	return false;

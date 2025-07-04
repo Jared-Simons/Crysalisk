@@ -11,6 +11,16 @@ struct DirectionalLight_t
 	float	flAmbientStrength;
 };
 
+struct PointLight_t
+{
+	vec3 vecPosition;
+	vec3 lightColor;
+
+	float flConstant;
+	float flLinear;
+	float flQuadratic;
+};
+
 // NOTE: Must match VSOut struct in corresponding vertex shaders.
 struct FSIn
 {
@@ -30,6 +40,10 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	vec3 viewPos;
 	vec3 dirLightPos;
 	DirectionalLight_t dirLight;
+	PointLight_t pointLight1;
+	PointLight_t pointLight2;
+	PointLight_t pointLight3;
+	PointLight_t pointLight4;
 	int	 renderMode;
 } global_ubo;
 
@@ -44,24 +58,6 @@ const int SAMP_DIFFUSE = 0;
 const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
 layout(set = 1, binding = 1) uniform sampler2D samplers[3];
-
-// Temp lighting values
-float ambientStrength = 0.3;
-vec3 vecDirLightDirection = vec3(-0.2f, -1.0f, -0.3f);
-vec3 dirLightAmbient = vec3(0.592, 0.679, 0.812);
-vec3 lightColor = vec3(1.0f, 0.785f, 0.534f);
-
-// Point light test
-struct PointLight_t
-{
-	vec3 vecPosition;
-	vec3 lightColor;
-
-	float flConstant;
-	float flLinear;
-	float flQuadratic;
-};
-// End Temp 
 
 // Light calculations.
 vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir);
@@ -88,41 +84,10 @@ void main()
 
 	// Point light tests.
 	{
-		PointLight_t light1;
-		light1.vecPosition = vec3(0.7f, 0.2f, 2.0f);
-		light1.lightColor = vec3(0.8f, 0.8f, 0.8f);
-		light1.flConstant = 1.0f;
-		light1.flLinear = 0.09f;
-		light1.flQuadratic = 0.032f;
-
-		lightingResult += CalculatePointLight(light1, normal, fsInput.FragPos, vecViewDir);
-
-		PointLight_t light2;
-		light2.vecPosition = vec3(2.3f, 0.2f, -4.0f);
-		light2.lightColor = vec3(1.0f, 0.0f, 0.0f);
-		light2.flConstant = 1.0f;
-		light2.flLinear = 0.09f;
-		light2.flQuadratic = 0.032f;
-
-		lightingResult += CalculatePointLight(light2, normal, fsInput.FragPos, vecViewDir);
-
-		PointLight_t light3;
-		light3.vecPosition = vec3(-4.0f, 0.2f, -12.0f);
-		light3.lightColor = vec3(0.0f, 1.0f, 0.0f);
-		light3.flConstant = 1.0f;
-		light3.flLinear = 0.09f;
-		light3.flQuadratic = 0.032f;
-
-		lightingResult += CalculatePointLight(light3, normal, fsInput.FragPos, vecViewDir);
-
-		PointLight_t light4;
-		light4.vecPosition = vec3(0.0f, 0.0f, -3.0f);
-		light4.lightColor = vec3(0.0f, 0.0f, 1.0f);
-		light4.flConstant = 1.0f;
-		light4.flLinear = 0.09f;
-		light4.flQuadratic = 0.032f;
-
-		lightingResult += CalculatePointLight(light4, normal, fsInput.FragPos, vecViewDir);
+		lightingResult += CalculatePointLight(global_ubo.pointLight1, normal, fsInput.FragPos, vecViewDir);
+		lightingResult += CalculatePointLight(global_ubo.pointLight2, normal, fsInput.FragPos, vecViewDir);
+		lightingResult += CalculatePointLight(global_ubo.pointLight3, normal, fsInput.FragPos, vecViewDir);
+		lightingResult += CalculatePointLight(global_ubo.pointLight4, normal, fsInput.FragPos, vecViewDir);
 	}
 	
 	if (global_ubo.renderMode == 1)	// Fullbright.
