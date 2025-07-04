@@ -37,9 +37,9 @@ layout(set = 1, binding = 1) uniform sampler2D samplers[3];
 
 // Temp lighting values
 float ambientStrength = 0.3;
-vec3 lightDir = vec3(-0.577350, -0.577350, 0.577350);
-vec3 dirLightAmbient = vec3(0.05, 0.05f, 0.05f);
-vec3 lightColor = vec3(0.4f, 0.4f, 0.3f);
+vec3 vecDirLightDirection = vec3(-0.2f, -1.0f, -0.3f);
+vec3 dirLightAmbient = vec3(0.592, 0.679, 0.812);
+vec3 lightColor = vec3(1.0f, 0.785f, 0.534f);
 
 // Point light test
 // 605 130 -748
@@ -89,13 +89,31 @@ void main()
 		lightingResult += CalculatePointLight(light1, normal, fsInput.FragPos, vecViewDir);
 
 		PointLight_t light2;
-		light2.vecPosition = vec3(133, 115, 165);
+		light2.vecPosition = vec3(2.3f, 0.2f, -4.0f);
 		light2.lightColor = vec3(1.0f, 0.0f, 0.0f);
 		light2.flConstant = 1.0f;
-		light2.flLinear = 0.35f;
-		light2.flQuadratic = 0.44f;
+		light2.flLinear = 0.09f;
+		light2.flQuadratic = 0.032f;
 
 		lightingResult += CalculatePointLight(light2, normal, fsInput.FragPos, vecViewDir);
+
+		PointLight_t light3;
+		light3.vecPosition = vec3(-4.0f, 0.2f, -12.0f);
+		light3.lightColor = vec3(0.0f, 1.0f, 0.0f);
+		light3.flConstant = 1.0f;
+		light3.flLinear = 0.09f;
+		light3.flQuadratic = 0.032f;
+
+		lightingResult += CalculatePointLight(light3, normal, fsInput.FragPos, vecViewDir);
+
+		PointLight_t light4;
+		light4.vecPosition = vec3(0.0f, 0.0f, -3.0f);
+		light4.lightColor = vec3(0.0f, 0.0f, 1.0f);
+		light4.flConstant = 1.0f;
+		light4.flLinear = 0.09f;
+		light4.flQuadratic = 0.032f;
+
+		lightingResult += CalculatePointLight(light4, normal, fsInput.FragPos, vecViewDir);
 	}
 	
 	if (global_ubo.renderMode == 1)	// Fullbright.
@@ -140,27 +158,35 @@ void main()
 
 vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 {
+	vec3 vecLightDir = normalize(-vecDirLightDirection);
+
+	// Diffuse shading
+	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
+
+	// Specular shading
+	vec3 vecHalfway = normalize(vecLightDir + viewDir);
+	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
+
+	// Composite results.
+	vec3 ambientLight = dirLightAmbient * ambientStrength;
+	vec3 diffuseLight = lightColor * flDiffuseFactor;
+	vec3 specularLight = lightColor * flSpecularFactor;
+
+	// Multiply in texture samples.
 	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
 	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
-
-	vec3 vecFragToLight = normalize(-lightDir);
-
-	// Diffuse lighting.
-	float diffuseFactor = (max(dot(normal, vecFragToLight), 0.0));
-
-	// Specular lighting.
-	vec3 vecHalfwayDir = normalize(lightDir + viewDir);
-	float specularFactor = pow(max(dot(normal, vecHalfwayDir), 0.0), instance_ubo.shininess);
-
-	vec3 ambientLight = dirLightAmbient;
-	vec3 diffuseLight = lightColor * diffuseFactor;
-	vec3 specularLight = vec3(specularFactor);
-
-	if (global_ubo.renderMode == 2)
+	
+	// Don't include diffuse texture data when using debug-lighting modes.
+	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)
 	{
-		return ambientLight + diffuseLight + specularLight;
+		diffuseSample = vec3(1.0f);
 	}
-	else if (global_ubo.renderMode == 3)
+
+	ambientLight *= diffuseSample;
+	diffuseLight *= diffuseSample;
+	specularLight *= specularSample;
+
+	if (global_ubo.renderMode == 3)
 	{
 		return diffuseLight;
 	}
@@ -169,57 +195,53 @@ vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 		return specularLight;
 	}
 
-	ambientLight *= diffuseSample;
-	diffuseLight *= diffuseSample;
-	specularLight *= specularSample;
-
-	return vec3(ambientLight + diffuseLight + specularLight);
+	return ambientLight + diffuseLight + specularLight;
 }
 
 vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
+	vec3 vecLightDir = normalize(pLight.vecPosition - fragPos);
+
+	// Diffuse shading
+	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
+
+	// Specular shading
+	vec3 vecHalfway = normalize(vecLightDir + viewDir);
+	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
+
+	// Compute attenuation term.
+	float flDistance = length(pLight.vecPosition - fragPos);
+	float flAttenuation = 1.0 / (pLight.flConstant + pLight.flLinear * flDistance + pLight.flQuadratic * (flDistance * flDistance));
+
+	// Composite results.
+	vec3 diffuseLight = pLight.lightColor * flDiffuseFactor;
+	vec3 specularLight = pLight.lightColor * flSpecularFactor;
+
+	// Apply attenuation.
+	diffuseLight *= flAttenuation;
+	specularLight *= flAttenuation;
+
+	// Multiply in texture samples.
 	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
 	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
 
-	vec3 vecLightDir = normalize(pLight.vecPosition - fragPos);
-
-	// Diffuse lighting.
-	float diffuseFactor = max(dot(normal, vecLightDir), 0.0);
-
-	// Specular lighting.
-	vec3 vecHalfwayDir = normalize(lightDir + viewDir);
-	float specularFactor = pow(max(dot(normal, vecHalfwayDir), 0.0), instance_ubo.shininess);
-
-	// Calculate attenuation factors.
-	float distance = length(pLight.vecPosition - fragPos);
-	float attenuation = 1.0 / (pLight.flConstant + pLight.flLinear * distance + pLight.flQuadratic * (distance * distance));
-
-	// Light results.
-	vec3 ambient = dirLightAmbient;
-	vec3 diffuse = pLight.lightColor * diffuseFactor;
-	vec3 specular = vec3(specularFactor);
-
-	// Attenuate results
-	ambient *= attenuation;
-	diffuse *= attenuation;
-	specular *= attenuation;
-
-	if (global_ubo.renderMode == 2)
+	// Don't include diffuse texture data when using debug-lighting modes.
+	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)
 	{
-		return ambient + diffuse + specular;
+		diffuseSample = vec3(1.0f);
 	}
-	else if (global_ubo.renderMode == 3)
+
+	diffuseLight *= diffuseSample;
+	specularLight *= specularSample;
+
+	if (global_ubo.renderMode == 3)
 	{
-		vec3 lightVal = diffuse; // Return this WITHOUT the texture data, just lighting data.
+		return diffuseLight;
 	}
 	else if (global_ubo.renderMode == 4)
 	{
-		return specular;
+		return specularLight;
 	}
 
-	ambient *= diffuseSample;
-	diffuse *= diffuseSample;
-	specular *= specularSample;
-
-	return vec3(ambient + diffuse + specular);
+	return diffuseLight + specularLight;
 }
