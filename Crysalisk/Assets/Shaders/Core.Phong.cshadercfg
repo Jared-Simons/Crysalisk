@@ -26,7 +26,8 @@ uniforms
 	"projection", 	"mat4", 		"frame" 
 	"view", 		"mat4", 		"frame" 
 	"viewPos", 		"vec3", 		"frame" 
-	"dirLightPos", 	"vec3", 		"frame" 
+	"dirLightPos", 	"vec3", 		"frame" #TODO: Remove this!
+	"directionalLight",	"struct-48",	"frame" #TEST COMMENT!
 	"renderMode", 	"int", 			"frame" 
 	"shininess", 	"float32", 		"material" 
 	"color",		"vec3", 		"material" 

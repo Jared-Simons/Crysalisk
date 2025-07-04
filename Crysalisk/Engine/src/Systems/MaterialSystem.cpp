@@ -25,6 +25,7 @@ struct PhongShaderLocations_t
 	uint16_t	view{ kInvalidID_U16 };
 	uint16_t	viewPos{ kInvalidID_U16 };
 	uint16_t	dirLightPos{ kInvalidID_U16 };
+	uint16_t	dirLight{ kInvalidID_U16 };
 	uint16_t	renderMode{ kInvalidID_U16 };
 	uint16_t	shininess{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
@@ -121,6 +122,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	phongShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "view");
 	phongShaderLocations.viewPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "viewPos");
 	phongShaderLocations.dirLightPos = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "dirLightPos");
+	phongShaderLocations.dirLight = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "directionalLight");
 	phongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
 	phongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
 	phongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
@@ -130,6 +132,29 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// Default material.
 	// TODO: Make this work with new shader system.
 	CreateDefaultMaterial();
+
+	// TEMP!
+	// Set up a temporary directional light source.
+	{
+		struct DirectionalLight_t
+		{
+			Vector3D	vecDirection{};
+			float		padding1{};
+			Vector3D	lightColor{};
+			float		padding2{};
+			Vector3D	ambientLightColor{};
+			float		flAmbientStrength{};
+		};
+
+		DirectionalLight_t testLight{};
+		testLight.vecDirection = { -0.2f, -1.0f, -0.3f };
+		testLight.lightColor = { 1.0f, 0.785f, 0.534f };
+		testLight.ambientLightColor = { 0.592f, 0.679f, 0.812f };
+
+		testLight.flAmbientStrength = 0.3f;
+		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, phongShaderLocations.dirLight, 0, 0, &testLight);
+	}
+	// END TEMP!
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 

@@ -79,6 +79,7 @@ enum class ShaderAttribute_t
 	Vector3,
 	Vector4,
 	Matrix4x4,
+	GenericStructure,
 	Sampler,
 };
 

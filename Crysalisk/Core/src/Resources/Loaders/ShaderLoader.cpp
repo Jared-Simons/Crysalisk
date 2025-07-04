@@ -213,7 +213,7 @@ namespace ShaderLoader
 
 						if (!ProcessShaderUniforms(pszDataBlockLine, pOutResource))
 						{
-							LOG_ERROR("Failed to process shader vertex attribute config '%s'. Skipping attribute.", pszDataBlockLine);
+							LOG_ERROR("Failed to process shader uniform config '%s'. Skipping attribute.", pszDataBlockLine);
 							continue;
 						}
 
@@ -367,15 +367,31 @@ namespace ShaderLoader
 		char*									pszTempStringBuffer{ nullptr };
 		size_t									commaIndex{ 0 };
 		size_t									commaIndex2{ 0 };
+		size_t									commentIndex{ 0 };
 
 		// We're assuming that the config data passed in here will be in the format of:
 		// "uniform name", "uniform type", "uniform group".
 		// If this is not the case, then the file is formatted wrong.
 		pszTrimmedData = StringTrim(pszConfigData);
 		commaIndex = StringIndexOf(pszTrimmedData, ',');
+		commentIndex = StringIndexOf(pszTrimmedData, '#');
 		if (commaIndex == kInvalidID_U32)
 		{
+			if (pszTrimmedData)
+				StringFree(pszTrimmedData);
+			pszTrimmedData = nullptr;
+
 			return false;
+		}
+
+		if (commentIndex != kInvalidID_U32)
+		{
+			// A comment is present, attempt to only parse up to the comment start.
+			char* pszTempBuffer{ nullptr };
+			pszTempBuffer = StringDuplicate_N(pszTrimmedData, commentIndex);
+			StringFree(pszTrimmedData);
+			pszTrimmedData = StringTrim(pszTempBuffer);
+			StringFree(pszTempBuffer);
 		}
 
 		// Check the uniform type to see if it's an array.

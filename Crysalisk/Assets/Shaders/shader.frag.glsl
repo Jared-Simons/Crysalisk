@@ -2,6 +2,15 @@
 
 layout(location = 0) out vec4 outColor;
 
+// TODO: Store these in a shared header or something.
+struct DirectionalLight_t
+{
+	vec3	vecDirection;
+	vec3	lightColor;
+	vec3	ambientLightColor;
+	float	flAmbientStrength;
+};
+
 // NOTE: Must match VSOut struct in corresponding vertex shaders.
 struct FSIn
 {
@@ -20,6 +29,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 view;
 	vec3 viewPos;
 	vec3 dirLightPos;
+	DirectionalLight_t dirLight;
 	int	 renderMode;
 } global_ubo;
 
@@ -42,7 +52,6 @@ vec3 dirLightAmbient = vec3(0.592, 0.679, 0.812);
 vec3 lightColor = vec3(1.0f, 0.785f, 0.534f);
 
 // Point light test
-// 605 130 -748
 struct PointLight_t
 {
 	vec3 vecPosition;
@@ -158,7 +167,7 @@ void main()
 
 vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 {
-	vec3 vecLightDir = normalize(-vecDirLightDirection);
+	vec3 vecLightDir = normalize(-global_ubo.dirLight.vecDirection);
 
 	// Diffuse shading
 	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
@@ -168,9 +177,9 @@ vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
 
 	// Composite results.
-	vec3 ambientLight = dirLightAmbient * ambientStrength;
-	vec3 diffuseLight = lightColor * flDiffuseFactor;
-	vec3 specularLight = lightColor * flSpecularFactor;
+	vec3 ambientLight = global_ubo.dirLight.ambientLightColor * global_ubo.dirLight.flAmbientStrength;
+	vec3 diffuseLight = global_ubo.dirLight.lightColor * flDiffuseFactor;
+	vec3 specularLight = global_ubo.dirLight.lightColor * flSpecularFactor;
 
 	// Multiply in texture samples.
 	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));

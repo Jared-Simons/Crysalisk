@@ -171,7 +171,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
 	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
 	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
-	g_pShaderSystem->SetShaderUniform(0, 8, 0, 0, &model);
+	g_pShaderSystem->SetShaderUniform(0, 9, 0, 0, &model);
 
 	if (s_bLevelGeometryLoaded)
 	{

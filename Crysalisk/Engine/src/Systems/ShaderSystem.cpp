@@ -233,7 +233,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
 		size_t uniformCount = newShaderResource.ShaderUniforms.Count();
-		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
+		pShader->m_UniformLookup.Resize(uniformCount * 3);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
 		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
 		uint32_t	iRunningPerFrameOffset{ 0 };
@@ -242,7 +242,15 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		{
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
 			// Find all our buffer offsets and save off our groups.
-			uint32_t currentStride = GetAttributeStride(pCurrentConfig.eType);
+			
+			uint32_t currentStride{ 0 };
+			
+			// We don't want to do this for generic structures, as their strides are parsed elsewhere.
+			if (pCurrentConfig.eType != ShaderAttribute_t::GenericStructure)
+				currentStride = GetAttributeStride(pCurrentConfig.eType);
+			else
+				currentStride = pCurrentConfig.iStride;
+			
 			if (pCurrentConfig.eFrequency == eShaderUniformGroup::PER_FRAME)
 			{
 				pShader->m_pUniforms[idx].eGroup = eShaderUniformGroup::PER_FRAME;
@@ -555,9 +563,33 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	}
 	else
 	{
-		LOG_WARN("Failed to parse shader attribute '%s'. Returning undefined result!", pszAttributeStr);
-		newUniformConfig.eType = ShaderAttribute_t::Undefined;
-		newUniformConfig.iStride = 4;
+		// This is possibly an opaque struct of variable size, check for that possibility here.
+		char* pszTempStringBuffer{ nullptr };
+		pszTempStringBuffer = StringDuplicate_N(pszAttributeStr, 6);
+
+		if (StringCompareInsensitive(pszTempStringBuffer, "struct"))
+		{
+			// We got a structure!
+			// Get the length in bytes.
+			size_t uniformDeclarationLength = StringLength(pszTempStringBuffer);
+			char* pszStructLength = StringDuplicate(&pszAttributeStr[7]); // index 7 to pass over the 'struct-' chars.
+			newUniformConfig.iStride = String_ATOI(pszStructLength);
+			newUniformConfig.eType = ShaderAttribute_t::GenericStructure;
+
+			if (pszStructLength)
+				StringFree(pszStructLength);
+		}
+		else
+		{
+			// Nope! No structure, just error out.
+			LOG_WARN("Failed to parse shader attribute '%s'. Returning undefined result!", pszAttributeStr);
+			newUniformConfig.eType = ShaderAttribute_t::Undefined;
+			newUniformConfig.iStride = 4;
+		}
+
+		// Free temp string data.
+		if (pszTempStringBuffer)
+			StringFree(pszTempStringBuffer);
 	}
 
 	// Get the uniform group.
@@ -659,6 +691,7 @@ static uint32_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderA
 	case ShaderAttribute_t::Vector3:
 	case ShaderAttribute_t::Vector4:
 	case ShaderAttribute_t::Matrix4x4:
+	case ShaderAttribute_t::GenericStructure: // TODO: Proper alignment value?
 		boundaryToAlignTo = 16;
 		break;
 

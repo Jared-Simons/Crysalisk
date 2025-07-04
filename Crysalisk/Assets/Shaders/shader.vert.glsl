@@ -1,5 +1,14 @@
 #version 450
 
+// TODO: Store these in a shared header or something.
+struct DirectionalLight_t
+{
+	vec3	vecDirection;
+	vec3	lightColor;
+	vec3	ambientLightColor;
+	float	flAmbientStrength;
+};
+
 // Vertex input
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec2 fragTexCoord;
@@ -25,6 +34,7 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 view;
 	vec3 viewPos;
 	vec3 dirLightPos;
+	DirectionalLight_t dirLight;
 	int	 renderMode;
 } global_ubo;
 

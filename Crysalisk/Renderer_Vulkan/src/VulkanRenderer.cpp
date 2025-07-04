@@ -367,24 +367,9 @@ bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-	// TODO: Make this happen on shader binds!!
-	VulkanShaderInternal& pInternalShader = m_pInternalShaderData[0];
-	//pInternalShader.m_UniformData.View = s_MainCamera.GetViewMatrix();
-	pInternalShader.m_UniformData.Projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), m_Swapchain.m_SwapchainExtent.width / (float)m_Swapchain.m_SwapchainExtent.height, 0.1f, 10000000.0f);
-	//pInternalShader.m_UniformData.Projection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, -1.0f, 10000.0f);
-	pInternalShader.m_UniformData.Projection.data[5] *= -1;
-
-	if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
-		pInternalShader.m_UniformData.RenderMode = m_RenderMode;
-
-	pInternalShader.m_UniformData.DirLightPos = Vector3D(-225, 1645, 1740);
-
-	// Copy to the GPU.
-	void* pUniformData;
-	VkDeviceSize uniformOffset = { 0 };
-	vkMapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory, uniformOffset, sizeof(GlobalUniformObject_t), 0, &pUniformData);
-	memcpy(pUniformData, &pInternalShader.m_UniformData, sizeof(GlobalUniformObject_t));
-	vkUnmapMemory(m_Device.m_Device, pInternalShader.m_UniformBuffers[m_ImageIndex].m_Memory);
+	// TODO: MOVE THIS TO THE FRONTEND!
+	/*if (pInternalShader.m_UniformData.RenderMode != m_RenderMode)
+		pInternalShader.m_UniformData.RenderMode = m_RenderMode;*/
 
 	m_CurrentRendererFrame++;
 
