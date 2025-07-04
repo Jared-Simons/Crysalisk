@@ -153,7 +153,7 @@ void main()
 		return;
 	}
 	
-	outColor = vec4(lightingResult, 1.0);
+	outColor = vec4(lightingResult, diffuseSample.a);	// Use the diffuse sample for alpha-blending.
 }
 
 vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
