@@ -183,6 +183,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newConfig.eStage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
 			newConfig.byteCode = newShaderResource.ShaderStages[stageIdx].pShaderModuleBytecode;
 			newConfig.iCodeSize = newShaderResource.ShaderStages[stageIdx].CodeDataSize;
+			newConfig.pszModuleName = StringDuplicate(newShaderResource.ShaderStages[stageIdx].pszModuleName);
 
 			newShaderConfig.moduleConfigs.PushBack(newConfig);
 		}

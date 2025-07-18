@@ -34,7 +34,7 @@ public:
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
-	virtual bool	CreateRendererViewInternal(RendererView& pOutView) override;
+	virtual bool	CreateRendererViewInternal(char* pszName, RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
@@ -105,6 +105,8 @@ public:
 	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
 	VulkanShaderInternal* m_pCurrentlyBoundShader{ nullptr };
 
+	PFN_vkSetDebugUtilsObjectNameEXT	m_pfnSetDebugObjectName{ nullptr };
+
 	// The number of frames that can be processed at once.
 	unsigned int m_MaxImagesInFlight{ 3 };
 	bool		m_bCurrentlyRendering[3]{ false };
@@ -120,7 +122,7 @@ public:
 
 extern IRendererBackend* g_pRendererBackend;
 
-// Some platform specific utilities.
+// Some platform-specific utilities.
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();

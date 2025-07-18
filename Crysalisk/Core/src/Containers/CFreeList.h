@@ -111,6 +111,8 @@ namespace Utl
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
 
+			CAssert(!(size == 3556 && offset == 2211703));
+
 			if (m_HeadNode->Offset >= offset)	// >= because the offset could just be 0, if we're freeing the first range of the memory block.
 			{
 				// This node comes before the current headnode in the data block.
@@ -199,28 +201,55 @@ namespace Utl
 				pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
 			{
 				//LOG_INFO("NEED TO COMPACT!");
+				//CAssert(pPreviousNode->Offset != 2209954);
 				pPreviousNode->Size += pCurrentNode->Size;
 				pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 				ReleaseNodeBackToFreelist(pCurrentNode);
 			}
 
 #ifdef DEBUG_FREELIST_MEMORY_ORDER
+			FreeListNode_t* pDebugPrevNode = nullptr;
 			FreeListNode_t* pDebugCurNode = m_HeadNode;
 			FreeListNode_t* pDebugNextNode = nullptr;
 
+			int nDebugIterations = 0;
 			while (pDebugCurNode)
 			{
 				pDebugNextNode = pDebugCurNode->pNextNode;
 
 				if (pDebugNextNode)
 				{
+					//CAssert(pDebugCurNode->Offset != pDebugNextNode->Offset);
+					if (pDebugNextNode->Offset == (pDebugCurNode->Offset + pDebugCurNode->Size) ||
+						pDebugCurNode->Offset == pDebugNextNode->Offset)
+					{
+						LOG_WARN("Error in freelist - There are duplicate node(s) present!");
+					}
 					if (pDebugNextNode->Offset < (pDebugCurNode->Offset + pDebugCurNode->Size))
 					{
 						LOG_ERROR("Freelist Node ordering error: offset: %d, size: %d is placed before offset %d.", pDebugCurNode->Offset, pDebugCurNode->Size, pDebugNextNode->Offset);
-						CAssert(0);
+						//CAssert(0);
+
+						// Test fix!
+						// There is a bad bug in the freelist currently that is causing some frees to result in duplicate nodes.
+						// (I.E. curNode->Offset == nextNode->Offset, but with different sizes). To fix this for now, we're just going to
+						// take the larger size of the two nodes for the range of memory, and release the other node, fixing the remaining
+						// node up remain with the list, though this is error prone and the bug needs to be found asap.
+						if (pDebugNextNode->Offset == pDebugCurNode->Offset)
+						{
+							CAssert(0);
+							LOG_WARN("Running bad test to clean up freelist.");
+							size_t largerSize = (pDebugCurNode->Size > pDebugNextNode->Size) ? pDebugCurNode->Size : pDebugNextNode->Size;
+							pDebugCurNode->Size = largerSize;
+							pDebugPrevNode->pNextNode = pDebugCurNode;
+							pDebugCurNode->pNextNode = pDebugNextNode->pNextNode;
+							ReleaseNodeBackToFreelist(pDebugNextNode);
+						}
 					}
 				}
 
+				nDebugIterations++;
+				pDebugPrevNode = pDebugCurNode;
 				pDebugCurNode = pDebugNextNode;
 			}
 #endif

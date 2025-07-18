@@ -13,7 +13,7 @@
 //			pOutRenderpass - The structure that will hold the created renderpass.
 // Output:	bool - Returns true on successful renderpass creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass)
+bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, char* pszPassName, bool bShouldClear, VulkanRenderPass& pOutRenderpass)
 {
 	// TODO: Make this configurable with some config.
 	Utl::CVector<VkAttachmentDescription> attachments;
@@ -83,7 +83,13 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool
 	renderpassInfo.dependencyCount = 1;
 	renderpassInfo.pDependencies = &dependency;
 
+	if (pszPassName)
+		pOutRenderpass.m_pszPassName = StringDuplicate(pszPassName);
+
 	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, pRenderingContext.m_Allocator, &pOutRenderpass.m_Handle));
+
+	// Create a debug label.
+	VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, pOutRenderpass.m_pszPassName, VK_OBJECT_TYPE_RENDER_PASS, pOutRenderpass.m_Handle);
 
 	return true;
 }
@@ -97,4 +103,9 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, bool
 void VulkanRenderPass::DestroyRenderpass(CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass)
 {
 	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, pRenderingContext.m_Allocator);
+
+	if (pRenderpass.m_pszPassName)
+		StringFree(pRenderpass.m_pszPassName);
+
+	pRenderpass.m_pszPassName = nullptr;
 }

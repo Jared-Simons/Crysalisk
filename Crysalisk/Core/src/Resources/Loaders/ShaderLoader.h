@@ -28,6 +28,8 @@ namespace ShaderLoader
 			size_t				CodeDataSize{ 0 };
 			// The bytecode for this shader stage.
 			Utl::CVector<byte>	pShaderModuleBytecode{};
+			// The name of the shader module.
+			char*				pszModuleName{ nullptr };
 
 			ShaderStageResource_t()
 				: pszStageString{ nullptr }
@@ -41,6 +43,8 @@ namespace ShaderLoader
 					pszStageString = StringDuplicate(pOther.pszStageString);
 				CodeDataSize = pOther.CodeDataSize;
 				pShaderModuleBytecode = pOther.pShaderModuleBytecode;
+				if (pOther.pszModuleName)
+					pszModuleName = StringDuplicate(pOther.pszModuleName);
 			}
 
 			ShaderStageResource_t& operator=(const ShaderStageResource_t& pOther)
@@ -49,6 +53,8 @@ namespace ShaderLoader
 					pszStageString = StringDuplicate(pOther.pszStageString);
 				CodeDataSize = pOther.CodeDataSize;
 				pShaderModuleBytecode = pOther.pShaderModuleBytecode;
+				if (pOther.pszModuleName)
+					pszModuleName = StringDuplicate(pOther.pszModuleName);
 
 				return *this;
 			}
@@ -56,6 +62,10 @@ namespace ShaderLoader
 			~ShaderStageResource_t()
 			{
 				StringFree(pszStageString);
+				if (pszModuleName)
+					StringFree(pszModuleName);
+
+				pszModuleName = nullptr;
 			}
 		};
 

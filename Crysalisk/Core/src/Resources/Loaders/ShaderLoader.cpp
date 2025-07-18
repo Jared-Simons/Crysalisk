@@ -299,6 +299,9 @@ namespace ShaderLoader
 		}
 		FileSystem::CloseFile(&hShaderModule);
 
+		// Store off the module name for debugging.
+		newShaderModule.pszModuleName = StringStrip(pszTrimmedModulePath, '"');
+
 		// Release temp string data.
 		if (pszTypeString)
 			StringFree(pszTypeString);

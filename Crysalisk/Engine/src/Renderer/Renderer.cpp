@@ -74,10 +74,10 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	// Set up our renderpasses
 	m_SceneView.m_bShouldClear = true; // We do want to clear the framebuffer before rendering the scene.
-	m_RendererBackend->CreateRendererViewInternal(m_SceneView);
+	m_RendererBackend->CreateRendererViewInternal("3D_Scene_View", m_SceneView);
 
 	m_UIView.m_bShouldClear = false;
-	m_RendererBackend->CreateRendererViewInternal(m_UIView);
+	m_RendererBackend->CreateRendererViewInternal("UI_View", m_UIView);
 
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);

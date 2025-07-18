@@ -111,6 +111,16 @@ struct ShaderModuleConfig_t
 	size_t				iCodeSize{ 0 };
 	// The module's bytecode.
 	Utl::CVector<byte>	byteCode{};
+	// The shader module's name, only really used for debugging.
+	char*				pszModuleName{ nullptr };
+
+	~ShaderModuleConfig_t()
+	{
+		if (pszModuleName)
+			StringFree(pszModuleName);
+		pszModuleName = nullptr;
+		byteCode.Clear();
+	}
 };
 
 // Represents the configuration for a shader program.

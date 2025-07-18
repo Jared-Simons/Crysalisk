@@ -120,8 +120,8 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	instanceExtensions.PushBack(VK_KHR_SURFACE_EXTENSION_NAME);
 	instanceExtensions.PushBack(Platform::GetVulkanPlatformExtension());
 
-#ifdef _DEBUG
-		instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#if defined _DEBUG || defined VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED // We need the debug utils extension here as well, since this handles all resource tagging.
+	instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); 
 #endif
 
 	if (!QueryInstanceExtensionSupport(instanceExtensions))
@@ -135,6 +135,15 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	
 	VK_CHECK(vkCreateInstance(&instanceInfo, m_Allocator, &m_Instance));
 	LOG_DEBUG("Vulkan instance initialized");
+
+	// Find the necessary PFNs for resource-tagging.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	m_pfnSetDebugObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(m_Instance, "vkSetDebugUtilsObjectNameEXT"));
+	if (!m_pfnSetDebugObjectName)
+	{
+		LOG_WARN("Failed to find Vulkan function pointer 'vkSetDebugUtilsObjectNameEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+#endif
 
 	// Debug messenger
 #ifdef _DEBUG
@@ -200,14 +209,14 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	// TODO: We shouldn't need these passes anymore...
 	// Main Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, true, m_MainRenderPass))
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, "World_Pass", true, m_MainRenderPass))
 	{
 		LOG_ERROR("Failed to initialize main Vulkan Renderpass. Renderer initialization failed!");
 		return false;
 	}
 
 	// UI Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, false, m_UIRenderPass))
+	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, "UI_Pass", false, m_UIRenderPass))
 	{
 		LOG_ERROR("Failed to initialize UI Vulkan Renderpass. Renderer initialization failed!");
 	}
@@ -598,16 +607,17 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 
 //-------------------------------------------------------------------------
 // Purpose: Creates an internal Vulkan renderpass and sets it up to the generic renderer view.
-// Input:	pOutView - The generic renderer view structure that will hold this renderpass.
+// Input:	pszPassName - The name to be associated with this renderpass.
+//			pOutView - The generic renderer view structure that will hold this renderpass.
 // Output:	Returns true on successful renderpass creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRendererViewInternal(RendererView& pOutView)
+bool CVulkanRenderer::CreateRendererViewInternal(char* pszPassName, RendererView& pOutView)
 {
 	// Allocate our internal renderpass.
 	pOutView.m_pInternalData = new VulkanRenderPass;
 	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
 
-	return VulkanRenderPass::CreateRenderpass(s_VulkanContext, pOutView.m_bShouldClear, *pInternalPass);
+	return VulkanRenderPass::CreateRenderpass(s_VulkanContext, pszPassName, pOutView.m_bShouldClear, *pInternalPass);
 }
 
 //-------------------------------------------------------------------------
@@ -726,19 +736,22 @@ static VkShaderStageFlagBits ConvertShaderStageToVulkanFormat(eShaderStage inSta
 //			pOutModules - An array of shader modules that will hold the created module.
 // Output:	Returns true on successful module creation, otherwise false.
 //-------------------------------------------------------------------------
-static bool CreateShaderModule(CVulkanRenderer* pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
+static bool CreateShaderModule(CVulkanRenderer& pRenderingContext, VulkanShaderInternal* pInternalShader, ShaderModuleConfig_t& pConfig, Utl::CVector<VulkanShaderModule_t>& pOutModules)
 {
 	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	shaderModuleInfo.codeSize = pConfig.iCodeSize;
 	shaderModuleInfo.pCode = (uint32_t*)pConfig.byteCode.Data();
 
 	VulkanShaderModule_t newModule{};
-	if (vkCreateShaderModule(pRenderingContext->m_Device.m_Device, &shaderModuleInfo, pRenderingContext->m_Allocator, &newModule.hModule) != VK_SUCCESS)
+	if (vkCreateShaderModule(pRenderingContext.m_Device.m_Device, &shaderModuleInfo, pRenderingContext.m_Allocator, &newModule.hModule) != VK_SUCCESS)
 	{
 		LOG_ERROR("Failed to create shader module.");
 		return false;
 	}
 	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.eStage);
+
+	// Create a debug label.
+	VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, "Name needed here!", VK_OBJECT_TYPE_SHADER_MODULE, newModule.hModule);
 
 	// Add the module to the shader.
 	pOutModules.PushBack(newModule);
@@ -804,7 +817,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	modules.Resize(pConfig.moduleConfigs.Count());
 	for (int stageIdx = 0; stageIdx < pConfig.moduleConfigs.Count(); stageIdx++)
 	{
-		if (!CreateShaderModule(this, pInternalShader, pConfig.moduleConfigs[stageIdx], modules))
+		if (!CreateShaderModule(*this, pInternalShader, pConfig.moduleConfigs[stageIdx], modules))
 		{
 			LOG_ERROR("Failed to create shader module for shader '%s'. Shader creation aborted.", pConfig.pszShaderName);
 			// TODO: Make sure to release any allocated resoures!

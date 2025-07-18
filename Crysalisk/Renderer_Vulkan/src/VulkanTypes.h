@@ -11,6 +11,7 @@
 #include <Containers/CVector.h>
 #include <Core/Assertions.h>
 #include <Renderer/RendererTypes.h>
+#include "VulkanUtils.h"
 
 #ifdef _DEBUG
 #define VK_CHECK(expr)		\
@@ -124,11 +125,12 @@ public:
 class VulkanRenderPass
 {
 public:
-	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
+	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, char* pszPassName, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
 	static void DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass);
 
 public:
 	VkRenderPass	m_Handle{ VK_NULL_HANDLE };
+	char*			m_pszPassName{ nullptr };
 };
 
 struct VulkanShaderModule_t
