@@ -56,7 +56,7 @@ public:
 class VulkanImage
 {
 public:
-	static bool CreateImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage);
+	static bool CreateImage(class CVulkanRenderer& pRenderingContext, const char* pszImageName, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage);
 	static void DestroyImage(class CVulkanRenderer& pRenderingContext, VulkanImage& pImage);
 
 	bool		TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);

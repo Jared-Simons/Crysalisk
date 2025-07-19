@@ -169,6 +169,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Copy over config data.
 		pShader->m_pszShaderName = StringDuplicate(newShaderResource.pszShaderName);
+		newShaderConfig.pszShaderName = StringDuplicate(newShaderResource.pszShaderName);
 		newShaderConfig.eTopologyTypes = GetTopologyTypeFromString(newShaderResource.pszTopologyType);
 		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
 		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;

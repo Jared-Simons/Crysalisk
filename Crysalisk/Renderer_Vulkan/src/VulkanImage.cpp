@@ -9,6 +9,7 @@
 //-------------------------------------------------------------------------
 // Purpose: Acquires the resources for a new Vulkan image.
 // Input:	pRenderingContext - The owning rendering context.
+//			pszImageName - The name to be associated with the image, primarily used for debugging.
 //			width - The width of the new image.
 //			height - The height of the new image.
 //			imageFormat - The format of the new image.
@@ -17,7 +18,7 @@
 //			pOutImage - The structure that will hold the created image.
 // Output:	Returns true on successful image creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
+bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* pszImageName, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.pNext = nullptr;
@@ -61,6 +62,13 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, uint32_t width
 	viewCreateInfo.subresourceRange.layerCount = 1;
 
 	VK_CHECK(vkCreateImageView(pRenderingContext.m_Device.m_Device, &viewCreateInfo, pRenderingContext.m_Allocator, &pOutImage.m_View));
+
+	// Create a debug label. (This can only happen if a name was provided).
+	if (pszImageName)
+	{
+		VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, pszImageName, VK_OBJECT_TYPE_IMAGE, pOutImage.m_Image);
+	}
+	//VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, pConfig.pszModuleName, VK_OBJECT_TYPE_SHADER_MODULE, newModule.hModule);
 
 	return true;
 }

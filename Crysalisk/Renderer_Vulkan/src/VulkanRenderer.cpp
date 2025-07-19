@@ -670,7 +670,7 @@ bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalInd
 
 	// Set up the internal image data.
 	VkFormat format = ConvertChannelNumberToVulkanFormat(pTexture->numChannels);
-	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture->width, pTexture->height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, *pImageInternal))
+	if (!VulkanImage::CreateImage(s_VulkanContext, pTexture->pszTextureName, pTexture->width, pTexture->height, format, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, *pImageInternal))
 	{
 		LOG_ERROR("Failed to create Vulkan resources for texture.");
 		return false;
