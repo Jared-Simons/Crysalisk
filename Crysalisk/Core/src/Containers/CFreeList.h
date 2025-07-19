@@ -111,7 +111,7 @@ namespace Utl
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
 
-			CAssert(!(size == 3556 && offset == 2211703));
+			//CAssert(!(size == 3556 && offset == 2211703));
 
 			if (m_HeadNode->Offset >= offset)	// >= because the offset could just be 0, if we're freeing the first range of the memory block.
 			{

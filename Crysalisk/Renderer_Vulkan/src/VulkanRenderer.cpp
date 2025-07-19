@@ -751,7 +751,7 @@ static bool CreateShaderModule(CVulkanRenderer& pRenderingContext, VulkanShaderI
 	newModule.eStage = ConvertShaderStageToVulkanFormat(pConfig.eStage);
 
 	// Create a debug label.
-	VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, "Name needed here!", VK_OBJECT_TYPE_SHADER_MODULE, newModule.hModule);
+	VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, pConfig.pszModuleName, VK_OBJECT_TYPE_SHADER_MODULE, newModule.hModule);
 
 	// Add the module to the shader.
 	pOutModules.PushBack(newModule);
