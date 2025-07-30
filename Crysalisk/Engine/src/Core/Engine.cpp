@@ -50,6 +50,8 @@ public:
 	virtual bool	Run() override;
 	virtual void	Shutdown() override;
 
+	virtual Platform::IPlatformWindow*	GetEngineWindow() const override { return m_pEngineWindow; }
+
 private:
 	EngineConfig_t	m_engineConfig;
 

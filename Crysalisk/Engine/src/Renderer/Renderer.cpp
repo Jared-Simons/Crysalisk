@@ -402,7 +402,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
+	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 
@@ -473,11 +473,13 @@ bool Renderer::CreateTempGeometry()
 	}
 	// TEMP!
 	s_bLevelGeometryLoaded = true;
-	// End test mesh.
+	// End test mesh.*/
 
-	// TEMP TEST FONT
+	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-	//testText.SetText("Some test text!");
+	testText.m_hFont = testFont;
+	testText.m_flTextSize = 0.75f;
+	testText.m_vecPos = { -0.9f, -0.9f };
 	// END TEMP
 
 	return true;

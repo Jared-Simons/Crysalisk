@@ -7,6 +7,7 @@
 #include "FontSystem.h"
 
 #include <Containers/CHashMap.h>
+#include "Core/Engine.h"
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
@@ -50,7 +51,7 @@ void TextObject::SetText(const char* pszText)
 		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, m_Geometry);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(m_pszText, m_hFont);
+	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont);
 	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
 }
 
@@ -66,7 +67,7 @@ class CFontSystem : public IFontSystem
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -207,14 +208,14 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 
 //-------------------------------------------------------------------------
 // Purpose: Generates the geometry necessary to render a piece of text.
-// Input:	pText - The string to acquire resources for.
+// Input:	pTextObject - The text object to acquire resources for.
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
 // Shoutouts to shreyaspranav for the stb_truetype example! :)
 // https://github.com/shreyaspranav/stb-truetype-example/blob/main/Main.cpp
 // TODO: Handle escape sequences here
-GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHandle_t hFont)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont)
 {
 	// TODO: Handle invalid fonts
 	GeometryConfig2D_t newConfig{};
@@ -223,12 +224,15 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(const char* pText, FontHand
 	InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	uint32_t currVertIndex{ 0 };
 
-	// TODO: Configurable position and size
-	Vector2D position{ -0.9f, -0.9f };
-	float flSize{ 0.75f };
-	float flPixelScale = 2.0f / 600.0f; // 600 is the default window height. TODO: CONFIGURABLE!
+	Vector2D position = pTextObject.m_vecPos;
+	float flSize = pTextObject.m_flTextSize;
+	unsigned int flUnusedScreenWidth, flScreenHeight;
+	g_pEngine->GetEngineWindow()->GetWindowSize(flUnusedScreenWidth, flScreenHeight);
+	float flPixelScale = 2.0f / flScreenHeight;
 	
 	int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
+
+	char* pText = pTextObject.m_pszText;
 	
 	size_t stringLength = StringLength(pText);
 

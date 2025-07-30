@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Defines.h"
+#include <Platform/Platform.h>
 
 //-------------------------------------------------------------------------
 // Engine configuration, to be passed in by the calling application.
@@ -34,6 +35,9 @@ public:
 
 	// Shuts down the engine.
 	virtual void	Shutdown() = 0;
+
+	// Gets a pointer to the engine's main window.
+	virtual Platform::IPlatformWindow*	GetEngineWindow() const = 0;
 };
 
 // Global interface to the engine context.

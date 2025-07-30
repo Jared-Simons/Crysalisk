@@ -28,12 +28,16 @@ public:
 	void				SetText(const char* pszText);
 
 public:
+	// The size of this text.
+	float				m_flTextSize{ 0.0f };
+	// The position of this text (in Normalized Device Coordinates).
+	Vector2D			m_vecPos{};
 	// The text this element should be rendering.
-	char*				m_pszText;
+	char*				m_pszText{ nullptr };
 	// The font to be used in rendering.
-	FontHandle_t		m_hFont;
+	FontHandle_t		m_hFont{ kInvalidID_U32 };
 	// The geometry associated with this text.
-	GeometryInstance_t	m_Geometry;
+	GeometryInstance_t	m_Geometry{};
 };
 
 //-------------------------------------------------------------------------
@@ -50,7 +54,7 @@ public:
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(const char* pText, FontHandle_t hFont) = 0;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) = 0;
 };
 
 // Global interface to the font system context.
