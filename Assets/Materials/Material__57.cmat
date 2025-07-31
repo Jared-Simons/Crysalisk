@@ -1,6 +1,0 @@
-name=Material__57
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/vase_plant.tga
-map_specular=Assets/Textures/Models/vase_plant_spec.tga
-map_normal=Assets/Textures/Models/vase_plant_ddn.tga
-shininess=10.0000

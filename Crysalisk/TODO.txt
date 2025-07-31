@@ -1,0 +1,24 @@
+Features to be developed:
+- Setup the Vulkan renderer to handle dynamic data (i.e. whatever texture/geometry data one wants to use)
+- Implement some form of camera system
+- There is a memory leak when loading and unloading geometry data.
+- Some bugs wrt materials/descriptors across shaders in the Vulkan renderer.
+- Transparent Materials!
+- Multiple Materials per mesh
+- OBJ faces with 5 vertices (Valve maps give us these...)
+	- Determining the front face/index order of n-gons
+- Support for blended materials
+- Frustum-culling
+- Mip-mapping
+- Anti-aliasing
+- Shader system needs to be able to read shader stages with more flexibility.
+	- e.g. core.UI.frag.spv is NOT valid, but UI.frag.spv is.
+	
+- We need a solution for allocating memory prior to the memory manager being initialized.
+- There is a bug with the overloaded new/delete operators where they allocate x address but actually return an address x + a few bytes, but this is inconsistent.	
+	- This is possibly an alignment issue which we need to support memory alignment in our own allocators anyways.
+	
+- Default textures are not being bound properly, they must be defined in the order of diffuse->specular->normal.
+	- This means that if a material does not have a specular map, then the normal map will get defined with the specular sampler.
+
+- Shader uniforms cannot be arrays unless they are samplers, other data types cannot have arrays yet.

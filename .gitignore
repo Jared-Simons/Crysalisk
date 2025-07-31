@@ -11,3 +11,7 @@
 *.vcxproj.filters
 console.log
 *.spv
+/Assets
+/Crysalisk/Assets/Textures
+/Crysalisk/Assets/Materials
+/Crysalisk/Assets/Models

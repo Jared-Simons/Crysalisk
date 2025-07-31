@@ -1,6 +1,0 @@
-name=column_b
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/sponza_column_b_diff.tga
-map_specular=Assets/Textures/Models/sponza_column_b_spec.tga
-map_normal=Assets/Textures/Models/sponza_column_b_ddn.tga
-shininess=10.0000

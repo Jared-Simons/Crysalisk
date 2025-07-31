@@ -1,6 +1,0 @@
-name=Material__298
-shader=Core.Phong
-map_diffuse=Assets/Textures/Models/background.tga
-map_specular=Assets/Textures/Models/background_spec.tga
-map_normal=Assets/Textures/Models/background_ddn.tga
-shininess=10.0000
