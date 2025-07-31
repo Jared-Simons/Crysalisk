@@ -226,8 +226,8 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 	Vector2D position = pTextObject.m_vecPos;
 	float flSize = pTextObject.m_flTextSize;
-	unsigned int flUnusedScreenWidth, flScreenHeight;
-	g_pEngine->GetEngineWindow()->GetWindowSize(flUnusedScreenWidth, flScreenHeight);
+	unsigned int flScreenWidth, flScreenHeight;
+	g_pEngine->GetEngineWindow()->GetWindowSize(flScreenWidth, flScreenHeight);
 	float flPixelScale = 2.0f / flScreenHeight;
 	
 	int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
@@ -301,6 +301,12 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		// TODO: Handle newlines.
 	}
 	newConfig.Vertices.SetCount(currVertIndex);
+
+	// Bring our vertex data from screen-space to NDC.
+	for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
+	{
+		// TODO: IMPLEMENT ME!
+	}
 
 	return newConfig;
 }
