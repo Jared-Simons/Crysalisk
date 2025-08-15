@@ -238,6 +238,14 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 	for (int ch = 0; ch < stringLength; ch++)
 	{
+		// TODO: Handle escape codes.
+		if (pText[ch] == '\n')
+		{
+			position.y -= flSize * flPixelScale * 64.0f; // TODO: No magic numbers...
+			position.x = pTextObject.m_vecPos.x;
+			continue;
+		}
+
 		// Make sure the character is in the font atlas.
 		if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
 		{
@@ -297,8 +305,6 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 		// Push the current position forward by the current character's advance.
 		position.x += pCurrPackedChar->Advance * flPixelScale * flSize;
-
-		// TODO: Handle newlines.
 	}
 	newConfig.Vertices.SetCount(currVertIndex);
 

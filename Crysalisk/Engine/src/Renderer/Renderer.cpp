@@ -144,7 +144,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	// Update renderer matrics.
 	char szMetricsString[512]{};
-	StringFormat_V("Frametime: %.5f ms", szMetricsString, m_Metrics.FrameTime);
+	StringFormat_V("Frametime: %.5f ms\nTest new line!", szMetricsString, m_Metrics.FrameTime);
 	// Set the string.
 	testText.SetText(szMetricsString);
 
@@ -402,7 +402,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
+	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 
@@ -473,12 +473,12 @@ bool Renderer::CreateTempGeometry()
 	}
 	// TEMP!
 	s_bLevelGeometryLoaded = true;
-	// End test mesh.
+	// End test mesh.*/
 
 	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
-	testText.m_flTextSize = 0.60f;
+	testText.m_flTextSize = 0.40f;
 	//testText.m_vecPos = { 50.0f, 500.0f };
 	testText.m_vecPos = { -0.8f, -0.8f };
 	// END TEMP
