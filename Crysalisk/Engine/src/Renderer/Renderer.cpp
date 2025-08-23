@@ -479,8 +479,8 @@ bool Renderer::CreateTempGeometry()
 	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
-	testText.m_flTextSize = 12.0f;
-	testText.m_vecPos = { 0.0f, 0.0f };
+	testText.m_flTextSize = 5.0f;
+	testText.m_vecPos = { -1.0f, 0.0f };
 	// END TEMP
 
 	return true;

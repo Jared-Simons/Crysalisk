@@ -332,14 +332,34 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject
 	Vector2D					vecCharTexCoords[4] = {};
 	
 	// We need to scale the geometry by the rendering surface's dimensions.
-	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceHeight, iSurfaceHeight);
+	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceWidth, iSurfaceHeight);
 	flPixelScaleFactor = 2.0f / iSurfaceHeight;	// The height of a single pixel with a range of [-1..1]
 
-	for (int ch = 0; ch < iStringLength; ch++)
+	for (int ch = 0; ch < 15; ch++)
 	{
+		// If a space, just push the position forward by some amount.
+		if (pTextObject.m_pszText[ch] == ' ')
+		{
+			vecCurPos.x += 6.0f * flPixelScaleFactor * flTextSize;
+			continue;
+		}
+
 		// Skip escape codes for now.
 		// LEFTOFF: Implement
 		if (pTextObject.m_pszText[ch] == '\n' || pTextObject.m_pszText[ch] == '\t')
+		{
+			// Escape chars!
+			if (pTextObject.m_pszText[ch] == '\n')
+			{
+				// TODO: Handle this properly.
+				vecCurPos.x = pTextObject.m_vecPos.x;
+				vecCurPos.y -= 0.25f;
+				continue;
+			}
+		}
+
+		// Make sure the glyph is actually in the atlas.
+		if (pTextObject.m_pszText[ch] < kCodePointOfFirstChar || pTextObject.m_pszText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
 			continue;
 
 		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar];
@@ -373,7 +393,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject
 		// Fill up the index array as well.
 		for (int idx = 0; idx < 6; idx++)
 		{
-			newConfig.Indices.PushBack((6 * ch) + indexOrder[idx]);
+			newConfig.Indices.PushBack((4 * ch) + indexOrder[idx]);
 		}
 
 		// Advance the x-position over.
