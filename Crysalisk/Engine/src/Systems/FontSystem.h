@@ -30,7 +30,7 @@ public:
 public:
 	// The size of this text.
 	float				m_flTextSize{ 0.0f };
-	// The position of this text (in Normalized Device Coordinates).
+	// The position of this text (in Screen-Space [1080x720]).
 	Vector2D			m_vecPos{};
 	// The text this element should be rendering.
 	char*				m_pszText{ nullptr };
@@ -54,7 +54,7 @@ public:
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) = 0;
+	virtual GeometryConfig2D_t	AcquireConfigForText_OLD(TextObject& pTextObject, FontHandle_t hFont) = 0;
 };
 
 // Global interface to the font system context.

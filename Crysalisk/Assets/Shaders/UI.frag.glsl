@@ -27,4 +27,6 @@ void main()
 	vec4 textSample = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r);
 	// We use the red channel for alpha blending since we're expecting this to be a single channel texture anyways.
 	outColor = vec4(textSample.rgb, textSample.r) * fsInput.Color;
+
+	//outColor = vec4(1.0);
 }

@@ -35,6 +35,11 @@ const uint32_t kCodePointOfFirstChar = 32;
 // The number of characters we include in our font atlases.
 const uint32_t kCharsToIncludeInFontAtlas = 95;
 
+// This is the resolution we are expecting when creating new text geometry.
+// The font system will take care of scaling these appropriately to the current surface resolution.
+const int kUIInputWidth = 640;
+const int kUIInputHeight = 480;
+
 //-------------------------------------------------------------------------
 // Purpose: Sets the actual text to be rendered with this text object.
 // Input:	pszText - The new string to be rendered with this object.
@@ -51,7 +56,7 @@ void TextObject::SetText(const char* pszText)
 		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, m_Geometry);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont);
+	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText_OLD(*this, m_hFont);
 	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
 }
 
@@ -67,7 +72,7 @@ class CFontSystem : public IFontSystem
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText_OLD(TextObject& pTextObject, FontHandle_t hFont) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -105,8 +110,7 @@ IFontSystem* g_pFontSystem = &s_FontSystem;
 // Can be accessed through pFont->m_pInternalData.
 struct InternalFontAtlasData_t
 {
-	Utl::CVector<FontLoader::FontChar_t>		charData{};
-	Utl::CVector<FontLoader::FontQuadData_t>	quadData{};
+	Utl::CVector<FontLoader::FontCharData_t>	glyphs{};
 };
 
 //-------------------------------------------------------------------------
@@ -192,8 +196,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		// Setup the font atlas.
 		pFont->m_pInternalFontAtlasData = new InternalFontAtlasData_t;
 		InternalFontAtlasData_t* pAtlas = reinterpret_cast<InternalFontAtlasData_t*>(pFont->m_pInternalFontAtlasData);
-		pAtlas->charData = fontResource.charData;
-		pAtlas->quadData = fontResource.charQuads;
+		pAtlas->glyphs = fontResource.charGlyphs;
 
 		pFontLookup->FontIndex = fontHandle;
 	}
@@ -212,106 +215,169 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-// Shoutouts to shreyaspranav for the stb_truetype example! :)
-// https://github.com/shreyaspranav/stb-truetype-example/blob/main/Main.cpp
 // TODO: Handle escape sequences here
-GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject, FontHandle_t hFont)
 {
 	// TODO: Handle invalid fonts
-	GeometryConfig2D_t newConfig{};
-	newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
+	//GeometryConfig2D_t newConfig{};
+	//newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
 
-	InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
-	uint32_t currVertIndex{ 0 };
+	//InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
+	//uint32_t currVertIndex{ 0 };
 
-	Vector2D position = pTextObject.m_vecPos;
-	float flSize = pTextObject.m_flTextSize;
-	unsigned int flScreenWidth, flScreenHeight;
-	g_pEngine->GetEngineWindow()->GetWindowSize(flScreenWidth, flScreenHeight);
-	float flPixelScale = 2.0f / flScreenHeight;
+	//Vector2D position = pTextObject.m_vecPos;
+	//float flSize = pTextObject.m_flTextSize;
+	//unsigned int flScreenWidth, flScreenHeight;
+	//g_pEngine->GetEngineWindow()->GetWindowSize(flScreenWidth, flScreenHeight);
+	//float flPixelScale = 2.0f / flScreenHeight;
+	//
+	//int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
+
+	//char* pText = pTextObject.m_pszText;
+	//
+	//size_t stringLength = StringLength(pText);
+
+	//for (int ch = 0; ch < stringLength; ch++)
+	//{
+	//	// TODO: Handle escape codes.
+	//	if (pText[ch] == '\n')
+	//	{
+	//		position.y -= flSize * flPixelScale * 64.0f; // TODO: No magic numbers...
+	//		position.x = pTextObject.m_vecPos.x;
+	//		continue;
+	//	}
+
+	//	// Make sure the character is in the font atlas.
+	//	if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
+	//	{
+	//		CAssert(0);
+	//		continue;
+	//	}
+
+	//	// Get the data that is used in the rendering of this character.
+	//	FontLoader::FontChar_t* pCurrPackedChar = &pInternalAtlas->charData[pText[ch] - kCodePointOfFirstChar];
+	//	FontLoader::FontQuadData_t* pCurrAlignedQuad = &pInternalAtlas->quadData[pText[ch] - kCodePointOfFirstChar];
+
+	//	// Scale the units above from pixels by flPixelScale.
+	//	Vector2D vecGlyphSize =
+	//	{
+	//		(pCurrPackedChar->xMax - pCurrPackedChar->xMin) * flPixelScale * flSize,
+	//		(pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
+	//	};
+
+	//	Vector2D vecGlyphBoundingBoxBottomLeft =
+	//	{
+	//		position.x + (pCurrPackedChar->xOffset * flPixelScale * flSize),
+	//		position.y - (pCurrPackedChar->yOffset + pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
+	//	};
+
+	//	// The order of vertices of a quad go from top-right, top-left, bottom-left, bottom-right.
+	//	Vector2D vecGlyphVertices[4] =
+	//	{
+	//		{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
+	//		{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
+	//		{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y },
+	//		{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y }
+	//	};
+
+	//	Vector2D vecGlyphTexCoords[4] =
+	//	{
+	//		{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMin },
+	//		{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMin },
+	//		{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMax },
+	//		{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMax }
+	//	};
+
+	//	// Set up all of our vertex data.
+	//	for (int idx = 0; idx < 4; idx++)
+	//	{
+	//		newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[idx];
+	//		newConfig.Vertices[currVertIndex + idx].Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
+	//		newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[idx];
+	//	}
+
+	//	// Fill up the index config based on the 'orders' array above.
+	//	for (int idx = 0; idx < 6; idx++)
+	//	{
+	//		newConfig.Indices.PushBack(vertOrder[idx] + currVertIndex);
+	//	}
+
+	//	currVertIndex += 4;
+
+	//	// Push the current position forward by the current character's advance.
+	//	position.x += (pCurrPackedChar->Advance);
+	//}
+	//newConfig.Vertices.SetCount(currVertIndex);
+
+	// Algorithm Breakdown:
+	// - This function is expecting a position vector in screen-space (640x480 resolution).
+	// - We need to take these coordinates and translate them to our current resolution prior to returning the config.
+	// - Take divide our input coordinate by our input extents (640x480), then multiply that quotient with the new screen extents. 
+	//
+
+	GeometryConfig2D_t			newConfig{};
+	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
+	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
+
+	size_t						iStringLength = StringLength(pTextObject.m_pszText);
+	unsigned int				iSurfaceWidth, iSurfaceHeight;
+	float						flPixelScaleFactor = 0.0f;
+	float						flTextSize = pTextObject.m_flTextSize; // TODO: Take this as input from the function.
+	Vector2D					vecCurPos = pTextObject.m_vecPos;
+
+	// Geometry data.
+	Vector2D					vecGlyphSize = {};
+	Vector2D					vecGlyphBottomLeftPos = {};
+	Vector2D					vecCharVertices[4] = {};
+	Vector2D					vecCharTexCoords[4] = {};
 	
-	int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
+	// We need to scale the geometry by the rendering surface's dimensions.
+	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceHeight, iSurfaceHeight);
+	flPixelScaleFactor = 2.0f / iSurfaceHeight;	// The height of a single pixel with a range of [-1..1]
 
-	char* pText = pTextObject.m_pszText;
-	
-	size_t stringLength = StringLength(pText);
-
-	for (int ch = 0; ch < stringLength; ch++)
+	for (int ch = 0; ch < iStringLength; ch++)
 	{
-		// TODO: Handle escape codes.
-		if (pText[ch] == '\n')
-		{
-			position.y -= flSize * flPixelScale * 64.0f; // TODO: No magic numbers...
-			position.x = pTextObject.m_vecPos.x;
+		// Skip escape codes for now.
+		// LEFTOFF: Implement
+		if (pTextObject.m_pszText[ch] == '\n' || pTextObject.m_pszText[ch] == '\t')
 			continue;
-		}
 
-		// Make sure the character is in the font atlas.
-		if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
-		{
-			CAssert(0);
-			continue;
-		}
+		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar];
 
-		// Get the data that is used in the rendering of this character.
-		FontLoader::FontChar_t* pCurrPackedChar = &pInternalAtlas->charData[pText[ch] - kCodePointOfFirstChar];
-		FontLoader::FontQuadData_t* pCurrAlignedQuad = &pInternalAtlas->quadData[pText[ch] - kCodePointOfFirstChar];
+		vecGlyphSize.x = (pCurGlyph->xMax - pCurGlyph->xMin) * flPixelScaleFactor * flTextSize;
+		vecGlyphSize.y = (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
 
-		// Scale the units above from pixels by flPixelScale.
-		Vector2D vecGlyphSize =
-		{
-			(pCurrPackedChar->xMax - pCurrPackedChar->xMin) * flPixelScale * flSize,
-			(pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
-		};
+		vecGlyphBottomLeftPos.x = vecCurPos.x + (pCurGlyph->xOffset * flPixelScaleFactor * flTextSize);
+		vecGlyphBottomLeftPos.y = vecCurPos.y - (pCurGlyph->yOffset + pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
 
-		Vector2D vecGlyphBoundingBoxBottomLeft =
-		{
-			position.x + (pCurrPackedChar->xOffset * flPixelScale * flSize),
-			position.y - (pCurrPackedChar->yOffset + pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
-		};
+		// Vertex positions: top-right, top-left, bottom-left, bottom-right.
+		vecCharVertices[0] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
+		vecCharVertices[1] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
+		vecCharVertices[2] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y };
+		vecCharVertices[3] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y };
 
-		// The order of vertices of a quad go from top-right, top-left, bottom-left, bottom-right.
-		Vector2D vecGlyphVertices[4] =
-		{
-			{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
-			{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
-			{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y },
-			{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y }
-		};
+		// Vertex TexCoords.
+		vecCharTexCoords[0] = { pCurGlyph->sMax, pCurGlyph->tMin };
+		vecCharTexCoords[1] = { pCurGlyph->sMin, pCurGlyph->tMin };
+		vecCharTexCoords[2] = { pCurGlyph->sMin, pCurGlyph->tMax };
+		vecCharTexCoords[3] = { pCurGlyph->sMax, pCurGlyph->tMax };
 
-		Vector2D vecGlyphTexCoords[4] =
-		{
-			{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMin },
-			{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMin },
-			{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMax },
-			{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMax }
-		};
+		// Add these to the geometry config.
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
 
-		// Set up all of our vertex data.
-		for (int idx = 0; idx < 4; idx++)
-		{
-			newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[idx];
-			newConfig.Vertices[currVertIndex + idx].Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-			newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[idx];
-		}
+		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
 
-		// Fill up the index config based on the 'orders' array above.
+		// Fill up the index array as well.
 		for (int idx = 0; idx < 6; idx++)
 		{
-			newConfig.Indices.PushBack(vertOrder[idx] + currVertIndex);
+			newConfig.Indices.PushBack((6 * ch) + indexOrder[idx]);
 		}
 
-		currVertIndex += 4;
-
-		// Push the current position forward by the current character's advance.
-		position.x += pCurrPackedChar->Advance * flPixelScale * flSize;
-	}
-	newConfig.Vertices.SetCount(currVertIndex);
-
-	// Bring our vertex data from screen-space to NDC.
-	for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
-	{
-		// TODO: IMPLEMENT ME!
+		// Advance the x-position over.
+		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
 	}
 
 	return newConfig;

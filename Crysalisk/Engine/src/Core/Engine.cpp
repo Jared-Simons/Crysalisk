@@ -111,8 +111,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	windowParams.pszName = "Crysalisk Engine\0";
 	windowParams.X = 100;
 	windowParams.Y = 100;
-	windowParams.Width = 800;
-	windowParams.Height = 600;
+	windowParams.Width = 1080;
+	windowParams.Height = 720;
 	m_pEngineWindow = Platform::CreatePlatformWindow(windowParams, true);
 	m_pEngineWindow->SetWindowResizeCallback(WindowResizeHandler);
 

@@ -229,7 +229,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+		// TODO: Pass the correct window resolution in here
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 1080.0f, 0.0f, 720.0f, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
 		g_pShaderSystem->BindPerInstanceUniforms(1);
@@ -478,9 +479,8 @@ bool Renderer::CreateTempGeometry()
 	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
-	testText.m_flTextSize = 0.40f;
-	//testText.m_vecPos = { 50.0f, 500.0f };
-	testText.m_vecPos = { -0.8f, -0.8f };
+	testText.m_flTextSize = 12.0f;
+	testText.m_vecPos = { 0.0f, 0.0f };
 	// END TEMP
 
 	return true;

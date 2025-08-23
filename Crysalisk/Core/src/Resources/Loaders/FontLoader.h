@@ -16,6 +16,24 @@ namespace FontLoader
 	// Attempts to load an existing font asset from disk (NOTE: This currently only supports True-Type fonts!)
 	CORE_API bool LoadFontResource(const char* pszFontPath, struct FontResource_t& pOutResource);
 
+	struct FontCharData_t
+	{
+		unsigned short	xMin;
+		unsigned short	xMax;
+		unsigned short	yMin;
+		unsigned short	yMax;
+		float			xOffset;
+		float			yOffset;
+		float			flAdvance;
+		
+		float			sMin;
+		float			tMin;
+		float			sMax;
+		float			tMax;
+	};
+
+	CORE_API bool LoadFontResource_OLD(const char* pszFontPath, struct FontResource_t& pOutResource);
+
 	// Contains specific render data for a font character.
 	struct FontChar_t
 	{
@@ -45,7 +63,12 @@ namespace FontLoader
 		size_t							FontCount{ 0 };
 		// The size of this font.
 		float							FontSize{ 0.0f };
+		// The scale of the font, for scaling to surface resolution.
+		float							flFontScale{ 0.0f };
 
+		Utl::CVector<FontCharData_t>	charGlyphs{};
+
+		// TODO: DEPRECATE THESE!
 		// An array of data needed for rendering these characters.
 		Utl::CVector<FontChar_t>		charData{};
 		Utl::CVector<FontQuadData_t>	charQuads{};
