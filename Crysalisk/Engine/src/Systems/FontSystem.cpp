@@ -47,6 +47,10 @@ const int kUIInputHeight = 480;
 //-------------------------------------------------------------------------
 void TextObject::SetText(const char* pszText)
 {
+	// Can't render text without text to render!
+	if (!pszText || StringLength(pszText) < 1)
+		return;
+
 	if (m_pszText)
 		StringFree(m_pszText);
 	m_pszText = StringDuplicate(pszText);
@@ -56,7 +60,7 @@ void TextObject::SetText(const char* pszText)
 		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, m_Geometry);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText_OLD(*this, m_hFont);
+	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont);
 	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
 }
 
@@ -72,7 +76,7 @@ class CFontSystem : public IFontSystem
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText_OLD(TextObject& pTextObject, FontHandle_t hFont) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -215,111 +219,20 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-// TODO: Handle escape sequences here
-GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject, FontHandle_t hFont)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont)
 {
-	// TODO: Handle invalid fonts
-	//GeometryConfig2D_t newConfig{};
-	//newConfig.Vertices.Resize(1024); // TODO: Resize is still broken and causing issues with our allocator. We need to fix this.
-
-	//InternalFontAtlasData_t* pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
-	//uint32_t currVertIndex{ 0 };
-
-	//Vector2D position = pTextObject.m_vecPos;
-	//float flSize = pTextObject.m_flTextSize;
-	//unsigned int flScreenWidth, flScreenHeight;
-	//g_pEngine->GetEngineWindow()->GetWindowSize(flScreenWidth, flScreenHeight);
-	//float flPixelScale = 2.0f / flScreenHeight;
-	//
-	//int vertOrder[6] = { 0, 1, 2, 0, 2, 3 };
-
-	//char* pText = pTextObject.m_pszText;
-	//
-	//size_t stringLength = StringLength(pText);
-
-	//for (int ch = 0; ch < stringLength; ch++)
-	//{
-	//	// TODO: Handle escape codes.
-	//	if (pText[ch] == '\n')
-	//	{
-	//		position.y -= flSize * flPixelScale * 64.0f; // TODO: No magic numbers...
-	//		position.x = pTextObject.m_vecPos.x;
-	//		continue;
-	//	}
-
-	//	// Make sure the character is in the font atlas.
-	//	if (pText[ch] < kCodePointOfFirstChar || pText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
-	//	{
-	//		CAssert(0);
-	//		continue;
-	//	}
-
-	//	// Get the data that is used in the rendering of this character.
-	//	FontLoader::FontChar_t* pCurrPackedChar = &pInternalAtlas->charData[pText[ch] - kCodePointOfFirstChar];
-	//	FontLoader::FontQuadData_t* pCurrAlignedQuad = &pInternalAtlas->quadData[pText[ch] - kCodePointOfFirstChar];
-
-	//	// Scale the units above from pixels by flPixelScale.
-	//	Vector2D vecGlyphSize =
-	//	{
-	//		(pCurrPackedChar->xMax - pCurrPackedChar->xMin) * flPixelScale * flSize,
-	//		(pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
-	//	};
-
-	//	Vector2D vecGlyphBoundingBoxBottomLeft =
-	//	{
-	//		position.x + (pCurrPackedChar->xOffset * flPixelScale * flSize),
-	//		position.y - (pCurrPackedChar->yOffset + pCurrPackedChar->yMax - pCurrPackedChar->yMin) * flPixelScale * flSize
-	//	};
-
-	//	// The order of vertices of a quad go from top-right, top-left, bottom-left, bottom-right.
-	//	Vector2D vecGlyphVertices[4] =
-	//	{
-	//		{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
-	//		{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y + vecGlyphSize.y },
-	//		{ vecGlyphBoundingBoxBottomLeft.x, vecGlyphBoundingBoxBottomLeft.y },
-	//		{ vecGlyphBoundingBoxBottomLeft.x + vecGlyphSize.x, vecGlyphBoundingBoxBottomLeft.y }
-	//	};
-
-	//	Vector2D vecGlyphTexCoords[4] =
-	//	{
-	//		{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMin },
-	//		{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMin },
-	//		{ pCurrAlignedQuad->sMin, pCurrAlignedQuad->tMax },
-	//		{ pCurrAlignedQuad->sMax, pCurrAlignedQuad->tMax }
-	//	};
-
-	//	// Set up all of our vertex data.
-	//	for (int idx = 0; idx < 4; idx++)
-	//	{
-	//		newConfig.Vertices[currVertIndex + idx].Pos = vecGlyphVertices[idx];
-	//		newConfig.Vertices[currVertIndex + idx].Color = Vector4D(1.0f, 1.0f, 1.0f, 1.0f);
-	//		newConfig.Vertices[currVertIndex + idx].TexCoord = vecGlyphTexCoords[idx];
-	//	}
-
-	//	// Fill up the index config based on the 'orders' array above.
-	//	for (int idx = 0; idx < 6; idx++)
-	//	{
-	//		newConfig.Indices.PushBack(vertOrder[idx] + currVertIndex);
-	//	}
-
-	//	currVertIndex += 4;
-
-	//	// Push the current position forward by the current character's advance.
-	//	position.x += (pCurrPackedChar->Advance);
-	//}
-	//newConfig.Vertices.SetCount(currVertIndex);
-
-	// Algorithm Breakdown:
-	// - This function is expecting a position vector in screen-space (640x480 resolution).
-	// - We need to take these coordinates and translate them to our current resolution prior to returning the config.
-	// - Take divide our input coordinate by our input extents (640x480), then multiply that quotient with the new screen extents. 
-	//
 
 	GeometryConfig2D_t			newConfig{};
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
 	size_t						iStringLength = StringLength(pTextObject.m_pszText);
+
+	// NOTE: This is needed to ensure the index buffer is properly setup for characters that follow escape codes...
+	// For the code below, if we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
+	// as 'ch' includes escape codes, while 'iCurNonWhitespaceCharCount' does not.
+	int							iCurNonWhitespaceCharCount = 0; 
+	
 	unsigned int				iSurfaceWidth, iSurfaceHeight;
 	float						flPixelScaleFactor = 0.0f;
 	float						flTextSize = pTextObject.m_flTextSize; // TODO: Take this as input from the function.
@@ -335,7 +248,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject
 	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceWidth, iSurfaceHeight);
 	flPixelScaleFactor = 2.0f / iSurfaceHeight;	// The height of a single pixel with a range of [-1..1]
 
-	for (int ch = 0; ch < 15; ch++)
+	for (int ch = 0; ch < iStringLength; ch++)
 	{
 		// If a space, just push the position forward by some amount.
 		if (pTextObject.m_pszText[ch] == ' ')
@@ -353,7 +266,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject
 			{
 				// TODO: Handle this properly.
 				vecCurPos.x = pTextObject.m_vecPos.x;
-				vecCurPos.y -= 0.25f;
+				vecCurPos.y -= 0.085f * pTextObject.m_flTextSize;
 				continue;
 			}
 		}
@@ -393,11 +306,14 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText_OLD(TextObject& pTextObject
 		// Fill up the index array as well.
 		for (int idx = 0; idx < 6; idx++)
 		{
-			newConfig.Indices.PushBack((4 * ch) + indexOrder[idx]);
+			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
 		}
 
 		// Advance the x-position over.
 		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
+
+		// Bump up this counter once we've got the geometry for a character glyph.
+		iCurNonWhitespaceCharCount++;
 	}
 
 	return newConfig;

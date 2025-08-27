@@ -113,7 +113,7 @@ namespace FontLoader
 				&packContext,
 				ttfBytes.Data(),
 				0,
-				12, // TODO: Configurable font size
+				20, // TODO: Configurable font size
 				kCodePointOfFirstChar,
 				kCharsToIncludeInFontAtlas,
 				packedChars);

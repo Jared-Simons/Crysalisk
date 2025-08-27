@@ -479,8 +479,8 @@ bool Renderer::CreateTempGeometry()
 	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
-	testText.m_flTextSize = 5.0f;
-	testText.m_vecPos = { -1.0f, 0.0f };
+	testText.m_flTextSize = 1.0f;
+	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 	// END TEMP
 
 	return true;
