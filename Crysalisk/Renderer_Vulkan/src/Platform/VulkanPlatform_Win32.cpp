@@ -16,17 +16,17 @@ namespace Platform {
 		return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
 	}
 
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pHWnd)
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow)
 	{
-		if (!pHWnd)
+		if (!pMainWindow)
 		{
-			LOG_ERROR("Vulkan->CreateVulkanSurface REQUIRES a valid pHWnd pointer! Surface creation failed.");
+			LOG_ERROR("Vulkan->CreateVulkanSurface REQUIRES a valid pMainWindow pointer! Surface creation failed.");
 			return false;
 		}
 
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		surfaceCreateInfo.hinstance = GetModuleHandleA(0);
-		surfaceCreateInfo.hwnd = static_cast<HWND>(pHWnd);
+		surfaceCreateInfo.hwnd = static_cast<HWND>(pMainWindow);
 
 		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, pRenderingContext.m_Allocator, &pRenderingContext.m_Surface));
 		

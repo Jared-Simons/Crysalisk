@@ -221,16 +221,11 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 //-------------------------------------------------------------------------
 GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont)
 {
-
 	GeometryConfig2D_t			newConfig{};
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
 	size_t						iStringLength = StringLength(pTextObject.m_pszText);
-
-	// NOTE: This is needed to ensure the index buffer is properly setup for characters that follow escape codes...
-	// For the code below, if we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
-	// as 'ch' includes escape codes, while 'iCurNonWhitespaceCharCount' does not.
 	int							iCurNonWhitespaceCharCount = 0; 
 	
 	unsigned int				iSurfaceWidth, iSurfaceHeight;
@@ -303,7 +298,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
 
-		// Fill up the index array as well.
+		// Fill up the index buffer as well.
 		for (int idx = 0; idx < 6; idx++)
 		{
 			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
@@ -312,7 +307,9 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		// Advance the x-position over.
 		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
 
-		// Bump up this counter once we've got the geometry for a character glyph.
+		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
+		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
+		// as 'ch' includes escape codes, while 'iCurNonWhitespaceCharCount' does not.
 		iCurNonWhitespaceCharCount++;
 	}
 

@@ -168,7 +168,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 #endif
 
 	// Surface
-	if (!Platform::CreateVulkanSurface(s_VulkanContext, pConfig.pHWnd))
+	if (!Platform::CreateVulkanSurface(s_VulkanContext, pConfig.pMainWindow->GetInternalHandle()))
 	{
 		LOG_ERROR("Failed to create Vulkan surface. Renderer initialization failed!");
 		return false;

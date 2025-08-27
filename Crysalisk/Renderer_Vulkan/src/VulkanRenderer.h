@@ -126,5 +126,5 @@ extern IRendererBackend* g_pRendererBackend;
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pHWnd);
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow);
 }

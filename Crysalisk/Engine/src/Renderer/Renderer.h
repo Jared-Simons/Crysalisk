@@ -14,6 +14,7 @@
 
 // Forward Declarations
 class IRendererBackend;
+class Platform::IPlatformWindow;
 struct RenderPacket_t;
 
 //-------------------------------------------------------------------------
@@ -24,7 +25,7 @@ struct RendererConfig_t
 	// The application's name.
 	const char* szApplicationName;
 	// An opaque pointer to the window we'll be rendering to.
-	void* pHWnd;
+	Platform::IPlatformWindow* pMainWindow;
 	// A pointer to the loaded backend module.
 	Platform::ISysModule* pRendererBackendDLL;
 
@@ -68,6 +69,7 @@ public:
 	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
+	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
@@ -76,6 +78,10 @@ private:
 	double	m_flLastFrameTime{};
 
 	RenderMetrics_t	m_Metrics{};
+
+	// The current dimensions of the surface we are presenting to (usually a window).
+	unsigned int	m_iWindowWidth{ 0 };
+	unsigned int	m_iWindowHeight{ 0 };
 
 	// TODO: These are temporary...
 public:

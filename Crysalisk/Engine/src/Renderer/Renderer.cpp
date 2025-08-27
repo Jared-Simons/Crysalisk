@@ -89,6 +89,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
+	// Grab window dimensions.
+	pConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
+
 	s_MainCamera.RecalculateCameraVectors();
 
 	// Start the clock now and we'll take the delta time each frame.
@@ -132,6 +135,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	{
 		return true;
 	}
+
+	// Clear out the previous frame's metrics.
+	m_Metrics.FrameTime = 0.0f;
+	m_Metrics.NumDrawCalls = 0;
+
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
 	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
@@ -141,12 +149,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
 	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
-
-	// Update renderer matrics.
-	char szMetricsString[512]{};
-	StringFormat_V("Frametime: %.5f ms\nTest new line!", szMetricsString, m_Metrics.FrameTime);
-	// Set the string.
-	testText.SetText(szMetricsString);
 
 	// Draw the frame!
 	if (!m_RendererBackend->StartFrame(pRenderData))
@@ -159,7 +161,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	// TEMP BADNESS
 	g_pShaderSystem->BindShader(0);
 
-	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 10000.0f); // TODO: Don't hardcode this.
+	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f); // TODO: Don't hardcode this.
 	// Flip the y-axis.
 	projection.data[5] *= -1;
 	Matrix4x4 view = s_MainCamera.GetViewMatrix();
@@ -209,6 +211,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
 			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+
+			m_Metrics.NumDrawCalls++;
 		}
 
 		// TODO: Sort the transparent geometries from farthest to closest to the camera.
@@ -219,6 +223,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+
+			m_Metrics.NumDrawCalls++;
 		}
 	}
 
@@ -230,7 +236,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		// Render some test UI text.
 		// TODO: Pass the correct window resolution in here
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 1080.0f, 0.0f, 720.0f, 0.0f, 10000.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, m_iWindowWidth, 0.0f, m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
 		g_pShaderSystem->BindPerInstanceUniforms(1);
@@ -240,6 +246,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	m_RendererBackend->EndFrame(pRenderData);
+
+	// Display renderer matrics.
+	char szMetricsString[512]{};
+	StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
+	// Set the string.
+	testText.SetText(szMetricsString);
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
@@ -403,7 +415,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	/*GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
+	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
 	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
 	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 
@@ -474,7 +486,7 @@ bool Renderer::CreateTempGeometry()
 	}
 	// TEMP!
 	s_bLevelGeometryLoaded = true;
-	// End test mesh.*/
+	// End test mesh.
 
 	// TEMP: Setup our test text.
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
@@ -515,6 +527,9 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	{
 		s_Renderer.SetMinimized(false);
 	}
+
+	// Cache off the new dimensions.
+	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;

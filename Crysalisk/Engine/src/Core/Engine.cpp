@@ -153,7 +153,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Renderer.
 	RendererConfig_t rendererConfig{};
 	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
-	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
+	rendererConfig.pMainWindow = m_pEngineWindow;
 	rendererConfig.pRendererBackendDLL = pRendererModule;
 	rendererConfig.MaxTextures = 4999;
 	rendererConfig.MaxPipelines = 300;
