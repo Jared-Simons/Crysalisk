@@ -4,7 +4,6 @@
 // 
 // Purpose: A Custom Dynamically-Resizable Array.
 // 
-// TODO: Create an iterator for use with range-based for loops.
 //=============================================================================
 #pragma once
 
@@ -15,9 +14,40 @@
 
 namespace Utl 
 {
+	//--------------------------------------------------
+	// Iterator.
+	//--------------------------------------------------
+	template<typename T>
+	class VectorIterator
+	{
+	public:
+		VectorIterator(T* m_pData) : m_DataPtr{ m_pData }
+		{
+		}
+
+		bool operator!=(const VectorIterator& pOther)
+		{
+			return m_DataPtr != pOther.m_DataPtr;
+		}
+
+		void operator++()
+		{
+			m_DataPtr++;
+		}
+
+		T operator*()
+		{
+			return *(m_DataPtr);
+		}
+
+	private:
+		T* m_DataPtr{ nullptr };
+	};
+
 	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
 	class CVector
 	{
+		using Iterator = VectorIterator<T>;
 	public:
 		//--------------------------------------------------
 		// Default constructs an empty vector (does not allocate any memory).
@@ -189,6 +219,26 @@ namespace Utl
 			return m_pValues[0];
 		}
 
+		// These exist for us to be able to use this container with an iterator.
+		//--------------------------------------------------
+		// Returns an iterator to the first element in the container.
+		//--------------------------------------------------
+		Iterator begin()
+		{
+			Iterator it(m_pValues);
+			return it;
+		}
+
+		//--------------------------------------------------
+		// Returns an iterator to the last element in the container.
+		//--------------------------------------------------
+		Iterator end()
+		{
+			Iterator it(m_pValues + m_Count);
+
+			return it;
+		}
+
 		//--------------------------------------------------
 		// Access the last element in the array.
 		//--------------------------------------------------
@@ -330,7 +380,8 @@ namespace Utl
 		/* The multiplier to be used when the vector resizes to make more room. */
 		size_t m_ResizeFactor;
 
-		/* TODO: Documentation. */
+		/* An allocator that can be used to make memory allocations from.
+		If not provided by the user, then an allocator to the application's heap will be created.*/
 		Allocator m_Allocator{};
 
 		/* The data included in the array, can be accessed with the [] operators */

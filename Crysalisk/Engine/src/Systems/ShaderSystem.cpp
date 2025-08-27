@@ -344,6 +344,10 @@ void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsig
 //-------------------------------------------------------------------------
 void CShaderSystem::BindShader(ShaderHandle_t hShader)
 {
+	// Don't bind an already bound shader!
+	if (m_hCurrentlyBoundShader == hShader)
+		return;
+
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader && pShader->m_iInternalHandle != kInvalidID_U32); // Don't try to bind a nonexistant shader!
 
