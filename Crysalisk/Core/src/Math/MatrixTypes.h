@@ -286,6 +286,24 @@ public:
 		data[15] = initalValue;
 	}
 
+	Matrix4x4 operator*(Matrix4x4& pOtherMatrix)
+	{
+		Matrix4x4 outMatrix{};
+
+		float* mat1Ptr = &data[0];
+		float* mat2Ptr = &data[1];
+
+		for (int firstMat = 0; firstMat < 4; firstMat++)
+		{
+			for (int secondMat = 0; secondMat < 4; secondMat++)
+			{
+				outMatrix.data[firstMat + secondMat] = data[firstMat] * data[secondMat];
+			}
+		}
+
+		return outMatrix;
+	}
+
 	static Matrix4x4& Translate(Matrix4x4& inMatrix, const Vector3D& inVector)
 	{
 		inMatrix.data[12] += inVector.x;
@@ -422,3 +440,22 @@ public:
 		return newMatrix;
 	}
 };
+
+inline Matrix4x4 Mat4FromQuaternion(Quaternion& inQuat)
+{
+	Matrix4x4 outMat(1);
+
+	outMat.data[0] = 1 - 2 * (inQuat.y * inQuat.y) - 2 * (inQuat.x * inQuat.z);
+	outMat.data[1] = 2 * inQuat.x * inQuat.y + 2 * inQuat.w * inQuat.z;
+	outMat.data[2] = 2 * (inQuat.x * inQuat.z) - 2 * (inQuat.w * inQuat.y);
+
+	outMat.data[4] = 2 * (inQuat.x * inQuat.y) - 2 * (inQuat.w * inQuat.z);
+	outMat.data[5] = 1 - 2 * (inQuat.x * inQuat.x) - 2 * (inQuat.z * inQuat.z);
+	outMat.data[6] = 2 * (inQuat.y * inQuat.z) + 2 * (inQuat.w * inQuat.x);
+
+	outMat.data[8] = 2 * (inQuat.x * inQuat.z) + 2 * (inQuat.w * inQuat.y);
+	outMat.data[9] = 2 * (inQuat.y * inQuat.z) - 2 * (inQuat.w * inQuat.x);
+	outMat.data[10] = 1 - 2 * (inQuat.x * inQuat.x) - 2 * (inQuat.y * inQuat.y);
+
+	return outMat;
+}

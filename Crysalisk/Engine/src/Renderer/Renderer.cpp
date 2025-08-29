@@ -167,6 +167,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	Matrix4x4 view = s_MainCamera.GetViewMatrix();
 	Vector3D myPos = s_MainCamera.vecPosition;
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
+	/*Quaternion quatRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
+	Matrix4x4 matRotation = Mat4FromQuaternion(quatRotation);
+	model = model * matRotation;*/
 
 	// TODO: Get these shader locations set in here.
 	// TODO: Don't hardcode these things here

@@ -210,6 +210,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	initializationClock.Update();
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 	
+	// Quaternion test
+	Quaternion testQuat = QuaternionFromAxisAngle(Vector3D(1.0f, 0.0f, 0.0f), M_DEG2RAD_F(50.0f));
+	Matrix4x4 rotationMatrix = Mat4FromQuaternion(testQuat);
+
 	return true;
 }
 
