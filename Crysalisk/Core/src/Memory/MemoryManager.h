@@ -31,7 +31,7 @@ public:
 	virtual void		Shutdown() = 0;
 
 	// Allocate/free memory from the application-wide memory manager.
-	virtual void*		Allocate(size_t sizeInBytes) = 0;	// TODO: Memory-Tagging?
+	virtual void*		Allocate(size_t sizeInBytes) = 0;
 	virtual void		Free(void* pMemBlock) = 0;
 
 	virtual bool		IsInitialized() const = 0;

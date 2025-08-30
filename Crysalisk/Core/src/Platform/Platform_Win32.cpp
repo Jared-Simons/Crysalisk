@@ -28,7 +28,7 @@ namespace Platform
 	struct Win32_InternalState
 	{
 		HINSTANCE hInstance = 0;
-		IPlatformWindow* window = nullptr; // TODO: Make this an array where the windows are owned.
+		IPlatformWindow* window = nullptr;
 
 		// Clock info
 		inline static double m_ClockFreq = -1.0;
@@ -73,6 +73,7 @@ namespace Platform
 
 		inline WindowParams_t GetParams() const { return m_WindowParams; }
 		inline void SetInternalHandle(HWND hWnd) { m_HWND = hWnd; }
+
 		inline virtual void SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) override { m_KeyEventCallback = callback; }
 		inline virtual void SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) override { m_MouseButtonEventCallback = callback; }
 		inline virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) override { m_MouseMoveEventCallback = callback; }
@@ -82,12 +83,15 @@ namespace Platform
 		WindowParams_t m_WindowParams;
 		HWND m_HWND;
 
-	// TODO: Make these private (and handle these events per window).
-	public:
-		Platform_KeyboardEventCallback m_KeyEventCallback; // TODO: Make this an array so multiple contexts can register as listeners.
-		Platform_MouseButtonEventCallback m_MouseButtonEventCallback;
-		Platform_MouseMoveEventCallback m_MouseMoveEventCallback;
-		Platform_WindowResizedCallback m_WindowResizeEventCallback;
+		Platform_KeyboardEventCallback		m_KeyEventCallback;
+		Platform_MouseButtonEventCallback	m_MouseButtonEventCallback;
+		Platform_MouseMoveEventCallback		m_MouseMoveEventCallback;
+		Platform_WindowResizedCallback		m_WindowResizeEventCallback;
+
+		// NOTE: These are exposed to our private data because the input handlers need to
+		// be able to call our callbacks into the engine's input system.
+		friend static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		friend static int ProcessWin32Input_MouseMove(LPARAM lParam);
 	};
 
 	CWindowsWindow* s_pMainWindow; // FIXME: Get rid of this once we have a better solution, this should live nor be owned here.
@@ -141,7 +145,7 @@ namespace Platform
 	// Purpose: Factory function that creates a Win32 Window.
 	// Input:	params - Parameters to configure the new window.
 	//			bShow - Indicates if the window should be focused upon creation.
-	// Output:	Returns a handle to the new window. (TODO: Make this return a handle!)
+	// Output:	Returns a pointer to the new window
 	//-------------------------------------------------------------------------
 	IPlatformWindow* CreatePlatformWindow(WindowParams_t params, bool bShow)
 	{
@@ -626,7 +630,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load a .dll from disk.
 	// Input:	pszModulePath - The path to the .dll to attempt loading.
-	// Output:	A handle to the module. (TODO: Make this return a handle).
+	// Output:	A handle to the module.
 	//-------------------------------------------------------------------------
 	ISysModule* LoadSysModule(const char* pszModulePath)
 	{

@@ -454,7 +454,6 @@ bool Renderer::CreateTempGeometry()
 	//MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
 
 	// Test mesh.
-	//MeshLoader::MeshResource_t sponzaResource{};
 	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 

@@ -181,7 +181,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 	{
 		// TODO: Don't hard-code this path.
 		// The font is not yet loaded, load it up.
-		if (!FontLoader::LoadFontResource(pszFontName, fontResource))
+		if (!FontLoader::LoadFontResource(pszFontName, 25, fontResource))
 		{
 			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
 			return 0; // TODO: Default font.

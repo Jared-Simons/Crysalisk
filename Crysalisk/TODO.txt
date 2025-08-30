@@ -22,3 +22,6 @@ Features to be developed:
 	- This means that if a material does not have a specular map, then the normal map will get defined with the specular sampler.
 
 - Shader uniforms cannot be arrays unless they are samplers, other data types cannot have arrays yet.
+
+- There seems to be an issue with importing .objs and then attempting to upload that data to the GPU.
+	- If the data is serialized as a .CModel_c, and loaded from there, then all is good, but the Vulkan renderer is crashing with .obj GPU upload.

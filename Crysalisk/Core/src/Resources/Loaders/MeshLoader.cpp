@@ -245,14 +245,15 @@ namespace MeshLoader
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
-				pCurrentGroup->pszDebugName = StringDuplicate(&szCurrentLine[2]);
+				if (pCurrentGroup)
+					pCurrentGroup->pszDebugName = StringDuplicate(&szCurrentLine[2]);
 				break;
 
 			case 'm':
 				// Material library file.
 
 				// Only load this once!
-				// TODO: This only accounts for a single material lib per .obj file!
+				// NOTE: This only accounts for a single material lib per .obj file.
 				if (!bLoadedMaterialLib)
 				{
 					pszMtlPath = StringDuplicate(pszMeshFileName);
@@ -501,18 +502,17 @@ namespace MeshLoader
 				{
 				case 'a':
 				{
-					// TODO: Clean up this string parsing some...
+					char* pszTrimmedMapName = StringTrim(pKey);
 					// Diffuse map.
-					if (StringCompare(pKey, "map_Kd ") /* || StringCompare(pKey, "map_Ka ")*/)
+					if (StringCompare(pszTrimmedMapName, "map_Kd"))
 					{
-						//CAssert(currLine != 50);
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t diffuseMap{};
 						diffuseMap.eType = MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE;
 						diffuseMap.pszTextureName = StringDuplicate(pValue);
 						currentMaterialResource.textureMapConfigs.PushBack(diffuseMap);
 					}
 					// Specular map.
-					else if (StringCompare(pKey, "map_Ks") || StringCompare(pKey, "map_Ks "))
+					else if (StringCompare(pszTrimmedMapName, "map_Ks"))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t specularMap{};
 						specularMap.eType = MaterialLoader::MaterialResource_t::eTextureType::SPECULAR;
@@ -520,12 +520,17 @@ namespace MeshLoader
 						currentMaterialResource.textureMapConfigs.PushBack(specularMap);
 					}
 					// Normal map.
-					else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_Disp ") || StringCompare(pKey, "map_bump") || StringCompare(pKey, "map_bump "))
+					else if (StringCompare(pszTrimmedMapName, "map_Disp") || StringCompare(pszTrimmedMapName, "map_bump"))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t normalMap{};
 						normalMap.eType = MaterialLoader::MaterialResource_t::eTextureType::NORMAL;
 						normalMap.pszTextureName = StringDuplicate(pValue);
 						currentMaterialResource.textureMapConfigs.PushBack(normalMap);
+					}
+					if (pszTrimmedMapName)
+					{
+						StringFree(pszTrimmedMapName);
+						pszTrimmedMapName = nullptr;
 					}
 
 					break;
@@ -645,7 +650,7 @@ namespace MeshLoader
 			CAssert(!(vert0 == vert1));
 			CAssert(!(vert1 == vert2));
 			CAssert(!(vert0 == vert2));
-			if (M_ABS(dividend) < 1.192092896e-07f)	// TODO: Get an epsilon in here.
+			if (M_ABS(dividend) < kVectorElementEpsilon)
 			{
 				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
 				invalidTangentCount++;

@@ -265,19 +265,30 @@ namespace ShaderLoader
 
 		// Now actually get the shader module data.
 		// Make sure the file actually exists.
-		if (!FileSystem::FileExists(szFormattedPathBuffer))
-		{
-			LOG_ERROR("Failed to find shader module with the name '%s'. Skipping this module.", szFormattedPathBuffer);
-
-			// TODO: Release all dynamically-allocated resources.
-			return false;
-		}
+		bool bFoundFile = FileSystem::FileExists(szFormattedPathBuffer);
 
 		// Read the contents of the file into a buffer.
 		FileHandle_t hShaderModule{};
-		if (!FileSystem::OpenFile(szFormattedPathBuffer, eFileMode::FILEMODE_READ, true, &hShaderModule))
+		if (!bFoundFile || !FileSystem::OpenFile(szFormattedPathBuffer, eFileMode::FILEMODE_READ, true, &hShaderModule))
 		{
-			// TODO: Release all dynamically-allocated resources.
+			LOG_ERROR("Failed to %s shader module with the name '%s'. Skipping this module.", (bFoundFile) ? "open" : "find", szFormattedPathBuffer);
+
+			// Release all dynamically-allocated resources.
+			if (pszTrimmedModulePath)
+			{
+				StringFree(pszTrimmedModulePath);
+				pszTrimmedModulePath = nullptr;
+			}
+			if (pszTypeString)
+			{
+				StringFree(pszTypeString);
+				pszTypeString = nullptr;
+			}
+			if (newShaderModule.pszStageString)
+			{
+				StringFree(newShaderModule.pszStageString);
+				newShaderModule.pszStageString = nullptr;
+			}
 			return false;
 		}
 
@@ -289,7 +300,26 @@ namespace ShaderLoader
 		{
 			LOG_ERROR("Failed to binary read shader module '%s'. Resource acquisition failed.", szFormattedPathBuffer);
 
-			// TODO: Release all dynamically-allocated resources.
+			// Release all dynamically-allocated resources.
+			if (pszTrimmedModulePath)
+			{
+				StringFree(pszTrimmedModulePath);
+				pszTrimmedModulePath = nullptr;
+			}
+			if (pszTypeString)
+			{
+				StringFree(pszTypeString);
+				pszTypeString = nullptr;
+			}
+			if (newShaderModule.pszStageString)
+			{
+				StringFree(newShaderModule.pszStageString);
+				newShaderModule.pszStageString = nullptr;
+			}
+
+			newShaderModule.CodeDataSize = 0;
+			newShaderModule.pShaderModuleBytecode.Clear();
+
 			return false;
 		}
 
