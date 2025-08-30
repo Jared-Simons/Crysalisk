@@ -647,7 +647,7 @@ namespace Platform
 		{
 			// Try to append the .dll extension to the path and load again.
 			char formattedPath[512];
-			StringFormat("%s.%s", pszModulePath, "dll", formattedPath);
+			Utl::StringFormat("%s.%s", pszModulePath, "dll", formattedPath);
 
 			pNewModule->m_Module = LoadLibraryA(formattedPath);
 
@@ -676,7 +676,7 @@ namespace Platform
 			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pszModulePath);
 		}
 
-		pNewModule->m_szModuleName = StringDuplicate(pszModulePath);
+		pNewModule->m_szModuleName = Utl::StringDuplicate(pszModulePath);
 
 		// Register this module.
 		s_ModuleRegistry.PushBack(pNewModule);

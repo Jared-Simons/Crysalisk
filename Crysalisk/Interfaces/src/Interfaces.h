@@ -58,25 +58,25 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 {
 	for (int i = 0; i < appInterfaces.Count(); i++)
 	{
-		if (StringCompare(appInterfaces[i].szSystemName, "engine_events"))
+		if (Utl::StringCompare(appInterfaces[i].szSystemName, "engine_events"))
 		{
 			g_pEngineEvents = (IEventSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 
-		if (StringCompare(appInterfaces[i].szSystemName, "input_system"))
+		if (Utl::StringCompare(appInterfaces[i].szSystemName, "input_system"))
 		{
 			g_pInputSystem = (IInputSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 
-		if (StringCompare(appInterfaces[i].szSystemName, "texture_system"))
+		if (Utl::StringCompare(appInterfaces[i].szSystemName, "texture_system"))
 		{
 			g_pTextureSystem = (ITextureSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 
-		if (StringCompare(appInterfaces[i].szSystemName, "material_system"))
+		if (Utl::StringCompare(appInterfaces[i].szSystemName, "material_system"))
 		{
 			g_pMaterialSystem = (IMaterialSystem*)appInterfaces[i].pSystemAddr;
 			continue;

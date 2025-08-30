@@ -84,7 +84,7 @@ bool VulkanRenderPass::CreateRenderpass(CVulkanRenderer& pRenderingContext, char
 	renderpassInfo.pDependencies = &dependency;
 
 	if (pszPassName)
-		pOutRenderpass.m_pszPassName = StringDuplicate(pszPassName);
+		pOutRenderpass.m_pszPassName = Utl::StringDuplicate(pszPassName);
 
 	VK_CHECK(vkCreateRenderPass(pRenderingContext.m_Device.m_Device, &renderpassInfo, pRenderingContext.m_Allocator, &pOutRenderpass.m_Handle));
 
@@ -105,7 +105,7 @@ void VulkanRenderPass::DestroyRenderpass(CVulkanRenderer& pRenderingContext, Vul
 	vkDestroyRenderPass(pRenderingContext.m_Device.m_Device, pRenderpass.m_Handle, pRenderingContext.m_Allocator);
 
 	if (pRenderpass.m_pszPassName)
-		StringFree(pRenderpass.m_pszPassName);
+		Utl::StringFree(pRenderpass.m_pszPassName);
 
 	pRenderpass.m_pszPassName = nullptr;
 }

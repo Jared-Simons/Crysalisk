@@ -17,7 +17,7 @@ int SimpleHash_StringToInt(const char* pInput, size_t numElements)
 	int sum = 0;
 	int mul = 1;
 
-	size_t len = StringLength(pInput);
+	size_t len = Utl::StringLength(pInput);
 
 	for (int idx = 0; idx < len; idx++)
 	{

@@ -57,7 +57,7 @@ namespace ShaderLoader
 			char	szValue[500];
 
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hShaderCfgFile);
-			currentLineLength = StringLength(szCurrentLine);
+			currentLineLength = Utl::StringLength(szCurrentLine);
 
 			szKey[0] = 0;
 			szValue[0] = 0;
@@ -65,7 +65,7 @@ namespace ShaderLoader
 			if (currentLineLength <= 0 || szCurrentLine[0] == '#') // Blank line or comment
 				continue;
 
-			equalIndex = StringIndexOf(szCurrentLine, '=');
+			equalIndex = Utl::StringIndexOf(szCurrentLine, '=');
 
 			if (equalIndex != kInvalidID_U32)
 			{
@@ -79,48 +79,48 @@ namespace ShaderLoader
 			if (equalIndex != kInvalidID_U32)
 			{
 				// If equalIndex is set, then this line is a key-value pair that can be processed individually.
-				if (StringCompare(szKey, "name"))
+				if (Utl::StringCompare(szKey, "name"))
 				{
 					// The name of the shader.
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					pOutResource.pszShaderName = StringStrip(szValue, '\"');	// Strip the quotes out of the string.
+					pOutResource.pszShaderName = Utl::StringStrip(szValue, '\"');	// Strip the quotes out of the string.
 					continue;
 				}
-				else if (StringCompare(szKey, "num_shader_stages"))
+				else if (Utl::StringCompare(szKey, "num_shader_stages"))
 				{
 					// Number of stages this shader will have.
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					int iNumStages = String_ATOI(szValue);
+					int iNumStages = Utl::String_ATOI(szValue);
 					pOutResource.ShaderStages.Resize(iNumStages);
 					continue;
 				}
-				else if (StringCompare(szKey, "topology_type"))
+				else if (Utl::StringCompare(szKey, "topology_type"))
 				{
 					// The type(s) of topology that the shader can support.
 					// NOTE: Currently shaders can only use one topology type.
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					pOutResource.pszTopologyType = StringStrip(szValue, '\"');
+					pOutResource.pszTopologyType = Utl::StringStrip(szValue, '\"');
 					continue;
 				}
-				else if (StringCompare(szKey, "enable_depth_testing"))
+				else if (Utl::StringCompare(szKey, "enable_depth_testing"))
 				{
 					// Should this shader be set up to perform depth testing?
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					pOutResource.bDepthTestingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
+					pOutResource.bDepthTestingEnabled = (Utl::StringCompareInsensitive("\"true\"", szValue)) ? true : false;
 					continue;
 				}
-				else if (StringCompare(szKey, "enable_blending"))
+				else if (Utl::StringCompare(szKey, "enable_blending"))
 				{
 					// Should this shader be set up to perform color blending?
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					pOutResource.bColorBlendingEnabled = (StringCompareInsensitive("\"true\"", szValue)) ? true : false;
+					pOutResource.bColorBlendingEnabled = (Utl::StringCompareInsensitive("\"true\"", szValue)) ? true : false;
 					continue;
 				}
 			}
 			else
 			{
 				// If no equal token was found, then this line is the start of a larger, multi-line data block to be processed.
-				if (StringCompare(szCurrentLine, "stages"))
+				if (Utl::StringCompare(szCurrentLine, "stages"))
 				{
 					// Shader stage modules.
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
@@ -154,7 +154,7 @@ namespace ShaderLoader
 					}
 					continue;
 				}
-				else if (StringCompare(szCurrentLine, "attributes"))
+				else if (Utl::StringCompare(szCurrentLine, "attributes"))
 				{
 					// Vertex attributes.
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
@@ -188,7 +188,7 @@ namespace ShaderLoader
 					}
 					continue;
 				}
-				else if (StringCompare(szCurrentLine, "uniforms"))
+				else if (Utl::StringCompare(szCurrentLine, "uniforms"))
 				{
 					// Shader uniforms.
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
@@ -248,20 +248,20 @@ namespace ShaderLoader
 
 		// We're assuming that all the config data passed here are the names of shader module files and their associated shader types.
 		// Start by putting together the path to the module.
-		pszTrimmedModulePath = StringTrim(pszConfigData);
+		pszTrimmedModulePath = Utl::StringTrim(pszConfigData);
 		
 		// While we're here, we can copy over the shader type string as well.
-		commaIndex = StringIndexOf(pszTrimmedModulePath, ',');
-		pszTypeString = StringDuplicate(&pszTrimmedModulePath[commaIndex + 1]);
-		newShaderModule.pszStageString = StringStrip(pszTypeString, '\"');
+		commaIndex = Utl::StringIndexOf(pszTrimmedModulePath, ',');
+		pszTypeString = Utl::StringDuplicate(&pszTrimmedModulePath[commaIndex + 1]);
+		newShaderModule.pszStageString = Utl::StringStrip(pszTypeString, '\"');
 		 
 		// Chop off the type string from the path.
 		pszTrimmedModulePath[commaIndex] = 0;
 
 		// Append the shader asset directory.
-		StringFormat_V("%s/%s", szFormattedPathBuffer, "Assets/Shaders", pszTrimmedModulePath);
+		Utl::StringFormat_V("%s/%s", szFormattedPathBuffer, "Assets/Shaders", pszTrimmedModulePath);
 		// Finally, strip the quotes out of the path.
-		StringStripInPlace(szFormattedPathBuffer, '\"');
+		Utl::StringStripInPlace(szFormattedPathBuffer, '\"');
 
 		// Now actually get the shader module data.
 		// Make sure the file actually exists.
@@ -276,17 +276,17 @@ namespace ShaderLoader
 			// Release all dynamically-allocated resources.
 			if (pszTrimmedModulePath)
 			{
-				StringFree(pszTrimmedModulePath);
+				Utl::StringFree(pszTrimmedModulePath);
 				pszTrimmedModulePath = nullptr;
 			}
 			if (pszTypeString)
 			{
-				StringFree(pszTypeString);
+				Utl::StringFree(pszTypeString);
 				pszTypeString = nullptr;
 			}
 			if (newShaderModule.pszStageString)
 			{
-				StringFree(newShaderModule.pszStageString);
+				Utl::StringFree(newShaderModule.pszStageString);
 				newShaderModule.pszStageString = nullptr;
 			}
 			return false;
@@ -303,17 +303,17 @@ namespace ShaderLoader
 			// Release all dynamically-allocated resources.
 			if (pszTrimmedModulePath)
 			{
-				StringFree(pszTrimmedModulePath);
+				Utl::StringFree(pszTrimmedModulePath);
 				pszTrimmedModulePath = nullptr;
 			}
 			if (pszTypeString)
 			{
-				StringFree(pszTypeString);
+				Utl::StringFree(pszTypeString);
 				pszTypeString = nullptr;
 			}
 			if (newShaderModule.pszStageString)
 			{
-				StringFree(newShaderModule.pszStageString);
+				Utl::StringFree(newShaderModule.pszStageString);
 				newShaderModule.pszStageString = nullptr;
 			}
 
@@ -330,13 +330,13 @@ namespace ShaderLoader
 		FileSystem::CloseFile(&hShaderModule);
 
 		// Store off the module name for debugging.
-		newShaderModule.pszModuleName = StringStrip(pszTrimmedModulePath, '"');
+		newShaderModule.pszModuleName = Utl::StringStrip(pszTrimmedModulePath, '"');
 
 		// Release temp string data.
 		if (pszTypeString)
-			StringFree(pszTypeString);
+			Utl::StringFree(pszTypeString);
 		if (pszTrimmedModulePath)
-			StringFree(pszTrimmedModulePath);
+			Utl::StringFree(pszTrimmedModulePath);
 
 		// Add the new module to the resource.
 		pOutResource.ShaderStages.PushBack(newShaderModule);
@@ -361,24 +361,24 @@ namespace ShaderLoader
 		// We're assuming that the config data passed in here will be in the format of:
 		// "attribute name", "attribute type".
 		// If this is not the case, than the file is formatted wrong.
-		pszTrimmedData = StringTrim(pszConfigData);
-		commaIndex = StringIndexOf(pszTrimmedData, ',');
+		pszTrimmedData = Utl::StringTrim(pszConfigData);
+		commaIndex = Utl::StringIndexOf(pszTrimmedData, ',');
 		if (commaIndex == kInvalidID_U32)
 		{
 			return false;
 		}
 
-		pszTempStringBuffer = StringDuplicate_N(pszTrimmedData, commaIndex);
-		newAttribute.pszName = StringStrip(pszTempStringBuffer, '\"');
-		StringFree(pszTempStringBuffer);
+		pszTempStringBuffer = Utl::StringDuplicate_N(pszTrimmedData, commaIndex);
+		newAttribute.pszName = Utl::StringStrip(pszTempStringBuffer, '\"');
+		Utl::StringFree(pszTempStringBuffer);
 
-		pszTempStringBuffer = StringDuplicate(&pszTrimmedData[commaIndex + 1]);
-		newAttribute.pszType = StringStrip(pszTempStringBuffer, '\"');
-		StringFree(pszTempStringBuffer);
+		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 1]);
+		newAttribute.pszType = Utl::StringStrip(pszTempStringBuffer, '\"');
+		Utl::StringFree(pszTempStringBuffer);
 
 		// Release temp string data.
 		if (pszTrimmedData)
-			StringFree(pszTrimmedData);
+			Utl::StringFree(pszTrimmedData);
 
 		// Add the attribute to the resource.
 		pOutResource.ShaderAttributes.PushBack(newAttribute);
@@ -405,13 +405,13 @@ namespace ShaderLoader
 		// We're assuming that the config data passed in here will be in the format of:
 		// "uniform name", "uniform type", "uniform group".
 		// If this is not the case, then the file is formatted wrong.
-		pszTrimmedData = StringTrim(pszConfigData);
-		commaIndex = StringIndexOf(pszTrimmedData, ',');
-		commentIndex = StringIndexOf(pszTrimmedData, '#');
+		pszTrimmedData = Utl::StringTrim(pszConfigData);
+		commaIndex = Utl::StringIndexOf(pszTrimmedData, ',');
+		commentIndex = Utl::StringIndexOf(pszTrimmedData, '#');
 		if (commaIndex == kInvalidID_U32)
 		{
 			if (pszTrimmedData)
-				StringFree(pszTrimmedData);
+				Utl::StringFree(pszTrimmedData);
 			pszTrimmedData = nullptr;
 
 			return false;
@@ -421,15 +421,15 @@ namespace ShaderLoader
 		{
 			// A comment is present, attempt to only parse up to the comment start.
 			char* pszTempBuffer{ nullptr };
-			pszTempBuffer = StringDuplicate_N(pszTrimmedData, commentIndex);
-			StringFree(pszTrimmedData);
-			pszTrimmedData = StringTrim(pszTempBuffer);
-			StringFree(pszTempBuffer);
+			pszTempBuffer = Utl::StringDuplicate_N(pszTrimmedData, commentIndex);
+			Utl::StringFree(pszTrimmedData);
+			pszTrimmedData = Utl::StringTrim(pszTempBuffer);
+			Utl::StringFree(pszTempBuffer);
 		}
 
 		// Check the uniform type to see if it's an array.
-		size_t arrayBracketIndex = StringIndexOf(pszTrimmedData, '[');
-		size_t arrayEndBracketIndex = StringIndexOf(pszTrimmedData, ']');
+		size_t arrayBracketIndex = Utl::StringIndexOf(pszTrimmedData, '[');
+		size_t arrayEndBracketIndex = Utl::StringIndexOf(pszTrimmedData, ']');
 
 		if (arrayBracketIndex != kInvalidID_U32)
 		{
@@ -440,48 +440,48 @@ namespace ShaderLoader
 				return false;
 			}
 
-			char* pszArrayLength = StringDuplicate_N(&pszTrimmedData[arrayBracketIndex + 1], arrayEndBracketIndex - arrayBracketIndex - 1);
-			newUniform.iArraySize = String_ATOI(pszArrayLength);
-			StringFree(pszArrayLength);
+			char* pszArrayLength = Utl::StringDuplicate_N(&pszTrimmedData[arrayBracketIndex + 1], arrayEndBracketIndex - arrayBracketIndex - 1);
+			newUniform.iArraySize = Utl::String_ATOI(pszArrayLength);
+			Utl::StringFree(pszArrayLength);
 		}
 
 		// Uniform name first.
-		pszTempStringBuffer = StringDuplicate_N(pszTrimmedData, commaIndex);
-		newUniform.pszName = StringStrip(pszTempStringBuffer, '\"');
-		commaIndex2 = StringIndexOf(&pszTrimmedData[commaIndex + 1], ',');
+		pszTempStringBuffer = Utl::StringDuplicate_N(pszTrimmedData, commaIndex);
+		newUniform.pszName = Utl::StringStrip(pszTempStringBuffer, '\"');
+		commaIndex2 = Utl::StringIndexOf(&pszTrimmedData[commaIndex + 1], ',');
 		if (commaIndex2 == kInvalidID_U32)
 		{
 			return false;
 		}
 
 		// Uniform type next.
-		StringFree(pszTempStringBuffer);
+		Utl::StringFree(pszTempStringBuffer);
 		if (arrayBracketIndex != kInvalidID_U32)
 		{
 			// If the type is an array type, strip the array piece out of the string, as that was already processed.
-			pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], arrayBracketIndex - commaIndex);
-			size_t typeLength = StringLength(pszTempStringBuffer);
+			pszTempStringBuffer = Utl::StringDuplicate_N(&pszTrimmedData[commaIndex + 1], arrayBracketIndex - commaIndex);
+			size_t typeLength = Utl::StringLength(pszTempStringBuffer);
 			pszTempStringBuffer[typeLength - 1] = '\"';		// Make sure to add the '"' back to the end of the type string so we match the formatting of the other types.
 			pszTempStringBuffer[typeLength] = 0;
 		}
 		else
 		{
 			// Otherwise, just copy the whole type over.
-			pszTempStringBuffer = StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
+			pszTempStringBuffer = Utl::StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
 		}
-		newUniform.pszType = StringStrip(pszTempStringBuffer, '\"');
+		newUniform.pszType = Utl::StringStrip(pszTempStringBuffer, '\"');
 
 		// Uniform update group next.
-		StringFree(pszTempStringBuffer);
-		pszTempStringBuffer = StringDuplicate(&pszTrimmedData[commaIndex + 1 + commaIndex2 + 1]);
-		newUniform.pszFreq = StringStrip(pszTempStringBuffer, '\"');
+		Utl::StringFree(pszTempStringBuffer);
+		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 1 + commaIndex2 + 1]);
+		newUniform.pszFreq = Utl::StringStrip(pszTempStringBuffer, '\"');
 
 		// Release temp string data.
 		if (pszTempStringBuffer)
-			StringFree(pszTempStringBuffer);
+			Utl::StringFree(pszTempStringBuffer);
 
 		if (pszTrimmedData)
-			StringFree(pszTrimmedData);
+			Utl::StringFree(pszTrimmedData);
 
 		// Add the uniform to the resource.
 		pOutResource.ShaderUniforms.PushBack(newUniform);

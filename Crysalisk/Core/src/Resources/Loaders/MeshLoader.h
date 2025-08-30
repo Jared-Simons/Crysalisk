@@ -41,9 +41,9 @@ namespace MeshLoader
 			GeometryObject_t(const GeometryObject_t& pOther)
 			{
 				if (pOther.pszDebugName)
-					pszDebugName = StringDuplicate(pOther.pszDebugName);
+					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 				if (pOther.pszMaterialName)
-					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+					pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
 
 				Vertices = pOther.Vertices;
 				Indices = pOther.Indices;
@@ -52,9 +52,9 @@ namespace MeshLoader
 			GeometryObject_t& operator=(const GeometryObject_t& pOther)
 			{
 				if (pOther.pszDebugName)
-					pszDebugName = StringDuplicate(pOther.pszDebugName);
+					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 				if (pOther.pszMaterialName)
-					pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+					pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
 
 				Vertices = pOther.Vertices;
 				Indices = pOther.Indices;
@@ -66,10 +66,10 @@ namespace MeshLoader
 			{
 				// Make sure to free the strings.
 				if (pszDebugName)
-					StringFree(pszDebugName);
+					Utl::StringFree(pszDebugName);
 
 				if (pszMaterialName)
-					StringFree(pszMaterialName);
+					Utl::StringFree(pszMaterialName);
 			}
 		};
 
@@ -87,7 +87,7 @@ namespace MeshLoader
 			GeometryGroup_t(const GeometryGroup_t& pOther)
 			{
 				if (pOther.pszDebugName)
-					pszDebugName = StringDuplicate(pOther.pszDebugName);
+					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 
 				pGroups = pOther.pGroups;
 			}
@@ -95,7 +95,7 @@ namespace MeshLoader
 			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
 			{
 				if (pOther.pszDebugName)
-					pszDebugName = StringDuplicate(pOther.pszDebugName);
+					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 
 				pGroups = pOther.pGroups;
 
@@ -105,7 +105,7 @@ namespace MeshLoader
 			~GeometryGroup_t()
 			{
 				if (pszDebugName)
-					StringFree(pszDebugName);
+					Utl::StringFree(pszDebugName);
 
 				for (int idx = 0; idx < pGroups.Count(); idx++)
 				{

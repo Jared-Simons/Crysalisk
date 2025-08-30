@@ -103,7 +103,7 @@ struct VertexAttribute_t
 	VertexAttribute_t(const VertexAttribute_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		type = pOther.type;
 		stride = pOther.stride;
 	}
@@ -111,7 +111,7 @@ struct VertexAttribute_t
 	VertexAttribute_t& operator=(const VertexAttribute_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		type = pOther.type;
 		stride = pOther.stride;
 
@@ -121,7 +121,7 @@ struct VertexAttribute_t
 	~VertexAttribute_t()
 	{
 		if (szName)
-			StringFree(szName);
+			Utl::StringFree(szName);
 	}
 };
 
@@ -164,7 +164,7 @@ struct ShaderUniformConfig_t
 	ShaderUniformConfig_t(const ShaderUniformConfig_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		else
 			szName = nullptr;
 		eType = pOther.eType;
@@ -176,7 +176,7 @@ struct ShaderUniformConfig_t
 	ShaderUniformConfig_t& operator=(const ShaderUniformConfig_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		eType = pOther.eType;
 		eFrequency = pOther.eFrequency;
 		iStride = pOther.iStride;
@@ -188,7 +188,7 @@ struct ShaderUniformConfig_t
 	~ShaderUniformConfig_t()
 	{
 		if (szName)
-			StringFree(szName);
+			Utl::StringFree(szName);
 	}
 };
 

@@ -1724,7 +1724,7 @@ static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expecte
 
 		for (unsigned int layerIndex = 0; layerIndex < layerCount; layerIndex++)
 		{
-			if (StringCompare(expectedLayers[expectedIndex], availableLayers[layerIndex].layerName))
+			if (Utl::StringCompare(expectedLayers[expectedIndex], availableLayers[layerIndex].layerName))
 			{
 				bLayerFound = true;
 				LOG_VERBOSE("Found!");
@@ -1763,7 +1763,7 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 
 		for (unsigned int availableExt = 0; availableExt < extensionCount; availableExt++)
 		{
-			if (StringCompare(expectedExtensions[currentExt], availableExtensions[availableExt].extensionName))
+			if (Utl::StringCompare(expectedExtensions[currentExt], availableExtensions[availableExt].extensionName))
 			{
 				LOG_VERBOSE("Found!");
 				bExtensionFound = true;

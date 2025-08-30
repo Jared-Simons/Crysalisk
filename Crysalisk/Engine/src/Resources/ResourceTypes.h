@@ -117,7 +117,7 @@ struct ShaderModuleConfig_t
 	~ShaderModuleConfig_t()
 	{
 		if (pszModuleName)
-			StringFree(pszModuleName);
+			Utl::StringFree(pszModuleName);
 		pszModuleName = nullptr;
 		byteCode.Clear();
 	}
@@ -239,7 +239,7 @@ struct GeometryConfig_t
 	~GeometryConfig_t()
 	{
 		if (pszDebugName)
-			StringFree(pszDebugName);
+			Utl::StringFree(pszDebugName);
 
 		pszDebugName = nullptr;
 	}

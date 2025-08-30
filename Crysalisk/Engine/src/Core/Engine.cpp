@@ -391,22 +391,22 @@ void ReturnInterfacesToRegistry()
 
 	Platform::SystemInterface_t eventSystem{};
 	eventSystem.pSystemAddr = reinterpret_cast<void*>(g_pEngineEvents_Internal);
-	eventSystem.szSystemName = StringDuplicate("engine_events");
+	eventSystem.szSystemName = Utl::StringDuplicate("engine_events");
 	Platform::RegisterInterface(eventSystem);
 
 	Platform::SystemInterface_t inputSystem{};
 	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
-	inputSystem.szSystemName = StringDuplicate("input_system");
+	inputSystem.szSystemName = Utl::StringDuplicate("input_system");
 	Platform::RegisterInterface(inputSystem);
 
 	Platform::SystemInterface_t textureSystem{};
 	textureSystem.pSystemAddr = reinterpret_cast<void*>(g_pTextureSystem_Internal);
-	textureSystem.szSystemName = StringDuplicate("texture_system");
+	textureSystem.szSystemName = Utl::StringDuplicate("texture_system");
 	Platform::RegisterInterface(textureSystem);
 
 	Platform::SystemInterface_t materialSystem{};
 	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
-	materialSystem.szSystemName = StringDuplicate("material_system");
+	materialSystem.szSystemName = Utl::StringDuplicate("material_system");
 	Platform::RegisterInterface(materialSystem);
 }
 

@@ -29,7 +29,7 @@ FileHandle_t::~FileHandle_t()
 
 	if (pszPath != nullptr)
 	{
-		StringFree(pszPath);
+		Utl::StringFree(pszPath);
 		pszPath = nullptr;
 	}
 }
@@ -92,7 +92,7 @@ bool FileSystem::OpenFile(const char* pszFilePath, eFileMode eFileMode, bool bIs
 
 	pOutFileHandle->eFileAccessMode = eFileMode;
 	pOutFileHandle->bIsValid = true;
-	pOutFileHandle->pszPath = StringDuplicate(pszFilePath);
+	pOutFileHandle->pszPath = Utl::StringDuplicate(pszFilePath);
 
 	return true;
 }
@@ -119,7 +119,7 @@ void FileSystem::CloseFile(FileHandle_t* pFileHandle)
 	pFileHandle->bIsValid = false;
 	if (pFileHandle->pszPath)
 	{
-		StringFree(pFileHandle->pszPath);
+		Utl::StringFree(pFileHandle->pszPath);
 		pFileHandle->pszPath = nullptr;
 	}
 }
@@ -188,7 +188,7 @@ bool FileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRea
 		return false;
 	}
 
-	*pOutBytesRead = StringLength(pBuffer);
+	*pOutBytesRead = Utl::StringLength(pBuffer);
 	pBuffer[*pOutBytesRead - 1] = '\0';
 	return true;
 }

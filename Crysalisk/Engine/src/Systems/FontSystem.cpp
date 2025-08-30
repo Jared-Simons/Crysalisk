@@ -48,12 +48,12 @@ const int kUIInputHeight = 480;
 void TextObject::SetText(const char* pszText)
 {
 	// Can't render text without text to render!
-	if (!pszText || StringLength(pszText) < 1)
+	if (!pszText || Utl::StringLength(pszText) < 1)
 		return;
 
 	if (m_pszText)
-		StringFree(m_pszText);
-	m_pszText = StringDuplicate(pszText);
+		Utl::StringFree(m_pszText);
+	m_pszText = Utl::StringDuplicate(pszText);
 
 	// Make sure to release the old renderer resources.
 	if (m_Geometry.vertexDataOffset != kInvalidID_U64)
@@ -225,7 +225,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
-	size_t						iStringLength = StringLength(pTextObject.m_pszText);
+	size_t						iStringLength = Utl::StringLength(pTextObject.m_pszText);
 	int							iCurNonWhitespaceCharCount = 0; 
 	
 	unsigned int				iSurfaceWidth, iSurfaceHeight;

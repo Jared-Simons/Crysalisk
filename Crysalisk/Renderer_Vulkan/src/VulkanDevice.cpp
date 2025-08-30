@@ -214,7 +214,7 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 		LOG_VERBOSE("Searching for device extension: '%s'...", requiredExtensions[i]);
 		for (unsigned int j = 0; j < deviceExtensionCount; j++)
 		{
-			if (StringCompare(availableExtensions[j].extensionName, requiredExtensions[i]))
+			if (Utl::StringCompare(availableExtensions[j].extensionName, requiredExtensions[i]))
 			{
 				// Found the current extension
 				LOG_VERBOSE("Found!");

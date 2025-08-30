@@ -258,7 +258,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	// Display renderer matrics.
 	char szMetricsString[512]{};
-	StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
+	Utl::StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
 	// Set the string.
 	testText.SetText(szMetricsString);
 
@@ -477,7 +477,7 @@ bool Renderer::CreateTempGeometry()
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
 			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
 			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)
-				newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
+				newConfig.pszDebugName = Utl::StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 			{

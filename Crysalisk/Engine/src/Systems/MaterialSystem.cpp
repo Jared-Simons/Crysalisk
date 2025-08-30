@@ -247,7 +247,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 
 		// Format the path string (TODO: Don't hardcode this path).
 		char szFormattedResourcePath[kScratchStringBufferLength];
-		StringFormat_V("%s/%s.cmat", szFormattedResourcePath, "Assets/Materials", pszMaterialName);
+		Utl::StringFormat_V("%s/%s.cmat", szFormattedResourcePath, "Assets/Materials", pszMaterialName);
 
 		// Load the material configuration resource from disk
 		if (!MaterialLoader::LoadMaterialResource(szFormattedResourcePath, newMaterialResource))
@@ -300,7 +300,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		pMaterial = &m_MaterialDictionary.m_MaterialArray[newMaterialHandle];
 
 		// Acquire material resources.
-		pMaterial->m_pszMaterialName = StringDuplicate(pInResource.pszMaterialName);
+		pMaterial->m_pszMaterialName = Utl::StringDuplicate(pInResource.pszMaterialName);
 
 		if (pInResource.pszShaderName)
 		{
@@ -352,9 +352,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
 		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
 		{
-			if (StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
+			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
 			{
-				float flShininess = String_ATOF(pInResource.pszCustomValues[idx]);
+				float flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
 				// Set the instance uniform.
 				g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, phongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
 			}
@@ -432,7 +432,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	int matIdx = FindFirstFreeMaterialHandle();
 	Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
 
-	pNewMaterial->m_pszMaterialName = StringDuplicate("_DefaultMaterial");
+	pNewMaterial->m_pszMaterialName = Utl::StringDuplicate("_DefaultMaterial");
 	pNewMaterial->m_hShaderHandle = g_pShaderSystem->AcquireShader("Core.Phong");
 	pNewMaterial->m_hDiffuseTextureHandle = g_pTextureSystem_Internal->GetDefaultDiffuseTexture();
 	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
