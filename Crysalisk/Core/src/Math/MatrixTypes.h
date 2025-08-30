@@ -291,13 +291,17 @@ public:
 		Matrix4x4 outMatrix{};
 
 		float* mat1Ptr = &data[0];
-		float* mat2Ptr = &data[1];
+		float* mat2Ptr = &pOtherMatrix.data[0];
 
 		for (int firstMat = 0; firstMat < 4; firstMat++)
 		{
 			for (int secondMat = 0; secondMat < 4; secondMat++)
 			{
-				outMatrix.data[firstMat + secondMat] = data[firstMat] * data[secondMat];
+				outMatrix.data[(firstMat * 4) + secondMat] = 
+					  (mat1Ptr[(firstMat * 4)] * mat2Ptr[secondMat]) 
+					+ (mat1Ptr[(firstMat * 4) + 1] * mat2Ptr[secondMat + 4]) 
+					+ (mat1Ptr[(firstMat * 4) + 2] * mat2Ptr[secondMat + 8]) 
+					+ (mat1Ptr[(firstMat * 4) + 3] * mat2Ptr[secondMat + 12]);
 			}
 		}
 

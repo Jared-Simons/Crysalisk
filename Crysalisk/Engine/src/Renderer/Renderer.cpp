@@ -250,6 +250,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->EndFrame(pRenderData);
 
+	// Clear out bound shader state.
+	g_pShaderSystem->BindShader(kInvalidID_U32);
+
 	// Display renderer matrics.
 	char szMetricsString[512]{};
 	StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);

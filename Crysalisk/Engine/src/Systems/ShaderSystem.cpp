@@ -348,6 +348,15 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	if (m_hCurrentlyBoundShader == hShader)
 		return;
 
+	// If we're given an invalid ID, then consider this state stale.
+	// This usually happens because we need to re-bind the shader at least once a frame (these will NOT persist between frames).
+	// Usually, a frame will end by clearing out this state.
+	if (hShader == kInvalidID_U32)
+	{
+		m_hCurrentlyBoundShader = hShader;
+		return;
+	}
+
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader && pShader->m_iInternalHandle != kInvalidID_U32); // Don't try to bind a nonexistant shader!
 
