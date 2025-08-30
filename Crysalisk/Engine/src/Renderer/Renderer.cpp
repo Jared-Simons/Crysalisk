@@ -120,6 +120,9 @@ void Renderer::Shutdown()
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
+
+	// Release any heap allocations
+	m_SponzaModel.m_Geometries.Clear();
 }
 
 extern bool s_bLevelGeometryLoaded;

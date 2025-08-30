@@ -134,7 +134,10 @@ void CMemoryManager::Free(void* pMemBlock)
 		return;
 	}
 
+	Platform::MemoryFree(pMemBlock);
+
 	// TODO: Handle these issues gracefully.
+	CAssert(0);
 }
 
 //-------------------------------------------------------------------------

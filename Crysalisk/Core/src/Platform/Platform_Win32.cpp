@@ -134,6 +134,7 @@ namespace Platform
 		// Hitting this means our entire process is shutting down,
 		// so clear out our interface registry now.
 		CleanupInterfaceRegistry();
+		s_ModuleRegistry.Clear();
 	}
 
 	//-------------------------------------------------------------------------

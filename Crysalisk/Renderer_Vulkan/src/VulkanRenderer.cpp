@@ -307,6 +307,12 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	// Instance
 	vkDestroyInstance(m_Instance, m_Allocator);
+
+	// Clear out any heap allocations!
+	m_GraphicsCommandBuffers.Clear();
+	m_Swapchain.m_Framebuffers.Clear();
+	m_Swapchain.m_SwapchainImageViews.Clear();
+	m_Swapchain.m_SwapchainImages.Clear();
 }
 
 //-------------------------------------------------------------------------
