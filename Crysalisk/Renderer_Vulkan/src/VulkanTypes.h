@@ -168,7 +168,6 @@ public:
 
 	Utl::CVector<VkSampler>		m_InstanceSamplers{};
 	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
-	GlobalUniformObject_t		m_UniformData{};
 };
 
 struct VulkanTextureInternal

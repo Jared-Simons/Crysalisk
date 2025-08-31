@@ -34,40 +34,6 @@ struct RenderMetrics_t
 };
 
 //-------------------------------------------------------------------------
-// Purpose: Per-frame data used in shaders.
-//-------------------------------------------------------------------------
-struct GlobalUniformObject_t
-{
-	// Projection matrix.
-	Matrix4x4	Projection;
-	// View matrix.
-	Matrix4x4	View;
-	// The current view position.
-	Vector4D	ViewPos;
-	// The position of the directional light. TODO: We don't need this at all.
-	Vector3D	DirLightPos;
-	// The current render visualization mode.
-	int			RenderMode;
-	Vector3D	Reserved1; // NOTE: All of these exist so we can be aligned with Instance uniforms in the buffer. (My GPU needs these to be aligned to 64 bytes).
-	Vector3D	Reserved2; 
-	Vector2D	Reserved3;
-};
-
-//-------------------------------------------------------------------------
-// Purpose: Per-instance data used in shaders.
-//-------------------------------------------------------------------------
-struct MaterialInstanceData_t
-{
-	// The shininess factor of a material.
-	float		Shininess;
-	// The diffuse tint of a material.
-	Vector3D	vecDiffuseColor;
-	Vector4D	Reserved0;
-	Vector4D	Reserved2;
-	Vector4D	Reserved3;
-};
-
-//-------------------------------------------------------------------------
 // Purpose: Types that can be used in shaders.
 //-------------------------------------------------------------------------
 enum class ShaderAttribute_t

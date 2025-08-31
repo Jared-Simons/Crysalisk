@@ -83,7 +83,7 @@ private:
 	unsigned int	m_iWindowWidth{ 0 };
 	unsigned int	m_iWindowHeight{ 0 };
 
-	// TODO: These are temporary...
+	// TODO: Make these private?
 public:
 	RendererView		m_SceneView{};
 	RendererView		m_UIView{};
@@ -97,9 +97,7 @@ public:
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
 
-	GeometryInstance_t	m_Cube1{};
-	GeometryInstance_t	m_Cube2{};
-	GeometryInstance_t	m_Cube3{};
+	GeometryInstance_t	m_TestCube{};
 	Mesh				m_SponzaModel;
 };
 

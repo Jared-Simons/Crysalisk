@@ -62,7 +62,9 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition) override;
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) override;
+	// Applies per-draw render data for the following draw calls.
+	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 private:
 	// Creates the default textures to be used in the engine.
@@ -430,18 +432,24 @@ MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition)
+void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode)
 {
 	g_pShaderSystem->BindShader(m_DefaultMaterialShader);
 
-	// TODO: Don't hardcode these!
-	//g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.projection, 0, 0, &pMatProjection);
-	//g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.view, 0, 0, &pMatView);
-	//g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.viewPos, 0, 0, &pVecPosition);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.projection, 0, 0, &pMatProjection);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.view, 0, 0, &pMatView);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.viewPos, 0, 0, &pVecPosition);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.renderMode, 0, 0, &renderDebugMode);
+}
 
-	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, 0, 0, 0, &pMatProjection);
-	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, 1, 0, 0, &pMatView);
-	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, 2, 0, 0, &pVecPosition);
+//-------------------------------------------------------------------------
+// Applies per-draw render data for the following draw calls.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
+{
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.model, 0, 0, &pMatModel);
 }
 
 //-------------------------------------------------------------------------

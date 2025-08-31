@@ -29,7 +29,6 @@ public:
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
-	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
@@ -39,8 +38,6 @@ public:
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
-
-	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;

@@ -271,5 +271,7 @@ struct GeometryInstance_t
 struct Mesh
 {
 	// An array of submeshes that make up this mesh.
-	Utl::CVector<GeometryInstance_t> m_Geometries{};
+	Utl::CVector<GeometryInstance_t>	m_Geometries{};
+	// Origin of this mesh in world space.
+	Vector3D							m_vecAbsOrigin{};
 };

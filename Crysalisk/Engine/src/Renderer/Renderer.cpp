@@ -37,6 +37,7 @@ static Camera_t s_MainCamera;
 // TEMP Test font
 FontHandle_t	testFont;
 TextObject		testText;
+ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -171,9 +172,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	Matrix4x4 matRotation = Mat4FromQuaternion(quatRotation);
 	model = model * matRotation;*/
 
-	// TODO: Don't hardcode these things here
-	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos);
-	g_pShaderSystem->SetShaderUniform(0, 13, 0, 0, &model);
+	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -197,15 +196,21 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		// Render our temp geometry.
 
+		// Apply a slow rotation to the test cube.
+		Quaternion quatCubeRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
+		Matrix4x4 matCubeRotation = Mat4FromQuaternion(quatCubeRotation);
+		model = model * matCubeRotation;
+		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 		// Bind the appropriate material.
-		// TODO: Don't hardcode this material handle here.
-		//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
-		//DrawGeometry(m_Cube1);
-		//DrawGeometry(m_Cube2);
-		g_pMaterialSystemInternal->ApplyMaterialInstance(m_Cube3.hMaterial);
-		DrawGeometry(m_Cube3, m_WorldVertexBuffer, m_WorldIndexBuffer);
+		g_pMaterialSystemInternal->ApplyMaterialInstance(m_TestCube.hMaterial);
+		DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
 
 		// Render the opaque geometry first.
+		model = Matrix4x4::Matrix4x4(1.0f);
+		model = Matrix4x4::Translate(model, m_SponzaModel.m_vecAbsOrigin);
+		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Bind the appropriate material.
@@ -235,10 +240,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render some test UI text.
-		// TODO: Pass the correct window resolution in here
 		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, m_iWindowWidth, 0.0f, m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
+		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);
 		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
 
@@ -418,30 +422,16 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
-	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
-	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
-
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig, m_Cube1))
-	{
-		LOG_ERROR("Failed to acquire geometry resources.");
-		return false;
-	}
-
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig2, m_Cube2))
-	{
-		LOG_ERROR("Failed to acquire geometry resources.");
-		return false;
-	}
+	GeometryConfig_t testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 	
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig3, m_Cube3))
+	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, testCubeConfig, m_TestCube))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
 	}
 
 	// Acquire materials
-	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
+	m_TestCube.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	MeshLoader::MeshResource_t sponzaResource{};
 	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
@@ -486,11 +476,14 @@ bool Renderer::CreateTempGeometry()
 			}
 		}
 	}
+
+	m_SponzaModel.m_vecAbsOrigin = Vector3D(0.0f, 0.0f, 0.0f);
 	// TEMP!
 	s_bLevelGeometryLoaded = true;
 	// End test mesh.
 
 	// TEMP: Setup our test text.
+	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;

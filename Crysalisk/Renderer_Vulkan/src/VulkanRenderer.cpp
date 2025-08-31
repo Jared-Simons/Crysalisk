@@ -541,15 +541,6 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 }
 
 //-------------------------------------------------------------------------
-// Purpose: This is a temporary test method to render some text!
-// TODO: GET RID OF THIS!
-//-------------------------------------------------------------------------
-void CVulkanRenderer::RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
-{
-	
-}
-
-//-------------------------------------------------------------------------
 // Purpose: Converts an engine-generic buffer usage format to a Vulkan-specific format.
 // Input:	usage - The engine-generic buffer usage.
 // Output:	The Vulkan-specific buffer usage.
@@ -707,12 +698,6 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
-}
-
-// TODO: GET RID OF THIS!
-bool CVulkanRenderer::AcquireMaterialResources(Material& pMaterial, MaterialInstanceData_t& pMaterialInstanceData)
-{
-	return true;
 }
 
 //-------------------------------------------------------------------------

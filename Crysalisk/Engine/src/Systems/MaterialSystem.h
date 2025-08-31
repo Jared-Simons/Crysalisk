@@ -45,7 +45,9 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition) = 0;
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) = 0;
+	// Applies per-draw render data for the following draw calls.
+	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
 };
 
 // Global interface to the material system context.
