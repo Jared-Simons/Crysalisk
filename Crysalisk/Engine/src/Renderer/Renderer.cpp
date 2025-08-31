@@ -161,24 +161,18 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
-	// TEMP BADNESS
-	g_pShaderSystem->BindShader(0);
-
-	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f); // TODO: Don't hardcode this.
+	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
-	projection.data[5] *= -1;
-	Matrix4x4 view = s_MainCamera.GetViewMatrix();
-	Vector3D myPos = s_MainCamera.vecPosition;
+	matProjection.data[5] *= -1;
+	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
+	Vector3D vecCameraPos = s_MainCamera.vecPosition;
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
 	/*Quaternion quatRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
 	Matrix4x4 matRotation = Mat4FromQuaternion(quatRotation);
 	model = model * matRotation;*/
 
-	// TODO: Get these shader locations set in here.
 	// TODO: Don't hardcode these things here
-	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
-	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
-	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
+	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos);
 	g_pShaderSystem->SetShaderUniform(0, 13, 0, 0, &model);
 
 	if (s_bLevelGeometryLoaded)

@@ -43,6 +43,9 @@ public:
 
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
+
+	// Applies global render data for the frame.
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition) = 0;
 };
 
 // Global interface to the material system context.

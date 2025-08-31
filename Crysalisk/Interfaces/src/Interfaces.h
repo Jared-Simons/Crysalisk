@@ -5,7 +5,8 @@
 // Purpose: This static library provides interfaces to shared engine systems.
 // 
 // Lets say that I am a library or application that wants to have access to some of the engine's shared interfaces
-// (or I want to provide one for other's to use). Whatever should I do?
+//		(I.E. the material system, shader system, renderer, gameplay systems, etc.)
+// (or I want to provide one for others to use). Whatever should I do?
 // 
 // You can link your code against this library and include this file to get access to all engine interfaces.
 // You can also declare one in this file to provide it to anyone else who links with this.
