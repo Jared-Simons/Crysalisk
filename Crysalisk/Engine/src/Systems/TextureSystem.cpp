@@ -82,7 +82,7 @@ private:
 	struct TextureDictionary
 	{
 		// Allows for string-based lookups for texture.
-		Utl::CHashMap<const char*, TextureLookup>	m_TextureHashmap{};
+		Utl::CStringHashMap<TextureLookup>			m_TextureHashmap{};
 		// An array of textures.
 		Texture*									m_TextureArray{ nullptr };
 	};

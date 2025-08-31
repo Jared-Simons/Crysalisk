@@ -95,7 +95,7 @@ private:
 	struct FontDictionary
 	{
 		// Allows for string-based lookups for fonts.
-		Utl::CHashMap<const char*, FontLookup>	m_FontHashmap{};
+		Utl::CStringHashMap<FontLookup>			m_FontHashmap{};
 		// An array of fonts.
 		Font*									m_FontArray{ nullptr };
 	};

@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Strings/String_Utils.h"
 
+#include "Core/Assertions.h"
 #include "Core/Logging.h"
 
 #include <string>
@@ -66,6 +67,12 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	bool StringCompare(const char* pszStr1, const char* pszStr2)
 	{
+		if (!pszStr1 || !pszStr2)
+		{
+			CAssert(0);
+			return false;
+		}
+
 		int result = strcmp(pszStr1, pszStr2);
 		return result == 0;
 	}

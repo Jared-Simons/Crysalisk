@@ -90,7 +90,7 @@ private:
 	struct MaterialDictionary
 	{
 		// Allows for string-based lookups for materials.
-		Utl::CHashMap<const char*, MaterialLookup>	m_MaterialHashmap{};
+		Utl::CStringHashMap<MaterialLookup>			m_MaterialHashmap{};
 		// An array of materials.
 		Material*									m_MaterialArray{ nullptr };
 	};

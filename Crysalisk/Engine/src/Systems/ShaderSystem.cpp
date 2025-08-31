@@ -64,7 +64,7 @@ private:
 	struct ShaderDictionary
 	{
 		// Allows for string-based lookups for shaders.
-		Utl::CHashMap<const char*, ShaderLookup>	m_ShaderLookup{};
+		Utl::CStringHashMap<ShaderLookup>			m_ShaderLookup{};
 		// An array of shaders.
 		Shader*										m_ShaderArray{ nullptr };
 	};
@@ -100,6 +100,12 @@ bool CShaderSystem::Initialize(ShaderSystemConfig_t config)
 
 	// Allocate memory for our shader array.
 	m_ShaderDictionary.m_ShaderArray = (Shader*)new Shader[m_Config.MaxShaders];
+
+	// Invalidate our shader lookup table.
+	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	{
+		m_ShaderDictionary.m_ShaderLookup.ValueElementAt(idx).ShaderIndex = kInvalidID_U32;
+	}
 
 	LOG_INFO("Shader system initialized! (Max shaders: %d)", config.MaxShaders);
 	return true;
@@ -237,7 +243,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
 		size_t uniformCount = newShaderResource.ShaderUniforms.Count();
-		pShader->m_UniformLookup.Resize(uniformCount * 3);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
+		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
 		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
 		uint32_t	iRunningPerFrameOffset{ 0 };
@@ -276,7 +282,8 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			pShader->m_pUniforms[idx].eType = pCurrentConfig.eType;
 			
 			// Store off the location.
-			pShader->m_UniformLookup[pCurrentConfig.szName] = idx;
+			int* pUniform = pShader->m_UniformLookup.Insert(pCurrentConfig.szName);
+			*pUniform = idx;
 		}
 
 		// Make sure our uniform data layout is aligned properly.

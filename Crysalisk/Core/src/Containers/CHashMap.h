@@ -15,37 +15,40 @@
 #include "Memory/MemoryManager.h"
 #include "Utils/Utils.h"
 
-namespace Utl {
-
-	template<typename K, typename V>
-	class CHashMap
+namespace Utl 
+{
+	// This is a hashmap that assumes a C-String for the key.
+	// This specialization is required because strings are compared differently from other types,
+	// and because most of our data is stored using strings for keys anyways.
+	template<typename V>
+	class CStringHashMap
 	{
 	public:
-		using Key = K;
 		using Value = V;
 
-		CHashMap()
+		CStringHashMap()
 			: m_Capacity{ 0 }
 			, m_ValueStride{ sizeof(Value) }
-			, m_KeyStride{ sizeof(Key) }
+			, m_KeyStride{ sizeof(const char*) }
 			, m_pKeys{ nullptr }
 			, m_pValues{ nullptr }
 		{
 			// Default constructor allocates nothing.
 		}
 
-		CHashMap(size_t initialCapacity)
+		CStringHashMap(size_t initialCapacity)
 			: m_Capacity{ initialCapacity }
 			, m_ValueStride{ sizeof(Value) }
+			, m_KeyStride{ sizeof(const char*) }
 			, m_pKeys{ nullptr }
 			, m_pValues{ nullptr }
 		{
 			// Allocate space for our data.
-			m_pKeys = (Key*)new Key[m_Capacity];
+			m_pKeys = (const char**)new const char*[m_Capacity];
 			m_pValues = (Value*) new Value[m_Capacity];
 		}
 
-		~CHashMap()
+		~CStringHashMap()
 		{
 			if (m_pKeys)
 				delete[] m_pKeys;
@@ -54,10 +57,32 @@ namespace Utl {
 				delete[] m_pValues;
 		}
 
-		Value& operator[](Key pKey)
+		Value& operator[](const char* pKey)
 		{
 			int hashedKey = SimpleHash_StringToInt(pKey, m_Capacity);
-			return m_pValues[hashedKey];
+			// Handle collisions here.
+			if (pKey && m_pKeys[hashedKey] && Utl::StringCompare(m_pKeys[hashedKey], pKey))
+			{
+				// We're good here.
+				return m_pValues[hashedKey];
+			}
+			else
+			{
+				// Perform linear probing to attempt to find the right key.
+				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				{
+					if (m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] && Utl::StringCompare(m_pKeys[(hashedKey + iProbeIdx) % m_Capacity], pKey))
+					{
+						// Found it.
+						return m_pValues[(hashedKey + iProbeIdx) % m_Capacity];
+					}
+				}
+			}
+
+			// We couldn't find our element.
+			// Attempt to add it to the table.
+			Value* pNewKey = Insert(pKey);
+			return *pNewKey;
 		}
 
 		/*Value operator[](const Key& pKey)
@@ -66,15 +91,30 @@ namespace Utl {
 			return m_pData[pKey];
 		}*/
 
-		Value* Insert(Key key)
+		Value* Insert(const char* key)
 		{
 			// TODO: We need a generic function here
 			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
 			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
 
-			// TODO: Check for collisions.
-			m_pKeys[hashedValue] = key;
-
+			if (m_pKeys[hashedValue] == nullptr)
+			{
+				m_pKeys[hashedValue] = key;
+			}
+			else
+			{
+				// Perform linear probing.
+				// This method should be fast enough since we typically store off hashed data for quick lookups anyways.
+				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				{
+					// We can use this slot.
+					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
+					{
+						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = key;
+						return &m_pValues[(hashedValue + iProbeIdx) % m_Capacity];
+					}
+				}
+			}
 			return &m_pValues[hashedValue];
 		}
 
@@ -83,7 +123,7 @@ namespace Utl {
 		{
 			// Allocate space for our data.
 			// TODO: Delete old data.
-			m_pKeys = (Key*)new Key[nNewCapacity];
+			m_pKeys = (const char**)new char*[nNewCapacity];
 			m_pValues = (Value*) new Value[nNewCapacity];
 			m_Capacity = nNewCapacity;
 		}
@@ -95,11 +135,10 @@ namespace Utl {
 		}
 
 	private:
-		size_t	m_Capacity;
-		size_t m_KeyStride;
-		size_t m_ValueStride;
-		Key* m_pKeys;
-		Value* m_pValues;
+		size_t			m_Capacity;
+		size_t			m_KeyStride;
+		size_t			m_ValueStride;
+		const char**	m_pKeys;
+		Value*			m_pValues;
 	};
-
-}
+} // namespace Utl
