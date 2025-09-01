@@ -193,6 +193,9 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 //-------------------------------------------------------------------------
 void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize)
 {
+	// Deduct the size from the count.
+	m_BytesAllocated -= dataSize;
+
 	// This only works for buffers that track their memory with a freelist.
 	if (!m_bUsesFreelist)
 	{

@@ -51,17 +51,25 @@ void TextObject::SetText(const char* pszText)
 	if (!pszText || Utl::StringLength(pszText) < 1)
 		return;
 
+	bool bCreateNewResources = (m_pszText == nullptr);
+
 	if (m_pszText)
 		Utl::StringFree(m_pszText);
 	m_pszText = Utl::StringDuplicate(pszText);
 
-	// Make sure to release the old renderer resources.
-	if (m_Geometry.vertexDataOffset != kInvalidID_U64)
-		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, m_Geometry);
-
 	// Get new geometry for our text.
 	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont);
-	g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
+	
+	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
+	// Otherwise, just update the existing data.
+	if (bCreateNewResources)
+	{
+		g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
+	}
+	else
+	{
+		g_pRenderer->UpdateGeometryResources(m_Geometry, newConfig);
+	}
 }
 
 //-------------------------------------------------------------------------

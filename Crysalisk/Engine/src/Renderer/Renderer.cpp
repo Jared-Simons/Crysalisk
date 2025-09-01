@@ -425,8 +425,8 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 
 //-------------------------------------------------------------------------
 // Purpose: Updates the vertex/index data associated with a piece of geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
 //			pGeometry - The geometry instance to be updated.
 //			pNewGeometryConfig - The new geometry data to overwrite the existing data.
 // Output:	none.
@@ -434,6 +434,22 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 void Renderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) 
 {
 	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+// 
+// NOTE: This method handles 2D geometry
+// TODO: Find a way to combine this and the above method.
+//-------------------------------------------------------------------------
+void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
+{
+	m_RendererBackend->UpdateGeometryResources(m_UIVertexBuffer, m_UIIndexBuffer, pGeometry, pNewGeometryConfig);
 }
 
 //-------------------------------------------------------------------------

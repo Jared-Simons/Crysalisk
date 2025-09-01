@@ -1690,8 +1690,8 @@ void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, Rend
 
 //-------------------------------------------------------------------------
 // Purpose: Updates the vertex/index data associated with a piece of geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
 //			pGeometry - The geometry instance to be updated.
 //			pNewGeometryConfig - The new geometry data to overwrite the existing data.
 // Output:	none.
@@ -1738,7 +1738,7 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 			LOG_WARN("UpdateGeometryResources was provided with a vertex buffer that does not use a freelist. There will be a memory leak.");
 
 			// Just allocate in a linear fashion.
-			pGeometry.vertexDataOffset = pInternalVertexBuffer->m_BufferUsage;
+			pGeometry.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
 		}
 		else
 		{
@@ -1769,7 +1769,7 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 	{
 		VulkanBuffer::Resize(s_VulkanContext, &stagingBuffer, iIndexDataSize);
 
-		// Upload the new vertex data to the staging buffer.
+		// Upload the new index data to the staging buffer.
 		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexDataSize, pNewGeometryConfig.Indices.Data());
 
 		// Create a command buffer to handle the upload.
@@ -1779,12 +1779,147 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 		if (bIndexReallocRequired)
 		{
 			// We need to free and reallocate the memory to fit this in.
-			if (!pInternalVertexBuffer->m_bUsesFreelist)
+			if (!pInternalIndexBuffer->m_bUsesFreelist)
 			{
 				LOG_WARN("UpdateGeometryResources was provided with an index buffer that does not use a freelist. There will be a memory leak.");
 
 				// Just allocate in a linear fashion.
-				pGeometry.indexDataOffset = pInternalIndexBuffer->m_BufferUsage;
+				pGeometry.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
+			}
+			else
+			{
+				pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pGeometry.indexDataOffset, pGeometry.indexCount * pGeometry.indexDataStride);
+
+				// Allocate from the freelist.
+				pGeometry.indexDataOffset = pInternalIndexBuffer->m_Freelist.Allocate(iIndexDataSize);
+			}
+
+			pGeometry.indexCount = pNewGeometryConfig.Indices.Count();
+			pGeometry.indexDataStride = pNewGeometryConfig.Indices.Stride();
+		}
+
+		// Copy the data to the device-local buffer.
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = 0;
+		copyRegion.size = iIndexDataSize;
+		copyRegion.dstOffset = pGeometry.indexDataOffset;
+		vkCmdCopyBuffer(commandBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
+
+		commandBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+	}
+	else
+	{
+		// If no index data is present in the new config, simply free the existing range.
+		if (pGeometry.indexCount != kInvalidID_U64)
+		{
+			pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pGeometry.indexDataOffset, pGeometry.indexCount);
+			pGeometry.indexCount = 0;
+			pGeometry.indexDataOffset = kInvalidID_U64;
+		}
+	}
+
+	// Destroy resources allocated for the upload.
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+// TODO: Find a way to combine this and the above method.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
+{
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+
+	VulkanCommandBuffer	commandBuffer{};
+
+	VulkanBuffer		stagingBuffer{};
+	size_t				iVertexDataSize = pNewGeometryConfig.Vertices.Count() * pNewGeometryConfig.Vertices.Stride();
+	size_t				iIndexDataSize = pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
+
+	bool				bVertexReallocRequired = pGeometry.vertexCount != pNewGeometryConfig.Vertices.Count();
+	bool				bIndexReallocRequired = (iIndexDataSize > 0) && pGeometry.indexCount != pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
+
+	// Vertex data is required.
+	if (iVertexDataSize < 1)
+	{
+		CAssert(0);
+	}
+
+	// Create a staging buffer for GPU upload.
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iVertexDataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer))
+	{
+		LOG_ERROR("Failed to create staging buffer for geometry update. Nothing was done.");
+		return;
+	}
+
+	// Upload the new vertex data to the staging buffer.
+	stagingBuffer.UploadDataRange(s_VulkanContext, iVertexDataSize, pNewGeometryConfig.Vertices.Data());
+
+	// Create a command buffer to handle the upload.
+	commandBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Free/allocate memory if needed, otherwise just overwrite the existing range.
+	if (bVertexReallocRequired)
+	{
+		// We need to free and reallocate the memory to fit this in.
+		if (!pInternalVertexBuffer->m_bUsesFreelist)
+		{
+			LOG_WARN("UpdateGeometryResources was provided with a vertex buffer that does not use a freelist. There will be a memory leak.");
+
+			// Just allocate in a linear fashion.
+			pGeometry.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
+		}
+		else
+		{
+			pInternalVertexBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * pGeometry.vertexDataStride);
+
+			// Allocate from the freelist.
+			pGeometry.vertexDataOffset = pInternalVertexBuffer->m_Freelist.Allocate(iVertexDataSize);
+		}
+
+		pGeometry.vertexCount = pNewGeometryConfig.Vertices.Count();
+		pGeometry.vertexDataStride = pNewGeometryConfig.Vertices.Stride();
+	}
+
+	// Copy the data to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.size = iVertexDataSize;
+	copyRegion.dstOffset = pGeometry.vertexDataOffset;
+	vkCmdCopyBuffer(commandBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
+
+	commandBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Clear out the staging buffer, in case we need to upload index data.
+	stagingBuffer.FreeDataRange(s_VulkanContext, 0, iVertexDataSize);
+
+	// Now handle the index data, if applicable.
+	if (iIndexDataSize > 0)
+	{
+		VulkanBuffer::Resize(s_VulkanContext, &stagingBuffer, iIndexDataSize);
+
+		// Upload the new index data to the staging buffer.
+		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexDataSize, pNewGeometryConfig.Indices.Data());
+
+		// Create a command buffer to handle the upload.
+		commandBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		// Free/allocate memory if needed, otherwise just overwrite the existing range.
+		if (bIndexReallocRequired)
+		{
+			// We need to free and reallocate the memory to fit this in.
+			if (!pInternalIndexBuffer->m_bUsesFreelist)
+			{
+				LOG_WARN("UpdateGeometryResources was provided with an index buffer that does not use a freelist. There will be a memory leak.");
+
+				// Just allocate in a linear fashion.
+				pGeometry.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
 			}
 			else
 			{
