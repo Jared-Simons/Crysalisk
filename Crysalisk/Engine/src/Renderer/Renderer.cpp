@@ -38,6 +38,9 @@ static Camera_t s_MainCamera;
 FontHandle_t	testFont;
 TextObject		testText;
 ShaderHandle_t	hUIShader{ kInvalidID_U32 };
+
+GeometryConfig_t testCubeConfig{};
+GeometryConfig_t testCubeConfig2{};
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -124,6 +127,10 @@ void Renderer::Shutdown()
 
 	// Release any heap allocations
 	m_SponzaModel.m_Geometries.Clear();
+	testCubeConfig.Vertices.Clear();
+	testCubeConfig.Indices.Clear();
+	testCubeConfig2.Vertices.Clear();
+	testCubeConfig2.Indices.Clear();
 }
 
 extern bool s_bLevelGeometryLoaded;
@@ -205,6 +212,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		// Bind the appropriate material.
 		g_pMaterialSystemInternal->ApplyMaterialInstance(m_TestCube.hMaterial);
 		DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
+		m_Metrics.NumDrawCalls++;
 
 		// Render the opaque geometry first.
 		model = Matrix4x4::Matrix4x4(1.0f);
@@ -416,13 +424,27 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) 
+{
+	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: A temporary function to create geometry for testing.
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
+	testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, -30 }, 32, 32, 32);
+	testCubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 	
 	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, testCubeConfig, m_TestCube))
 	{
@@ -479,8 +501,8 @@ bool Renderer::CreateTempGeometry()
 
 	m_SponzaModel.m_vecAbsOrigin = Vector3D(0.0f, 0.0f, 0.0f);
 	// TEMP!
+	// End test mesh.*/
 	s_bLevelGeometryLoaded = true;
-	// End test mesh.
 
 	// TEMP: Setup our test text.
 	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
@@ -541,6 +563,14 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		// Print the camera's position and angles.
 		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
+	}
+
+	if (data.c[0] == 'O')
+	{
+		// Geometry buffer update test.
+		static bool s_bCubeTest = false;
+		s_bCubeTest = !s_bCubeTest;
+		s_Renderer.UpdateGeometryResources(s_Renderer.m_WorldVertexBuffer, s_Renderer.m_WorldIndexBuffer, s_Renderer.m_TestCube, s_bCubeTest ? testCubeConfig2 : testCubeConfig);
 	}
 
 	if (data.c[0] >= 0  && data.c[0] <= 9)

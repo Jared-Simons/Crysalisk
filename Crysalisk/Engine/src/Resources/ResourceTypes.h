@@ -255,7 +255,7 @@ struct GeometryInstance_t
 	// The length in bytes of a single vertex used by this mesh.
 	size_t vertexDataStride{ kInvalidID_U64 };
 	// The number of indices in this mesh.
-	size_t indexDataSize{ kInvalidID_U64 };
+	size_t indexCount{ kInvalidID_U64 };
 	// The offset into the relevant index buffer that this mesh's index data begins.
 	size_t indexDataOffset{ kInvalidID_U64 };
 	// The length in bytes of a single index used by this mesh.

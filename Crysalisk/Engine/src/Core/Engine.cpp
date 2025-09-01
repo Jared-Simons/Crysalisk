@@ -201,14 +201,14 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
-
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
 
 	initializationClock.Update();
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
+
+	// Create temporary geometry.
+	g_pRenderer->CreateTempGeometry();
 
 	return true;
 }
