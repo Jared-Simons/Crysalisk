@@ -166,6 +166,8 @@ enum class eSamplerTypes
 	INVALID = -1,
 	LINEAR_REPEAT,
 
+	NEAREST_REPEAT,
+
 	MAX_TYPES,
 };
 

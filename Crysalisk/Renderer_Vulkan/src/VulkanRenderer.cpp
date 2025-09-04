@@ -1112,9 +1112,15 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 			// Always increment this counter.
 			repeatModeIdx++;
+
+			// Reset this when we start a new filter mode.
+			if (totalIdx == 0)
+			{
+				repeatModeIdx = 0;
+			}
 			// Only increment this guy at certain increments.
 			// TODO: Make this work.
-			//filterIdx++;
+			filterIdx++;
 		}
 	}
 
@@ -1325,9 +1331,9 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 
 		// Setup image samplers.
 		VkDescriptorImageInfo samplerInfo{};
-		samplerInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Just default to the first one.
+		samplerInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Only using the first sampler for now...
 
-		for (int sampIdx = 0; sampIdx < 3; sampIdx++)
+		for (int sampIdx = 0; sampIdx < pShader->m_iPerInstanceTextureCount; sampIdx++)
 		{
 			VkWriteDescriptorSet samplerDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 			samplerDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
@@ -1345,7 +1351,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)
 		{
 			VkDescriptorImageInfo imageDescriptor{};
-			imageDescriptor.sampler = pInternalShader->m_ImageSamplers[0];	// Only using the first sampler for now...
+			imageDescriptor.sampler = pInternalShader->m_ImageSamplers[1];	// Only using the first sampler for now...
 			imageDescriptor.imageView = m_pInternalTextureData[hDefaultWhiteTexture].m_Image.m_View;
 			imageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageDescriptors.PushBack(imageDescriptor);
@@ -1485,7 +1491,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		{
 			VkDescriptorImageInfo imageInfo{};
 			//imageInfo.sampler = pInternalShader->m_InstanceSamplers[iUniformArrayIndex];
-			imageInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Just using the first sampler for now.
+			imageInfo.sampler = pInternalShader->m_ImageSamplers[1];	// Just using the first sampler for now.
 			imageInfo.imageView = m_pInternalTextureData[imageIndex].m_Image.m_View;
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 

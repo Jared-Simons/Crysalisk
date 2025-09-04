@@ -243,7 +243,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->EndRenderpass();
 
-	/*if (testText.m_pszText != nullptr)
+	if (testText.m_pszText != nullptr)
 	{
 		m_RendererBackend->StartRenderpass(m_UIView);
 
@@ -255,7 +255,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
-	}*/
+	}
 
 	m_RendererBackend->EndFrame(pRenderData);
 
@@ -266,7 +266,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	char szMetricsString[512]{};
 	Utl::StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
 	// Set the string.
-	//testText.SetText(szMetricsString);
+	testText.SetText(szMetricsString);
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
@@ -518,11 +518,11 @@ bool Renderer::CreateTempGeometry()
 	s_bLevelGeometryLoaded = true;
 
 	// TEMP: Setup our test text.
-	/*hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
+	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
-	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!*/
+	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 	// END TEMP
 
 	return true;

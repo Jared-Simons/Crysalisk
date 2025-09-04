@@ -16,7 +16,6 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 view;
 } global_ubo;
 
-//layout(set = 1, binding = 1) uniform sampler2D textMap;
 layout(set = 1, binding = 1) uniform sampler textSampler;
 layout(set = 1, binding = 2) uniform texture2D textMap;
 
