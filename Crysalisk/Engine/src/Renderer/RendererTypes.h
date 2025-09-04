@@ -158,6 +158,17 @@ struct ShaderUniformConfig_t
 	}
 };
 
+//-------------------------------------------------------------------------
+// Purpose: The different types of renderbuffers.
+//-------------------------------------------------------------------------
+enum class eSamplerTypes
+{
+	INVALID = -1,
+	LINEAR_REPEAT,
+
+	MAX_TYPES,
+};
+
 // TODO: We shouldn't need to keep these around.
 enum class eKnownRenderpassType
 {

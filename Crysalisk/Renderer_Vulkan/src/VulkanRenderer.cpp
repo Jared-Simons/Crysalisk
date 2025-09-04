@@ -932,10 +932,10 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	colorBlendState.pAttachments = &colorBlendAttachment;
 
 	// Setup uniform resources
-	uint32_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include samplers.
-	uint32_t iPerFrameSamplerCount{ 0 };
-	uint32_t iPerMaterialUniformCount{ 0 };	// Note: Does not include samplers.
-	uint32_t iPerMaterialSamplerCount{ 0 };
+	uint32_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include images/textures.
+	uint32_t iPerFrameImageCount{ 0 };
+	uint32_t iPerMaterialUniformCount{ 0 };	// NOTE: Does not include images/textures.
+	uint32_t iPerMaterialImageCount{ 0 };
 	uint32_t iPerDrawUniformCount{ 0 };
 
 	for (int idx = 0; idx < pConfig.uniformConfigs.Count(); idx++)
@@ -948,7 +948,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 			}
 			else
 			{
-				iPerFrameSamplerCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+				iPerFrameImageCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
 		}
 		else if (pConfig.uniformConfigs[idx].eFrequency == eShaderUniformGroup::PER_MATERIAL)
@@ -959,7 +959,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 			}
 			else
 			{
-				iPerMaterialSamplerCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
+				iPerMaterialImageCount += (1 * pConfig.uniformConfigs[idx].iArraySize);
 			}
 		}
 		else
@@ -968,8 +968,11 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		}
 	}
 
+	// Store this off for later use.
+	pShader->m_iPerInstanceTextureCount = iPerMaterialImageCount;
+
 	// Descriptor pool
-	VkDescriptorPoolSize descriptorPoolSizes[2]{};
+	VkDescriptorPoolSize descriptorPoolSizes[3]{};
 	uint32_t			 descriptorPoolsNeeded{ 1 };
 
 	// Uniform buffer.
@@ -977,13 +980,16 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	descriptorPoolSizes[0].descriptorCount = kMaxVulkanInstances;
 
 	// Image samplers.
-	// TODO: SEPARATE SAMPLERS AND IMAGES.
-	descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	descriptorPoolSizes[1].descriptorCount = kMaxVulkanInstances;
+	descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+	descriptorPoolSizes[1].descriptorCount = (uint32_t)eSamplerTypes::MAX_TYPES;
 
-	// Only create a second descriptor pool if samplers will be used.
-	if (iPerFrameSamplerCount + iPerMaterialSamplerCount > 0)
-		descriptorPoolsNeeded++;
+	// Images.
+	descriptorPoolSizes[2].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	descriptorPoolSizes[2].descriptorCount = kMaxVulkanInstances;
+
+	// Only create the additional descriptor pools if images/samplers will be used.
+	if (iPerFrameImageCount + iPerMaterialImageCount > 0)
+		descriptorPoolsNeeded += 2;
 
 	VkDescriptorPoolCreateInfo descriptorPoolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	descriptorPoolInfo.maxSets = kMaxVulkanInstances;
@@ -1009,15 +1015,9 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		}
 
 		// Next is per-frame samplers, only needed if images are actually being used at the per-frame level.
-		if (iPerFrameSamplerCount > 0)
+		if (iPerFrameImageCount > 0)
 		{
-			VkDescriptorSetLayoutBinding perFrameSamplerBinding{};
-			perFrameSamplerBinding.binding = 1;
-			perFrameSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;	// TODO: Separate samplers and images
-			perFrameSamplerBinding.descriptorCount = 32; // TODO: MAKE THIS A CONST SOMEWHERE
-			perFrameSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-			perFrameDescriptorLayoutBindings.PushBack(perFrameSamplerBinding);
+			CASSERTMSG(0, "Crysalisk currently does not support images/samplers at the per-frame level.");
 		}
 
 		// Create the per-frame descriptor set layout.
@@ -1043,16 +1043,26 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 			perMaterialDescriptorLayoutBindings.PushBack(perMaterialUBOBinding);
 		}
 
-		// Next is per-material samplers, only needed if images are actually being used at the per-frame level.
-		if (iPerMaterialSamplerCount > 0)
+		// Next is per-material samplers, only needed if images are actually being used at the per-material level.
+		if (iPerMaterialImageCount > 0)
 		{
+			// First up, samplers.
 			VkDescriptorSetLayoutBinding perMaterialSamplerBinding{};
 			perMaterialSamplerBinding.binding = 1;
-			perMaterialSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;	// TODO: Separate samplers and images
-			perMaterialSamplerBinding.descriptorCount = iPerMaterialSamplerCount;
+			perMaterialSamplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			perMaterialSamplerBinding.descriptorCount = iPerMaterialImageCount;
 			perMaterialSamplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 			perMaterialDescriptorLayoutBindings.PushBack(perMaterialSamplerBinding);
+
+			// Now images.
+			VkDescriptorSetLayoutBinding perMaterialImageBinding{};
+			perMaterialImageBinding.binding = 2;
+			perMaterialImageBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+			perMaterialImageBinding.descriptorCount = iPerMaterialImageCount;
+			perMaterialImageBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			perMaterialDescriptorLayoutBindings.PushBack(perMaterialImageBinding);
 		}
 
 		// Create the per-material descriptor set layout.
@@ -1077,24 +1087,34 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	}
 
 	// Setup per-instance samplers.
-	if (iPerMaterialSamplerCount > 0)
+	if (iPerMaterialImageCount > 0)
 	{
-		pInternalShader->m_InstanceSamplers.Resize(iPerMaterialSamplerCount);
+		pInternalShader->m_ImageSamplers.Resize((uint32_t)eSamplerTypes::MAX_TYPES);
 
-		// TODO: Make this configurable.
-		VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-		samplerInfo.magFilter = samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = samplerInfo.addressModeV = samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable = VK_FALSE;
-		samplerInfo.maxAnisotropy = m_Device.m_DeviceProperties.limits.maxSamplerAnisotropy;
-		samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		for (unsigned int idx = 0; idx < iPerMaterialSamplerCount; idx++)
+		static VkFilter	s_FilterModes[2]				= { VK_FILTER_LINEAR, VK_FILTER_NEAREST };
+		static VkSamplerAddressMode	s_AddressModes[]	= { VK_SAMPLER_ADDRESS_MODE_REPEAT };
+
+		for (int totalIdx = 0, filterIdx = 0, repeatModeIdx = 0; totalIdx < (uint32_t)eSamplerTypes::MAX_TYPES; totalIdx++)
 		{
-			VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader->m_InstanceSamplers[idx]));
+			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+			samplerInfo.magFilter = samplerInfo.minFilter = s_FilterModes[filterIdx];
+			samplerInfo.addressModeU = samplerInfo.addressModeV = samplerInfo.addressModeW = s_AddressModes[repeatModeIdx];
+			samplerInfo.anisotropyEnable = VK_FALSE;
+			samplerInfo.maxAnisotropy = m_Device.m_DeviceProperties.limits.maxSamplerAnisotropy;
+			samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+			VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader->m_ImageSamplers[totalIdx]));
+			pInternalShader->m_ImageSamplers.SetCount(pInternalShader->m_ImageSamplers.Count() + 1); // TODO: This is not too clean...
+
+			// Always increment this counter.
+			repeatModeIdx++;
+			// Only increment this guy at certain increments.
+			// TODO: Make this work.
+			//filterIdx++;
 		}
 	}
 
@@ -1216,11 +1236,11 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 	if (pInternalShader->m_PipelineLayout)
 		vkDestroyPipelineLayout(m_Device.m_Device, pInternalShader->m_PipelineLayout, m_Allocator);
 
-	// Per-Instance samplers
-	for (int sampIdx = 0; sampIdx < pInternalShader->m_InstanceSamplers.Capacity(); sampIdx++)
+	// Image samplers
+	for (int sampIdx = 0; sampIdx < pInternalShader->m_ImageSamplers.Count(); sampIdx++)
 	{
-		if (pInternalShader->m_InstanceSamplers[sampIdx])
-			vkDestroySampler(m_Device.m_Device, pInternalShader->m_InstanceSamplers[sampIdx], m_Allocator);
+		if (pInternalShader->m_ImageSamplers[sampIdx])
+			vkDestroySampler(m_Device.m_Device, pInternalShader->m_ImageSamplers[sampIdx], m_Allocator);
 	}
 
 	// Uniform buffers
@@ -1275,6 +1295,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx]));
 
 		Utl::CVector<VkWriteDescriptorSet>	descriptorWrites{};
+		Utl::CVector<VkDescriptorImageInfo> samplerDescriptors{};
 		Utl::CVector<VkDescriptorImageInfo>	imageDescriptors{};
 		VkDescriptorBufferInfo				uboDescriptor{};
 
@@ -1302,23 +1323,39 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 			descriptorWrites.PushBack(uboDescriptorWrite);
 		}
 
+		// Setup image samplers.
+		VkDescriptorImageInfo samplerInfo{};
+		samplerInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Just default to the first one.
+
+		for (int sampIdx = 0; sampIdx < 3; sampIdx++)
+		{
+			VkWriteDescriptorSet samplerDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			samplerDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+			samplerDescriptorWrite.dstBinding = 1;
+			samplerDescriptorWrite.descriptorCount = 1;
+			samplerDescriptorWrite.dstArrayElement = sampIdx;
+			samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+			samplerDescriptorWrite.pImageInfo = &samplerInfo;
+			descriptorWrites.PushBack(samplerDescriptorWrite);
+		}
+
 		TextureHandle_t	hDefaultWhiteTexture = g_pTextureSystem->GetDefaultWhiteTexture();
 
-		// Allocate image samplers (if used), and point them at the default texture for now.
-		for (int imageIdx = 0; imageIdx < pInternalShader->m_InstanceSamplers.Capacity(); imageIdx++)
+		// Setup image descriptors, and point them at the default texture for now.
+		for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)
 		{
 			VkDescriptorImageInfo imageDescriptor{};
-			imageDescriptor.sampler = pInternalShader->m_InstanceSamplers[imageIdx];
+			imageDescriptor.sampler = pInternalShader->m_ImageSamplers[0];	// Only using the first sampler for now...
 			imageDescriptor.imageView = m_pInternalTextureData[hDefaultWhiteTexture].m_Image.m_View;
 			imageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageDescriptors.PushBack(imageDescriptor);
 
 			VkWriteDescriptorSet imageDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 			imageDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-			imageDescriptorWrite.dstBinding = 1;
+			imageDescriptorWrite.dstBinding = 2;
 			imageDescriptorWrite.descriptorCount = 1;
 			imageDescriptorWrite.dstArrayElement = imageIdx;
-			imageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			imageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 			imageDescriptorWrite.pImageInfo = &imageDescriptors.Back();
 			descriptorWrites.PushBack(imageDescriptorWrite);
 		}
@@ -1447,16 +1484,17 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 		{
 			VkDescriptorImageInfo imageInfo{};
-			imageInfo.sampler = pInternalShader->m_InstanceSamplers[iUniformArrayIndex];
+			//imageInfo.sampler = pInternalShader->m_InstanceSamplers[iUniformArrayIndex];
+			imageInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Just using the first sampler for now.
 			imageInfo.imageView = m_pInternalTextureData[imageIndex].m_Image.m_View;
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
 			descriptorWrite.dstSet = pInternalShader->m_DescriptorSets[hInstanceID].m_DescriptorSets[frameIdx];
-			descriptorWrite.dstBinding = 1; // Images always live at index 1.
+			descriptorWrite.dstBinding = 2; // Images always live at index 2.
 			descriptorWrite.dstArrayElement = iUniformArrayIndex;
 			descriptorWrite.descriptorCount = 1;
-			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 			descriptorWrite.pImageInfo = &imageInfo;
 
 			vkUpdateDescriptorSets(m_Device.m_Device, 1, &descriptorWrite, 0, nullptr);

@@ -188,6 +188,8 @@ public:
 	size_t						m_iPerInstanceUBOSize{ 0 };
 	// The alignment requirement for this shader's uniform buffers.
 	size_t						m_iUniformBufferAlignmentRequirement{ 0 };
+	// The number of textures this shader uses at the instance level.
+	size_t						m_iPerInstanceTextureCount{ 0 };
 };
 
 // A unique identifier for a material.

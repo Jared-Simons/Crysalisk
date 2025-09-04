@@ -22,6 +22,7 @@
 	expr
 #endif
 
+const int kMaxGlobalTextures = 32;
 const int kMaxVulkanInstances = 2048;
 
 class VulkanDevice
@@ -171,7 +172,7 @@ public:
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 	size_t					m_CurrentRendererFrame{ 0 };
 
-	Utl::CVector<VkSampler>		m_InstanceSamplers{};
+	Utl::CVector<VkSampler>		m_ImageSamplers{};
 	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
 };
 
