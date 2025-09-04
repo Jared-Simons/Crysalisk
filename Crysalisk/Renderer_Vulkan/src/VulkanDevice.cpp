@@ -20,14 +20,12 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice);
 bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pOutDevice)
 {
 	// Select physical device.
-	// TODO: Pass in a configuration from the front-end to query device features.
 	unsigned int physicalDeviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, nullptr);
 	Utl::CVector<VkPhysicalDevice> availableDevices(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, availableDevices.Data());
 
 	// For now, just grab the first discrete GPU.
-	// TODO: Perform more fine-grained selection based on requirements.
 	VkPhysicalDevice selectedDevice{ VK_NULL_HANDLE };
 	VkPhysicalDeviceProperties properties{};
 	for (unsigned int deviceIndex = 0; deviceIndex < physicalDeviceCount; deviceIndex++)

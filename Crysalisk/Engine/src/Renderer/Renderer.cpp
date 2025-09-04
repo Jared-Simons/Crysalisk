@@ -479,9 +479,6 @@ bool Renderer::CreateTempGeometry()
 	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
 
-	// TEMP MATERIALS
-	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
-
 	// Load any needed materials.
 	LOG_DEBUG("Acquiring material resources for sponza model.");
 	for (int idx = 0; idx < sponzaResource.pMaterials.Count(); idx++)

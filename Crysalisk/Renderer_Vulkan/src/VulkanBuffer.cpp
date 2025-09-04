@@ -55,7 +55,6 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 	{
 		// Set up our freelist.
 		pOutBuffer.m_Freelist.SetNumBytesToTrack(bufferSize);
-		// TODO: Add the option to have this memory owned/allocated by the freelist rather than passing it in.
 		size_t freelistMemoryRequirement = pOutBuffer.m_Freelist.GetInternalMemoryRequirement();
 		pOutBuffer.m_pFreelistMemory = new uint8_t[freelistMemoryRequirement];
 		pOutBuffer.m_Freelist.InitFreelist(pOutBuffer.m_pFreelistMemory);
