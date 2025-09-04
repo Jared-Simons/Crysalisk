@@ -54,7 +54,7 @@ public:
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) = 0;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSizet) = 0;
 };
 
 // Global interface to the font system context.

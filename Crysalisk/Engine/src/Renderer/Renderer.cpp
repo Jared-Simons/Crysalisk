@@ -625,8 +625,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 			LOG_INFO("Visualization mode set to tangent v - world space.");
 			break;
 		}
-
-		g_pShaderSystem->SetShaderUniform(0, 9, 0, 0, &data.c[0]); // TODO: Don't hardcode these things!
 	}
 	return false;
 

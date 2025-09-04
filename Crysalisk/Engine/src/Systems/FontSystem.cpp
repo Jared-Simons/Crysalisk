@@ -58,7 +58,7 @@ void TextObject::SetText(const char* pszText)
 	m_pszText = Utl::StringDuplicate(pszText);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont);
+	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
 	
 	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
 	// Otherwise, just update the existing data.
@@ -84,7 +84,7 @@ class CFontSystem : public IFontSystem
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -227,7 +227,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize)
 {
 	GeometryConfig2D_t			newConfig{};
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
@@ -238,7 +238,6 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	
 	unsigned int				iSurfaceWidth, iSurfaceHeight;
 	float						flPixelScaleFactor = 0.0f;
-	float						flTextSize = pTextObject.m_flTextSize; // TODO: Take this as input from the function.
 	Vector2D					vecCurPos = pTextObject.m_vecPos;
 
 	// Geometry data.

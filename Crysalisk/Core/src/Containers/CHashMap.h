@@ -7,7 +7,6 @@
 // 
 // TODO: Make this work with custom allocators.
 // TODO: Create an iterator for use with range-based for loops.
-// BIG TODO: This currently only hashes strings to ints, we need a more generic container.
 //=============================================================================
 #pragma once
 
@@ -93,7 +92,6 @@ namespace Utl
 
 		Value* Insert(const char* key)
 		{
-			// TODO: We need a generic function here
 			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
 			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
 
@@ -118,13 +116,36 @@ namespace Utl
 			return &m_pValues[hashedValue];
 		}
 
-		// TODO: This currently invalidates the whole container... fix this!
 		void Resize(size_t nNewCapacity)
 		{
+			// Only resize if we're trying to grow.
+			if (nNewCapacity < m_Capacity)
+			{
+				return;
+			}
+
 			// Allocate space for our data.
-			// TODO: Delete old data.
+			const char**	pOldKeys = m_pKeys;
+			Value*			pOldValues = m_pValues;
+			
 			m_pKeys = (const char**)new char*[nNewCapacity];
 			m_pValues = (Value*) new Value[nNewCapacity];
+
+			// Copy the existing data over.
+			if (pOldKeys)
+			{
+				Platform::MemoryCopy(m_pKeys, pOldKeys, sizeof(const char**) * m_Capacity);
+				delete[] pOldKeys;
+				pOldKeys = nullptr;
+			}
+
+			if (pOldValues)
+			{
+				Platform::MemoryCopy(m_pValues, pOldValues, sizeof(V) * m_Capacity);
+				delete[] pOldValues;
+				pOldValues = nullptr;
+			}
+
 			m_Capacity = nNewCapacity;
 		}
 
