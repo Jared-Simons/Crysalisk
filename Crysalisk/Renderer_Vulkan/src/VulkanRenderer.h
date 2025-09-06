@@ -14,13 +14,14 @@
 #include "VulkanTypes.h"
 
 #include <Containers/CVector.h>
-#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 class CVulkanRenderer : public IRendererBackend
 {
 public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
+
+	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
 
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
@@ -29,18 +30,15 @@ public:
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
-	virtual void	RenderTestUI(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
-	virtual bool	CreateRendererViewInternal(char* pszName, RendererView& pOutView) override;
+	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
-
-	virtual	bool	AcquireMaterialResources(class Material& pMaterial, struct MaterialInstanceData_t& pMaterialInstanceData) override; // TODO: Pass in shader as well
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;
@@ -57,6 +55,9 @@ public:
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
+
+	virtual void	UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
+	virtual void	UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
 
 	// NOTE: These are also temporary.
 	void DestroyDefaultGeometry();
@@ -81,12 +82,6 @@ public:
 
 	// Swapchain
 	VulkanSwapchain m_Swapchain{};
-
-	// Main Renderpass
-	VulkanRenderPass m_MainRenderPass{};
-
-	// UI Renderpass
-	VulkanRenderPass m_UIRenderPass{};
 
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };
@@ -126,5 +121,5 @@ extern IRendererBackend* g_pRendererBackend;
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pHWnd);
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow);
 }

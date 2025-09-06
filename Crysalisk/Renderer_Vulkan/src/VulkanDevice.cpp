@@ -20,14 +20,12 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice);
 bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pOutDevice)
 {
 	// Select physical device.
-	// TODO: Pass in a configuration from the front-end to query device features.
 	unsigned int physicalDeviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, nullptr);
 	Utl::CVector<VkPhysicalDevice> availableDevices(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, availableDevices.Data());
 
 	// For now, just grab the first discrete GPU.
-	// TODO: Perform more fine-grained selection based on requirements.
 	VkPhysicalDevice selectedDevice{ VK_NULL_HANDLE };
 	VkPhysicalDeviceProperties properties{};
 	for (unsigned int deviceIndex = 0; deviceIndex < physicalDeviceCount; deviceIndex++)
@@ -170,8 +168,6 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 //-------------------------------------------------------------------------
 VkFormat VulkanDevice::FindSupportedDepthFormat()
 {
-	// TODO: make this work when checking out device candidates, not just after selecting a device.
-	// TODO: make this more configurable.
 	Utl::CVector<VkFormat> formatCandidates{};
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT);
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT_S8_UINT);
@@ -214,7 +210,7 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 		LOG_VERBOSE("Searching for device extension: '%s'...", requiredExtensions[i]);
 		for (unsigned int j = 0; j < deviceExtensionCount; j++)
 		{
-			if (StringCompare(availableExtensions[j].extensionName, requiredExtensions[i]))
+			if (Utl::StringCompare(availableExtensions[j].extensionName, requiredExtensions[i]))
 			{
 				// Found the current extension
 				LOG_VERBOSE("Found!");

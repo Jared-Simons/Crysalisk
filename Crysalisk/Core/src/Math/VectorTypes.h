@@ -343,7 +343,6 @@ public:
 	}
 };
 
-
 class Vector4D
 {
 public:
@@ -363,11 +362,11 @@ public:
 		, z{ z_ }
 		, w{ w_ } {}
 
-	Vector4D(Vector3D& pOtherVec)
+	Vector4D(Vector4D& pOtherVec)
 		: x{ pOtherVec.x }
 		, y{ pOtherVec.y }
 		, z{ pOtherVec.z }
-		, w{ 0 } { }
+		, w{ pOtherVec.w } { }
 
 	void operator+(const float scalar)
 	{
@@ -401,7 +400,7 @@ public:
 		w = w / scalar;
 	}
 
-	Vector4D operator+( Vector4D& otherVector)
+	Vector4D operator+(Vector4D& otherVector)
 	{
 		Vector4D outVector{};
 		outVector.x = x + otherVector.x;
@@ -502,3 +501,42 @@ public:
 	}
 };
 
+class Quaternion
+{
+public:
+	float x;
+	float y;
+	float z;
+	float w;
+	Quaternion()
+		: x{ 0 }
+		, y{ 0 }
+		, z{ 0 }
+		, w{ 0 } {
+	}
+
+	Quaternion(float x_, float y_, float z_, float w_)
+		: x{ x_ }
+		, y{ y_ }
+		, z{ z_ }
+		, w{ w_ } {
+	}
+
+	Quaternion(Quaternion& pOtherQuat)
+		: x{ pOtherQuat.x }
+		, y{ pOtherQuat.y }
+		, z{ pOtherQuat.z }
+		, w{ pOtherQuat.w } {
+	}
+};
+
+// Quaternion operations.
+inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAngle)
+{
+	Quaternion outQuat{};
+	outQuat.x = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.x;
+	outQuat.y = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.y;
+	outQuat.z = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.z;
+	outQuat.w = M_COS_F(flAngle / 2.0f);
+	return outQuat;
+}

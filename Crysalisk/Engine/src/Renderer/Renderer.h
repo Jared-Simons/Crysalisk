@@ -10,10 +10,10 @@
 #include "Core/Logging.h"
 #include "Defines.h"
 #include "Resources/ResourceTypes.h"
-#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 // Forward Declarations
 class IRendererBackend;
+class Platform::IPlatformWindow;
 struct RenderPacket_t;
 
 //-------------------------------------------------------------------------
@@ -24,7 +24,7 @@ struct RendererConfig_t
 	// The application's name.
 	const char* szApplicationName;
 	// An opaque pointer to the window we'll be rendering to.
-	void* pHWnd;
+	Platform::IPlatformWindow* pMainWindow;
 	// A pointer to the loaded backend module.
 	Platform::ISysModule* pRendererBackendDLL;
 
@@ -63,11 +63,15 @@ public:
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer);
 
+	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig);
+	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig);
+
 	// Temp geometry stuff
 	bool	CreateTempGeometry();
 	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
+	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
 private:
 	IRendererBackend* m_RendererBackend{ nullptr };
@@ -77,7 +81,10 @@ private:
 
 	RenderMetrics_t	m_Metrics{};
 
-	// TODO: These are temporary...
+	// The current dimensions of the surface we are presenting to (usually a window).
+	unsigned int	m_iWindowWidth{ 0 };
+	unsigned int	m_iWindowHeight{ 0 };
+
 public:
 	RendererView		m_SceneView{};
 	RendererView		m_UIView{};
@@ -91,9 +98,7 @@ public:
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
 
-	GeometryInstance_t	m_Cube1{};
-	GeometryInstance_t	m_Cube2{};
-	GeometryInstance_t	m_Cube3{};
+	GeometryInstance_t	m_TestCube{};
 	Mesh				m_SponzaModel;
 };
 

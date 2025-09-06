@@ -40,13 +40,13 @@ namespace MeshLoader
 		}
 
 		// Grab the extension from the path.
-		char* pszFileExtension = StringGetFilenameExtension(pszMeshFileName);
+		char* pszFileExtension = Utl::StringGetFilenameExtension(pszMeshFileName);
 
-		if (StringCompare(pszFileExtension, ".cmodel_c"))
+		if (Utl::StringCompare(pszFileExtension, ".cmodel_c"))
 		{
 			LoadCModelMeshResource(pszMeshFileName, pOutResource);
 		}
-		else if (StringCompare(pszFileExtension, ".obj"))
+		else if (Utl::StringCompare(pszFileExtension, ".obj"))
 		{
 			LoadOBJMeshResource(pszMeshFileName, pOutResource);
 		}
@@ -57,7 +57,7 @@ namespace MeshLoader
 		}
 
 		// Free temp string data.
-		StringFree(pszFileExtension);
+		Utl::StringFree(pszFileExtension);
 
 		return true;
 	}
@@ -205,7 +205,7 @@ namespace MeshLoader
 			static int iTestInt = 0;
 
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hObjFile);
-			currentLineLength = StringLength(szCurrentLine);
+			currentLineLength = Utl::StringLength(szCurrentLine);
 
 			if (currentLineLength <= 0 || szCurrentLine[0] == '#') // Blank line or comment
 				continue;
@@ -219,7 +219,7 @@ namespace MeshLoader
 			case 'o':	// Objects
 				pOutResource.pObjects.PushBack(new MeshResource_t::GeometryGroup_t);
 				pCurrentObject = pOutResource.pObjects.Back();
-				pCurrentObject->pszDebugName = StringDuplicate(&szCurrentLine[2]);
+				pCurrentObject->pszDebugName = Utl::StringDuplicate(&szCurrentLine[2]);
 				nObjectsProcessed++;
 				break;
 
@@ -245,30 +245,31 @@ namespace MeshLoader
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
 				pCurrentGroup = pCurrentObject->pGroups.Back();
-				pCurrentGroup->pszDebugName = StringDuplicate(&szCurrentLine[2]);
+				if (pCurrentGroup)
+					pCurrentGroup->pszDebugName = Utl::StringDuplicate(&szCurrentLine[2]);
 				break;
 
 			case 'm':
 				// Material library file.
 
 				// Only load this once!
-				// TODO: This only accounts for a single material lib per .obj file!
+				// NOTE: This only accounts for a single material lib per .obj file.
 				if (!bLoadedMaterialLib)
 				{
-					pszMtlPath = StringDuplicate(pszMeshFileName);
+					pszMtlPath = Utl::StringDuplicate(pszMeshFileName);
 					CAssert(pszMtlPath);
-					mtlPathLength = StringLength(pszMtlPath);
+					mtlPathLength = Utl::StringLength(pszMtlPath);
 					pszMtlPath[mtlPathLength - 4] = '\0';
 
-					pszFormattedMtlPath = StringConcat(pszMtlPath, ".mtl");
+					pszFormattedMtlPath = Utl::StringConcat(pszMtlPath, ".mtl");
 
 					LoadOBJMaterialLibrary(pszFormattedMtlPath, pOutResource);
 
 					// Free the temp string data.
 					if (pszFormattedMtlPath)
-						StringFree(pszFormattedMtlPath);
+						Utl::StringFree(pszFormattedMtlPath);
 					if (pszMtlPath)
-						StringFree(pszMtlPath);
+						Utl::StringFree(pszMtlPath);
 
 					bLoadedMaterialLib = true;
 				}
@@ -362,8 +363,8 @@ namespace MeshLoader
 				}
 
 				CAssert(pCurrentGroup);
-				size_t spaceIdx = StringIndexOf(szCurrentLine, ' ');
-				pCurrentGroup->pszMaterialName = StringDuplicate(&szCurrentLine[spaceIdx + 1]);
+				size_t spaceIdx = Utl::StringIndexOf(szCurrentLine, ' ');
+				pCurrentGroup->pszMaterialName = Utl::StringDuplicate(&szCurrentLine[spaceIdx + 1]);
 				break;
 			}
 
@@ -383,8 +384,8 @@ namespace MeshLoader
 		// Write the resource out to our engine-specific format.
 
 		// Write it without the original extension
-		size_t dotIndex = StringIndexOf(pszMeshFileName, '.');
-		char* pTempNameBuffer = StringDuplicate_N(pszMeshFileName, dotIndex);
+		size_t dotIndex = Utl::StringIndexOf(pszMeshFileName, '.');
+		char* pTempNameBuffer = Utl::StringDuplicate_N(pszMeshFileName, dotIndex);
 		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
 
 		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
@@ -392,7 +393,7 @@ namespace MeshLoader
 			MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);
 		}
 
-		StringFree(pTempNameBuffer);
+		Utl::StringFree(pTempNameBuffer);
 
 		return true;
 	}
@@ -439,7 +440,7 @@ namespace MeshLoader
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hMtlFile);
 
 			szCurrentLine[bytesRead] = 0;
-			spaceIndex = StringIndexOf(szCurrentLine, ' ');
+			spaceIndex = Utl::StringIndexOf(szCurrentLine, ' ');
 			pFirstChar = szCurrentLine[0];
 			pSecondChar = szCurrentLine[1];
 
@@ -447,8 +448,8 @@ namespace MeshLoader
 			{
 				// Just in case the newline starts with a '\t'.
 				int startIndex = (szCurrentLine[0] == '\t') ? 1 : 0;
-				pKey = StringDuplicate_N(&szCurrentLine[startIndex], spaceIndex);
-				pValue = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+				pKey = Utl::StringDuplicate_N(&szCurrentLine[startIndex], spaceIndex);
+				pValue = Utl::StringDuplicate(&szCurrentLine[spaceIndex + 1]);
 			}
 
 			if (szCurrentLine[0] == '\t')
@@ -480,15 +481,15 @@ namespace MeshLoader
 						currentMaterialResource.~MaterialResource_t();
 					}
 					//LOG_INFO("New Material '%s'.", &szCurrentLine[spaceIndex]);
-					currentMaterialResource.pszMaterialName = StringDuplicate(&szCurrentLine[spaceIndex + 1]);
+					currentMaterialResource.pszMaterialName = Utl::StringDuplicate(&szCurrentLine[spaceIndex + 1]);
 
 					break;
 				}
 
 				case 's':	// Specular exponent.
 				{
-					currentMaterialResource.pszCustomKeys.PushBack(StringDuplicate("shininess"));
-					currentMaterialResource.pszCustomValues.PushBack(StringDuplicate(&szCurrentLine[spaceIndex + 1]));
+					currentMaterialResource.pszCustomKeys.PushBack(Utl::StringDuplicate("shininess"));
+					currentMaterialResource.pszCustomValues.PushBack(Utl::StringDuplicate(&szCurrentLine[spaceIndex + 1]));
 					break;
 				}
 				}
@@ -501,31 +502,35 @@ namespace MeshLoader
 				{
 				case 'a':
 				{
-					// TODO: Clean up this string parsing some...
+					char* pszTrimmedMapName = Utl::StringTrim(pKey);
 					// Diffuse map.
-					if (StringCompare(pKey, "map_Kd ") /* || StringCompare(pKey, "map_Ka ")*/)
+					if (Utl::StringCompare(pszTrimmedMapName, "map_Kd"))
 					{
-						//CAssert(currLine != 50);
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t diffuseMap{};
 						diffuseMap.eType = MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE;
-						diffuseMap.pszTextureName = StringDuplicate(pValue);
+						diffuseMap.pszTextureName = Utl::StringDuplicate(pValue);
 						currentMaterialResource.textureMapConfigs.PushBack(diffuseMap);
 					}
 					// Specular map.
-					else if (StringCompare(pKey, "map_Ks") || StringCompare(pKey, "map_Ks "))
+					else if (Utl::StringCompare(pszTrimmedMapName, "map_Ks"))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t specularMap{};
 						specularMap.eType = MaterialLoader::MaterialResource_t::eTextureType::SPECULAR;
-						specularMap.pszTextureName = StringDuplicate(pValue);
+						specularMap.pszTextureName = Utl::StringDuplicate(pValue);
 						currentMaterialResource.textureMapConfigs.PushBack(specularMap);
 					}
 					// Normal map.
-					else if (StringCompare(pKey, "map_Disp") || StringCompare(pKey, "map_Disp ") || StringCompare(pKey, "map_bump") || StringCompare(pKey, "map_bump "))
+					else if (Utl::StringCompare(pszTrimmedMapName, "map_Disp") || Utl::StringCompare(pszTrimmedMapName, "map_bump"))
 					{
 						MaterialLoader::MaterialResource_t::eTextureMapConfig_t normalMap{};
 						normalMap.eType = MaterialLoader::MaterialResource_t::eTextureType::NORMAL;
-						normalMap.pszTextureName = StringDuplicate(pValue);
+						normalMap.pszTextureName = Utl::StringDuplicate(pValue);
 						currentMaterialResource.textureMapConfigs.PushBack(normalMap);
+					}
+					if (pszTrimmedMapName)
+					{
+						Utl::StringFree(pszTrimmedMapName);
+						pszTrimmedMapName = nullptr;
 					}
 
 					break;
@@ -556,8 +561,8 @@ namespace MeshLoader
 
 			if (spaceIndex != kInvalidID_U32)
 			{
-				StringFree(pKey);
-				StringFree(pValue);
+				Utl::StringFree(pKey);
+				Utl::StringFree(pValue);
 			}
 
 			currLine++;
@@ -645,7 +650,7 @@ namespace MeshLoader
 			CAssert(!(vert0 == vert1));
 			CAssert(!(vert1 == vert2));
 			CAssert(!(vert0 == vert2));
-			if (M_ABS(dividend) < 1.192092896e-07f)	// TODO: Get an epsilon in here.
+			if (M_ABS(dividend) < kVectorElementEpsilon)
 			{
 				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
 				invalidTangentCount++;

@@ -28,11 +28,11 @@ namespace MeshSerializer
 		// Create and setup the file.
 
 		// Chop off the file extension.
-		size_t nameLength = StringLength(pszModelName);
-		size_t extensionLength = StringLength(kCModelFileExtension);
+		size_t nameLength = Utl::StringLength(pszModelName);
+		size_t extensionLength = Utl::StringLength(kCModelFileExtension);
 
 		char* pTempNameBuffer = new char[nameLength + extensionLength + 1];
-		StringFormat_V("%s%s", pTempNameBuffer, pszModelName, kCModelFileExtension);
+		Utl::StringFormat_V("%s%s", pTempNameBuffer, pszModelName, kCModelFileExtension);
 
 		FileHandle_t pCModelFileHandle{};
 		if (!FileSystem::OpenFile(pTempNameBuffer, eFileMode::FILEMODE_WRITE, true, &pCModelFileHandle))
@@ -88,8 +88,8 @@ namespace MeshSerializer
 				subMesh.iIndexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Stride();
 
 				// Material data.
-				subMesh.iSubmeshNameLength = StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
-				subMesh.iMaterialNameLength = StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
+				subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
+				subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
 
 				// Write the header, then the data.
 				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);

@@ -22,6 +22,7 @@
 	expr
 #endif
 
+const int kMaxGlobalTextures = 32;
 const int kMaxVulkanInstances = 2048;
 
 class VulkanDevice
@@ -74,18 +75,23 @@ class VulkanBuffer
 public:
 	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer);
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
+	static void		Resize(class CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, size_t iNewBufferSize);
 
 	size_t			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
 	void			FreeDataRange(class CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize);
 
 public:
-	VkBuffer		m_Handle{ VK_NULL_HANDLE };
-	VkDeviceMemory	m_Memory{ VK_NULL_HANDLE };
-	size_t	m_BufferSize{ 0 };
-	size_t	m_BytesAllocated{ 0 };
+	VkBuffer				m_Handle{ VK_NULL_HANDLE };
+	VkDeviceMemory			m_Memory{ VK_NULL_HANDLE };
+	VkMemoryPropertyFlags	m_MemoryProperties{};
+	VkBufferUsageFlags		m_BufferUsage{};
+
+	size_t					m_BufferSize{ 0 };
+	size_t					m_BytesAllocated{ 0 };
+	
 	bool			m_bUsesFreelist{ false };
 	Utl::CFreeList	m_Freelist{};
-	void* m_pFreelistMemory{ nullptr };
+	void*			m_pFreelistMemory{ nullptr };
 };
 
 class VulkanCommandBuffer
@@ -106,7 +112,7 @@ class VulkanSwapchain
 public:
 	static bool		CreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pOutSwapchain);
 	static void		DestroySwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
-	static bool		CreateFramebuffers(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
+	static bool		CreateFramebuffers(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain, class VulkanRenderPass* pMainRenderpass);
 	static void		RecreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
 
 public:
@@ -116,18 +122,15 @@ public:
 	VkFormat		m_DepthImageFormat{};
 	VkExtent2D		m_SwapchainExtent{};
 
-	Utl::CVector<VkImage> m_SwapchainImages{};
-	Utl::CVector<VkImageView> m_SwapchainImageViews{};
+	Utl::CVector<VkImage>		m_SwapchainImages{};
+	Utl::CVector<VkImageView>	m_SwapchainImageViews{};
 	Utl::CVector<VkFramebuffer> m_Framebuffers{};
-	class VulkanImage m_DepthImage{};
+	class VulkanImage			m_DepthImage{};
+	class VulkanRenderPass*		m_pFramebufferPass{ nullptr };
 };
 
 class VulkanRenderPass
 {
-public:
-	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, char* pszPassName, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
-	static void DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass);
-
 public:
 	VkRenderPass	m_Handle{ VK_NULL_HANDLE };
 	char*			m_pszPassName{ nullptr };
@@ -166,9 +169,8 @@ public:
 	int						m_NextFreeDescriptorSetIndex{ 0 };
 	size_t					m_CurrentRendererFrame{ 0 };
 
-	Utl::CVector<VkSampler>		m_InstanceSamplers{};
+	Utl::CVector<VkSampler>		m_ImageSamplers{};
 	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
-	GlobalUniformObject_t		m_UniformData{};
 };
 
 struct VulkanTextureInternal

@@ -64,7 +64,7 @@ private:
 	struct ShaderDictionary
 	{
 		// Allows for string-based lookups for shaders.
-		Utl::CHashMap<const char*, ShaderLookup>	m_ShaderLookup{};
+		Utl::CStringHashMap<ShaderLookup>			m_ShaderLookup{};
 		// An array of shaders.
 		Shader*										m_ShaderArray{ nullptr };
 	};
@@ -100,6 +100,12 @@ bool CShaderSystem::Initialize(ShaderSystemConfig_t config)
 
 	// Allocate memory for our shader array.
 	m_ShaderDictionary.m_ShaderArray = (Shader*)new Shader[m_Config.MaxShaders];
+
+	// Invalidate our shader lookup table.
+	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	{
+		m_ShaderDictionary.m_ShaderLookup.ValueElementAt(idx).ShaderIndex = kInvalidID_U32;
+	}
 
 	LOG_INFO("Shader system initialized! (Max shaders: %d)", config.MaxShaders);
 	return true;
@@ -147,7 +153,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Format the path string (TODO: Don't hardcode this path).
 		char szFormattedResourcePath[kScratchStringBufferLength];
-		StringFormat_V("%s/%s.cshadercfg", szFormattedResourcePath, "Assets/Shaders", pszShaderName);
+		Utl::StringFormat_V("%s/%s.cshadercfg", szFormattedResourcePath, "Assets/Shaders", pszShaderName);
 
 		// Load up a shader configuration from disk
 		if (!ShaderLoader::LoadShaderResource(szFormattedResourcePath, newShaderResource))
@@ -168,8 +174,8 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		ShaderConfig_t	newShaderConfig{};
 
 		// Copy over config data.
-		pShader->m_pszShaderName = StringDuplicate(newShaderResource.pszShaderName);
-		newShaderConfig.pszShaderName = StringDuplicate(newShaderResource.pszShaderName);
+		pShader->m_pszShaderName = Utl::StringDuplicate(newShaderResource.pszShaderName);
+		newShaderConfig.pszShaderName = Utl::StringDuplicate(newShaderResource.pszShaderName);
 		newShaderConfig.eTopologyTypes = GetTopologyTypeFromString(newShaderResource.pszTopologyType);
 		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
 		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;
@@ -184,18 +190,18 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newConfig.eStage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
 			newConfig.byteCode = newShaderResource.ShaderStages[stageIdx].pShaderModuleBytecode;
 			newConfig.iCodeSize = newShaderResource.ShaderStages[stageIdx].CodeDataSize;
-			//newConfig.pszModuleName = StringDuplicate(newShaderResource.ShaderStages[stageIdx].pszModuleName);
+			//newConfig.pszModuleName = Utl::StringDuplicate(newShaderResource.ShaderStages[stageIdx].pszModuleName);
 
 			newShaderConfig.moduleConfigs.PushBack(newConfig);
 			// FIXME: This works but the string duplicate above doesn't?? Some freelist issues still present here.
-			newShaderConfig.moduleConfigs[stageIdx].pszModuleName = StringDuplicate(newShaderResource.ShaderStages[stageIdx].pszModuleName);
+			newShaderConfig.moduleConfigs[stageIdx].pszModuleName = Utl::StringDuplicate(newShaderResource.ShaderStages[stageIdx].pszModuleName);
 		}
 
 		// Parse the vertex attribute data and stride.
 		for (int attribIdx = 0; attribIdx < newShaderResource.ShaderAttributes.Count(); attribIdx++)
 		{
 			VertexAttribute_t newAttribute = GetVertexAttributeDataFromString(newShaderResource.ShaderAttributes[attribIdx].pszType);
-			newAttribute.szName = StringDuplicate(newShaderResource.ShaderAttributes[attribIdx].pszName);
+			newAttribute.szName = Utl::StringDuplicate(newShaderResource.ShaderAttributes[attribIdx].pszName);
 
 			// Save the new attribute.
 			newShaderConfig.vertexAttributes.PushBack(newAttribute);
@@ -208,7 +214,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		for (int uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
 		{
 			ShaderUniformConfig_t newUniform = GetShaderAttributeFromString(newShaderResource.ShaderUniforms[uniformIdx].pszType, newShaderResource.ShaderUniforms[uniformIdx].pszFreq);
-			newUniform.szName = StringDuplicate(newShaderResource.ShaderUniforms[uniformIdx].pszName);
+			newUniform.szName = Utl::StringDuplicate(newShaderResource.ShaderUniforms[uniformIdx].pszName);
 			newUniform.iArraySize = newShaderResource.ShaderUniforms[uniformIdx].iArraySize;
 			newShaderConfig.uniformConfigs.PushBack(newUniform);
 
@@ -230,14 +236,14 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// TODO: Don't hardcode this.
 		newShaderConfig.m_pRendererView = g_pRenderer->m_SceneView;
-		if (StringCompare(pszShaderName, "Core.UI"))
+		if (Utl::StringCompare(pszShaderName, "Core.UI"))
 		{
 			newShaderConfig.m_pRendererView = g_pRenderer->m_UIView;
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
 		size_t uniformCount = newShaderResource.ShaderUniforms.Count();
-		pShader->m_UniformLookup.Resize(uniformCount * 3);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
+		pShader->m_UniformLookup.Resize(uniformCount * 2);	// Larger than necessary number to (hopefully!) avoid the chance of a hash collision.
 		pShader->m_iUniformCount = uniformCount;
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
 		uint32_t	iRunningPerFrameOffset{ 0 };
@@ -276,7 +282,8 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			pShader->m_pUniforms[idx].eType = pCurrentConfig.eType;
 			
 			// Store off the location.
-			pShader->m_UniformLookup[pCurrentConfig.szName] = idx;
+			int* pUniform = pShader->m_UniformLookup.Insert(pCurrentConfig.szName);
+			*pUniform = idx;
 		}
 
 		// Make sure our uniform data layout is aligned properly.
@@ -344,6 +351,19 @@ void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsig
 //-------------------------------------------------------------------------
 void CShaderSystem::BindShader(ShaderHandle_t hShader)
 {
+	// Don't bind an already bound shader!
+	if (m_hCurrentlyBoundShader == hShader)
+		return;
+
+	// If we're given an invalid ID, then consider this state stale.
+	// This usually happens because we need to re-bind the shader at least once a frame (these will NOT persist between frames).
+	// Usually, a frame will end by clearing out this state.
+	if (hShader == kInvalidID_U32)
+	{
+		m_hCurrentlyBoundShader = hShader;
+		return;
+	}
+
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader && pShader->m_iInternalHandle != kInvalidID_U32); // Don't try to bind a nonexistant shader!
 
@@ -431,11 +451,11 @@ static eShaderStage	GetShaderStageFromString(const char* pszString)
 	if (!pszString)
 		return eShaderStage::UNDEFINED;
 
-	if (StringCompareInsensitive(pszString, "Vertex") || StringCompareInsensitive(pszString, "Vert"))
+	if (Utl::StringCompareInsensitive(pszString, "Vertex") || Utl::StringCompareInsensitive(pszString, "Vert"))
 	{
 		return eShaderStage::VERTEX;
 	}
-	else if (StringCompareInsensitive(pszString, "Fragment") || StringCompareInsensitive(pszString, "Frag"))
+	else if (Utl::StringCompareInsensitive(pszString, "Fragment") || Utl::StringCompareInsensitive(pszString, "Frag"))
 	{
 		return eShaderStage::FRAGMENT;
 	}
@@ -456,11 +476,11 @@ static eShaderTopologyType GetTopologyTypeFromString(const char* pszString)
 	if (!pszString)
 		return SHADER_TOPOLOGY_TYPE_UNDEFINED;
 
-	if (StringCompareInsensitive(pszString, "triangle_list") || StringCompareInsensitive(pszString, "triangle"))
+	if (Utl::StringCompareInsensitive(pszString, "triangle_list") || Utl::StringCompareInsensitive(pszString, "triangle"))
 	{
 		return SHADER_TOPOLOGY_TYPE_TRIANGLE_LIST;
 	}
-	else if (StringCompareInsensitive(pszString, "line_list") || StringCompareInsensitive(pszString, "line"))
+	else if (Utl::StringCompareInsensitive(pszString, "line_list") || Utl::StringCompareInsensitive(pszString, "line"))
 	{
 		return SHADER_TOPOLOGY_TYPE_LINE_LIST;
 	}
@@ -480,32 +500,32 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 {
 	VertexAttribute_t attrib{};
 
-	if (StringCompareInsensitive(pszString, "int") || StringCompareInsensitive(pszString, "int32"))
+	if (Utl::StringCompareInsensitive(pszString, "int") || Utl::StringCompareInsensitive(pszString, "int32"))
 	{
 		attrib.type = ShaderAttribute_t::Int32;
 		attrib.stride = sizeof(int32_t);
 	}
-	else if (StringCompareInsensitive(pszString, "float") || StringCompareInsensitive(pszString, "float32"))
+	else if (Utl::StringCompareInsensitive(pszString, "float") || Utl::StringCompareInsensitive(pszString, "float32"))
 	{
 		attrib.type = ShaderAttribute_t::Float32;
 		attrib.stride = sizeof(float);
 	}
-	else if (StringCompareInsensitive(pszString, "vec2") || StringCompareInsensitive(pszString, "vector2d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec2") || Utl::StringCompareInsensitive(pszString, "vector2d"))
 	{
 		attrib.type = ShaderAttribute_t::Vector2;
 		attrib.stride = sizeof(Vector2D);
 	}
-	else if (StringCompareInsensitive(pszString, "vec3") || StringCompareInsensitive(pszString, "vector3d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec3") || Utl::StringCompareInsensitive(pszString, "vector3d"))
 	{
 		attrib.type = ShaderAttribute_t::Vector3;
 		attrib.stride = sizeof(Vector3D);
 	}
-	else if (StringCompareInsensitive(pszString, "vec4") || StringCompareInsensitive(pszString, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "vector4d"))
 	{
 		attrib.type = ShaderAttribute_t::Vector4;
 		attrib.stride = sizeof(Vector4D);
 	}
-	else if (StringCompareInsensitive(pszString, "mat4") || StringCompareInsensitive(pszString, "matrix4x4"))
+	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "matrix4x4"))
 	{
 		attrib.type = ShaderAttribute_t::Matrix4x4;
 		attrib.stride = sizeof(Matrix4x4);
@@ -530,37 +550,37 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	ShaderUniformConfig_t newUniformConfig{};
 
 	// Get the type and stride.
-	if (StringCompareInsensitive(pszAttributeStr, "int"))
+	if (Utl::StringCompareInsensitive(pszAttributeStr, "int"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Int32;
 		newUniformConfig.iStride = sizeof(int32_t);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "float32"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "float32"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Float32;
 		newUniformConfig.iStride = sizeof(float);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "vec2") || StringCompareInsensitive(pszAttributeStr, "vector2d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec2") || Utl::StringCompareInsensitive(pszAttributeStr, "vector2d"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector2;
 		newUniformConfig.iStride = sizeof(Vector2D);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "vec3") || StringCompareInsensitive(pszAttributeStr, "vector3d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec3") || Utl::StringCompareInsensitive(pszAttributeStr, "vector3d"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector3;
 		newUniformConfig.iStride = sizeof(Vector3D);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "vec4") || StringCompareInsensitive(pszAttributeStr, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec4") || Utl::StringCompareInsensitive(pszAttributeStr, "vector4d"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector4;
 		newUniformConfig.iStride = sizeof(Vector4D);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "mat4") || StringCompareInsensitive(pszAttributeStr, "matrix4x4"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "mat4") || Utl::StringCompareInsensitive(pszAttributeStr, "matrix4x4"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Matrix4x4;
 		newUniformConfig.iStride = sizeof(Matrix4x4);
 	}
-	else if (StringCompareInsensitive(pszAttributeStr, "texture") || StringCompareInsensitive(pszAttributeStr, "sampler"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "texture") || Utl::StringCompareInsensitive(pszAttributeStr, "sampler"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Sampler;
 		newUniformConfig.iStride = 0; // Samplers have no size.
@@ -569,19 +589,19 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	{
 		// This is possibly an opaque struct of variable size, check for that possibility here.
 		char* pszTempStringBuffer{ nullptr };
-		pszTempStringBuffer = StringDuplicate_N(pszAttributeStr, 6);
+		pszTempStringBuffer = Utl::StringDuplicate_N(pszAttributeStr, 6);
 
-		if (StringCompareInsensitive(pszTempStringBuffer, "struct"))
+		if (Utl::StringCompareInsensitive(pszTempStringBuffer, "struct"))
 		{
 			// We got a structure!
 			// Get the length in bytes.
-			size_t uniformDeclarationLength = StringLength(pszTempStringBuffer);
-			char* pszStructLength = StringDuplicate(&pszAttributeStr[7]); // index 7 to pass over the 'struct-' chars.
-			newUniformConfig.iStride = String_ATOI(pszStructLength);
+			size_t uniformDeclarationLength = Utl::StringLength(pszTempStringBuffer);
+			char* pszStructLength = Utl::StringDuplicate(&pszAttributeStr[7]); // index 7 to pass over the 'struct-' chars.
+			newUniformConfig.iStride = Utl::String_ATOI(pszStructLength);
 			newUniformConfig.eType = ShaderAttribute_t::GenericStructure;
 
 			if (pszStructLength)
-				StringFree(pszStructLength);
+				Utl::StringFree(pszStructLength);
 		}
 		else
 		{
@@ -593,19 +613,19 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 
 		// Free temp string data.
 		if (pszTempStringBuffer)
-			StringFree(pszTempStringBuffer);
+			Utl::StringFree(pszTempStringBuffer);
 	}
 
 	// Get the uniform group.
-	if (StringCompareInsensitive(pszGroupStr, "frame"))
+	if (Utl::StringCompareInsensitive(pszGroupStr, "frame"))
 	{
 		newUniformConfig.eFrequency = eShaderUniformGroup::PER_FRAME;
 	}
-	else if (StringCompareInsensitive(pszGroupStr, "material"))
+	else if (Utl::StringCompareInsensitive(pszGroupStr, "material"))
 	{
 		newUniformConfig.eFrequency = eShaderUniformGroup::PER_MATERIAL;
 	}
-	else if (StringCompareInsensitive(pszGroupStr, "draw"))
+	else if (Utl::StringCompareInsensitive(pszGroupStr, "draw"))
 	{
 		newUniformConfig.eFrequency = eShaderUniformGroup::PER_DRAW;
 	}
@@ -653,15 +673,15 @@ static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute)
 //-------------------------------------------------------------------------
 static eShaderUniformGroup GetShaderUniformGroupFromString(const char* pszString)
 {
-	if (StringCompareInsensitive(pszString, "frame"))
+	if (Utl::StringCompareInsensitive(pszString, "frame"))
 	{
 		return eShaderUniformGroup::PER_FRAME;
 	}
-	else if (StringCompareInsensitive(pszString, "material"))
+	else if (Utl::StringCompareInsensitive(pszString, "material"))
 	{
 		return eShaderUniformGroup::PER_MATERIAL;
 	}
-	else if (StringCompareInsensitive(pszString, "draw"))
+	else if (Utl::StringCompareInsensitive(pszString, "draw"))
 	{
 		return eShaderUniformGroup::PER_DRAW;
 	}

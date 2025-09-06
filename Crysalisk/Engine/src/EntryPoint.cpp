@@ -13,7 +13,6 @@
 //-------------------------------------------------------------------------
 DLL_EXPORT int main()
 {
-	// TODO: This should be handled by the application config.
 	EngineConfig_t engineConfig;
 	engineConfig.isHeadless = false;
 

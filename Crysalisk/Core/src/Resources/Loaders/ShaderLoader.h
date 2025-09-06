@@ -40,30 +40,30 @@ namespace ShaderLoader
 			ShaderStageResource_t(const ShaderStageResource_t& pOther)
 			{
 				if (pOther.pszStageString)
-					pszStageString = StringDuplicate(pOther.pszStageString);
+					pszStageString = Utl::StringDuplicate(pOther.pszStageString);
 				CodeDataSize = pOther.CodeDataSize;
 				pShaderModuleBytecode = pOther.pShaderModuleBytecode;
 				if (pOther.pszModuleName)
-					pszModuleName = StringDuplicate(pOther.pszModuleName);
+					pszModuleName = Utl::StringDuplicate(pOther.pszModuleName);
 			}
 
 			ShaderStageResource_t& operator=(const ShaderStageResource_t& pOther)
 			{
 				if (pOther.pszStageString)
-					pszStageString = StringDuplicate(pOther.pszStageString);
+					pszStageString = Utl::StringDuplicate(pOther.pszStageString);
 				CodeDataSize = pOther.CodeDataSize;
 				pShaderModuleBytecode = pOther.pShaderModuleBytecode;
 				if (pOther.pszModuleName)
-					pszModuleName = StringDuplicate(pOther.pszModuleName);
+					pszModuleName = Utl::StringDuplicate(pOther.pszModuleName);
 
 				return *this;
 			}
 
 			~ShaderStageResource_t()
 			{
-				StringFree(pszStageString);
+				Utl::StringFree(pszStageString);
 				if (pszModuleName)
-					StringFree(pszModuleName);
+					Utl::StringFree(pszModuleName);
 
 				pszModuleName = nullptr;
 			}
@@ -82,19 +82,19 @@ namespace ShaderLoader
 			ShaderVertexAttributeConfig_t(const ShaderVertexAttributeConfig_t& pOther)
 			{
 				if (pOther.pszName)
-					pszName = StringDuplicate(pOther.pszName);
+					pszName = Utl::StringDuplicate(pOther.pszName);
 
 				if (pOther.pszType)
-					pszType = StringDuplicate(pOther.pszType);
+					pszType = Utl::StringDuplicate(pOther.pszType);
 			}
 
 			ShaderVertexAttributeConfig_t& operator=(const ShaderVertexAttributeConfig_t& pOther)
 			{
 				if (pOther.pszName)
-					pszName = StringDuplicate(pOther.pszName);
+					pszName = Utl::StringDuplicate(pOther.pszName);
 
 				if (pOther.pszType)
-					pszType = StringDuplicate(pOther.pszType);
+					pszType = Utl::StringDuplicate(pOther.pszType);
 
 				return *this;
 			}
@@ -102,10 +102,10 @@ namespace ShaderLoader
 			~ShaderVertexAttributeConfig_t()
 			{
 				if (pszName)
-					StringFree(pszName);
+					Utl::StringFree(pszName);
 
 				if (pszType)
-					StringFree(pszType);
+					Utl::StringFree(pszType);
 			}
 		};
 
@@ -126,13 +126,13 @@ namespace ShaderLoader
 			ShaderUniformConfig_t(const ShaderUniformConfig_t& pOther)
 			{
 				if (pOther.pszName)
-					pszName = StringDuplicate(pOther.pszName);
+					pszName = Utl::StringDuplicate(pOther.pszName);
 
 				if (pOther.pszType)
-					pszType = StringDuplicate(pOther.pszType);
+					pszType = Utl::StringDuplicate(pOther.pszType);
 
 				if (pOther.pszFreq)
-					pszFreq = StringDuplicate(pOther.pszFreq);
+					pszFreq = Utl::StringDuplicate(pOther.pszFreq);
 
 				iArraySize = pOther.iArraySize;
 			}
@@ -140,13 +140,13 @@ namespace ShaderLoader
 			ShaderUniformConfig_t& operator=(const ShaderUniformConfig_t& pOther)
 			{
 				if (pOther.pszName)
-					pszName = StringDuplicate(pOther.pszName);
+					pszName = Utl::StringDuplicate(pOther.pszName);
 
 				if (pOther.pszType)
-					pszType = StringDuplicate(pOther.pszType);
+					pszType = Utl::StringDuplicate(pOther.pszType);
 
 				if (pOther.pszFreq)
-					pszFreq = StringDuplicate(pOther.pszFreq);
+					pszFreq = Utl::StringDuplicate(pOther.pszFreq);
 
 				iArraySize = pOther.iArraySize;
 
@@ -156,13 +156,13 @@ namespace ShaderLoader
 			~ShaderUniformConfig_t()
 			{
 				if (pszName)
-					StringFree(pszName);
+					Utl::StringFree(pszName);
 
 				if (pszType)
-					StringFree(pszType);
+					Utl::StringFree(pszType);
 
 				if (pszFreq)
-					StringFree(pszFreq);
+					Utl::StringFree(pszFreq);
 			}
 		};
 
@@ -184,7 +184,7 @@ namespace ShaderLoader
 		~ShaderResource_t()
 		{
 			if (pszShaderName)
-				StringFree(pszShaderName);
+				Utl::StringFree(pszShaderName);
 		}
 	};
 }

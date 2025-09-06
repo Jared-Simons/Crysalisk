@@ -9,6 +9,7 @@
 #include "Defines.h"
 
 #include <Containers/CFreeList.h>
+#include <Containers/CVector.h>
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
 #include <Strings/String_Utils.h>
@@ -31,40 +32,6 @@ struct RenderMetrics_t
 	double	FrameTime{ 0.0 };
 	// The number of individual draw calls made this frame.
 	int		NumDrawCalls{ 0 };
-};
-
-//-------------------------------------------------------------------------
-// Purpose: Per-frame data used in shaders.
-//-------------------------------------------------------------------------
-struct GlobalUniformObject_t
-{
-	// Projection matrix.
-	Matrix4x4	Projection;
-	// View matrix.
-	Matrix4x4	View;
-	// The current view position.
-	Vector4D	ViewPos;
-	// The position of the directional light. TODO: We don't need this at all.
-	Vector3D	DirLightPos;
-	// The current render visualization mode.
-	int			RenderMode;
-	Vector3D	Reserved1; // NOTE: All of these exist so we can be aligned with Instance uniforms in the buffer. (My GPU needs these to be aligned to 64 bytes).
-	Vector3D	Reserved2; 
-	Vector2D	Reserved3;
-};
-
-//-------------------------------------------------------------------------
-// Purpose: Per-instance data used in shaders.
-//-------------------------------------------------------------------------
-struct MaterialInstanceData_t
-{
-	// The shininess factor of a material.
-	float		Shininess;
-	// The diffuse tint of a material.
-	Vector3D	vecDiffuseColor;
-	Vector4D	Reserved0;
-	Vector4D	Reserved2;
-	Vector4D	Reserved3;
 };
 
 //-------------------------------------------------------------------------
@@ -103,7 +70,7 @@ struct VertexAttribute_t
 	VertexAttribute_t(const VertexAttribute_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		type = pOther.type;
 		stride = pOther.stride;
 	}
@@ -111,7 +78,7 @@ struct VertexAttribute_t
 	VertexAttribute_t& operator=(const VertexAttribute_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		type = pOther.type;
 		stride = pOther.stride;
 
@@ -121,7 +88,7 @@ struct VertexAttribute_t
 	~VertexAttribute_t()
 	{
 		if (szName)
-			StringFree(szName);
+			Utl::StringFree(szName);
 	}
 };
 
@@ -164,7 +131,7 @@ struct ShaderUniformConfig_t
 	ShaderUniformConfig_t(const ShaderUniformConfig_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		else
 			szName = nullptr;
 		eType = pOther.eType;
@@ -176,7 +143,7 @@ struct ShaderUniformConfig_t
 	ShaderUniformConfig_t& operator=(const ShaderUniformConfig_t& pOther)
 	{
 		if (pOther.szName)
-			szName = StringDuplicate(pOther.szName);
+			szName = Utl::StringDuplicate(pOther.szName);
 		eType = pOther.eType;
 		eFrequency = pOther.eFrequency;
 		iStride = pOther.iStride;
@@ -188,15 +155,21 @@ struct ShaderUniformConfig_t
 	~ShaderUniformConfig_t()
 	{
 		if (szName)
-			StringFree(szName);
+			Utl::StringFree(szName);
 	}
 };
 
-// TODO: We shouldn't need to keep these around.
-enum class eKnownRenderpassType
+//-------------------------------------------------------------------------
+// Purpose: The different types of renderbuffers.
+//-------------------------------------------------------------------------
+enum class eSamplerTypes
 {
-	WORLD,
-	UI
+	INVALID = -1,
+	LINEAR_REPEAT,
+
+	NEAREST_REPEAT,
+
+	MAX_TYPES,
 };
 
 //-------------------------------------------------------------------------
@@ -226,11 +199,48 @@ public:
 };
 
 //-------------------------------------------------------------------------
+// Purpose: The different types of renderer view attachments.
+//-------------------------------------------------------------------------
+enum class eRendererViewAttachmentType
+{
+	UNDEFINED = -1,
+
+	// This attachment will be used to store color information.
+	COLOR,
+	// This attachment will be used to store depth information.
+	DEPTH
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Represents configuration for a renderer view attachment.
+//-------------------------------------------------------------------------
+struct RendererViewAttachmentConfig_t
+{
+	// The type of attachment.
+	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
+	// Whether or not this attachment should be cleared prior to rendering.
+	bool						bShouldClear{ false };
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Represents configuration for a renderer view.
+//-------------------------------------------------------------------------
+struct RendererViewConfig_t
+{
+	// The name of this render view.
+	char*											m_pszViewName{ nullptr };
+	// A list of attachments associated with this view.
+	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
+};
+
+//-------------------------------------------------------------------------
 // Purpose: A generic renderer view (internally a renderpass).
 //-------------------------------------------------------------------------
 class RendererView
 {
 public:
+	// The name of this render view.
+	char* m_pszViewName{ nullptr };
 	// Indicates if the renderer view should clear it's render target before rendering.
 	bool	m_bShouldClear{ false };
 	// A pointer to the internal data of the buffer.

@@ -41,14 +41,14 @@ namespace MaterialLoader
 			eTextureMapConfig_t(const eTextureMapConfig_t& pOther)
 			{
 				if (pOther.pszTextureName)
-					pszTextureName = StringDuplicate(pOther.pszTextureName);
+					pszTextureName = Utl::StringDuplicate(pOther.pszTextureName);
 				eType = pOther.eType;
 			}
 
 			eTextureMapConfig_t& operator=(const eTextureMapConfig_t& pOther)
 			{
 				if (pOther.pszTextureName)
-					pszTextureName = StringDuplicate(pOther.pszTextureName);
+					pszTextureName = Utl::StringDuplicate(pOther.pszTextureName);
 				eType = pOther.eType;
 
 				return *this;
@@ -57,7 +57,7 @@ namespace MaterialLoader
 			~eTextureMapConfig_t()
 			{
 				if (pszTextureName)
-					StringFree(pszTextureName);
+					Utl::StringFree(pszTextureName);
 			}
 		};
 
@@ -76,10 +76,10 @@ namespace MaterialLoader
 		MaterialResource_t(const MaterialResource_t& pOther)
 		{
 			if (pOther.pszMaterialName)
-				pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+				pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
 
 			if (pOther.pszShaderName)
-				pszShaderName = StringDuplicate(pOther.pszShaderName);
+				pszShaderName = Utl::StringDuplicate(pOther.pszShaderName);
 
 			textureMapConfigs = pOther.textureMapConfigs;
 			pszCustomKeys = pOther.pszCustomKeys;
@@ -89,10 +89,10 @@ namespace MaterialLoader
 		MaterialResource_t& operator=(const MaterialResource_t& pOther)
 		{
 			if (pOther.pszMaterialName)
-				pszMaterialName = StringDuplicate(pOther.pszMaterialName);
+				pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
 
 			if (pOther.pszShaderName)
-				pszShaderName = StringDuplicate(pOther.pszShaderName);
+				pszShaderName = Utl::StringDuplicate(pOther.pszShaderName);
 
 			textureMapConfigs = pOther.textureMapConfigs;
 			pszCustomKeys = pOther.pszCustomKeys;
@@ -104,10 +104,10 @@ namespace MaterialLoader
 		~MaterialResource_t()
 		{
 			if (pszMaterialName)
-				StringFree(pszMaterialName);
+				Utl::StringFree(pszMaterialName);
 
 			if (pszShaderName)
-				StringFree(pszShaderName);
+				Utl::StringFree(pszShaderName);
 
 			textureMapConfigs.Clear();
 

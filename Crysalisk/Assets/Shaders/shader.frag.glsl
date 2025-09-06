@@ -57,11 +57,12 @@ layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 const int SAMP_DIFFUSE = 0;
 const int SAMP_SPECULAR = 1;
 const int SAMP_NORMAL = 2;
-layout(set = 1, binding = 1) uniform sampler2D samplers[3];
+layout(set = 1, binding = 1) uniform sampler samplers[3];
+layout(set = 1, binding = 2) uniform texture2D textures[3];
 
 // Light calculations.
-vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir);
-vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir, vec3 diffuseSample, vec3 specularSample);
+vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseSample, vec3 specularSample);
 
 void main()
 {
@@ -75,19 +76,20 @@ void main()
 	vec3 vecViewDir = normalize(global_ubo.viewPos - fsInput.FragPos);
 
 	// Get a normal from the normal map.
-	vec3 normalMapSamp = 2.0 * texture(samplers[SAMP_NORMAL], fsInput.TexCoord).rgb - 1.0;
+	vec3 normalMapSamp = 2.0 * texture(sampler2D(textures[SAMP_NORMAL], samplers[SAMP_NORMAL]), fsInput.TexCoord).rgb - 1.0;
 	normal = normalize(TBN * normalMapSamp);
 
-	vec4 diffuseSample = texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord);
+	vec4 diffuseSample = texture(sampler2D(textures[SAMP_DIFFUSE], samplers[SAMP_DIFFUSE]), fsInput.TexCoord);
+	vec4 specularSample = texture(sampler2D(textures[SAMP_SPECULAR], samplers[SAMP_SPECULAR]), fsInput.TexCoord);
 
-	vec3 lightingResult = CalculateDirectionalLight(normal, vecViewDir);
+	vec3 lightingResult = CalculateDirectionalLight(normal, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 
 	// Point light tests.
 	{
-		lightingResult += CalculatePointLight(global_ubo.pointLight1, normal, fsInput.FragPos, vecViewDir);
-		lightingResult += CalculatePointLight(global_ubo.pointLight2, normal, fsInput.FragPos, vecViewDir);
-		lightingResult += CalculatePointLight(global_ubo.pointLight3, normal, fsInput.FragPos, vecViewDir);
-		lightingResult += CalculatePointLight(global_ubo.pointLight4, normal, fsInput.FragPos, vecViewDir);
+		lightingResult += CalculatePointLight(global_ubo.pointLight1, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
+		lightingResult += CalculatePointLight(global_ubo.pointLight2, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
+		lightingResult += CalculatePointLight(global_ubo.pointLight3, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
+		lightingResult += CalculatePointLight(global_ubo.pointLight4, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 	}
 	
 	if (global_ubo.renderMode == 1)	// Fullbright.
@@ -101,8 +103,8 @@ void main()
 	if (global_ubo.renderMode == 5) // Normals - tangent space.
 	{
 		// Use a sample from the normal map.
-		vec4 normal4 = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
-		outColor = vec4(normal4.xyz, 1.0);
+		//vec4 normal4 = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
+		//outColor = vec4(normal4.xyz, 1.0);
 		return;
 	}
 	else if (global_ubo.renderMode == 6) // Normals - world space.
@@ -130,7 +132,7 @@ void main()
 	outColor = vec4(lightingResult, diffuseSample.a);	// Use the diffuse sample for alpha-blending.
 }
 
-vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
+vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir, vec3 diffuseSample, vec3 specularSample)
 {
 	vec3 vecLightDir = normalize(-global_ubo.dirLight.vecDirection);
 
@@ -145,10 +147,6 @@ vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 	vec3 ambientLight = global_ubo.dirLight.ambientLightColor * global_ubo.dirLight.flAmbientStrength;
 	vec3 diffuseLight = global_ubo.dirLight.lightColor * flDiffuseFactor;
 	vec3 specularLight = global_ubo.dirLight.lightColor * flSpecularFactor;
-
-	// Multiply in texture samples.
-	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
-	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
 	
 	// Don't include diffuse texture data when using debug-lighting modes.
 	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)
@@ -172,7 +170,7 @@ vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir)
 	return ambientLight + diffuseLight + specularLight;
 }
 
-vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseSample, vec3 specularSample)
 {
 	vec3 vecLightDir = normalize(pLight.vecPosition - fragPos);
 
@@ -194,10 +192,6 @@ vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 vi
 	// Apply attenuation.
 	diffuseLight *= flAttenuation;
 	specularLight *= flAttenuation;
-
-	// Multiply in texture samples.
-	vec3 diffuseSample = vec3(texture(samplers[SAMP_DIFFUSE], fsInput.TexCoord));
-	vec3 specularSample = vec3(texture(samplers[SAMP_SPECULAR], fsInput.TexCoord));
 
 	// Don't include diffuse texture data when using debug-lighting modes.
 	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)

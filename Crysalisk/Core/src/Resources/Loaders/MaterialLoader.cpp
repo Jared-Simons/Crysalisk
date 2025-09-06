@@ -46,55 +46,55 @@ namespace MaterialLoader
 			char	szValue[500];
 			
 			FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &hMaterialConfigFile);
-			currentLineLength = StringLength(szCurrentLine);
+			currentLineLength = Utl::StringLength(szCurrentLine);
 
 			if (currentLineLength <= 0 || szCurrentLine[0] == '#') // Blank line or comment
 				continue;
 
-			equalIndex = StringIndexOf(szCurrentLine, '=');
+			equalIndex = Utl::StringIndexOf(szCurrentLine, '=');
 			CAssert(equalIndex != kInvalidID_U32);
 			Platform::MemoryCopy(szKey, szCurrentLine, equalIndex);
 			szKey[equalIndex] = '\0';
 			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
 			szValue[bytesRead - 1] = '\0';
 
-			if (StringCompare(szKey, "name"))
+			if (Utl::StringCompare(szKey, "name"))
 			{
-				pOutResource.pszMaterialName = StringDuplicate(szValue);
+				pOutResource.pszMaterialName = Utl::StringDuplicate(szValue);
 			}
-			else if (StringCompare(szKey, "shader"))
+			else if (Utl::StringCompare(szKey, "shader"))
 			{
-				pOutResource.pszShaderName = StringDuplicate(szValue);
+				pOutResource.pszShaderName = Utl::StringDuplicate(szValue);
 			}
-			else if (StringCompare(szKey, "map_diffuse"))
+			else if (Utl::StringCompare(szKey, "map_diffuse"))
 			{
 				// Diffuse texture map.
 				MaterialResource_t::eTextureMapConfig_t diffuseMap{};
-				diffuseMap.pszTextureName = StringDuplicate(szValue);
+				diffuseMap.pszTextureName = Utl::StringDuplicate(szValue);
 				diffuseMap.eType = MaterialResource_t::eTextureType::DIFFUSE;
 				pOutResource.textureMapConfigs.PushBack(diffuseMap);
 			}
-			else if (StringCompare(szKey, "map_specular"))
+			else if (Utl::StringCompare(szKey, "map_specular"))
 			{
 				// Specular texture map.
 				MaterialResource_t::eTextureMapConfig_t specularMap{};
-				specularMap.pszTextureName = StringDuplicate(szValue);
+				specularMap.pszTextureName = Utl::StringDuplicate(szValue);
 				specularMap.eType = MaterialResource_t::eTextureType::SPECULAR;
 				pOutResource.textureMapConfigs.PushBack(specularMap);
 			}
-			else if (StringCompare(szKey, "map_normal"))
+			else if (Utl::StringCompare(szKey, "map_normal"))
 			{
 				// Specular texture map.
 				MaterialResource_t::eTextureMapConfig_t normalMap{};
-				normalMap.pszTextureName = StringDuplicate(szValue);
+				normalMap.pszTextureName = Utl::StringDuplicate(szValue);
 				normalMap.eType = MaterialResource_t::eTextureType::NORMAL;
 				pOutResource.textureMapConfigs.PushBack(normalMap);
 			}
 			else
 			{
 				// Must be a custom keyvalue.
-				pOutResource.pszCustomKeys.PushBack(StringDuplicate(szKey));
-				pOutResource.pszCustomValues.PushBack(StringDuplicate(szValue));
+				pOutResource.pszCustomKeys.PushBack(Utl::StringDuplicate(szKey));
+				pOutResource.pszCustomValues.PushBack(Utl::StringDuplicate(szValue));
 			}
 
 			int myBreakPoint = 0;

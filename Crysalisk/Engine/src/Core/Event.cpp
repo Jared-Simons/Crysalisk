@@ -155,9 +155,6 @@ void EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, Even
 
 	for (int i = 0; i < kMaxEventsPerCategory; i++)
 	{
-		// TODO: Implement some kind of sorting system, so that we don't have to loop through the ENTIRE array to fire messages.
-		// Perhaps we should periodically move events back as far as possible in the array so that all valid events are contiguous,
-		// therefore, once an invalid eventid is encountered (-1), we can break out of the loop.
 		if (currEvent[i].m_EventID != -1)
 		{
 			currEvent[i].m_PFNEventCallback(data);

@@ -49,7 +49,7 @@ struct Texture
 	// The height of the texture.
 	int32_t			height;
 	// The number of channels this texture contains.
-	int32_t			numChannels; // TODO: Image format
+	int32_t			numChannels;
 	// The name of this texture.
 	char*			pszTextureName{ nullptr };
 	// Texture flags.
@@ -117,7 +117,7 @@ struct ShaderModuleConfig_t
 	~ShaderModuleConfig_t()
 	{
 		if (pszModuleName)
-			StringFree(pszModuleName);
+			Utl::StringFree(pszModuleName);
 		pszModuleName = nullptr;
 		byteCode.Clear();
 	}
@@ -176,7 +176,7 @@ public:
 	// The current renderer frame (updated on shader bind).
 	size_t						m_iRendererFrame{ kInvalidID_U64 };
 	// A hashmap to store off indices for uniform indices.
-	Utl::CHashMap<char*, int>	m_UniformLookup{};
+	Utl::CStringHashMap<int>	m_UniformLookup{};
 	// The number of uniforms in this shader.
 	size_t						m_iUniformCount{ 0 };
 	// An array of uniforms used by this shader.
@@ -188,6 +188,8 @@ public:
 	size_t						m_iPerInstanceUBOSize{ 0 };
 	// The alignment requirement for this shader's uniform buffers.
 	size_t						m_iUniformBufferAlignmentRequirement{ 0 };
+	// The number of textures this shader uses at the instance level.
+	size_t						m_iPerInstanceTextureCount{ 0 };
 };
 
 // A unique identifier for a material.
@@ -239,7 +241,7 @@ struct GeometryConfig_t
 	~GeometryConfig_t()
 	{
 		if (pszDebugName)
-			StringFree(pszDebugName);
+			Utl::StringFree(pszDebugName);
 
 		pszDebugName = nullptr;
 	}
@@ -255,7 +257,7 @@ struct GeometryInstance_t
 	// The length in bytes of a single vertex used by this mesh.
 	size_t vertexDataStride{ kInvalidID_U64 };
 	// The number of indices in this mesh.
-	size_t indexDataSize{ kInvalidID_U64 };
+	size_t indexCount{ kInvalidID_U64 };
 	// The offset into the relevant index buffer that this mesh's index data begins.
 	size_t indexDataOffset{ kInvalidID_U64 };
 	// The length in bytes of a single index used by this mesh.
@@ -271,5 +273,7 @@ struct GeometryInstance_t
 struct Mesh
 {
 	// An array of submeshes that make up this mesh.
-	Utl::CVector<GeometryInstance_t> m_Geometries{};
+	Utl::CVector<GeometryInstance_t>	m_Geometries{};
+	// Origin of this mesh in world space.
+	Vector3D							m_vecAbsOrigin{};
 };

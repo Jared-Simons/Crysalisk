@@ -76,7 +76,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(800);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(50);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -111,8 +111,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	windowParams.pszName = "Crysalisk Engine\0";
 	windowParams.X = 100;
 	windowParams.Y = 100;
-	windowParams.Width = 800;
-	windowParams.Height = 600;
+	windowParams.Width = 1080;
+	windowParams.Height = 720;
 	m_pEngineWindow = Platform::CreatePlatformWindow(windowParams, true);
 	m_pEngineWindow->SetWindowResizeCallback(WindowResizeHandler);
 
@@ -152,8 +152,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Renderer.
 	RendererConfig_t rendererConfig{};
-	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
-	rendererConfig.pHWnd = m_pEngineWindow->GetInternalHandle();
+	rendererConfig.szApplicationName = "Crysalisk Engine";
+	rendererConfig.pMainWindow = m_pEngineWindow;
 	rendererConfig.pRendererBackendDLL = pRendererModule;
 	rendererConfig.MaxTextures = 4999;
 	rendererConfig.MaxPipelines = 300;
@@ -201,15 +201,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
-
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
 
 	initializationClock.Update();
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
-	
+
+	// Create temporary geometry.
+	g_pRenderer->CreateTempGeometry();
+
 	return true;
 }
 
@@ -302,7 +302,6 @@ bool Event_KeyReleased(EventData_t data)
 
 	if (keycode == 'M')
 	{
-		// TODO: Print Memory Stats
 		g_pMemoryManager->PrintMemoryStats();
 	}
 	else if (keycode == 'L')
@@ -391,22 +390,22 @@ void ReturnInterfacesToRegistry()
 
 	Platform::SystemInterface_t eventSystem{};
 	eventSystem.pSystemAddr = reinterpret_cast<void*>(g_pEngineEvents_Internal);
-	eventSystem.szSystemName = StringDuplicate("engine_events");
+	eventSystem.szSystemName = Utl::StringDuplicate("engine_events");
 	Platform::RegisterInterface(eventSystem);
 
 	Platform::SystemInterface_t inputSystem{};
 	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
-	inputSystem.szSystemName = StringDuplicate("input_system");
+	inputSystem.szSystemName = Utl::StringDuplicate("input_system");
 	Platform::RegisterInterface(inputSystem);
 
 	Platform::SystemInterface_t textureSystem{};
 	textureSystem.pSystemAddr = reinterpret_cast<void*>(g_pTextureSystem_Internal);
-	textureSystem.szSystemName = StringDuplicate("texture_system");
+	textureSystem.szSystemName = Utl::StringDuplicate("texture_system");
 	Platform::RegisterInterface(textureSystem);
 
 	Platform::SystemInterface_t materialSystem{};
 	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
-	materialSystem.szSystemName = StringDuplicate("material_system");
+	materialSystem.szSystemName = Utl::StringDuplicate("material_system");
 	Platform::RegisterInterface(materialSystem);
 }
 

@@ -82,7 +82,7 @@ private:
 	struct TextureDictionary
 	{
 		// Allows for string-based lookups for texture.
-		Utl::CHashMap<const char*, TextureLookup>	m_TextureHashmap{};
+		Utl::CStringHashMap<TextureLookup>			m_TextureHashmap{};
 		// An array of textures.
 		Texture*									m_TextureArray{ nullptr };
 	};
@@ -233,7 +233,7 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	pTexture->height = pResource.Height;
 	pTexture->numChannels = pResource.NumChannels; // TODO: Use texture format here instead?
 	pTexture->textureFlags |= pResource.bIsTransparent ? TEXTURE_FLAG_IS_TRANSPARENT : 0;
-	pTexture->pszTextureName = StringDuplicate(pszTextureName);
+	pTexture->pszTextureName = Utl::StringDuplicate(pszTextureName);
 
 	// Acquire renderer resources and upload to the GPU.
 	if (!g_pRenderer->AcquireTextureResources(pTexture, newTextureHandle, (pTexture->width * pTexture->height * pTexture->numChannels), pResource.pPixelData))
@@ -319,7 +319,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 
 	g_pRenderer->ReleaseTextureResources(&pTexture);
 	if (pTexture.pszTextureName)
-		StringFree(pTexture.pszTextureName);
+		Utl::StringFree(pTexture.pszTextureName);
 
 	pTexture.internalHandle = kInvalidID_U32;
 }
@@ -387,7 +387,7 @@ void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 	pTexture->width = pTexture->height = pTexture->numChannels = 0;
 	pTexture->textureFlags = 0;
 	if (pTexture->pszTextureName)
-		StringFree(pTexture->pszTextureName);
+		Utl::StringFree(pTexture->pszTextureName);
 
 	if (pTexture->internalHandle != kInvalidID_U32)
 	{
@@ -419,7 +419,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultDiffuseTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(defaultDiffuseTexture != nullptr);
 
-		defaultDiffuseTexture->pszTextureName = StringDuplicate(kszDefaultTextureName);
+		defaultDiffuseTexture->pszTextureName = Utl::StringDuplicate(kszDefaultTextureName);
 		defaultDiffuseTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
@@ -462,7 +462,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		defaultWhiteTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(defaultWhiteTexture != nullptr);
 
-		defaultWhiteTexture->pszTextureName = StringDuplicate(kszDefaultWhiteTextureName);
+		defaultWhiteTexture->pszTextureName = Utl::StringDuplicate(kszDefaultWhiteTextureName);
 		defaultWhiteTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultTexturePixels[8][8][4];
@@ -505,7 +505,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(pDefaultSpecularTexture != nullptr);
 
-		pDefaultSpecularTexture->pszTextureName = StringDuplicate(kszDefaultSpecularTextureName);
+		pDefaultSpecularTexture->pszTextureName = Utl::StringDuplicate(kszDefaultSpecularTextureName);
 		pDefaultSpecularTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultSpecularTexturePixels[8][8][4];
@@ -548,7 +548,7 @@ bool CTextureSystem::CreateDefaultTextures()
 		pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[texIdx];
 		CAssert(pDefaultNormalTexture != nullptr);
 
-		pDefaultNormalTexture->pszTextureName = StringDuplicate(kszDefaultNormalTextureName);
+		pDefaultNormalTexture->pszTextureName = Utl::StringDuplicate(kszDefaultNormalTextureName);
 		pDefaultNormalTexture->textureFlags = TEXTURE_FLAG_DEFAULT_TEXTURE;
 
 		byte	defaultNormalTexturePixels[8][8][4];
@@ -557,10 +557,10 @@ bool CTextureSystem::CreateDefaultTextures()
 		{
 			for (int colIdx = 0; colIdx < 8; colIdx++)
 			{
-				defaultNormalTexturePixels[rowIdx][colIdx][0] = 0;
-				defaultNormalTexturePixels[rowIdx][colIdx][1] = 0;
-				defaultNormalTexturePixels[rowIdx][colIdx][2] = 128;
-				defaultNormalTexturePixels[rowIdx][colIdx][3] = 128;
+				defaultNormalTexturePixels[rowIdx][colIdx][0] = 128;
+				defaultNormalTexturePixels[rowIdx][colIdx][1] = 128;
+				defaultNormalTexturePixels[rowIdx][colIdx][2] = 255;
+				defaultNormalTexturePixels[rowIdx][colIdx][3] = 255;
 			}
 		}
 		byte* pPixelData = defaultNormalTexturePixels[0][0];
@@ -592,21 +592,21 @@ void CTextureSystem::DestroyDefaultTextures()
 	pDefaultTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultTexture->pszTextureName)
-		StringFree(pDefaultTexture->pszTextureName);
+		Utl::StringFree(pDefaultTexture->pszTextureName);
 
 	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
 	pDefaultWhiteTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultWhiteTexture->pszTextureName)
-		StringFree(pDefaultWhiteTexture->pszTextureName);
+		Utl::StringFree(pDefaultWhiteTexture->pszTextureName);
 
 	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
 	g_pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
 	pDefaultSpecularTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultSpecularTexture->pszTextureName)
-		StringFree(pDefaultSpecularTexture->pszTextureName);
+		Utl::StringFree(pDefaultSpecularTexture->pszTextureName);
 
 
 	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
@@ -614,5 +614,5 @@ void CTextureSystem::DestroyDefaultTextures()
 	pDefaultNormalTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultNormalTexture->pszTextureName)
-		StringFree(pDefaultNormalTexture->pszTextureName);
+		Utl::StringFree(pDefaultNormalTexture->pszTextureName);
 }

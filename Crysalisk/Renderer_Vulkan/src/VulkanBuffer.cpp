@@ -47,13 +47,14 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &allocInfo, pRenderingContext.m_Allocator, &pOutBuffer.m_Memory));
 
 	vkBindBufferMemory(pRenderingContext.m_Device.m_Device, pOutBuffer.m_Handle, pOutBuffer.m_Memory, 0);
+	pOutBuffer.m_MemoryProperties = memoryProperties;
+	pOutBuffer.m_BufferUsage = bufferUsage;
 
 	pOutBuffer.m_bUsesFreelist = bUseFreelist;
 	if (bUseFreelist)
 	{
 		// Set up our freelist.
 		pOutBuffer.m_Freelist.SetNumBytesToTrack(bufferSize);
-		// TODO: Add the option to have this memory owned/allocated by the freelist rather than passing it in.
 		size_t freelistMemoryRequirement = pOutBuffer.m_Freelist.GetInternalMemoryRequirement();
 		pOutBuffer.m_pFreelistMemory = new uint8_t[freelistMemoryRequirement];
 		pOutBuffer.m_Freelist.InitFreelist(pOutBuffer.m_pFreelistMemory);
@@ -82,6 +83,70 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffe
 
 	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer.m_Memory, pRenderingContext.m_Allocator);
 	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer.m_Handle, pRenderingContext.m_Allocator);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Resizes the Vulkan buffer.
+//			Will retain all data between the allocations.
+//			Does nothing if iNewBufferSize is less than what the buffer currently holds.
+// Input:	pRenderingContext - The owning rendering context.
+//			pBuffer - The buffer to be resized.
+//			iNewBufferSize - The new size of the buffer in bytes.
+// Output:	none.
+//-------------------------------------------------------------------------
+void VulkanBuffer::Resize(CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, size_t iNewBufferSize)
+{
+	if (pBuffer->m_BufferSize >= iNewBufferSize || iNewBufferSize < 1)
+	{
+		// No buffer shrinking.
+		return;
+	}
+
+	// Create a new buffer and allocate it's memory.	
+	VkBuffer		newBuffer{};
+	VkDeviceMemory	newBufferMemory{};
+
+	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	bufferInfo.pNext = nullptr;
+	bufferInfo.flags = 0;
+	bufferInfo.size = (VkDeviceSize)iNewBufferSize;
+	bufferInfo.usage = pBuffer->m_BufferUsage | VK_BUFFER_USAGE_TRANSFER_DST_BIT; // Need to be marked as a destination buffer for the copy operation.
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	VK_CHECK(vkCreateBuffer(pRenderingContext.m_Device.m_Device, &bufferInfo, pRenderingContext.m_Allocator, &newBuffer));
+
+	// Get buffer memory
+	VkMemoryRequirements memoryRequirements{};
+	vkGetBufferMemoryRequirements(pRenderingContext.m_Device.m_Device, newBuffer, &memoryRequirements);
+
+	VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	allocInfo.allocationSize = memoryRequirements.size;
+	allocInfo.memoryTypeIndex = pRenderingContext.m_Device.FindMemoryType(memoryRequirements.memoryTypeBits, pBuffer->m_MemoryProperties);
+
+	VK_CHECK(vkAllocateMemory(pRenderingContext.m_Device.m_Device, &allocInfo, pRenderingContext.m_Allocator, &newBufferMemory));
+
+	vkBindBufferMemory(pRenderingContext.m_Device.m_Device, newBuffer, newBufferMemory, 0);
+
+	// Copy over the region from the old range to the new.
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = pBuffer->m_BufferSize;
+
+	// Start the command buffer to handle the copy.
+	VulkanCommandBuffer		commandBuffer{};
+	commandBuffer.CreateAndBeginSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
+	vkCmdCopyBuffer(commandBuffer.m_Handle, pBuffer->m_Handle, newBuffer, 1, &copyRegion);
+	commandBuffer.EndSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
+
+	// Make sure resources are no longer in use prior to destruction.
+	vkDeviceWaitIdle(pRenderingContext.m_Device.m_Device);
+
+	// Destroy the old buffer and reassign the handles.
+	vkFreeMemory(pRenderingContext.m_Device.m_Device, pBuffer->m_Memory, pRenderingContext.m_Allocator);
+	vkDestroyBuffer(pRenderingContext.m_Device.m_Device, pBuffer->m_Handle, pRenderingContext.m_Allocator);
+	pBuffer->m_Handle = newBuffer;
+	pBuffer->m_Memory = newBufferMemory;
 }
 
 //-------------------------------------------------------------------------
@@ -127,6 +192,9 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 //-------------------------------------------------------------------------
 void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize)
 {
+	// Deduct the size from the count.
+	m_BytesAllocated -= dataSize;
+
 	// This only works for buffers that track their memory with a freelist.
 	if (!m_bUsesFreelist)
 	{

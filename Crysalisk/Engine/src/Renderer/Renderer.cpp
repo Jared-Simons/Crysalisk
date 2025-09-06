@@ -13,7 +13,7 @@
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
-#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
+#include <Resources/Loaders/MeshLoader.h>
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -37,6 +37,10 @@ static Camera_t s_MainCamera;
 // TEMP Test font
 FontHandle_t	testFont;
 TextObject		testText;
+ShaderHandle_t	hUIShader{ kInvalidID_U32 };
+
+GeometryConfig_t testCubeConfig{};
+GeometryConfig_t testCubeConfig2{};
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -73,11 +77,48 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Set up our renderpasses
-	m_SceneView.m_bShouldClear = true; // We do want to clear the framebuffer before rendering the scene.
-	m_RendererBackend->CreateRendererViewInternal("3D_Scene_View", m_SceneView);
+	// 3D Scene View.
+	{
+		RendererViewConfig_t sceneViewConfig{};
+		sceneViewConfig.m_pszViewName = "3D_Scene_View";
 
-	m_UIView.m_bShouldClear = false;
-	m_RendererBackend->CreateRendererViewInternal("UI_View", m_UIView);
+		// This pass has 2 attachments: color and depth.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
+
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		// Add them to the config.
+		sceneViewConfig.attachmentConfigs.Resize(2);
+		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
+	}
+
+	// UI View.
+	{
+		RendererViewConfig_t UIViewConfig{};
+		UIViewConfig.m_pszViewName = "UI_View";
+
+		// This pass has 1 attachment: color.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = false;
+
+		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
+	}
 
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);
@@ -88,6 +129,16 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+
+	// Grab window dimensions.
+	pConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
+
+	// Setup our internal framebuffers.
+	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
+	{
+		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
+		return false;
+	}
 
 	s_MainCamera.RecalculateCameraVectors();
 
@@ -117,6 +168,13 @@ void Renderer::Shutdown()
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
+
+	// Release any heap allocations
+	m_SponzaModel.m_Geometries.Clear();
+	testCubeConfig.Vertices.Clear();
+	testCubeConfig.Indices.Clear();
+	testCubeConfig2.Vertices.Clear();
+	testCubeConfig2.Indices.Clear();
 }
 
 extern bool s_bLevelGeometryLoaded;
@@ -132,6 +190,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	{
 		return true;
 	}
+
+	// Clear out the previous frame's metrics.
+	m_Metrics.FrameTime = 0.0f;
+	m_Metrics.NumDrawCalls = 0;
+
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
 	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
@@ -142,12 +205,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
-	// Update renderer matrics.
-	char szMetricsString[512]{};
-	StringFormat_V("Frametime: %.5f ms", szMetricsString, m_Metrics.FrameTime);
-	// Set the string.
-	testText.SetText(szMetricsString);
-
 	// Draw the frame!
 	if (!m_RendererBackend->StartFrame(pRenderData))
 	{
@@ -156,22 +213,17 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	m_RendererBackend->StartRenderpass(m_SceneView);
 
-	// TEMP BADNESS
-	g_pShaderSystem->BindShader(0);
-
-	Matrix4x4 projection = Matrix4x4::Perspective(M_DEG2RAD_F(45.0f), 800 / 600.0f, 0.1f, 10000.0f); // TODO: Don't hardcode this.
+	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
-	projection.data[5] *= -1;
-	Matrix4x4 view = s_MainCamera.GetViewMatrix();
-	Vector3D myPos = s_MainCamera.vecPosition;
+	matProjection.data[5] *= -1;
+	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
+	Vector3D vecCameraPos = s_MainCamera.vecPosition;
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
+	/*Quaternion quatRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
+	Matrix4x4 matRotation = Mat4FromQuaternion(quatRotation);
+	model = model * matRotation;*/
 
-	// TODO: Get these shader locations set in here.
-	// TODO: Don't hardcode these things here
-	g_pShaderSystem->SetShaderUniform(0, 0, 0, 0, &projection);
-	g_pShaderSystem->SetShaderUniform(0, 1, 0, 0, &view);
-	g_pShaderSystem->SetShaderUniform(0, 2, 0, 0, &myPos);
-	g_pShaderSystem->SetShaderUniform(0, 13, 0, 0, &model);
+	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
 	if (s_bLevelGeometryLoaded)
 	{
@@ -195,20 +247,29 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		// Render our temp geometry.
 
+		// Apply a slow rotation to the test cube.
+		Quaternion quatCubeRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), (float)Platform::GetAbsoluteTime());
+		Matrix4x4 matCubeRotation = Mat4FromQuaternion(quatCubeRotation);
+		model = model * matCubeRotation;
+		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 		// Bind the appropriate material.
-		// TODO: Don't hardcode this material handle here.
-		//g_pMaterialSystemInternal->ApplyMaterialInstance(0);
-		//DrawGeometry(m_Cube1);
-		//DrawGeometry(m_Cube2);
-		g_pMaterialSystemInternal->ApplyMaterialInstance(m_Cube3.hMaterial);
-		DrawGeometry(m_Cube3, m_WorldVertexBuffer, m_WorldIndexBuffer);
+		g_pMaterialSystemInternal->ApplyMaterialInstance(m_TestCube.hMaterial);
+		DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
+		m_Metrics.NumDrawCalls++;
 
 		// Render the opaque geometry first.
+		model = Matrix4x4::Matrix4x4(1.0f);
+		model = Matrix4x4::Translate(model, m_SponzaModel.m_vecAbsOrigin);
+		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
 			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+
+			m_Metrics.NumDrawCalls++;
 		}
 
 		// TODO: Sort the transparent geometries from farthest to closest to the camera.
@@ -219,6 +280,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+
+			m_Metrics.NumDrawCalls++;
 		}
 	}
 
@@ -229,9 +292,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, 800.0f, 600.0f, 0.0f, 0.0f, 10000.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-		g_pShaderSystem->BindShader(1);	// UI Shader TODO: Don't hardcode.
+		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);
 		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
 
@@ -239,6 +302,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 	}
 
 	m_RendererBackend->EndFrame(pRenderData);
+
+	// Clear out bound shader state.
+	g_pShaderSystem->BindShader(kInvalidID_U32);
+
+	// Display renderer matrics.
+	char szMetricsString[512]{};
+	Utl::StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
+	// Set the string.
+	testText.SetText(szMetricsString);
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
@@ -396,48 +468,60 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertex
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) 
+{
+	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+// 
+// NOTE: This method handles 2D geometry
+// TODO: Find a way to combine this and the above method.
+//-------------------------------------------------------------------------
+void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
+{
+	m_RendererBackend->UpdateGeometryResources(m_UIVertexBuffer, m_UIIndexBuffer, pGeometry, pNewGeometryConfig);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: A temporary function to create geometry for testing.
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	GeometryConfig_t cubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({50, 0, 50}, 20, 20, 20);
-	GeometryConfig_t cubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 0, 50 }, 20, 20, 20);
-	GeometryConfig_t cubeConfig3 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
-
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig, m_Cube1))
-	{
-		LOG_ERROR("Failed to acquire geometry resources.");
-		return false;
-	}
-
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig2, m_Cube2))
-	{
-		LOG_ERROR("Failed to acquire geometry resources.");
-		return false;
-	}
+	testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, -30 }, 32, 32, 32);
+	testCubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 	
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, cubeConfig3, m_Cube3))
+	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, testCubeConfig, m_TestCube))
 	{
 		LOG_ERROR("Failed to acquire geometry resources.");
 		return false;
 	}
 
 	// Acquire materials
-	m_Cube3.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
+	m_TestCube.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	MeshLoader::MeshResource_t sponzaResource{};
 	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
 	//MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
 
 	// Test mesh.
-	//MeshLoader::MeshResource_t sponzaResource{};
 	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
 	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
-
-	// TEMP MATERIALS
-	MaterialHandle_t tempMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
 
 	// Load any needed materials.
 	LOG_DEBUG("Acquiring material resources for sponza model.");
@@ -456,7 +540,7 @@ bool Renderer::CreateTempGeometry()
 			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
 			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
 			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)
-				newConfig.pszDebugName = StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
+				newConfig.pszDebugName = Utl::StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
 			if (newConfig.Vertices.Count() > 0)
 			{
@@ -471,16 +555,18 @@ bool Renderer::CreateTempGeometry()
 			}
 		}
 	}
+
+	m_SponzaModel.m_vecAbsOrigin = Vector3D(0.0f, 0.0f, 0.0f);
 	// TEMP!
+	// End test mesh.*/
 	s_bLevelGeometryLoaded = true;
-	// End test mesh.
 
 	// TEMP: Setup our test text.
+	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
-	testText.m_flTextSize = 0.60f;
-	//testText.m_vecPos = { 50.0f, 500.0f };
-	testText.m_vecPos = { -0.8f, -0.8f };
+	testText.m_flTextSize = 1.0f;
+	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 	// END TEMP
 
 	return true;
@@ -516,6 +602,9 @@ static bool RendererEvent_WindowResized(EventData_t data)
 		s_Renderer.SetMinimized(false);
 	}
 
+	// Cache off the new dimensions.
+	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
+
 	// Let other listeners handle this event.
 	return false;
 }
@@ -531,6 +620,14 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		// Print the camera's position and angles.
 		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
+	}
+
+	if (data.c[0] == 'O')
+	{
+		// Geometry buffer update test.
+		static bool s_bCubeTest = false;
+		s_bCubeTest = !s_bCubeTest;
+		s_Renderer.UpdateGeometryResources(s_Renderer.m_WorldVertexBuffer, s_Renderer.m_WorldIndexBuffer, s_Renderer.m_TestCube, s_bCubeTest ? testCubeConfig2 : testCubeConfig);
 	}
 
 	if (data.c[0] >= 0  && data.c[0] <= 9)
@@ -572,8 +669,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 			LOG_INFO("Visualization mode set to tangent v - world space.");
 			break;
 		}
-
-		g_pShaderSystem->SetShaderUniform(0, 9, 0, 0, &data.c[0]); // TODO: Don't hardcode these things!
 	}
 	return false;
 

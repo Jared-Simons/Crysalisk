@@ -14,27 +14,22 @@
 namespace FontLoader
 {
 	// Attempts to load an existing font asset from disk (NOTE: This currently only supports True-Type fonts!)
-	CORE_API bool LoadFontResource(const char* pszFontPath, struct FontResource_t& pOutResource);
+	CORE_API bool LoadFontResource(const char* pszFontPath, size_t iFontSize, struct FontResource_t& pOutResource);
 
-	// Contains specific render data for a font character.
-	struct FontChar_t
+	struct FontCharData_t
 	{
-		unsigned short xMin;
-		unsigned short xMax;
-		unsigned short yMin;
-		unsigned short yMax;
-		float xOffset;
-		float yOffset;
-		float Advance;
-	};
-
-	// TODO: Can this be combined into the struct above?
-	struct FontQuadData_t
-	{
-		float sMin;
-		float tMin;
-		float sMax;
-		float tMax;
+		unsigned short	xMin;
+		unsigned short	xMax;
+		unsigned short	yMin;
+		unsigned short	yMax;
+		float			xOffset;
+		float			yOffset;
+		float			flAdvance;
+		
+		float			sMin;
+		float			tMin;
+		float			sMax;
+		float			tMax;
 	};
 
 	// A font resource generated from a file on disk.
@@ -45,10 +40,10 @@ namespace FontLoader
 		size_t							FontCount{ 0 };
 		// The size of this font.
 		float							FontSize{ 0.0f };
+		// The scale of the font, for scaling to surface resolution.
+		float							flFontScale{ 0.0f };
 
-		// An array of data needed for rendering these characters.
-		Utl::CVector<FontChar_t>		charData{};
-		Utl::CVector<FontQuadData_t>	charQuads{};
+		Utl::CVector<FontCharData_t>	charGlyphs{};
 
 		// The font's atlas as an image resource needed for rendering.
 		ImageLoader::ImageResource_t	FontAtlasResource{};

@@ -134,7 +134,11 @@ void CMemoryManager::Free(void* pMemBlock)
 		return;
 	}
 
-	// TODO: Handle these issues gracefully.
+	Platform::MemoryFree(pMemBlock);
+
+	// While this doesn't really matter as the OS will handle cleanup,
+	// if we're managing memory properly, we should never hit this.
+	CAssert(0);
 }
 
 //-------------------------------------------------------------------------
