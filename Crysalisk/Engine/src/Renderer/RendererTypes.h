@@ -9,6 +9,7 @@
 #include "Defines.h"
 
 #include <Containers/CFreeList.h>
+#include <Containers/CVector.h>
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
 #include <Strings/String_Utils.h>
@@ -171,13 +172,6 @@ enum class eSamplerTypes
 	MAX_TYPES,
 };
 
-// TODO: We shouldn't need to keep these around.
-enum class eKnownRenderpassType
-{
-	WORLD,
-	UI
-};
-
 //-------------------------------------------------------------------------
 // Purpose: The different types of renderbuffers.
 //-------------------------------------------------------------------------
@@ -205,11 +199,42 @@ public:
 };
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+enum class eRendererViewAttachmentType
+{
+	UNDEFINED = -1,
+
+	COLOR,
+	DEPTH
+};
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+struct RendererViewAttachmentConfig_t
+{
+	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
+	bool						bShouldClear{ false };
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Represents configuration for a renderer view.
+//-------------------------------------------------------------------------
+struct RendererViewConfig_t
+{
+	char*											m_pszViewName{ nullptr };
+	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
+};
+
+//-------------------------------------------------------------------------
 // Purpose: A generic renderer view (internally a renderpass).
 //-------------------------------------------------------------------------
 class RendererView
 {
 public:
+	// The name of this render view.
+	char* m_pszViewName{ nullptr };
 	// Indicates if the renderer view should clear it's render target before rendering.
 	bool	m_bShouldClear{ false };
 	// A pointer to the internal data of the buffer.

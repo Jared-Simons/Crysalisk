@@ -77,11 +77,48 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Set up our renderpasses
-	m_SceneView.m_bShouldClear = true; // We do want to clear the framebuffer before rendering the scene.
-	m_RendererBackend->CreateRendererViewInternal("3D_Scene_View", m_SceneView);
+	// 3D Scene View.
+	{
+		RendererViewConfig_t sceneViewConfig{};
+		sceneViewConfig.m_pszViewName = "3D_Scene_View";
 
-	m_UIView.m_bShouldClear = false;
-	m_RendererBackend->CreateRendererViewInternal("UI_View", m_UIView);
+		// This pass has 2 attachments: color and depth.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
+
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		// Add them to the config.
+		sceneViewConfig.attachmentConfigs.Resize(2);
+		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
+	}
+
+	// UI View.
+	{
+		RendererViewConfig_t UIViewConfig{};
+		UIViewConfig.m_pszViewName = "UI_View";
+
+		// This pass has 1 attachment: color.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = false;
+
+		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
+	}
 
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);

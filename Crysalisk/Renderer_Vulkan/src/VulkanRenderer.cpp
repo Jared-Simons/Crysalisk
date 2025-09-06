@@ -458,7 +458,9 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 	renderpassInfo.renderArea.offset = { 0, 0 };
 	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
 
-	VkClearValue clearColors[2] = { {0.3f, 0.0f, 0.3f, 1.0f}, {1.0f, 0} };
+	VkClearValue clearColors[2]{};
+	clearColors[0].color = { 0.3f, 0.0f, 0.3f, 1.0f };
+	clearColors[1].depthStencil = { 1.0f, 0 };
 	renderpassInfo.clearValueCount = 2;
 	renderpassInfo.pClearValues = clearColors;
 
@@ -594,17 +596,112 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 
 //-------------------------------------------------------------------------
 // Purpose: Creates an internal Vulkan renderpass and sets it up to the generic renderer view.
-// Input:	pszPassName - The name to be associated with this renderpass.
+// Input:	pViewConfig - A configuration used to build this pass.
 //			pOutView - The generic renderer view structure that will hold this renderpass.
 // Output:	Returns true on successful renderpass creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRendererViewInternal(char* pszPassName, RendererView& pOutView)
+bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
 {
 	// Allocate our internal renderpass.
 	pOutView.m_pInternalData = new VulkanRenderPass;
-	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
 
-	return VulkanRenderPass::CreateRenderpass(s_VulkanContext, pszPassName, pOutView.m_bShouldClear, *pInternalPass);
+	// Setup our attachments.
+	Utl::CVector<VkAttachmentDescription>	attachments(pViewConfig.attachmentConfigs.Count());
+	Utl::CVector<VkAttachmentReference>		colorAttachmentReferences{};
+	Utl::CVector<VkAttachmentReference>		depthAttachmentReferences{};
+	int										iColorAttachmentCount{ 0 };
+	int										iDepthAttachmentCount{ 0 };
+
+	for (int attIdx = 0; attIdx < pViewConfig.attachmentConfigs.Count(); attIdx++)
+	{
+		VkAttachmentDescription			newAttachment{};
+		VkAttachmentReference			newAttachmentRef{};
+		RendererViewAttachmentConfig_t& pCurrentAttachmentConfig = pViewConfig.attachmentConfigs[attIdx];
+		
+		newAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		newAttachmentRef.attachment = attIdx;
+
+		// NOTE: We currently do not support stencil buffers at all.
+		newAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		newAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+		switch (pCurrentAttachmentConfig.eAttachmentType)
+		{
+			case eRendererViewAttachmentType::COLOR:
+				newAttachment.format = m_Swapchain.m_SwapchainImageFormat;	// NOTE: Just using the swapchain image format for now.
+				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+				newAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+				newAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+				iColorAttachmentCount++;
+				colorAttachmentReferences.PushBack(newAttachmentRef);
+				break;
+
+			case eRendererViewAttachmentType::DEPTH:
+				newAttachment.format = m_Swapchain.m_DepthImageFormat;	// Get the depth image format from the swapchain.
+				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				newAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+				newAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+				iDepthAttachmentCount++;
+				depthAttachmentReferences.PushBack(newAttachmentRef);
+				break;
+
+			case eRendererViewAttachmentType::UNDEFINED:
+			default:
+				LOG_ERROR("Invalid Render View Attachment Type passed for view config '%s'. View creation failed.", pViewConfig.m_pszViewName);
+				return false;
+		}
+
+		attachments.PushBack(newAttachment);
+	}
+
+	// Setup the main subpass.
+	// NOTE: We currently always use only one subpass.
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = iColorAttachmentCount;
+	subpass.pColorAttachments = colorAttachmentReferences.Data();
+	subpass.pDepthStencilAttachment = (iDepthAttachmentCount > 0) ? depthAttachmentReferences.Data() : nullptr;
+
+	// Subpass dependency
+	VkSubpassDependency subpassDependency{};
+	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	subpassDependency.dstSubpass = 0;
+	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	
+	if (iDepthAttachmentCount > 0)
+		subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	subpassDependency.srcAccessMask = (iDepthAttachmentCount > 0) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0;
+	
+	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	if (iDepthAttachmentCount > 0)
+		subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	if (iDepthAttachmentCount > 0)
+		subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	renderpassInfo.attachmentCount = static_cast<uint32_t>(attachments.Count());
+	renderpassInfo.pAttachments = attachments.Data();
+	renderpassInfo.subpassCount = 1; // NOTE: Only using one subpass currently.
+	renderpassInfo.pSubpasses = &subpass;
+	renderpassInfo.dependencyCount = 1;
+	renderpassInfo.pDependencies = &subpassDependency;
+
+	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
+	VK_CHECK(vkCreateRenderPass(m_Device.m_Device, &renderpassInfo, m_Allocator, &pInternalPass->m_Handle));
+
+	// Save off the name and create a debug label.
+	pOutView.m_pszViewName = Utl::StringDuplicate(pViewConfig.m_pszViewName);
+	VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pOutView.m_pszViewName, VK_OBJECT_TYPE_RENDER_PASS, pInternalPass->m_Handle);
+
+	return true;
 }
 
 //-------------------------------------------------------------------------
@@ -615,7 +712,12 @@ bool CVulkanRenderer::CreateRendererViewInternal(char* pszPassName, RendererView
 void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
 {
 	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pView.m_pInternalData);
-	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, *pInternalPass);
+	vkDestroyRenderPass(m_Device.m_Device, pInternalPass->m_Handle, m_Allocator);
+
+	if (pView.m_pszViewName)
+		Utl::StringFree(pView.m_pszViewName);
+
+	pView.m_pszViewName = nullptr;
 
 	delete pView.m_pInternalData;
 	pView.m_pInternalData = nullptr;
@@ -903,6 +1005,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
+		depthStencil.minDepthBounds = 0.0f;
+		depthStencil.maxDepthBounds = 1.0f;
 	}
 
 	// Color blending

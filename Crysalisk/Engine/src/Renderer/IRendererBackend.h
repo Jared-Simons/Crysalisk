@@ -34,8 +34,8 @@ public:
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) = 0;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) = 0;
-
-	virtual bool	CreateRendererViewInternal(char* pszName, RendererView& pOutView) = 0;
+	
+	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) = 0;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) = 0;
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;

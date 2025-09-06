@@ -132,10 +132,6 @@ public:
 class VulkanRenderPass
 {
 public:
-	static bool CreateRenderpass(class CVulkanRenderer& pRenderingContext, char* pszPassName, bool bShouldClear, VulkanRenderPass& pOutRenderpass);
-	static void DestroyRenderpass(class CVulkanRenderer& pRenderingContext, VulkanRenderPass& pRenderpass);
-
-public:
 	VkRenderPass	m_Handle{ VK_NULL_HANDLE };
 	char*			m_pszPassName{ nullptr };
 };

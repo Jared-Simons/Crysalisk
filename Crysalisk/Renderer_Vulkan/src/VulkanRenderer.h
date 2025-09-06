@@ -35,7 +35,7 @@ public:
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
-	virtual bool	CreateRendererViewInternal(char* pszName, RendererView& pOutView) override;
+	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
 	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
