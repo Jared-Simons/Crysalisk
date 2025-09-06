@@ -13,7 +13,7 @@
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
-#include <Resources/Loaders/MeshLoader.h> // TODO: Move this to a mesh manager.
+#include <Resources/Loaders/MeshLoader.h>
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -248,7 +248,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		// Render our temp geometry.
 
 		// Apply a slow rotation to the test cube.
-		Quaternion quatCubeRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
+		Quaternion quatCubeRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), (float)Platform::GetAbsoluteTime());
 		Matrix4x4 matCubeRotation = Mat4FromQuaternion(quatCubeRotation);
 		model = model * matCubeRotation;
 		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
@@ -292,7 +292,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 		m_RendererBackend->StartRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, m_iWindowWidth, 0.0f, m_iWindowHeight, 0.0f, 10000.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);

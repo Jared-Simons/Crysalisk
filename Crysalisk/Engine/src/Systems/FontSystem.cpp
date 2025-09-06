@@ -112,6 +112,9 @@ private:
 	FontDictionary	m_FontDictionary{};
 	// The default UI shader, in case a different shader is not available.
 	ShaderHandle_t	m_hDefaultUIShader{ kInvalidID_U32 };
+
+	// The default font, used in case nothing else is available.
+	FontHandle_t	m_hDefaultFont{ kInvalidID_U32 };
 };
 
 // Font System context.
@@ -152,6 +155,9 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	s_UIShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
 	s_UIShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
+	// Load default font.
+	m_hDefaultFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;
 }
@@ -179,7 +185,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 	if (!pszFontName)
 	{
 		LOG_ERROR("AcquireFontResources() was called with null font name! Returning default font.");
-		return 0; // TODO: Default font.
+		return m_hDefaultFont;
 	}
 
 	// Check to see if the font is already loaded.
@@ -187,12 +193,11 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 
 	if (pFontLookup->FontIndex == kInvalidID_U32)
 	{
-		// TODO: Don't hard-code this path.
 		// The font is not yet loaded, load it up.
 		if (!FontLoader::LoadFontResource(pszFontName, 25, fontResource))
 		{
 			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
-			return 0; // TODO: Default font.
+			return m_hDefaultFont;
 		}
 
 		fontHandle = GetFirstFreeFontHandle();

@@ -685,7 +685,7 @@ namespace Platform
 	}
 
 	//-------------------------------------------------------------------------
-	// TODO: DO WE NEED THIS HERE???
+	// Purpose: Assigns our interfaces obtained from external libraries.
 	//-------------------------------------------------------------------------
 	void SetupExternalInterfaces()
 	{

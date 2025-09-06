@@ -476,7 +476,6 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 //-------------------------------------------------------------------------
 void CVulkanRenderer::EndRenderpass()
 {
-	// TODO: Maybe store the current renderpass in a stack or something?
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
 }
@@ -903,7 +902,6 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		if (!CreateShaderModule(*this, pInternalShader, pConfig.moduleConfigs[stageIdx], modules))
 		{
 			LOG_ERROR("Failed to create shader module for shader '%s'. Shader creation aborted.", pConfig.pszShaderName);
-			// TODO: Make sure to release any allocated resoures!
 			return false;
 		}
 	}
@@ -1202,7 +1200,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 			VK_CHECK(vkCreateSampler(m_Device.m_Device, &samplerInfo, m_Allocator, &pInternalShader->m_ImageSamplers[totalIdx]));
-			pInternalShader->m_ImageSamplers.SetCount(pInternalShader->m_ImageSamplers.Count() + 1); // TODO: This is not too clean...
+			pInternalShader->m_ImageSamplers.SetCount(pInternalShader->m_ImageSamplers.Count() + 1);	// This is silly
 
 			// Always increment this counter.
 			repeatModeIdx++;

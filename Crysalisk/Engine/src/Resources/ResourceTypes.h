@@ -49,7 +49,7 @@ struct Texture
 	// The height of the texture.
 	int32_t			height;
 	// The number of channels this texture contains.
-	int32_t			numChannels; // TODO: Image format
+	int32_t			numChannels;
 	// The name of this texture.
 	char*			pszTextureName{ nullptr };
 	// Texture flags.

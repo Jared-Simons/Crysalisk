@@ -199,22 +199,26 @@ public:
 };
 
 //-------------------------------------------------------------------------
-// Purpose: TODO: Documentation.
+// Purpose: The different types of renderer view attachments.
 //-------------------------------------------------------------------------
 enum class eRendererViewAttachmentType
 {
 	UNDEFINED = -1,
 
+	// This attachment will be used to store color information.
 	COLOR,
+	// This attachment will be used to store depth information.
 	DEPTH
 };
 
 //-------------------------------------------------------------------------
-// Purpose: TODO: Documentation.
+// Purpose: Represents configuration for a renderer view attachment.
 //-------------------------------------------------------------------------
 struct RendererViewAttachmentConfig_t
 {
+	// The type of attachment.
 	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
+	// Whether or not this attachment should be cleared prior to rendering.
 	bool						bShouldClear{ false };
 };
 
@@ -223,7 +227,9 @@ struct RendererViewAttachmentConfig_t
 //-------------------------------------------------------------------------
 struct RendererViewConfig_t
 {
+	// The name of this render view.
 	char*											m_pszViewName{ nullptr };
+	// A list of attachments associated with this view.
 	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
 };
 

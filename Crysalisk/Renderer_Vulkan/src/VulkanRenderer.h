@@ -14,7 +14,6 @@
 #include "VulkanTypes.h"
 
 #include <Containers/CVector.h>
-#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 class CVulkanRenderer : public IRendererBackend
 {

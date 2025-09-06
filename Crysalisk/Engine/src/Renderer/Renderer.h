@@ -10,7 +10,6 @@
 #include "Core/Logging.h"
 #include "Defines.h"
 #include "Resources/ResourceTypes.h"
-#include <Resources/Loaders/ShaderLoader.h> // TODO: Move types to their own files!
 
 // Forward Declarations
 class IRendererBackend;
@@ -86,7 +85,6 @@ private:
 	unsigned int	m_iWindowWidth{ 0 };
 	unsigned int	m_iWindowHeight{ 0 };
 
-	// TODO: Make these private?
 public:
 	RendererView		m_SceneView{};
 	RendererView		m_UIView{};

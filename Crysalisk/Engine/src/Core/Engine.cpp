@@ -152,7 +152,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Renderer.
 	RendererConfig_t rendererConfig{};
-	rendererConfig.szApplicationName = "Crysalisk Engine"; // TODO: Pass this in from an app config.
+	rendererConfig.szApplicationName = "Crysalisk Engine";
 	rendererConfig.pMainWindow = m_pEngineWindow;
 	rendererConfig.pRendererBackendDLL = pRendererModule;
 	rendererConfig.MaxTextures = 4999;
@@ -302,7 +302,6 @@ bool Event_KeyReleased(EventData_t data)
 
 	if (keycode == 'M')
 	{
-		// TODO: Print Memory Stats
 		g_pMemoryManager->PrintMemoryStats();
 	}
 	else if (keycode == 'L')

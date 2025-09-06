@@ -168,8 +168,6 @@ uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags
 //-------------------------------------------------------------------------
 VkFormat VulkanDevice::FindSupportedDepthFormat()
 {
-	// TODO: make this work when checking out device candidates, not just after selecting a device.
-	// TODO: make this more configurable.
 	Utl::CVector<VkFormat> formatCandidates{};
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT);
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT_S8_UINT);

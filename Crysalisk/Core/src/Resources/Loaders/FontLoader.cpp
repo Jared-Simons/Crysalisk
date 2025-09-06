@@ -118,7 +118,7 @@ namespace FontLoader
 				&packContext,
 				ttfBytes.Data(),
 				0,
-				iFontSize,
+				(float)iFontSize,
 				kCodePointOfFirstChar,
 				kCharsToIncludeInFontAtlas,
 				packedChars);

@@ -54,7 +54,7 @@ bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* ps
 	VkImageViewCreateInfo viewCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewCreateInfo.image = pOutImage.m_Image;
 	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewCreateInfo.format = imageInfo.format; // TODO: Configurable
+	viewCreateInfo.format = imageInfo.format;
 	viewCreateInfo.subresourceRange.aspectMask = aspectFlags;
 	viewCreateInfo.subresourceRange.baseMipLevel = 0;
 	viewCreateInfo.subresourceRange.levelCount = 1;
