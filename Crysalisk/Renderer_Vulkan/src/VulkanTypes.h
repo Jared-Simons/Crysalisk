@@ -112,7 +112,7 @@ class VulkanSwapchain
 public:
 	static bool		CreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pOutSwapchain);
 	static void		DestroySwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
-	static bool		CreateFramebuffers(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
+	static bool		CreateFramebuffers(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain, class VulkanRenderPass* pMainRenderpass);
 	static void		RecreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
 
 public:
@@ -122,10 +122,11 @@ public:
 	VkFormat		m_DepthImageFormat{};
 	VkExtent2D		m_SwapchainExtent{};
 
-	Utl::CVector<VkImage> m_SwapchainImages{};
-	Utl::CVector<VkImageView> m_SwapchainImageViews{};
+	Utl::CVector<VkImage>		m_SwapchainImages{};
+	Utl::CVector<VkImageView>	m_SwapchainImageViews{};
 	Utl::CVector<VkFramebuffer> m_Framebuffers{};
-	class VulkanImage m_DepthImage{};
+	class VulkanImage			m_DepthImage{};
+	class VulkanRenderPass*		m_pFramebufferPass{ nullptr };
 };
 
 class VulkanRenderPass

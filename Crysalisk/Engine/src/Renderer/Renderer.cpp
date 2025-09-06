@@ -96,6 +96,13 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	// Grab window dimensions.
 	pConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
+	// Setup our internal framebuffers.
+	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
+	{
+		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
+		return false;
+	}
+
 	s_MainCamera.RecalculateCameraVectors();
 
 	// Start the clock now and we'll take the delta time each frame.

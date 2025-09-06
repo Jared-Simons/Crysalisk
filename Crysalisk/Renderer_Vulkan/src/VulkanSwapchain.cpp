@@ -169,7 +169,7 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, Vulka
 //			pSwapchain - The structure that will hold the created framebuffers.
 // Output:	bool - Returns true on successful framebuffer creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
+bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain, VulkanRenderPass* pMainRenderpass)
 {
 	// Create our framebuffers
 	pSwapchain.m_Framebuffers.Resize(pRenderingContext.m_MaxImagesInFlight);
@@ -181,7 +181,7 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 		VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		framebufferInfo.pNext = nullptr;
 		framebufferInfo.flags = 0;
-		framebufferInfo.renderPass = pRenderingContext.m_MainRenderPass.m_Handle;
+		framebufferInfo.renderPass = pMainRenderpass->m_Handle;
 		framebufferInfo.attachmentCount = 2;
 		framebufferInfo.pAttachments = attachmentViews;
 		framebufferInfo.width = pRenderingContext.m_Swapchain.m_SwapchainExtent.width;
@@ -189,6 +189,9 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 		framebufferInfo.layers = 1;
 
 		VK_CHECK(vkCreateFramebuffer(pRenderingContext.m_Device.m_Device, &framebufferInfo, pRenderingContext.m_Allocator, &pSwapchain.m_Framebuffers[imageIdx]));
+
+		// Cache this off in case we need it later.
+		pSwapchain.m_pFramebufferPass = pMainRenderpass;
 	}
 
 	return true;
@@ -208,7 +211,7 @@ void VulkanSwapchain::RecreateSwapchain(CVulkanRenderer& pRenderingContext, Vulk
 
 	DestroySwapchain(pRenderingContext, pSwapchain);
 	CreateSwapchain(pRenderingContext, pSwapchain);
-	CreateFramebuffers(pRenderingContext, pSwapchain);
+	CreateFramebuffers(pRenderingContext, pSwapchain, pSwapchain.m_pFramebufferPass);
 
 	pRenderingContext.m_bResizingFramebuffer = false;
 }

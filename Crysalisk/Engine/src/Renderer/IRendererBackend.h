@@ -22,6 +22,8 @@ public:
 	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
 
+	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
+
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
 

@@ -22,6 +22,8 @@ public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
 
+	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
+
 	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
@@ -81,12 +83,6 @@ public:
 
 	// Swapchain
 	VulkanSwapchain m_Swapchain{};
-
-	// Main Renderpass
-	VulkanRenderPass m_MainRenderPass{};
-
-	// UI Renderpass
-	VulkanRenderPass m_UIRenderPass{};
 
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };

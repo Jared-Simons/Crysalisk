@@ -207,27 +207,6 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	// TODO: We shouldn't need these passes anymore...
-	// Main Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, "World_Pass", true, m_MainRenderPass))
-	{
-		LOG_ERROR("Failed to initialize main Vulkan Renderpass. Renderer initialization failed!");
-		return false;
-	}
-
-	// UI Renderpass
-	if (!VulkanRenderPass::CreateRenderpass(s_VulkanContext, "UI_Pass", false, m_UIRenderPass))
-	{
-		LOG_ERROR("Failed to initialize UI Vulkan Renderpass. Renderer initialization failed!");
-	}
-
-	// Swapchain Framebuffers
-	if (!m_Swapchain.CreateFramebuffers(s_VulkanContext, m_Swapchain))
-	{
-		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
-		return false;
-	}
-
 	// Create synchronization primitives.
 	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
@@ -277,12 +256,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroySemaphore(m_Device.m_Device, m_RenderFinishedSemaphore, m_Allocator);
 	vkDestroySemaphore(m_Device.m_Device, m_ImageAvailableSemaphore, m_Allocator);
 
-	// UI Renderpass
-	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_UIRenderPass);
-
-	// Main Renderpass
-	VulkanRenderPass::DestroyRenderpass(s_VulkanContext, m_MainRenderPass);
-
 	// Swapchain
 	VulkanSwapchain::DestroySwapchain(s_VulkanContext, m_Swapchain);
 
@@ -313,6 +286,23 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	m_Swapchain.m_Framebuffers.Clear();
 	m_Swapchain.m_SwapchainImageViews.Clear();
 	m_Swapchain.m_SwapchainImages.Clear();
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Creates our internal swapchain framebuffers.
+//			This exists separately from the rest of our initialization process because
+//			framebuffer creation requires a renderpass created by the frontend, 
+//			which will not be created until AFTER the rest of the initialization process.
+//		
+// Input:	pMainView - A pointer to the main render view. (Typically the scene view).
+// Output:	bool - Returns true on successful start, otherwise false.
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::CreateSwapchainFramebuffers(RendererView& pMainView)
+{
+	// Get the internal framebuffer.
+	VulkanRenderPass* pInternalRenderpass = reinterpret_cast<VulkanRenderPass*>(pMainView.m_pInternalData);
+
+	return VulkanSwapchain::CreateFramebuffers(s_VulkanContext, m_Swapchain, pInternalRenderpass);
 }
 
 //-------------------------------------------------------------------------
