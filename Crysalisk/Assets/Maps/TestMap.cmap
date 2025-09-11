@@ -1,0 +1,15 @@
+# Map Properties
+map_version=1
+map_name=Crysalisk_Test_Level
+
+# Static Meshes
+geometry=static_mesh
+{
+	name="sponza"
+	model_resource=sponza
+
+	# Transform
+	position="0 0 0"
+	rotation="0 0 0"
+	scale="0 0 0"
+}

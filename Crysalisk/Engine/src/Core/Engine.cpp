@@ -19,6 +19,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
+#include "Resources/Map.h"
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -56,6 +57,8 @@ private:
 	EngineConfig_t	m_engineConfig;
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
+
+	CMap			m_CurrentMap{};
 };
 
 // Engine context.
@@ -209,6 +212,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempGeometry();
+
+	// Load a test map.
+	//LoadMap("TestMap", m_CurrentMap);
 
 	return true;
 }
