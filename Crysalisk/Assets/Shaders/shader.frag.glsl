@@ -103,8 +103,8 @@ void main()
 	if (global_ubo.renderMode == 5) // Normals - tangent space.
 	{
 		// Use a sample from the normal map.
-		//vec4 normal4 = texture(samplers[SAMP_NORMAL], fsInput.TexCoord);
-		//outColor = vec4(normal4.xyz, 1.0);
+		vec4 normal4 = texture(sampler2D(textures[SAMP_NORMAL], samplers[SAMP_NORMAL]), fsInput.TexCoord);
+		outColor = vec4(normal4.xyz, 1.0);
 		return;
 	}
 	else if (global_ubo.renderMode == 6) // Normals - world space.
