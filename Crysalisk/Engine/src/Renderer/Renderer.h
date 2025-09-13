@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include <Containers/CVector.h>
 #include "Core/Clock.h"
 #include "Core/Logging.h"
 #include "Defines.h"
@@ -40,7 +41,7 @@ class Renderer
 public:
 	bool			Initialize(RendererConfig_t& pConfig);
 	void			Shutdown();
-	bool			Update(struct RenderPacket_t& pRenderData);
+	bool			Update(struct RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance_t>& pGeometries);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);

@@ -119,7 +119,7 @@ namespace Utl
 			, m_Capacity{ pOtherVector.m_Capacity }
 			, m_ValueStride{ pOtherVector.m_ValueStride }
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
-			, m_pValues{ pOtherVector.m_pValues }
+			/*, m_pValues{pOtherVector.m_pValues} */
 		{
 			if (m_ResizeFactor == 0)
 			{
@@ -129,10 +129,18 @@ namespace Utl
 			// Make sure to copy over a custom allocator, if we have one!
 			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
 
+			if (m_Capacity > 0)
+			{
+				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				//m_pValues = pOtherVector.m_pValues;
+			}
+
 			// Release the other vector's referece to these resources.
-			pOtherVector.m_pValues = nullptr;
-			pOtherVector.m_Count = 0;
-			pOtherVector.m_Capacity = 0;
+			//pOtherVector.m_pValues = nullptr;
+			//pOtherVector.m_Count = 0;
+			//pOtherVector.m_Capacity = 0;
 		}
 
 		//--------------------------------------------------
@@ -173,6 +181,8 @@ namespace Utl
 				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+				// MAPTODO: Figure out why the allocator doesn't like this
+				//m_pValues = pOtherVector.m_pValues;
 			}
 
 			return *this;

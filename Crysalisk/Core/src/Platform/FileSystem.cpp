@@ -119,7 +119,7 @@ void FileSystem::CloseFile(FileHandle_t* pFileHandle)
 	pFileHandle->bIsValid = false;
 	if (pFileHandle->pszPath)
 	{
-		Utl::StringFree(pFileHandle->pszPath);
+ 		Utl::StringFree(pFileHandle->pszPath);
 		pFileHandle->pszPath = nullptr;
 	}
 }

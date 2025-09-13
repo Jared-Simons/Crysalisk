@@ -181,9 +181,10 @@ extern bool s_bLevelGeometryLoaded;
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pRenderData - Frame-specific data to be used in rendering ops.
+//		  pGeometries - An array of geometries to be rendered.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
-bool Renderer::Update(RenderPacket_t& pRenderData)
+bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance_t>& pGeometries)
 {
 	// If we are currently minimized, do not do anything!
 	if (m_bMinimized)
@@ -225,23 +226,23 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
-	if (s_bLevelGeometryLoaded)
+	if (true)
 	{
 		// TODO: Make this work with an allocator.
 		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
 
-		for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
+		for (int idx = 0; idx < pGeometries.Count(); idx++)
 		{
-			if (!m_SponzaModel.m_Geometries[idx].bIsTransparent)
+			if (!pGeometries[idx].bIsTransparent)
 			{
 				// If not transparent, add them to the list!
-				pOpaqueGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+				pOpaqueGeometries.PushBack(&pGeometries[idx]);
 			}
 			else
 			{
 				// Otherwise, add it to the transparent list to be sorted prior to drawing.
-				pTransparentGeometries.PushBack(&m_SponzaModel.m_Geometries[idx]);
+				pTransparentGeometries.PushBack(&pGeometries[idx]);
 			}
 		}
 
@@ -255,8 +256,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData)
 
 		// Bind the appropriate material.
 		g_pMaterialSystemInternal->ApplyMaterialInstance(m_TestCube.hMaterial);
-		DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
-		m_Metrics.NumDrawCalls++;
+		//DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
+		//m_Metrics.NumDrawCalls++;
 
 		// Render the opaque geometry first.
 		model = Matrix4x4::Matrix4x4(1.0f);

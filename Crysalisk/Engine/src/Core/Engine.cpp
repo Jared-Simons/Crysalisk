@@ -237,7 +237,8 @@ bool CEngine::Run()
 
 			RenderPacket_t frameRenderData{};
 
-			g_pRenderer->Update(frameRenderData);
+			// Get our renderable geometry from the map.
+			g_pRenderer->Update(frameRenderData, m_CurrentMap.GetRenderablesFromScene());
 		}
 	}
 
@@ -253,6 +254,8 @@ bool CEngine::Run()
 void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	m_CurrentMap.Destroy();
 
 	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();

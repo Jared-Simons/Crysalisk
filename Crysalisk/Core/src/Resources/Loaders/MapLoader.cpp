@@ -100,7 +100,9 @@ namespace MapLoader
 		char	szKey[64]{};
 		char	szValue[64]{};
 
-		MeshLoader::MeshResource_t	newMeshResource{};
+		// Add a new entry to the resource to write to.
+		pOutMapResource.MeshResources.PushBack(MeshLoader::MeshResource_t{});
+		MeshLoader::MeshResource_t& newMeshResource = pOutMapResource.MeshResources.Back();
 
 		// Read the next line from where the file left off.
 		FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &hMapFile);
@@ -117,7 +119,6 @@ namespace MapLoader
 			if (szCurrentLine[0] == '}')
 			{
 				// We're done processing this entry.
-				pOutMapResource.MeshResources.PushBack(newMeshResource);
 				return true;
 			}
 
