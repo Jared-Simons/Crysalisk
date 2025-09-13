@@ -23,6 +23,20 @@ struct PointLight_t
 	float flQuadratic;
 };
 
+struct SpotLight_t
+{
+	vec3	vecPosition;
+	vec3	vecDirection;
+	vec3	lightColor;
+	float	flBrightness;
+
+	float	flConstant;
+	float	flLinear;
+	float	flQuadratic;
+	float	flInnerCutoff;
+	float	flOuterCutoff;
+};
+
 // NOTE: Must match VSOut struct in corresponding vertex shaders.
 struct FSIn
 {
@@ -40,12 +54,12 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
-	vec3 dirLightPos;
 	DirectionalLight_t dirLight;
 	PointLight_t pointLight1;
 	PointLight_t pointLight2;
 	PointLight_t pointLight3;
 	PointLight_t pointLight4;
+	SpotLight_t	 spotlight;
 	int	 renderMode;
 } global_ubo;
 
@@ -65,6 +79,7 @@ layout(set = 1, binding = 2) uniform texture2D textures[3];
 // Light calculations.
 vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir, vec3 diffuseSample, vec3 specularSample);
 vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseSample, vec3 specularSample);
+vec3 CalculateSpotLight(SpotLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseSample, vec3 specularSample);
 
 void main()
 {
@@ -86,12 +101,13 @@ void main()
 
 	vec3 lightingResult = CalculateDirectionalLight(normal, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 
-	// Point light tests.
+	// Lighting.
 	{
 		lightingResult += CalculatePointLight(global_ubo.pointLight1, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 		lightingResult += CalculatePointLight(global_ubo.pointLight2, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 		lightingResult += CalculatePointLight(global_ubo.pointLight3, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 		lightingResult += CalculatePointLight(global_ubo.pointLight4, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
+		lightingResult += CalculateSpotLight(global_ubo.spotlight, normal, fsInput.FragPos, vecViewDir, diffuseSample.rgb, specularSample.rgb);
 	}
 	
 	if (global_ubo.renderMode == 1)	// Fullbright.
@@ -198,6 +214,57 @@ vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 vi
 	// Apply attenuation.
 	diffuseLight *= flAttenuation;
 	specularLight *= flAttenuation;
+
+	// Don't include diffuse texture data when using debug-lighting modes.
+	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)
+	{
+		diffuseSample = vec3(1.0f);
+	}
+
+	diffuseLight *= diffuseSample;
+	specularLight *= specularSample;
+
+	if (global_ubo.renderMode == 3)
+	{
+		return diffuseLight;
+	}
+	else if (global_ubo.renderMode == 4)
+	{
+		return specularLight;
+	}
+
+	return diffuseLight + specularLight;
+}
+
+vec3 CalculateSpotLight(SpotLight_t pLight, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffuseSample, vec3 specularSample)
+{
+	vec3 vecLightDir = normalize(pLight.vecPosition - fragPos);
+
+	// Diffuse shading
+	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
+	flDiffuseFactor *= pLight.flBrightness;
+
+	// Specular shading
+	vec3 vecHalfway = normalize(vecLightDir + viewDir);
+	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
+	flSpecularFactor *= pLight.flBrightness;
+
+	// Compute attenuation term.
+	float flDistance = length(pLight.vecPosition - fragPos);
+	float flAttenuation = 1.0 / (pLight.flConstant + pLight.flLinear * flDistance + pLight.flQuadratic * (flDistance * flDistance));
+
+	// Composite results.
+	vec3 diffuseLight = pLight.lightColor * flDiffuseFactor;
+	vec3 specularLight = pLight.lightColor * flSpecularFactor;
+
+	// Spotlight.
+	float flTheta = dot(vecLightDir, normalize(-pLight.vecDirection));
+	float flEpsilon = (pLight.flOuterCutoff - pLight.flInnerCutoff);
+	float flIntensity = clamp((flTheta - pLight.flOuterCutoff) / flEpsilon, 0.0, 1.0);
+
+	// Apply attenuation.
+	diffuseLight *= flAttenuation * flIntensity;
+	specularLight *= flAttenuation * flIntensity;
 
 	// Don't include diffuse texture data when using debug-lighting modes.
 	if (global_ubo.renderMode == 2 || global_ubo.renderMode == 3)

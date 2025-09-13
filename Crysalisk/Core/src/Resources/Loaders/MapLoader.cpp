@@ -81,9 +81,13 @@ namespace MapLoader
 				{
 					ProcessLightEntity(hCMapFile, MapResource_t::eLightType::DIRECTIONAL, pOutResource);
 				}
-				else if(Utl::StringCompare(szValue, "light_point"))
+				else if (Utl::StringCompare(szValue, "light_point"))
 				{
 					ProcessLightEntity(hCMapFile, MapResource_t::eLightType::POINT, pOutResource);
+				}
+				else if (Utl::StringCompare(szValue, "light_spot"))
+				{
+					ProcessLightEntity(hCMapFile, MapResource_t::eLightType::SPOT, pOutResource);
 				}
 				else
 				{
@@ -224,6 +228,10 @@ namespace MapLoader
 			pOutMapResource.PointLights.PushBack(MapResource_t::LightResource_t{});
 			pLightResource = &pOutMapResource.PointLights.Back();
 		}
+		else if (type == MapResource_t::eLightType::SPOT)
+		{
+			pLightResource = &pOutMapResource.SpotLight;
+		}
 
 		CAssert(pLightResource != nullptr);
 
@@ -267,7 +275,7 @@ namespace MapLoader
 			{
 				pLightResource->vecPosition = Utl::String_ToVector3(szValue);
 			}
-			else if (Utl::StringCompare(szKey, "rotation"))
+			else if (Utl::StringCompare(szKey, "rotation") || Utl::StringCompare(szKey, "direction"))
 			{
 				pLightResource->vecDirection = Utl::String_ToVector3(szValue);
 			}
@@ -308,6 +316,14 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "brightness"))
 			{
 				pLightResource->flBrightness = Utl::String_ATOF(&szValue[1]);
+			}
+			else if (Utl::StringCompare(szKey, "innerAngle"))
+			{
+				pLightResource->flInnerCutoff = Utl::String_ATOF(&szValue[1]);
+			}
+			else if (Utl::StringCompare(szKey, "outerAngle"))
+			{
+				pLightResource->flOuterCutoff = Utl::String_ATOF(&szValue[1]);
 			}
 			else
 			{

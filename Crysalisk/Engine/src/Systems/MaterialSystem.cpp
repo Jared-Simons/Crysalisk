@@ -29,6 +29,7 @@ struct PhongShaderLocations_t
 	uint16_t	pointLight2{ kInvalidID_U16 };
 	uint16_t	pointLight3{ kInvalidID_U16 };
 	uint16_t	pointLight4{ kInvalidID_U16 };
+	uint16_t	spotLight{ kInvalidID_U16 };
 	uint16_t	renderMode{ kInvalidID_U16 };
 	uint16_t	shininess{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
@@ -69,6 +70,7 @@ public:
 	// Sets directional light data to be used during rendering.
 	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
 	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
 	virtual void				ApplyLightData() override;
 
 private:
@@ -134,6 +136,21 @@ private:
 		float		flLinear{};
 		float		flQuadratic{};
 	} pointLights[4];
+
+	struct SpotLight_t
+	{
+		Vector4D	vecPosition{};
+		Vector4D	vecDirection{};
+		Vector3D	lightColor{};
+		float		flBrightness{};
+
+		float		flConstant{};
+		float		flLinear{};
+		float		flQuadratic{};
+
+		float		flInnerCutoff{};
+		float		flOuterCutoff{};
+	} spotLight;
 };
 
 // Material System context.
@@ -161,6 +178,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	s_PhongShaderLocations.pointLight2 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight2");
 	s_PhongShaderLocations.pointLight3 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight3");
 	s_PhongShaderLocations.pointLight4 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight4");
+	s_PhongShaderLocations.spotLight = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "spotlight");
 	s_PhongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
 	s_PhongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
 	s_PhongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
@@ -170,12 +188,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// Default material.
 	// TODO: Make this work with new shader system.
 	CreateDefaultMaterial();
-
-	// TEMP!
-	// Set up a temporary light sources.
-	{
-	}
-	// END TEMP LIGHTING!
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
@@ -449,6 +461,38 @@ void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vecto
 }
 
 //-------------------------------------------------------------------------
+// Sets spot light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
+{
+	CAssert(flInnerCutoff < flOuterCutoff);
+
+	/*spotLight.vecPosition = vecPosition;
+	spotLight.vecDirection = vecDirection;
+	spotLight.lightColor = vecLightColor;
+	spotLight.flBrightness = flBrightness;
+	spotLight.flConstant = flConstant;
+	spotLight.flLinear = flLinear;
+	spotLight.flQuadratic = flQuadratic;
+	spotLight.flInnerCutoff = flInnerCutoff;
+	spotLight.flOuterCutoff = flOuterCutoff;*/
+
+	// MAPTODO: Make this work from the map file.
+	//spotLight.vecPosition = Vector3D{ -480, 187, -33 };
+	spotLight.vecPosition = Vector3D{ 0.0, 512.0, 0.0 };
+	spotLight.vecDirection = Vector3D{ 0, 0, 0 };
+	spotLight.lightColor = Vector3D{ 147, 226, 240 };
+	spotLight.flBrightness = 10000000000000000000000.0f;
+	spotLight.flConstant = 1.0f;
+	spotLight.flLinear = 0.09f;
+	spotLight.flQuadratic = 0.032f;
+	spotLight.flInnerCutoff = M_COS_F(M_DEG2RAD_F(45.0f));
+	spotLight.flOuterCutoff = M_COS_F(M_DEG2RAD_F(90.0f));
+}
+
+//-------------------------------------------------------------------------
 // Pushes current light data to the shaders for use.
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
@@ -460,6 +504,7 @@ void CMaterialSystem::ApplyLightData()
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight2, 0, 0, &pointLights[1]);
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight3, 0, 0, &pointLights[2]);
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight4, 0, 0, &pointLights[3]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.spotLight, 0, 0, &spotLight);
 }
 
 //-------------------------------------------------------------------------

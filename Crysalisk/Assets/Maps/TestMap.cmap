@@ -42,7 +42,7 @@ entity=light_point
 	attenConstant="1.0"
 	attenLinear="0.0"
 	attenQuadratic="0.000001"
-	brightness="1"
+	brightness="0"
 }
 
 entity=light_point
@@ -76,4 +76,18 @@ entity=light_point
 	attenLinear="1.0"
 	attenQuadratic="0.5"
 	brightness="200"
+}
+
+entity=light_spot
+{
+	# Combine citadel light (spotlight edition!)
+	position="-451 135 -267"
+	direction="0 180 0"
+	lightColor="147 226 240"
+	attenConstant="1.0"
+	attenLinear="0.0"
+	attenQuadratic="0.000001"
+	brightness="1"
+	innerAngle="45.0"
+	outerAngle="90.0"
 }

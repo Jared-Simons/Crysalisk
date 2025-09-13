@@ -38,8 +38,12 @@ namespace MapLoader
 			float		flLinear{ 0.0f };
 			float		flQuadratic{ 0.0f };
 			float		flBrightness{ 0.0f };
+
+			// NOTE: These only apply to spotlights.
+			float		flInnerCutoff{ 0.0f };
+			float		flOuterCutoff{ 0.0f };
 		};
-		enum class eLightType{ INVALID, DIRECTIONAL, POINT };
+		enum class eLightType{ INVALID, DIRECTIONAL, POINT, SPOT };
 
 		char* pszMapName{ nullptr };
 
@@ -47,6 +51,7 @@ namespace MapLoader
 		Utl::CVector<MeshLoader::MeshResource_t>	MeshResources{};
 		LightResource_t								DirectionalLight{};
 		Utl::CVector<LightResource_t>				PointLights{};
+		LightResource_t								SpotLight{};
 
 		~MapResource_t()
 		{
