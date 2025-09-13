@@ -30,8 +30,14 @@ struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
 	double	FrameTime{ 0.0 };
+	// The time in seconds since the last metrics update.
+	double	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
 	int		NumDrawCalls{ 0 };
+	// Number of frames rendered in the previous frame.
+	int		PreviousFrameFPS{ 0 };
+	// Number of frames rendered in the current frame.
+	int		CurrentFrameFPS{ 0 };
 };
 
 //-------------------------------------------------------------------------

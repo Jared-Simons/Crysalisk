@@ -144,6 +144,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
+	m_Metrics.TimeSinceLastMetricsUpdate = m_RendererClock.GetElapsedTime();
+	m_Metrics.PreviousFrameFPS = 0;
+	m_Metrics.CurrentFrameFPS = 0;
 
 	m_iCurrentRendererFrame = 0;
 
@@ -190,6 +193,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 	if (m_bMinimized)
 	{
 		return true;
+	}
+
+	if (m_Metrics.TimeSinceLastMetricsUpdate + 1 < m_RendererClock.GetElapsedTime())
+	{
+		// Time to update metrics.
+		m_Metrics.PreviousFrameFPS = m_Metrics.CurrentFrameFPS;
+		m_Metrics.CurrentFrameFPS = 0;
+		m_Metrics.TimeSinceLastMetricsUpdate = m_RendererClock.GetElapsedTime();
 	}
 
 	// Clear out the previous frame's metrics.
@@ -303,13 +314,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 	}
 
 	m_RendererBackend->EndFrame(pRenderData);
+	m_Metrics.CurrentFrameFPS++;
 
 	// Clear out bound shader state.
 	g_pShaderSystem->BindShader(kInvalidID_U32);
 
 	// Display renderer matrics.
 	char szMetricsString[512]{};
-	Utl::StringFormat_V("Frametime: %.5f ms\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.NumDrawCalls);
+	Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS, m_Metrics.NumDrawCalls);
 	// Set the string.
 	testText.SetText(szMetricsString);
 
