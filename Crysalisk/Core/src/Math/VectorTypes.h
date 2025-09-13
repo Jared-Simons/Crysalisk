@@ -541,14 +541,22 @@ inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAn
 	return outQuat;
 }
 
+// NOTE: This expects the euler angles to be in degrees and this method will convert to radians.
 inline Quaternion QuaternionFromEulerAngles(Vector3D vecEulerAngles)
 {
 	Quaternion outQuat{};
 
-	outQuat.x = M_SIN_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) - M_COS_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
-	outQuat.y = M_COS_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) + M_SIN_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
-	outQuat.z = M_COS_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2) - M_SIN_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2);
-	outQuat.w = M_COS_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) - M_SIN_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
+	float flSinX = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flCosX = M_COS_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flSinY = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flCosY = M_COS_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flSinZ = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+	float flCosZ = M_COS_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+
+	outQuat.x = flCosX * flSinY * flCosZ + flSinX * flCosY * flSinZ;
+	outQuat.y = flSinX * flCosY * flCosZ - flCosX * flSinX * flSinZ;
+	outQuat.z = flCosX * flCosY * flSinZ - flSinX * flSinY * flCosZ;
+	outQuat.w = flCosX * flCosY * flCosZ + flSinX * flCosX * flSinZ;
 
 	return outQuat;
 }

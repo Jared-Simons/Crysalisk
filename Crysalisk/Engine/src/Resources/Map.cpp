@@ -94,13 +94,9 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
 
-						// MAPTODO: Figure out which of the two horizontal axis are which!
-						// MAPTODO: Makes this convert to degrees first.
-						//Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-						Quaternion quatAnglesX = QuaternionFromAxisAngle(Vector3D{ 1, 0, 0 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.x));
-						Quaternion quatAnglesY = QuaternionFromAxisAngle(Vector3D{ 0, 1, 0 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.y));
-						Quaternion quatAnglesZ = QuaternionFromAxisAngle(Vector3D{ 0, 0, 1 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.z));
-						Matrix4x4 matAngles = Mat4FromQuaternion(quatAnglesX) * Mat4FromQuaternion(quatAnglesY) * Mat4FromQuaternion(quatAnglesZ);
+						// MAPTODO: Figure out which axes are which!
+						Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
+						Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
 						newGeometry.matLocalToWorldTransform = newGeometry.matLocalToWorldTransform * matAngles;
 
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Scale(newGeometry.matLocalToWorldTransform, pCurObject->vecScale);
