@@ -214,7 +214,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	g_pRenderer->CreateTempGeometry();
 
 	// Load a test map.
-	//LoadMap("TestMap", m_CurrentMap);
+	LoadMap("TestMap", m_CurrentMap);
 
 	return true;
 }

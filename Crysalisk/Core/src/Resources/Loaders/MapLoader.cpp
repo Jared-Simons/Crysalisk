@@ -72,7 +72,7 @@ namespace MapLoader
 				if (Utl::StringCompare(szValue, "static_mesh"))
 				{
 					// MAPTODO: Figure out why the allocator is causing this to crash.
-					//ProcessStaticMeshEntry(hCMapFile, pOutResource);
+					ProcessStaticMeshEntry(hCMapFile, pOutResource);
 				}
 			}
 		}
@@ -97,8 +97,8 @@ namespace MapLoader
 		size_t	iCurrentLineLength{ 0 };
 		size_t	bytesRead{ 0 };
 		size_t	equalIndex{ 0 };
-		char	szKey[500]{};
-		char	szValue[500]{};
+		char	szKey[64]{};
+		char	szValue[64]{};
 
 		MeshLoader::MeshResource_t	newMeshResource{};
 
@@ -142,7 +142,7 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "model_resource"))
 			{
 				// Format the path and load up this model resource for use.
-				char szFormattedModelPath[256]{}; // Hopefully this is enough... we're really pushing the stack here!
+				char szFormattedModelPath[512]; // Hopefully this is enough... we're really pushing the stack here!
 													// MAPTODO: Find a way to strip the quotes out of a value here on the stack
 													// For now, I'm simply going to remove the quotes from the file format, but this should not be necessary!
 

@@ -22,7 +22,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Attempting to load map '%s'.", pszMapName);
 
 	// Piece together the full path relative to our application's directory.
-	/*char szFormattedMapPath[256]{};
+	char szFormattedMapPath[512]{};
 	Utl::StringFormat_V("Assets/Maps/%s.cmap", szFormattedMapPath, pszMapName);
 
 	// Attempt to load the resource from disk.
@@ -37,7 +37,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	{
 		// TODO: Logging
 		return false;
-	}*/
+	}
 
 	return true;
 }

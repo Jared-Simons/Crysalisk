@@ -148,6 +148,16 @@ namespace Utl
 					pCurrentNode = pCurrentNode->pNextNode;
 				}
 
+				if (pCurrentNode && pCurrentNode->Offset == offset && pCurrentNode->Size == size)
+				{
+					// The current node is exactly what we need to free.
+					// Return it back to the list while we're here.
+					pPreviousNode->pNextNode = pCurrentNode->pNextNode;
+					ReleaseNodeBackToFreelist(pCurrentNode);
+					pCurrentNode = nullptr;
+					return;
+				}
+
 				// At this point, the previous node should be the closest free range of memory to us, so append ourselves there!
 				CAssert(pPreviousNode);
 

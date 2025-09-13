@@ -503,7 +503,7 @@ void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryCo
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempGeometry()
 {
-	testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({0, 30, -30}, 32, 32, 32);
+	/*testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({0, 30, -30}, 32, 32, 32);
 	testCubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
 	
 	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, testCubeConfig, m_TestCube))
@@ -557,9 +557,9 @@ bool Renderer::CreateTempGeometry()
 	}
 
 	m_SponzaModel.m_vecAbsOrigin = Vector3D(0.0f, 0.0f, 0.0f);
+	s_bLevelGeometryLoaded = true;
 	// TEMP!
 	// End test mesh.*/
-	s_bLevelGeometryLoaded = true;
 
 	// TEMP: Setup our test text.
 	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
