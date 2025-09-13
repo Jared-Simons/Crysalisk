@@ -114,7 +114,10 @@ namespace MeshLoader
 			}
 		};
 
-		MeshResource_t() {}
+		MeshResource_t() 
+		{
+		}
+		
 		MeshResource_t(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
@@ -127,6 +130,7 @@ namespace MeshLoader
 		MeshResource_t& operator=(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
+			pMaterials = pOther.pMaterials;
 
 			vecPosition = pOther.vecPosition;
 			vecEulerAngles = pOther.vecEulerAngles;

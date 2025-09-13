@@ -300,6 +300,9 @@ namespace Utl
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
+				if (m_ResizeFactor < 1)
+					m_ResizeFactor = 2; // Just a safety in case something got messed up along the way.
+
 				// We need to resize to make space for us.
 				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.

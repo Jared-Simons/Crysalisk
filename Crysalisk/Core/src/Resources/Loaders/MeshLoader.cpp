@@ -387,7 +387,6 @@ namespace MeshLoader
 		size_t dotIndex = Utl::StringIndexOf(pszMeshFileName, '.');
 		char* pTempNameBuffer = Utl::StringDuplicate_N(pszMeshFileName, dotIndex);
 		MeshSerializer::SerializeMeshResource(pTempNameBuffer, pOutResource);
-
 		for (int idx = 0; idx < pOutResource.pMaterials.Count(); idx++)
 		{
 			MaterialSerializer::SerializeMaterialResources(pOutResource.pMaterials[idx].pszMaterialName, pOutResource.pMaterials[idx]);

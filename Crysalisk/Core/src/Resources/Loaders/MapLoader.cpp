@@ -151,7 +151,7 @@ namespace MapLoader
 													// MAPTODO: Find a way to strip the quotes out of a value here on the stack
 													// For now, I'm simply going to remove the quotes from the file format, but this should not be necessary!
 
-				Utl::StringFormat_V("Assets/Models/%s.cmodel_c", szFormattedModelPath, szValue);	// MAPTODO: Map the mesh loader take no file extension and have it determine the right method at runtime.
+				Utl::StringFormat_V("Assets/Models/%s", szFormattedModelPath, szValue);	// MAPTODO: Map the mesh loader take no file extension and have it determine the right method at runtime.
 
 				if (!MeshLoader::LoadMeshResource(szFormattedModelPath, newMeshResource))
 				{

@@ -9,6 +9,7 @@
 #include <Core/Logging.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/MaterialSystem.h"
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 {
@@ -94,11 +95,24 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
 
 						// MAPTODO: Figure out which of the two horizontal axis are which!
-						Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-						Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
+						// MAPTODO: Makes this convert to degrees first.
+						//Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
+						Quaternion quatAnglesX = QuaternionFromAxisAngle(Vector3D{ 1, 0, 0 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.x));
+						Quaternion quatAnglesY = QuaternionFromAxisAngle(Vector3D{ 0, 1, 0 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.y));
+						Quaternion quatAnglesZ = QuaternionFromAxisAngle(Vector3D{ 0, 0, 1 }, M_DEG2RAD_F(pCurObject->vecEulerAngles.z));
+						Matrix4x4 matAngles = Mat4FromQuaternion(quatAnglesX) * Mat4FromQuaternion(quatAnglesY) * Mat4FromQuaternion(quatAnglesZ);
 						newGeometry.matLocalToWorldTransform = newGeometry.matLocalToWorldTransform * matAngles;
 
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Scale(newGeometry.matLocalToWorldTransform, pCurObject->vecScale);
+
+						// Acquire material resources.
+						if (pCurMesh->pGroups[subMeshIdx]->pszMaterialName != nullptr)
+						{
+							newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurMesh->pGroups[subMeshIdx]->pszMaterialName);
+
+							// Set transparency state.
+							newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
+						}
 					}
 				}
 			}
