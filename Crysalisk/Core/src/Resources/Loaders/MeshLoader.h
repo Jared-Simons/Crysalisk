@@ -118,11 +118,19 @@ namespace MeshLoader
 		MeshResource_t(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
+
+			vecPosition = pOther.vecPosition;
+			vecEulerAngles = pOther.vecEulerAngles;
+			vecScale = pOther.vecScale;
 		}
 
 		MeshResource_t& operator=(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
+
+			vecPosition = pOther.vecPosition;
+			vecEulerAngles = pOther.vecEulerAngles;
+			vecScale = pOther.vecScale;
 
 			return *this;
 		}
@@ -139,5 +147,10 @@ namespace MeshLoader
 		Utl::CVector<GeometryGroup_t*>						pObjects{};
 		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
+
+		// Transformation data.
+		Vector3D						vecPosition{};
+		Vector3D						vecEulerAngles{};
+		Vector3D						vecScale{};
 	};
 }

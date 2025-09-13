@@ -270,13 +270,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 		//DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
 		//m_Metrics.NumDrawCalls++;
 
-		// Render the opaque geometry first.
-		model = Matrix4x4::Matrix4x4(1.0f);
-		model = Matrix4x4::Translate(model, m_SponzaModel.m_vecAbsOrigin);
-		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
+			// Apply transformations.
+			model = pOpaqueGeometries[idx]->matLocalToWorldTransform;
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
 			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
@@ -289,6 +288,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 		// Render the sorted transparent geometries.
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
+			// Apply transformations.
+			model = pTransparentGeometries[idx]->matLocalToWorldTransform;
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);

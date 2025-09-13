@@ -540,3 +540,15 @@ inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAn
 	outQuat.w = M_COS_F(flAngle / 2.0f);
 	return outQuat;
 }
+
+inline Quaternion QuaternionFromEulerAngles(Vector3D vecEulerAngles)
+{
+	Quaternion outQuat{};
+
+	outQuat.x = M_SIN_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) - M_COS_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
+	outQuat.y = M_COS_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) + M_SIN_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
+	outQuat.z = M_COS_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2) - M_SIN_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2);
+	outQuat.w = M_COS_F(vecEulerAngles.x / 2) * M_COS_F(vecEulerAngles.y / 2) * M_COS_F(vecEulerAngles.z / 2) - M_SIN_F(vecEulerAngles.x / 2) * M_SIN_F(vecEulerAngles.y / 2) * M_SIN_F(vecEulerAngles.z / 2);
+
+	return outQuat;
+}

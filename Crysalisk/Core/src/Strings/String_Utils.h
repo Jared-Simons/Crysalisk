@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include "Math/VectorTypes.h"
 
 namespace Utl
 {
@@ -53,5 +54,8 @@ namespace Utl
 	DLL_EXPORT int String_ATOI(const char* c);
 	// Converts an ascii value to a floating-point value.
 	DLL_EXPORT float String_ATOF(const char* c);
+
+	// Converts an ascii string to a Vector3D.
+	DLL_EXPORT Vector3D String_ToVector3(const char* c);
 
 } // namespace Utl

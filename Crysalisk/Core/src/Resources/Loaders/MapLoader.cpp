@@ -128,6 +128,10 @@ namespace MapLoader
 			{
 				continue;
 			}
+
+			// Make sure to clear out any existing string data from a previous line read.
+			Platform::MemorySet(szKey, 0, 64);
+			Platform::MemorySet(szValue, 0, 64);
 			
 			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);	// MAPTODO: Using index 1 here to avoid a dynamic alloc in stripping the string.
 																		// We REALLY need a utility for string stripping in place...
@@ -155,9 +159,21 @@ namespace MapLoader
 					return false;
 				}
 			}
+			else if (Utl::StringCompare(szKey, "position"))
+			{
+				newMeshResource.vecPosition = Utl::String_ToVector3(szValue);
+			}
+			else if (Utl::StringCompare(szKey, "rotation"))
+			{
+				newMeshResource.vecEulerAngles = Utl::String_ToVector3(szValue);
+			}
+			else if (Utl::StringCompare(szKey, "scale"))
+			{
+				newMeshResource.vecScale = Utl::String_ToVector3(szValue);
+			}
 			else
 			{
-				// MAPTODO: Handle transforms and other misc mesh properties.
+				// MAPTODO: Handle other misc mesh properties.
 			}
 		}
 

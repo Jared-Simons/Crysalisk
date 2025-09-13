@@ -267,6 +267,8 @@ struct GeometryInstance_t
 	MaterialHandle_t	hMaterial;
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
+
+	Matrix4x4			matLocalToWorldTransform{};
 };
 
 // Represents a mesh/model, made up of numerous submeshes.
