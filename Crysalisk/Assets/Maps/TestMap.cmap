@@ -9,7 +9,7 @@ geometry=static_mesh
 	model_resource=sponza.cmodel_c
 
 	# Transform
-	position="0 -500 0"
+	position="0 0 0"
 	rotation="0 0 0"
 	scale="1 1 1"
 }
@@ -20,7 +20,60 @@ geometry=static_mesh
 	model_resource=Container.cmodel_c
 
 	# Transform
-	position="50 -500 0"
+	position="50 0 0"
 	rotation="90 0 0"
 	scale="1 1 1"
+}
+
+entity=light_environment
+{
+	#MAPTODO: Handle brightness for directional lights.
+	rotation="-0.2 -1.0 -0.3"
+	lightColor="240 185 130"
+	ambientLightColor="104 133 162"
+	ambientLightStrength="0.5"
+}
+
+entity=light_point
+{
+	# Combine citadel light
+	position="-451 135 -267"
+	lightColor="147 226 240"
+	attenConstant="1.0"
+	attenLinear="0.0"
+	attenQuadratic="0.000001"
+	brightness="1"
+}
+
+entity=light_point
+{
+	# Firelight
+	position="654 80 105"
+	lightColor="251 125 0"
+	attenConstant="1.0"
+	attenLinear="0.045"
+	attenQuadratic="0.075"
+	brightness="100"
+}
+
+entity=light_point
+{
+	# Car headlights
+	position="838 1199 -27"
+	lightColor="221 223 192"
+	attenConstant="1.0"
+	attenLinear="0.0"
+	attenQuadratic="0.0000008"
+	brightness="1"
+}
+
+entity=light_point
+{
+	# Red warning light
+	position="-980 1169 -37"
+	lightColor="232 17 17"
+	attenConstant="1.0"
+	attenLinear="1.0"
+	attenQuadratic="0.5"
+	brightness="200"
 }

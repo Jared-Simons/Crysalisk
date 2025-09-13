@@ -15,6 +15,7 @@ struct PointLight_t
 {
 	vec3 vecPosition;
 	vec3 lightColor;
+	float flBrightness;
 
 	float flConstant;
 	float flLinear;
@@ -176,10 +177,12 @@ vec3 CalculatePointLight(PointLight_t pLight, vec3 normal, vec3 fragPos, vec3 vi
 
 	// Diffuse shading
 	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
+	flDiffuseFactor *= pLight.flBrightness;
 
 	// Specular shading
 	vec3 vecHalfway = normalize(vecLightDir + viewDir);
 	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
+	flSpecularFactor *= pLight.flBrightness;
 
 	// Compute attenuation term.
 	float flDistance = length(pLight.vecPosition - fragPos);

@@ -66,6 +66,11 @@ public:
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
+	// Sets directional light data to be used during rendering.
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
+	virtual void				ApplyLightData() override;
+
 private:
 	// Creates the default textures to be used in the engine.
 	void						CreateDefaultMaterial();
@@ -107,6 +112,28 @@ private:
 	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
 	// The default material shader (in case a custom shader is not available).
 	ShaderHandle_t		m_DefaultMaterialShader{ kInvalidID_U32 };
+
+	// Current light data.
+	struct DirectionalLight_t
+	{
+		Vector3D	vecDirection{};
+		float		padding1{};
+		Vector3D	lightColor{};
+		float		padding2{};
+		Vector3D	ambientLightColor{};
+		float		flAmbientStrength{};
+	} dirLight;
+
+	struct PointLight_t
+	{
+		Vector4D	vecPosition{};
+		Vector3D	lightColor{};
+		float		flBrightness{};
+
+		float		flConstant{};
+		float		flLinear{};
+		float		flQuadratic{};
+	} pointLights[4];
 };
 
 // Material System context.
@@ -147,66 +174,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// TEMP!
 	// Set up a temporary light sources.
 	{
-		struct DirectionalLight_t
-		{
-			Vector3D	vecDirection{};
-			float		padding1{};
-			Vector3D	lightColor{};
-			float		padding2{};
-			Vector3D	ambientLightColor{};
-			float		flAmbientStrength{};
-		};
-
-		struct PointLight_t
-		{
-			Vector3D	vecPosition{};
-			float		padding1{};
-			Vector3D	lightColor{};
-
-			float		flConstant{};
-			float		flLinear{};
-			float		flQuadratic{};
-		};
-
-		DirectionalLight_t testLight{};
-		testLight.vecDirection = { -0.2f, -1.0f, -0.3f };
-		testLight.lightColor = { 1.0f, 0.785f, 0.534f };
-		testLight.ambientLightColor = { 0.592f, 0.679f, 0.812f };
-		testLight.flAmbientStrength = 0.3f;
-
-		PointLight_t	light1{};
-		light1.vecPosition = { 0.7f, 2.0f, 2.0f };
-		light1.lightColor = { 0.8f, 0.8f, 0.8f };
-		light1.flConstant = 1.0f;
-		light1.flLinear = 0.09f;
-		light1.flQuadratic = 0.032f;
-
-		PointLight_t	light2{};
-		light2.vecPosition = { 2.3f, 2.0f, -4.0f };
-		light2.lightColor = { 1.0f, 0.0f, 0.0f };
-		light2.flConstant = 1.0f;
-		light2.flLinear = 0.09f;
-		light2.flQuadratic = 0.032f;
-
-		PointLight_t	light3{};
-		light3.vecPosition = { -4.0f, 2.0f, -12.0f };
-		light3.lightColor = { 0.0f, 1.0f, 0.0f };
-		light3.flConstant = 1.0f;
-		light3.flLinear = 0.09f;
-		light3.flQuadratic = 0.032f;
-
-		PointLight_t	light4{};
-		light4.vecPosition = { 0.0f, 2.0f, -3.0f };
-		light4.lightColor = { 0.0f, 0.0f, 1.0f };
-		light4.flConstant = 1.0f;
-		light4.flLinear = 0.09f;
-		light4.flQuadratic = 0.032f;
-
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.dirLight, 0, 0, &testLight);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight1, 0, 0, &light1);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight2, 0, 0, &light2);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight3, 0, 0, &light3);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight4, 0, 0, &light4);
 	}
 	// END TEMP LIGHTING!
 
@@ -450,6 +417,48 @@ void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4
 void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 {
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.model, 0, 0, &pMatModel);
+}
+
+//-------------------------------------------------------------------------
+// Sets directional light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength)
+{
+	dirLight.vecDirection = vecDirection;
+	dirLight.lightColor = vecLightColor;
+	dirLight.ambientLightColor = vecAmbientLightColor;
+	dirLight.flAmbientStrength = flAmbientStrength;
+}
+
+//-------------------------------------------------------------------------
+// Sets point light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
+{
+	pointLights[lightIndex].vecPosition = vecPoint;
+	pointLights[lightIndex].lightColor = vecLightColor;
+	pointLights[lightIndex].flBrightness = flBrightness;
+	pointLights[lightIndex].flConstant = flConstant;
+	pointLights[lightIndex].flLinear = flLinear;
+	pointLights[lightIndex].flQuadratic = flQuadratic;
+}
+
+//-------------------------------------------------------------------------
+// Pushes current light data to the shaders for use.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ApplyLightData()
+{
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.dirLight, 0, 0, &dirLight);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight1, 0, 0, &pointLights[0]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight2, 0, 0, &pointLights[1]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight3, 0, 0, &pointLights[2]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight4, 0, 0, &pointLights[3]);
 }
 
 //-------------------------------------------------------------------------

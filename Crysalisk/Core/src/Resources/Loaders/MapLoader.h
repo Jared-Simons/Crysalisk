@@ -18,10 +18,35 @@ namespace MapLoader
 
 	struct MapResource_t
 	{
+		// Light entities.
+		struct LightResource_t
+		{
+			Vector3D	lightColor{};
+
+			// NOTE: Does not apply to directional/sky lights.
+			Vector3D	vecPosition{};
+
+			// NOTE: Has no effect on point lights.
+			Vector3D	vecDirection{};
+
+			// NOTE: Only applies to directional/sky lights.
+			Vector3D	ambientLightColor{};
+			float		flAmbientStrength{};
+
+			// NOTE: Does not apply to directional/sky lights.
+			float		flConstant{ 0.0f };
+			float		flLinear{ 0.0f };
+			float		flQuadratic{ 0.0f };
+			float		flBrightness{ 0.0f };
+		};
+		enum class eLightType{ INVALID, DIRECTIONAL, POINT };
+
 		char* pszMapName{ nullptr };
 
 		// Static meshes.
 		Utl::CVector<MeshLoader::MeshResource_t>	MeshResources{};
+		LightResource_t								DirectionalLight{};
+		Utl::CVector<LightResource_t>				PointLights{};
 
 		~MapResource_t()
 		{

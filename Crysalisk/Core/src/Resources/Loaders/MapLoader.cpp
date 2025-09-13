@@ -14,6 +14,7 @@ namespace MapLoader
 {
 	// Helper functions.
 	static bool ProcessStaticMeshEntry(FileHandle_t& hMapFile, MapResource_t& pOutMapResource);
+	static bool ProcessLightEntity(FileHandle_t& hMapFile, MapResource_t::eLightType type, MapResource_t& pOutMapResource);
 
 	bool LoadMapResource(const char* pszMapFilePath, struct MapResource_t& pOutResource)
 	{
@@ -71,8 +72,22 @@ namespace MapLoader
 			{
 				if (Utl::StringCompare(szValue, "static_mesh"))
 				{
-					// MAPTODO: Figure out why the allocator is causing this to crash.
 					ProcessStaticMeshEntry(hCMapFile, pOutResource);
+				}
+			}
+			else if (Utl::StringCompare(szKey, "entity"))
+			{
+				if (Utl::StringCompare(szValue, "light_environment"))
+				{
+					ProcessLightEntity(hCMapFile, MapResource_t::eLightType::DIRECTIONAL, pOutResource);
+				}
+				else if(Utl::StringCompare(szValue, "light_point"))
+				{
+					ProcessLightEntity(hCMapFile, MapResource_t::eLightType::POINT, pOutResource);
+				}
+				else
+				{
+					LOG_ERROR("Undefined Light entry found: %s", szCurrentLine);
 				}
 			}
 		}
@@ -89,7 +104,7 @@ namespace MapLoader
 		{
 			// This should NEVER happen!
 			// This means that the map file contains a static mesh entry that was not properly terminated.
-			LOG_WARN("Map file '%s' contains a formatting error! static_mesh entry was not properly termainted!");
+			LOG_WARN("Map file '%s' contains a formatting error! static_mesh entry was not properly termainted!", pOutMapResource.pszMapName);
 			return false;
 		}
 
@@ -177,6 +192,131 @@ namespace MapLoader
 			}
 		}
 
-		return true;
+		// We shouldn't fall out here.
+		return false;
 	}
+
+	static bool ProcessLightEntity(FileHandle_t& hMapFile, MapResource_t::eLightType type, MapResource_t& pOutMapResource)
+	{
+		if (FileSystem::IsEOF(&hMapFile))
+		{
+			// This should NEVER happen!
+			// This means that the map file contains a light entry that was not properly terminated.
+			LOG_WARN("Map file '%s' contains a formatting error! light entry was not properly termainted!", pOutMapResource.pszMapName);
+			return false;
+		}
+
+		char	szCurrentLine[kScratchStringBufferLength]{};
+		size_t	iCurrentLineLength{ 0 };
+		size_t	bytesRead{ 0 };
+		size_t	equalIndex{ 0 };
+		char	szKey[64]{};
+		char	szValue[64]{};
+
+		// Add a new entry to the resource to write to.
+		MapResource_t::LightResource_t* pLightResource = nullptr;
+		if (type == MapResource_t::eLightType::DIRECTIONAL)
+		{
+			pLightResource = &pOutMapResource.DirectionalLight;
+		}
+		else if (type == MapResource_t::eLightType::POINT)
+		{
+			pOutMapResource.PointLights.PushBack(MapResource_t::LightResource_t{});
+			pLightResource = &pOutMapResource.PointLights.Back();
+		}
+
+		CAssert(pLightResource != nullptr);
+
+		// Read the next line from where the file left off.
+		FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &hMapFile);
+
+		while (szCurrentLine[0] != '}')
+		{
+			// We can read this again immediately, assuming the first line of this block is just an opening brace.
+			FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &hMapFile);
+			iCurrentLineLength = Utl::StringLength(szCurrentLine);
+
+			if (iCurrentLineLength <= 0 || szCurrentLine[0] == '#') // Blank line, comment, or whitespace.
+				continue;
+
+			if (szCurrentLine[0] == '}')
+			{
+				// We're done processing this entry.
+				return true;
+			}
+
+			equalIndex = Utl::StringIndexOf(szCurrentLine, '=');
+			//CAssert(equalIndex != kInvalidID_U32);					// MAPTODO: Implement a string utility for checking for whitespace.
+			if (equalIndex == kInvalidID_U32)
+			{
+				continue;
+			}
+
+			// Make sure to clear out any existing string data from a previous line read.
+			Platform::MemorySet(szKey, 0, 64);
+			Platform::MemorySet(szValue, 0, 64);
+
+			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);	// MAPTODO: Using index 1 here to avoid a dynamic alloc in stripping the string.
+			// We REALLY need a utility for string stripping in place...
+			szKey[equalIndex] = '\0';
+			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
+			szValue[bytesRead - 1] = '\0';
+
+			// Process mesh properties.
+			if (Utl::StringCompare(szKey, "position"))
+			{
+				pLightResource->vecPosition = Utl::String_ToVector3(szValue);
+			}
+			else if (Utl::StringCompare(szKey, "rotation"))
+			{
+				pLightResource->vecDirection = Utl::String_ToVector3(szValue);
+			}
+			else if (Utl::StringCompare(szKey, "lightColor"))
+			{
+				pLightResource->lightColor = Utl::String_ToVector3(szValue);
+
+				// Bring this value into a range of [0..1]
+				pLightResource->lightColor.x /= 255.0f;
+				pLightResource->lightColor.y /= 255.0f;
+				pLightResource->lightColor.z /= 255.0f;
+			}
+			else if (Utl::StringCompare(szKey, "ambientLightColor"))
+			{
+				pLightResource->ambientLightColor = Utl::String_ToVector3(szValue);
+
+				// Bring this value into a range of [0..1]
+				pLightResource->ambientLightColor.x /= 255.0f;
+				pLightResource->ambientLightColor.y /= 255.0f;
+				pLightResource->ambientLightColor.z /= 255.0f;
+			}
+			else if (Utl::StringCompare(szKey, "ambientLightStrength"))
+			{
+				pLightResource->flAmbientStrength = Utl::String_ATOF(&szValue[1]);	// NOTE: Index 1 to get rid of the quotes.
+			}
+			else if (Utl::StringCompare(szKey, "attenConstant"))
+			{
+				pLightResource->flConstant = Utl::String_ATOF(&szValue[1]);
+			}
+			else if (Utl::StringCompare(szKey, "attenLinear"))
+			{
+				pLightResource->flLinear = Utl::String_ATOF(&szValue[1]);
+			}
+			else if (Utl::StringCompare(szKey, "attenQuadratic"))
+			{
+				pLightResource->flQuadratic = Utl::String_ATOF(&szValue[1]);
+			}
+			else if (Utl::StringCompare(szKey, "brightness"))
+			{
+				pLightResource->flBrightness = Utl::String_ATOF(&szValue[1]);
+			}
+			else
+			{
+				LOG_WARN("Light entry has unused key/value: %s: %s", szKey, szValue);
+			}
+		}
+		
+		// We shouldn't fall out here.
+		return false;
+	}
+
 } // namespace MapLoader

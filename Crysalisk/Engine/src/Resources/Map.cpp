@@ -120,6 +120,20 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 		return false;
 	}
 
+	// Setup light data.
+	MapLoader::MapResource_t::LightResource_t& dirLight = pNewMapResource.DirectionalLight;
+	MapLoader::MapResource_t::LightResource_t& pointLight1 = pNewMapResource.PointLights[0];
+	MapLoader::MapResource_t::LightResource_t& pointLight2 = pNewMapResource.PointLights[1];
+	MapLoader::MapResource_t::LightResource_t& pointLight3 = pNewMapResource.PointLights[2];
+	MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
+
+ 	g_pMaterialSystemInternal->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.ambientLightColor, dirLight.flAmbientStrength);
+	g_pMaterialSystemInternal->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
+	g_pMaterialSystemInternal->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
+	g_pMaterialSystemInternal->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
+	g_pMaterialSystemInternal->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	g_pMaterialSystemInternal->ApplyLightData();
+
 	return true;
 }
 

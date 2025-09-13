@@ -48,6 +48,11 @@ public:
 	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) = 0;
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
+
+	// Sets lighting data to be used during rendering.
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
+	virtual void				ApplyLightData() = 0;
 };
 
 // Global interface to the material system context.

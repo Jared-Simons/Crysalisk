@@ -368,6 +368,26 @@ public:
 		, z{ pOtherVec.z }
 		, w{ pOtherVec.w } { }
 
+	Vector4D operator=(const Vector4D& pOtherVec)
+	{
+		x = pOtherVec.x;
+		y = pOtherVec.y;
+		z = pOtherVec.z;
+		w = pOtherVec.w;
+
+		return *this;
+	}
+
+	Vector4D operator=(const Vector3D& pOtherVec)
+	{
+		x = pOtherVec.x;
+		y = pOtherVec.y;
+		z = pOtherVec.z;
+		w = 1.0f;
+
+		return *this;
+	}
+
 	void operator+(const float scalar)
 	{
 		x = x + scalar;
