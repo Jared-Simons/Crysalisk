@@ -7,6 +7,7 @@ struct DirectionalLight_t
 {
 	vec3	vecDirection;
 	vec3	lightColor;
+	float	flBrightness;
 	vec3	ambientLightColor;
 	float	flAmbientStrength;
 };
@@ -139,10 +140,12 @@ vec3 CalculateDirectionalLight(vec3 normal, vec3 viewDir, vec3 diffuseSample, ve
 
 	// Diffuse shading
 	float flDiffuseFactor = max(dot(normal, vecLightDir), 0.0);
+	flDiffuseFactor *= global_ubo.dirLight.flBrightness;
 
 	// Specular shading
 	vec3 vecHalfway = normalize(vecLightDir + viewDir);
 	float flSpecularFactor = pow(max(dot(normal, vecHalfway), 0.0), instance_ubo.shininess);
+	flSpecularFactor *= global_ubo.dirLight.flBrightness;
 
 	// Composite results.
 	vec3 ambientLight = global_ubo.dirLight.ambientLightColor * global_ubo.dirLight.flAmbientStrength;

@@ -50,7 +50,7 @@ public:
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
 
 	// Sets lighting data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
 	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
 	virtual void				ApplyLightData() = 0;
 };

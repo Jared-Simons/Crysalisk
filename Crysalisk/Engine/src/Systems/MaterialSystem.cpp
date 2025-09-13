@@ -67,7 +67,7 @@ public:
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
 	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
 	virtual void				ApplyLightData() override;
 
@@ -119,7 +119,7 @@ private:
 		Vector3D	vecDirection{};
 		float		padding1{};
 		Vector3D	lightColor{};
-		float		padding2{};
+		float		flBrightness{};
 		Vector3D	ambientLightColor{};
 		float		flAmbientStrength{};
 	} dirLight;
@@ -424,9 +424,10 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, Vector3D vecAmbientLightColor, float flAmbientStrength)
+void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
 {
 	dirLight.vecDirection = vecDirection;
+	dirLight.flBrightness = flBrightness;
 	dirLight.lightColor = vecLightColor;
 	dirLight.ambientLightColor = vecAmbientLightColor;
 	dirLight.flAmbientStrength = flAmbientStrength;

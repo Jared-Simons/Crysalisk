@@ -27,9 +27,9 @@ geometry=static_mesh
 
 entity=light_environment
 {
-	#MAPTODO: Handle brightness for directional lights.
 	rotation="-0.2 -1.0 -0.3"
 	lightColor="240 185 130"
+	brightness="1"
 	ambientLightColor="104 133 162"
 	ambientLightStrength="0.5"
 }
