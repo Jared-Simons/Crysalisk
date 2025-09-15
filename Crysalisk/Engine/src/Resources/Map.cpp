@@ -92,14 +92,14 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 						// Set-up a our transformation matrix while we're here.
 						// MAPTODO: We should really only need one of these per mesh or object, not submesh!
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
+						newGeometry.matLocalToWorldTransform = Matrix4x4::Scale(newGeometry.matLocalToWorldTransform, pCurObject->vecScale);
 
 						// MAPTODO: Figure out which axes are which!
 						Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
 						Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
 						newGeometry.matLocalToWorldTransform = newGeometry.matLocalToWorldTransform * matAngles;
 
-						newGeometry.matLocalToWorldTransform = Matrix4x4::Scale(newGeometry.matLocalToWorldTransform, pCurObject->vecScale);
+						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
 
 						// Acquire material resources.
 						if (pCurMesh->pGroups[subMeshIdx]->pszMaterialName != nullptr)

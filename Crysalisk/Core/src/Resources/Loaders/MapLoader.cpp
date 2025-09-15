@@ -16,7 +16,7 @@ namespace MapLoader
 	static bool ProcessStaticMeshEntry(FileHandle_t& hMapFile, MapResource_t& pOutMapResource);
 	static bool ProcessLightEntity(FileHandle_t& hMapFile, MapResource_t::eLightType type, MapResource_t& pOutMapResource);
 
-	bool LoadMapResource(const char* pszMapFilePath, struct MapResource_t& pOutResource)
+	bool LoadMapResource(const char* pszMapFilePath, MapResource_t& pOutResource)
 	{
 		FileHandle_t hCMapFile{};
 
@@ -62,7 +62,9 @@ namespace MapLoader
 
 			if (Utl::StringCompare(szKey, "map_version"))
 			{
-				// TODO: Version handling.
+				// Note: Version handling.
+				pOutResource.iMapVersion = Utl::String_ATOI(szValue);
+				LOG_DEBUG("Map version detected: %d", pOutResource.iMapVersion);
 			}
 			else if (Utl::StringCompare(szKey, "map_name"))
 			{
@@ -161,20 +163,22 @@ namespace MapLoader
 			// Process mesh properties.
 			if (Utl::StringCompare(szKey, "name"))
 			{
-				// MAPTODO: Currently doing nothing with names.
+				// Note: Currently doing nothing with names.
 			}
 			else if (Utl::StringCompare(szKey, "model_resource"))
 			{
 				// Format the path and load up this model resource for use.
-				char szFormattedModelPath[512]; // Hopefully this is enough... we're really pushing the stack here!
-													// MAPTODO: Find a way to strip the quotes out of a value here on the stack
-													// For now, I'm simply going to remove the quotes from the file format, but this should not be necessary!
+				// MAPTODO: Should this be on the stack?
+				char* pszStrippedNamePointer = Utl::StringStrip(szValue, '\"');
+				char szFormattedModelPath[512];
 
-				Utl::StringFormat_V("Assets/Models/%s", szFormattedModelPath, szValue);	// MAPTODO: Map the mesh loader take no file extension and have it determine the right method at runtime.
+				Utl::StringFormat_V("Assets/Models/%s", szFormattedModelPath, pszStrippedNamePointer);
+				Utl::StringFree(pszStrippedNamePointer);
+				pszStrippedNamePointer = nullptr;
 
 				if (!MeshLoader::LoadMeshResource(szFormattedModelPath, newMeshResource))
 				{
-					// TODO: Logging.
+					LOG_ERROR("Failed to load mesh asset '%s'.", szFormattedModelPath);
 					return false;
 				}
 			}
@@ -192,7 +196,7 @@ namespace MapLoader
 			}
 			else
 			{
-				// MAPTODO: Handle other misc mesh properties.
+				// Handle other misc mesh properties when the time comes.
 			}
 		}
 

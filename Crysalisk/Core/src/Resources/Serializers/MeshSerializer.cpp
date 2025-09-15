@@ -88,8 +88,21 @@ namespace MeshSerializer
 				subMesh.iIndexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Stride();
 
 				// Material data.
-				subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
-				subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
+				if (pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName)
+					subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
+				else
+				{
+					// Add in a string for debugging purposes.
+					static const char* pszAssetDirectory = "Assets/Models";
+					static size_t iDirectoryLength = Utl::StringLength(pszAssetDirectory);
+					char szNewDebugString[512]{};
+					Utl::StringFormat_V("%s_submesh_%i", szNewDebugString, &pszModelName[iDirectoryLength], gpIdx);
+
+					subMesh.iSubmeshNameLength = Utl::StringLength(szNewDebugString);
+				}
+
+				if (pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName)
+					subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
 
 				// Write the header, then the data.
 				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);

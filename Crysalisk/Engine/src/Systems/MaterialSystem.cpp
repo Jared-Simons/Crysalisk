@@ -471,6 +471,7 @@ void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirecti
 
 	spotLight.vecPosition = vecPosition;
 	// Direction needs to be converted from degrees to radians.
+	// MAPTODO: Figure out which axes are which and that they are consistent with our y-vertical coordinate space.
 	spotLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
 	spotLight.lightColor = vecLightColor;
 	spotLight.flBrightness = flBrightness;

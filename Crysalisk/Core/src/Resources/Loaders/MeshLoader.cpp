@@ -31,35 +31,31 @@ namespace MeshLoader
 	//			pOutResource - The loaded resource data.
 	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
+	bool LoadMeshResource(char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
-		if (!FileSystem::FileExists(pszMeshFileName))
+		// Check .cmodel_c files first.
+		char szFormattedPathWithExtension[512]{};
+		Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".cmodel_c");
+
+		if (!FileSystem::FileExists(szFormattedPathWithExtension))
 		{
+			// Check it with other supported formats.
+			Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".obj");
+			if (FileSystem::FileExists(szFormattedPathWithExtension))
+			{
+				return LoadOBJMeshResource(szFormattedPathWithExtension, pOutResource);
+			}
+
 			LOG_ERROR("Mesh resource file '%s' could not be found. Mesh resource load failed.", pszMeshFileName);
 			return false;
 		}
-
-		// Grab the extension from the path.
-		char* pszFileExtension = Utl::StringGetFilenameExtension(pszMeshFileName);
-
-		if (Utl::StringCompare(pszFileExtension, ".cmodel_c"))
-		{
-			LoadCModelMeshResource(pszMeshFileName, pOutResource);
-		}
-		else if (Utl::StringCompare(pszFileExtension, ".obj"))
-		{
-			LoadOBJMeshResource(pszMeshFileName, pOutResource);
-		}
 		else
 		{
-			// Other file formats not yet supported.
-			CAssert(0);
+			return LoadCModelMeshResource(szFormattedPathWithExtension, pOutResource);
 		}
 
-		// Free temp string data.
-		Utl::StringFree(pszFileExtension);
-
-		return true;
+		CAssert(0);
+		return false;
 	}
 
 	//-------------------------------------------------------------------------

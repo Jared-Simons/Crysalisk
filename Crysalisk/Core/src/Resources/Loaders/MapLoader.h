@@ -45,7 +45,8 @@ namespace MapLoader
 		};
 		enum class eLightType{ INVALID, DIRECTIONAL, POINT, SPOT };
 
-		char* pszMapName{ nullptr };
+		uint32_t	iMapVersion{ 0 };
+		char*		pszMapName{ nullptr };
 
 		// Static meshes.
 		Utl::CVector<MeshLoader::MeshResource_t>	MeshResources{};

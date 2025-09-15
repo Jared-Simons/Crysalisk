@@ -6,7 +6,7 @@ map_name=Crysalisk_Test_Level
 geometry=static_mesh
 {
 	name="sponza"
-	model_resource=sponza.cmodel_c
+	model_resource="sponza"
 
 	# Transform
 	position="0 0 0"
@@ -17,7 +17,7 @@ geometry=static_mesh
 geometry=static_mesh
 {
 	name="container"
-	model_resource=Container.cmodel_c
+	model_resource="Container"
 
 	# Transform
 	position="50 0 0"
@@ -25,8 +25,20 @@ geometry=static_mesh
 	scale="1 1 1"
 }
 
+geometry=static_mesh
+{
+	name="Tree"
+	model_resource="Tree"
+
+	# Transform
+	position="655 -30 106"
+	rotation="90 0 0"
+	scale="100 100 100"
+}
+
 entity=light_environment
 {
+	# MAPTODO: Express these in degrees in a manner that is consistent with spotlights.
 	rotation="-0.2 -1.0 -0.3"
 	lightColor="240 185 130"
 	brightness="0.7"
@@ -48,12 +60,12 @@ entity=light_point
 entity=light_point
 {
 	# Firelight
-	position="480 53 105"
+	position="655 53 106"
 	lightColor="251 125 0"
 	attenConstant="1.0"
-	attenLinear="0.045"
+	attenLinear="0.060"
 	attenQuadratic="0.075"
-	brightness="250"
+	brightness="400"
 }
 
 entity=light_point
