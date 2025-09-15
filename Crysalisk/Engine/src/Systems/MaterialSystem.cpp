@@ -469,27 +469,16 @@ void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirecti
 {
 	CAssert(flInnerCutoff < flOuterCutoff);
 
-	/*spotLight.vecPosition = vecPosition;
-	spotLight.vecDirection = vecDirection;
+	spotLight.vecPosition = vecPosition;
+	// Direction needs to be converted from degrees to radians.
+	spotLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
 	spotLight.lightColor = vecLightColor;
 	spotLight.flBrightness = flBrightness;
 	spotLight.flConstant = flConstant;
 	spotLight.flLinear = flLinear;
 	spotLight.flQuadratic = flQuadratic;
-	spotLight.flInnerCutoff = flInnerCutoff;
-	spotLight.flOuterCutoff = flOuterCutoff;*/
-
-	// MAPTODO: Make this work from the map file.
-	//spotLight.vecPosition = Vector3D{ -480, 187, -33 };
-	spotLight.vecPosition = Vector3D{ 0.0, 512.0, 0.0 };
-	spotLight.vecDirection = Vector3D{ 0, 0, 0 };
-	spotLight.lightColor = Vector3D{ 147, 226, 240 };
-	spotLight.flBrightness = 10000000000000000000000.0f;
-	spotLight.flConstant = 1.0f;
-	spotLight.flLinear = 0.09f;
-	spotLight.flQuadratic = 0.032f;
-	spotLight.flInnerCutoff = M_COS_F(M_DEG2RAD_F(45.0f));
-	spotLight.flOuterCutoff = M_COS_F(M_DEG2RAD_F(90.0f));
+	spotLight.flInnerCutoff = M_COS_F(M_DEG2RAD_F(flInnerCutoff));
+	spotLight.flOuterCutoff = M_COS_F(M_DEG2RAD_F(flOuterCutoff));
 }
 
 //-------------------------------------------------------------------------

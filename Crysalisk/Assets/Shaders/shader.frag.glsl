@@ -259,7 +259,7 @@ vec3 CalculateSpotLight(SpotLight_t pLight, vec3 normal, vec3 fragPos, vec3 view
 
 	// Spotlight.
 	float flTheta = dot(vecLightDir, normalize(-pLight.vecDirection));
-	float flEpsilon = (pLight.flOuterCutoff - pLight.flInnerCutoff);
+	float flEpsilon = (pLight.flInnerCutoff - pLight.flOuterCutoff);
 	float flIntensity = clamp((flTheta - pLight.flOuterCutoff) / flEpsilon, 0.0, 1.0);
 
 	// Apply attenuation.

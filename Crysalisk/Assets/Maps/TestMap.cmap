@@ -29,9 +29,9 @@ entity=light_environment
 {
 	rotation="-0.2 -1.0 -0.3"
 	lightColor="240 185 130"
-	brightness="1"
+	brightness="0.7"
 	ambientLightColor="104 133 162"
-	ambientLightStrength="0.5"
+	ambientLightStrength="0.3"
 }
 
 entity=light_point
@@ -48,12 +48,12 @@ entity=light_point
 entity=light_point
 {
 	# Firelight
-	position="654 80 105"
+	position="480 53 105"
 	lightColor="251 125 0"
 	attenConstant="1.0"
 	attenLinear="0.045"
 	attenQuadratic="0.075"
-	brightness="100"
+	brightness="250"
 }
 
 entity=light_point
@@ -75,19 +75,19 @@ entity=light_point
 	attenConstant="1.0"
 	attenLinear="1.0"
 	attenQuadratic="0.5"
-	brightness="200"
+	brightness="500"
 }
 
 entity=light_spot
 {
 	# Combine citadel light (spotlight edition!)
-	position="-451 135 -267"
-	direction="0 180 0"
-	lightColor="147 226 240"
+	position="-815 147 0"
+	direction="0 5 -90"
+	lightColor="107 214 229"
 	attenConstant="1.0"
-	attenLinear="0.0"
-	attenQuadratic="0.000001"
-	brightness="1"
-	innerAngle="45.0"
-	outerAngle="90.0"
+	attenLinear="1.0"
+	attenQuadratic="0.0"
+	brightness="255"
+	innerAngle="10.5"
+	outerAngle="14.5"
 }
