@@ -600,7 +600,7 @@ namespace Platform
 		~CSysModule()
 		{
 			if (m_szModuleName)
-				free(m_szModuleName);
+				Utl::StringFree(m_szModuleName);
 		}
 
 		virtual void* ConnectInterface(void* pInterfaceState) override

@@ -564,7 +564,8 @@ namespace MeshLoader
 		}
 
 		// Flush the last config to the resource, it won't be picked up by the above code.
-		pMeshResource.pMaterials.PushBack(currentMaterialResource);
+		if (currentMaterialResource.pszMaterialName != nullptr)
+			pMeshResource.pMaterials.PushBack(currentMaterialResource);
 
 		FileSystem::CloseFile(&hMtlFile);
 

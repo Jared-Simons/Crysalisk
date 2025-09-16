@@ -27,6 +27,7 @@ public:
 
 	virtual bool	IsInitialized() const override { return m_bInitialized; }
 	virtual void	PrintMemoryStats() override;
+	virtual float	GetPercentAllocated() const override;
 
 private:
 	// The configuration for the memory manager.
@@ -82,6 +83,8 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 	// Setup our internal memory allocator.
 	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
 	m_bInitialized = true;
+
+	s_pMemoryManager.m_MemoryConfig = config;
 
 	return true;
 }
@@ -150,4 +153,9 @@ void CMemoryManager::Free(void* pMemBlock)
 void CMemoryManager::PrintMemoryStats()
 {
 	LOG_INFO("Bytes Allocated: %d", m_iNumBytesAllocated);
+}
+
+float CMemoryManager::GetPercentAllocated() const
+{
+	return m_iNumBytesAllocated / (float)m_MemoryConfig.totalMemoryBudget;
 }

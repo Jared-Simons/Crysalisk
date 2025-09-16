@@ -36,6 +36,7 @@ public:
 
 	virtual bool		IsInitialized() const = 0;
 	virtual void		PrintMemoryStats() = 0;
+	virtual float	GetPercentAllocated() const = 0;
 };
 
 // A global interface pointer to the application's memory manager.

@@ -34,12 +34,16 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 		return false;
 	}
 
+	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
+
 	// Use the loaded resource to acquire assets.
 	if (!pOutMapResource.InitializeFromResource(mapResource))
 	{
 		// TODO: Logging
 		return false;
 	}
+
+	LOG_DEBUG("Memory usage post-map load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	return true;
 }
@@ -136,11 +140,16 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 	g_pMaterialSystemInternal->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
 	g_pMaterialSystemInternal->ApplyLightData();
 
+	m_bMapResourcesLoaded = true;
+
+	// MAPTODO: Investigate memory leaks wrt releasing temporary map resources.
 	return true;
 }
 
-void CMap::Destroy()
+void CMap::UnloadMap()
 {
+	m_bMapResourcesLoaded = false;
+
 	if (m_pszMapName)
 	{
 		Utl::StringFree(m_pszMapName);

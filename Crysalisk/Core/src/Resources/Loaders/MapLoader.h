@@ -61,6 +61,9 @@ namespace MapLoader
 				Utl::StringFree(pszMapName);
 				pszMapName = nullptr;
 			}
+
+			MeshResources.Clear();
+			PointLights.Clear();
 		}
 	};
 } // namespace MapLoader

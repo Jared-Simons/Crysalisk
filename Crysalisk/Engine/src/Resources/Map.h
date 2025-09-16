@@ -15,7 +15,9 @@ class CMap
 public:
 	bool	InitializeFromResource(struct MapLoader::MapResource_t& pNewMapResource);
 
-	void	Destroy();
+	void	UnloadMap();
+
+	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	Utl::CVector<GeometryInstance_t>&	GetRenderablesFromScene();
 
@@ -23,6 +25,8 @@ private:
 	char* m_pszMapName{ nullptr };
 
 	Utl::CVector<GeometryInstance_t>	m_Meshes{};
+
+	bool	m_bMapResourcesLoaded{ false };
 };
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource);
