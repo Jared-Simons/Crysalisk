@@ -77,20 +77,20 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 
 			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Count(); meshIdx++)
 			{
-				pCurMesh = pCurObject->pObjects[meshIdx];
+				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
 
 				for (int subMeshIdx = 0; subMeshIdx < pCurMesh->pGroups.Count(); subMeshIdx++)
 				{
 					GeometryConfig_t newConfig{};
-					newConfig.Vertices = pCurMesh->pGroups[subMeshIdx]->Vertices;
-					newConfig.Indices = pCurMesh->pGroups[subMeshIdx]->Indices;
-					if (pCurMesh->pGroups[subMeshIdx]->pszDebugName)
-						newConfig.pszDebugName = Utl::StringDuplicate(pCurMesh->pGroups[subMeshIdx]->pszDebugName);
+					newConfig.Vertices = pCurMesh->pGroups[subMeshIdx].Vertices;
+					newConfig.Indices = pCurMesh->pGroups[subMeshIdx].Indices;
+					if (pCurMesh->pGroups[subMeshIdx].pszDebugName)
+						newConfig.pszDebugName = Utl::StringDuplicate(pCurMesh->pGroups[subMeshIdx].pszDebugName);
 
 					if (newConfig.Vertices.Count() > 0)
 					{
-						LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pCurMesh->pGroups[subMeshIdx]->pszDebugName);
+						LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pCurMesh->pGroups[subMeshIdx].pszDebugName);
 
 						pOutMap.m_Meshes.PushBack(GeometryInstance_t{});
 						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back();
@@ -110,9 +110,9 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
 
 						// Acquire material resources.
-						if (pCurMesh->pGroups[subMeshIdx]->pszMaterialName != nullptr)
+						if (pCurMesh->pGroups[subMeshIdx].pszMaterialName != nullptr)
 						{
-							newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurMesh->pGroups[subMeshIdx]->pszMaterialName);
+							newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurMesh->pGroups[subMeshIdx].pszMaterialName);
 
 							// Set transparency state.
 							newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);

@@ -89,7 +89,7 @@ namespace MeshLoader
 			// The name of the group.
 			char*							pszDebugName{ nullptr };
 			// An array of submeshes.
-			Utl::CVector<GeometryObject_t*>	pGroups{};
+			Utl::CVector<GeometryObject_t>	pGroups{};
 
 			GeometryGroup_t() {}
 
@@ -118,7 +118,7 @@ namespace MeshLoader
 
 				for (int idx = 0; idx < pGroups.Count(); idx++)
 				{
-					delete pGroups[idx];
+					pGroups[idx].~GeometryObject_t();
 				}
 			}
 		};
@@ -152,7 +152,7 @@ namespace MeshLoader
 		{
 			for (int idx = 0; idx < pObjects.Count(); idx++)
 			{
-				delete pObjects[idx];
+				pObjects[idx].~GeometryGroup_t();
 			}
 
 			for (int idx = 0; idx < pMaterials.Count(); idx++)
@@ -162,7 +162,7 @@ namespace MeshLoader
 		}
 
 		// An array of groups (which contain submesh data).
-		Utl::CVector<GeometryGroup_t*>						pObjects{};
+		Utl::CVector<GeometryGroup_t>						pObjects{};
 		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 

@@ -81,7 +81,7 @@ namespace MeshLoader
 		modelBytes.Resize(modelDataSize);
 		FileSystem::ReadWholeBinaryFile(modelBytes.Data(), modelDataSize, &bytesRead, &hCModelFile);
 
-		void*		pDataPtr = modelBytes.Data();
+		void* pDataPtr = modelBytes.Data();
 		uint64_t	currOffset{ 0 };
 
 		// First up is the magic number.
@@ -96,7 +96,7 @@ namespace MeshLoader
 		currOffset += sizeof(uint32_t);
 
 		// Setup a new mesh object.
-		pOutResource.pObjects.PushBack(new MeshResource_t::GeometryGroup_t);
+		pOutResource.pObjects.PushBack(MeshResource_t::GeometryGroup_t{});
 
 		// File header.
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
@@ -107,23 +107,23 @@ namespace MeshLoader
 		// Process mesh data.
 		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
 		{
-			// Allocate a new geometry group.
-			pOutResource.pObjects[0]->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
+			// Setup a new geometry group.
+			pOutResource.pObjects[0].pGroups.PushBack(MeshResource_t::GeometryObject_t{});
 
 			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
 
 			// Next up is the mesh name.
 			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
-			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName = new char[pCurrentMesh->iSubmeshNameLength + 1];
-			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszDebugName,
+			pOutResource.pObjects.Back().pGroups[meshIdx].pszDebugName = new char[pCurrentMesh->iSubmeshNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back().pGroups[meshIdx].pszDebugName,
 								((uint8_t*)pDataPtr + currOffset),
 								pCurrentMesh->iSubmeshNameLength);
 
 			// Material name is next.
 			currOffset += pCurrentMesh->iSubmeshNameLength;
-			pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
-			Platform::MemoryCopy(pOutResource.pObjects.Back()->pGroups[meshIdx]->pszMaterialName,
+			pOutResource.pObjects.Back().pGroups[meshIdx].pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
+			Platform::MemoryCopy(pOutResource.pObjects.Back().pGroups[meshIdx].pszMaterialName,
 								((uint8_t*)pDataPtr + currOffset),
 								pCurrentMesh->iMaterialNameLength);
 
@@ -132,10 +132,11 @@ namespace MeshLoader
 			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
 
 			// Vertex data.
+			pOutResource.pObjects.Back().pGroups[meshIdx].Vertices.Resize(pCurrentMesh->iVertexCount);
 			for (int vertIdx = 0; vertIdx < pCurrentMesh->iVertexCount; vertIdx++)
 			{
-				Vertex3D* newVert = &pVertexTable[vertIdx];
-				pOutResource.pObjects.Back()->pGroups[meshIdx]->Vertices.PushBack(*newVert);
+				Vertex3D newVert = pVertexTable[vertIdx];
+				pOutResource.pObjects.Back().pGroups[meshIdx].Vertices.PushBack(newVert);
 			}
 
 			// Get at the index data.
@@ -143,10 +144,11 @@ namespace MeshLoader
 			uint32_t* pIndexTable = (uint32_t*)((uint8_t*)pDataPtr + currOffset);
 
 			// Index data.
+			pOutResource.pObjects.Back().pGroups[meshIdx].Indices.Resize(pCurrentMesh->iIndexCount);
 			for (int idx = 0; idx < pCurrentMesh->iIndexCount; idx++)
 			{
-				uint32_t* newIdx = &pIndexTable[idx];
-				pOutResource.pObjects.Back()->pGroups[meshIdx]->Indices.PushBack(*newIdx);
+				uint32_t newIdx = pIndexTable[idx];
+				pOutResource.pObjects.Back().pGroups[meshIdx].Indices.PushBack(newIdx);
 			}
 
 			// Get to the next submesh.
@@ -214,7 +216,7 @@ namespace MeshLoader
 			{
 			case 'o':	// Objects
 				pOutResource.pObjects.PushBack(new MeshResource_t::GeometryGroup_t);
-				pCurrentObject = pOutResource.pObjects.Back();
+				pCurrentObject = &pOutResource.pObjects.Back();
 				pCurrentObject->pszDebugName = Utl::StringDuplicate(&szCurrentLine[2]);
 				nObjectsProcessed++;
 				break;
@@ -224,7 +226,7 @@ namespace MeshLoader
 				{
 					// If we recieved an OBJ without objects, then create one for everything.
 					pOutResource.pObjects.PushBack(new MeshLoader::MeshResource_t::GeometryGroup_t);
-					pCurrentObject = pOutResource.pObjects.Back();
+					pCurrentObject = &pOutResource.pObjects.Back();
 				}
 				CAssert(pCurrentObject);
 
@@ -240,7 +242,7 @@ namespace MeshLoader
 				}
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
-				pCurrentGroup = pCurrentObject->pGroups.Back();
+				pCurrentGroup = &pCurrentObject->pGroups.Back();
 				if (pCurrentGroup)
 					pCurrentGroup->pszDebugName = Utl::StringDuplicate(&szCurrentLine[2]);
 				break;
@@ -348,14 +350,14 @@ namespace MeshLoader
 					bMaterialDefinedBeforeNewGroup = true;
 
 					// Create a new group.
-					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
-					pCurrentGroup = pCurrentObject->pGroups.Back();
+					pCurrentObject->pGroups.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
+					pCurrentGroup = &pCurrentObject->pGroups.Back();
 				}
 				else if (bMaterialDefinedBeforeNewGroup)
 				{
 					// We need to create a new group to work with here.
-					pCurrentObject->pGroups.PushBack(new MeshLoader::MeshResource_t::GeometryObject_t);
-					pCurrentGroup = pCurrentObject->pGroups.Back();
+					pCurrentObject->pGroups.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
+					pCurrentGroup = &pCurrentObject->pGroups.Back();
 				}
 
 				CAssert(pCurrentGroup);
