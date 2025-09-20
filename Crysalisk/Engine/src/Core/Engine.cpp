@@ -216,7 +216,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
+	g_pRenderer->CreateTempTextObjects();
 
 	return true;
 }
@@ -240,7 +240,7 @@ bool CEngine::Run()
 			RenderPacket_t frameRenderData{};
 
 			// Get our renderable geometry from the map.
-			g_pRenderer->Update(frameRenderData, m_CurrentMap.GetRenderablesFromScene());
+			g_pRenderer->Update(frameRenderData, m_CurrentMap);
 		}
 	}
 

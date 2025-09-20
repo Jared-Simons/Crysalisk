@@ -14,6 +14,7 @@
 #include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
+#include "Resources/Map.h"
 #include "Resources/ResourceTypes.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -187,7 +188,7 @@ extern bool s_bLevelGeometryLoaded;
 //		  pGeometries - An array of geometries to be rendered.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
-bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance_t>& pGeometries)
+bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 {
 	// If we are currently minimized, do not do anything!
 	if (m_bMinimized)
@@ -236,6 +237,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 	model = model * matRotation;*/
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
+
+	Utl::CVector<GeometryInstance_t>& pGeometries = pCurrentMap.GetRenderablesFromScene();
 
 	if (true)
 	{
@@ -324,7 +327,13 @@ bool Renderer::Update(RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance
 
 	// Display renderer matrics.
 	char szMetricsString[512]{};
-	Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d", szMetricsString, m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS, m_Metrics.NumDrawCalls);
+	Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d\nCurrent memory pool usage: %.5f\nCurrent map: '%s'", 
+							szMetricsString, 
+							m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS, 
+							m_Metrics.NumDrawCalls, 
+							g_pMemoryManager->GetPercentAllocated(), 
+							pCurrentMap.m_pszMapName != nullptr ? pCurrentMap.m_pszMapName :  "None");
+	
 	// Set the string.
 	testText.SetText(szMetricsString);
 
@@ -517,66 +526,8 @@ void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryCo
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::CreateTempGeometry()
+bool Renderer::CreateTempTextObjects()
 {
-	/*testCubeConfig = MeshGenerator::CreateDefaultCubeConfiguration({0, 30, -30}, 32, 32, 32);
-	testCubeConfig2 = MeshGenerator::CreateDefaultCubeConfiguration({ 0, 30, 0 }, 32, 32, 32);
-	
-	if (!m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, testCubeConfig, m_TestCube))
-	{
-		LOG_ERROR("Failed to acquire geometry resources.");
-		return false;
-	}
-
-	// Acquire materials
-	m_TestCube.hMaterial = g_pMaterialSystemInternal->AcquireMaterial("testmaterial3");
-
-	MeshLoader::MeshResource_t sponzaResource{};
-	MeshLoader::LoadMeshResource("Assets/Models/sponza.cmodel_c", sponzaResource);
-	//MeshLoader::LoadMeshResource("Assets/Models/interior.cmodel_c", sponzaResource);
-
-	// Test mesh.
-	//MeshLoader::LoadMeshResource("Assets/Models/sponza.obj", sponzaResource);
-	m_SponzaModel.m_Geometries.Resize(sponzaResource.pObjects.Count());
-
-	// Load any needed materials.
-	LOG_DEBUG("Acquiring material resources for sponza model.");
-	for (int idx = 0; idx < sponzaResource.pMaterials.Count(); idx++)
-	{
-		LOG_VERBOSE("Acquiring material '%s'.", sponzaResource.pMaterials[idx].pszMaterialName);
-		g_pMaterialSystemInternal->AcquireMaterialFromResource(sponzaResource.pMaterials[idx]);
-	}
-
-	LOG_DEBUG("Acquiring geometry resources for sponza model.");
-	for (int idx = 0; idx < sponzaResource.pObjects.Count(); idx++)
-	{
-		for (int gpIdx = 0; gpIdx < sponzaResource.pObjects[idx]->pGroups.Count(); gpIdx++)
-		{
-			GeometryConfig_t newConfig{};
-			newConfig.Vertices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Vertices;
-			newConfig.Indices = sponzaResource.pObjects[idx]->pGroups[gpIdx]->Indices;
-			if (sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName)
-				newConfig.pszDebugName = Utl::StringDuplicate(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
-			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszDebugName);
-			if (newConfig.Vertices.Count() > 0)
-			{
-				GeometryInstance_t newGeometry{};
-				g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
-
-				// Set the material as well.
-				newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(sponzaResource.pObjects[idx]->pGroups[gpIdx]->pszMaterialName);
-				newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
-
-				m_SponzaModel.m_Geometries.PushBack(newGeometry);
-			}
-		}
-	}
-
-	m_SponzaModel.m_vecAbsOrigin = Vector3D(0.0f, 0.0f, 0.0f);
-	s_bLevelGeometryLoaded = true;
-	// TEMP!
-	// End test mesh.*/
-
 	// TEMP: Setup our test text.
 	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");

@@ -41,7 +41,7 @@ class Renderer
 public:
 	bool			Initialize(RendererConfig_t& pConfig);
 	void			Shutdown();
-	bool			Update(struct RenderPacket_t& pRenderData, Utl::CVector<GeometryInstance_t>& pGeometries);
+	bool			Update(struct RenderPacket_t& pRenderData, struct CMap& pCurrentMap);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);
@@ -68,7 +68,7 @@ public:
 	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig);
 
 	// Temp geometry stuff
-	bool	CreateTempGeometry();
+	bool	CreateTempTextObjects();
 	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }

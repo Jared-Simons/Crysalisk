@@ -8,8 +8,12 @@
 
 #include <Core/Logging.h>
 #include "Renderer/Renderer.h"
+#include <Resources/Loaders/MapLoader.h>
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
+
+// Forward Declarations.
+bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap);
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 {
@@ -37,7 +41,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Use the loaded resource to acquire assets.
-	if (!pOutMapResource.InitializeFromResource(mapResource))
+	if (!InitializeFromResource(mapResource, pOutMapResource))
 	{
 		// TODO: Logging
 		return false;
@@ -48,11 +52,11 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	return true;
 }
 
-bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
+bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap)
 {
 	if (pNewMapResource.pszMapName)
 	{
-		m_pszMapName = Utl::StringDuplicate(pNewMapResource.pszMapName);
+		pOutMap.m_pszMapName = Utl::StringDuplicate(pNewMapResource.pszMapName);
 	}
 
 	if (pNewMapResource.MeshResources.Count() > 0)
@@ -60,7 +64,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 		LOG_INFO("Acquiring map mesh resources.");
 
 		size_t iMeshCount = pNewMapResource.MeshResources.Count();
-		m_Meshes.Resize(iMeshCount);
+		pOutMap.m_Meshes.Resize(iMeshCount);
 
 		MeshLoader::MeshResource_t*						pCurObject = nullptr;
 		MeshLoader::MeshResource_t::GeometryGroup_t*	pCurMesh = nullptr;
@@ -88,8 +92,8 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 					{
 						LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pCurMesh->pGroups[subMeshIdx]->pszDebugName);
 
-						m_Meshes.PushBack(GeometryInstance_t{});
-						GeometryInstance_t& newGeometry = m_Meshes.Back();
+						pOutMap.m_Meshes.PushBack(GeometryInstance_t{});
+						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back();
 
 						g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
 
@@ -140,7 +144,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource)
 	g_pMaterialSystemInternal->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
 	g_pMaterialSystemInternal->ApplyLightData();
 
-	m_bMapResourcesLoaded = true;
+	pOutMap.m_bMapResourcesLoaded = true;
 
 	// MAPTODO: Investigate memory leaks wrt releasing temporary map resources.
 	return true;
