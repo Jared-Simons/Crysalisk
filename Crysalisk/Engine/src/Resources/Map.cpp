@@ -41,11 +41,11 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Use the loaded resource to acquire assets.
-	if (!InitializeFromResource(mapResource, pOutMapResource))
+	/*if (!InitializeFromResource(mapResource, pOutMapResource))
 	{
 		// TODO: Logging
 		return false;
-	}
+	}*/
 
 	LOG_DEBUG("Memory usage post-map load: %.5f", g_pMemoryManager->GetPercentAllocated());
 

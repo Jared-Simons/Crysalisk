@@ -275,7 +275,8 @@ namespace Utl
 		void Clear()
 		{
 			if (m_pValues)
-				m_Allocator.Free(m_pValues);
+				delete m_pValues;
+				//m_Allocator.Free(m_pValues);
 			m_pValues = nullptr;
 			m_Capacity = 0;
 			m_Count = 0;

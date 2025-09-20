@@ -66,10 +66,19 @@ namespace MeshLoader
 			{
 				// Make sure to free the strings.
 				if (pszDebugName)
+				{
 					Utl::StringFree(pszDebugName);
+					pszDebugName = nullptr;
+				}
 
 				if (pszMaterialName)
+				{
 					Utl::StringFree(pszMaterialName);
+					pszMaterialName = nullptr;
+				}
+
+				Vertices.Clear();
+				Indices.Clear();
 			}
 		};
 
@@ -144,6 +153,11 @@ namespace MeshLoader
 			for (int idx = 0; idx < pObjects.Count(); idx++)
 			{
 				delete pObjects[idx];
+			}
+
+			for (int idx = 0; idx < pMaterials.Count(); idx++)
+			{
+				pMaterials[idx].~MaterialResource_t();
 			}
 		}
 
