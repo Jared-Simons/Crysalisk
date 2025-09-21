@@ -12,6 +12,8 @@
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
+#include <new>	// For placement new.
+
 namespace Utl 
 {
 	//--------------------------------------------------
@@ -131,8 +133,6 @@ namespace Utl
 			{
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
-				// MAPTODO: Make this work.
-				//m_pValues = pOtherVector.m_pValues;
 			}
 		}
 
@@ -142,7 +142,9 @@ namespace Utl
 		~CVector()
 		{
 			if (m_pValues && m_Capacity > 0)
+			{
 				m_Allocator.Free(m_pValues);
+			}
 			m_pValues = nullptr;
 
 			m_Count = 0;
@@ -171,8 +173,6 @@ namespace Utl
 			{
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
-				// MAPTODO: Figure out why the allocator doesn't like this
-				//m_pValues = pOtherVector.m_pValues;
 			}
 
 			return *this;
@@ -275,9 +275,12 @@ namespace Utl
 		void Clear()
 		{
 			if (m_pValues)
+			{
 				delete m_pValues;
-				//m_Allocator.Free(m_pValues);
+			}
+
 			m_pValues = nullptr;
+
 			m_Capacity = 0;
 			m_Count = 0;
 		}
@@ -341,7 +344,7 @@ namespace Utl
 
 			// Allocate some new memory.
 			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);
-			T* pNewArray = reinterpret_cast<T*>(pNewData);
+			T* pNewArray = new (pNewData) T[newCapacity];	// This is required so that our allocator is always properly initialized.
 			CAssert(pNewArray);
 
 			// Copy the current array over.

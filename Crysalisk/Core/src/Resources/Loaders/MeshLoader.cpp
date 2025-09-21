@@ -105,11 +105,10 @@ namespace MeshLoader
 		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
 
 		// Process mesh data.
+		pOutResource.pObjects.Back().pGroups.Resize(pFileHeader->iSubmeshDataSize);
 		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
 		{
 			// Setup a new geometry group.
-			pOutResource.pObjects[0].pGroups.PushBack(MeshResource_t::GeometryObject_t{});
-
 			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
 			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
 

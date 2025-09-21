@@ -62,6 +62,12 @@ namespace MapLoader
 				pszMapName = nullptr;
 			}
 
+			// NOTE: We need to explicitly destroy each of these because the vector destructor does not yet handle this implicitly.
+			for (int idx = 0; idx < MeshResources.Capacity(); idx++)
+			{
+				MeshResources[idx].~MeshResource_t();
+			}
+
 			MeshResources.Clear();
 			PointLights.Clear();
 		}

@@ -41,11 +41,11 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Use the loaded resource to acquire assets.
-	/*if (!InitializeFromResource(mapResource, pOutMapResource))
+	if (!InitializeFromResource(mapResource, pOutMapResource))
 	{
 		// TODO: Logging
 		return false;
-	}*/
+	}
 
 	LOG_DEBUG("Memory usage post-map load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
@@ -63,7 +63,7 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 	{
 		LOG_INFO("Acquiring map mesh resources.");
 
-		size_t iMeshCount = pNewMapResource.MeshResources.Count();
+		size_t iMeshCount = pNewMapResource.MeshResources.Capacity();
 		pOutMap.m_Meshes.Resize(iMeshCount);
 
 		MeshLoader::MeshResource_t*						pCurObject = nullptr;
@@ -75,12 +75,12 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 			pCurObject = &pNewMapResource.MeshResources[objIdx];
 			CAssert(pCurObject != nullptr);
 
-			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Count(); meshIdx++)
+			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Capacity(); meshIdx++)
 			{
 				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
 
-				for (int subMeshIdx = 0; subMeshIdx < pCurMesh->pGroups.Count(); subMeshIdx++)
+				for (int subMeshIdx = 0; subMeshIdx < pCurMesh->pGroups.Capacity(); subMeshIdx++)
 				{
 					GeometryConfig_t newConfig{};
 					newConfig.Vertices = pCurMesh->pGroups[subMeshIdx].Vertices;

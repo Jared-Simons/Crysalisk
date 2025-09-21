@@ -321,7 +321,7 @@ bool Event_KeyReleased(EventData_t data)
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())
 		{
 			LoadMap("TestMap", s_Engine.m_CurrentMap);
-			LOG_DEBUG("Memory usage post-map resource free: %.5f", g_pMemoryManager->GetPercentAllocated());
+			LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
 		}
 	}
 	else if (keycode == 'U')
@@ -329,7 +329,7 @@ bool Event_KeyReleased(EventData_t data)
 		if (s_Engine.m_CurrentMap.IsMapLoaded())
 		{
 			s_Engine.m_CurrentMap.UnloadMap();
-			LOG_DEBUG("Memory usage post-map unload: %.5f", g_pMemoryManager->GetPercentAllocated());
+			LOG_DEBUG("Memory usage post-map unload: %.10f", g_pMemoryManager->GetPercentAllocated());
 		}
 	}
 

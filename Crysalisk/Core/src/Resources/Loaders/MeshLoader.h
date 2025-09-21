@@ -116,7 +116,7 @@ namespace MeshLoader
 				if (pszDebugName)
 					Utl::StringFree(pszDebugName);
 
-				for (int idx = 0; idx < pGroups.Count(); idx++)
+				for (int idx = 0; idx < pGroups.Capacity(); idx++)
 				{
 					pGroups[idx].~GeometryObject_t();
 				}
@@ -150,12 +150,12 @@ namespace MeshLoader
 
 		~MeshResource_t()
 		{
-			for (int idx = 0; idx < pObjects.Count(); idx++)
+			for (int idx = 0; idx < pObjects.Capacity(); idx++)
 			{
 				pObjects[idx].~GeometryGroup_t();
 			}
 
-			for (int idx = 0; idx < pMaterials.Count(); idx++)
+			for (int idx = 0; idx < pMaterials.Capacity(); idx++)
 			{
 				pMaterials[idx].~MaterialResource_t();
 			}
