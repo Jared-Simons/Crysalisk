@@ -8,12 +8,8 @@
 
 #include <Core/Logging.h>
 #include "Renderer/Renderer.h"
-#include <Resources/Loaders/MapLoader.h>
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
-
-// Forward Declarations.
-bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap);
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 {
@@ -41,7 +37,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Use the loaded resource to acquire assets.
-	if (!InitializeFromResource(mapResource, pOutMapResource))
+	if (!CMap::InitializeFromResource(mapResource, pOutMapResource))
 	{
 		// TODO: Logging
 		return false;
@@ -52,7 +48,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	return true;
 }
 
-bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap)
+bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap)
 {
 	if (pNewMapResource.pszMapName)
 	{
@@ -77,6 +73,21 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 
 			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Capacity(); meshIdx++)
 			{
+				// Add a new mesh entry to the map.
+				pOutMap.m_Meshes.PushBack(Mesh{});
+				Mesh* pCurOutMesh = &pOutMap.m_Meshes.Back();
+
+				// Set the transformation matrix.
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
+
+				// MAPTODO: Figure out which axes are which!
+				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
+				Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
+				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
+
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
+
 				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
 
@@ -92,22 +103,10 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 					{
 						LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pCurMesh->pGroups[subMeshIdx].pszDebugName);
 
-						pOutMap.m_Meshes.PushBack(GeometryInstance_t{});
-						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back();
+						pOutMap.m_Meshes.Back().m_Geometries.PushBack(GeometryInstance_t{});
+						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back().m_Geometries.Back();
 
 						g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
-
-						// Set-up a our transformation matrix while we're here.
-						// MAPTODO: We should really only need one of these per mesh or object, not submesh!
-						newGeometry.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-						newGeometry.matLocalToWorldTransform = Matrix4x4::Scale(newGeometry.matLocalToWorldTransform, pCurObject->vecScale);
-
-						// MAPTODO: Figure out which axes are which!
-						Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-						Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
-						newGeometry.matLocalToWorldTransform = newGeometry.matLocalToWorldTransform * matAngles;
-
-						newGeometry.matLocalToWorldTransform = Matrix4x4::Translate(newGeometry.matLocalToWorldTransform, pCurObject->vecPosition);
 
 						// Acquire material resources.
 						if (pCurMesh->pGroups[subMeshIdx].pszMaterialName != nullptr)
@@ -145,8 +144,6 @@ bool InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOu
 	g_pMaterialSystemInternal->ApplyLightData();
 
 	pOutMap.m_bMapResourcesLoaded = true;
-
-	// MAPTODO: Investigate memory leaks wrt releasing temporary map resources.
 	return true;
 }
 
@@ -163,7 +160,7 @@ void CMap::UnloadMap()
 	m_Meshes.Clear();
 }
 
-Utl::CVector<GeometryInstance_t>& CMap::GetRenderablesFromScene()
+const Utl::CVector<Mesh>& CMap::GetRenderablesFromScene() const
 {
 	return m_Meshes;
 }

@@ -265,10 +265,10 @@ struct GeometryInstance_t
 
 	// The material used in rendering this mesh.
 	MaterialHandle_t	hMaterial;
+	// The index of the model matrix to use during rendering.
+	uint8_t				iLocalToWorldTransform{};
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
-
-	Matrix4x4			matLocalToWorldTransform{};
 };
 
 // Represents a mesh/model, made up of numerous submeshes.
@@ -278,4 +278,6 @@ struct Mesh
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// Origin of this mesh in world space.
 	Vector3D							m_vecAbsOrigin{};
+	// Transformation matrix for this mesh.
+	Matrix4x4							m_matLocalToWorldTransform{};
 };

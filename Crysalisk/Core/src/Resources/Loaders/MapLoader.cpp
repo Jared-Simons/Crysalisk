@@ -144,7 +144,6 @@ namespace MapLoader
 			}
 
 			equalIndex = Utl::StringIndexOf(szCurrentLine, '=');
-			//CAssert(equalIndex != kInvalidID_U32);					// MAPTODO: Implement a string utility for checking for whitespace.
 			if (equalIndex == kInvalidID_U32)
 			{
 				continue;
@@ -154,8 +153,7 @@ namespace MapLoader
 			Platform::MemorySet(szKey, 0, 64);
 			Platform::MemorySet(szValue, 0, 64);
 			
-			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);	// MAPTODO: Using index 1 here to avoid a dynamic alloc in stripping the string.
-																		// We REALLY need a utility for string stripping in place...
+			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);	// NOTE: Using index 1 here to avoid a dynamic alloc in stripping the string, this just ignored the first '"'.
 			szKey[equalIndex] = '\0';
 			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
 			szValue[bytesRead - 1] = '\0';
@@ -168,7 +166,6 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "model_resource"))
 			{
 				// Format the path and load up this model resource for use.
-				// MAPTODO: Should this be on the stack?
 				char* pszStrippedNamePointer = Utl::StringStrip(szValue, '\"');
 				char szFormattedModelPath[512];
 
@@ -262,7 +259,6 @@ namespace MapLoader
 			}
 
 			equalIndex = Utl::StringIndexOf(szCurrentLine, '=');
-			//CAssert(equalIndex != kInvalidID_U32);					// MAPTODO: Implement a string utility for checking for whitespace.
 			if (equalIndex == kInvalidID_U32)
 			{
 				continue;
@@ -272,8 +268,7 @@ namespace MapLoader
 			Platform::MemorySet(szKey, 0, 64);
 			Platform::MemorySet(szValue, 0, 64);
 
-			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);	// MAPTODO: Using index 1 here to avoid a dynamic alloc in stripping the string.
-			// We REALLY need a utility for string stripping in place...
+			Platform::MemoryCopy(szKey, &szCurrentLine[1], equalIndex - 1);
 			szKey[equalIndex] = '\0';
 			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
 			szValue[bytesRead - 1] = '\0';

@@ -238,25 +238,33 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
-	Utl::CVector<GeometryInstance_t>& pGeometries = pCurrentMap.GetRenderablesFromScene();
+	const Utl::CVector<Mesh>& pGeometries = pCurrentMap.GetRenderablesFromScene();
 
 	if (true)
 	{
 		// TODO: Make this work with an allocator.
 		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
+		Utl::CVector<Matrix4x4>			  TransformMatrices(32);
 
 		for (int idx = 0; idx < pGeometries.Count(); idx++)
 		{
-			if (!pGeometries[idx].bIsTransparent)
+			// Split out the model matrices.
+			TransformMatrices.PushBack(pGeometries[idx].m_matLocalToWorldTransform);
+			for (int iSubmesh = 0; iSubmesh < pGeometries[idx].m_Geometries.Count(); iSubmesh++)
 			{
-				// If not transparent, add them to the list!
-				pOpaqueGeometries.PushBack(&pGeometries[idx]);
-			}
-			else
-			{
-				// Otherwise, add it to the transparent list to be sorted prior to drawing.
-				pTransparentGeometries.PushBack(&pGeometries[idx]);
+				if (!pGeometries[idx].m_Geometries[iSubmesh].bIsTransparent)
+				{
+					// If not transparent, add them to the list!
+					pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubmesh]);
+					pOpaqueGeometries.Back()->iLocalToWorldTransform = idx;	// Set the correct transform index.
+				}
+				else
+				{
+					// If not transparent, add them to the list!
+					pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubmesh]);
+					pOpaqueGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
+				}
 			}
 		}
 
@@ -276,7 +284,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = pOpaqueGeometries[idx]->matLocalToWorldTransform;
+			model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
 			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
 
 			// Bind the appropriate material.
@@ -292,7 +300,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = pTransparentGeometries[idx]->matLocalToWorldTransform;
+			model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
 			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
 
 			// Bind the appropriate material.
@@ -332,7 +340,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 							m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS, 
 							m_Metrics.NumDrawCalls, 
 							g_pMemoryManager->GetPercentAllocated(), 
-							pCurrentMap.m_pszMapName != nullptr ? pCurrentMap.m_pszMapName :  "None");
+							pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None");
 	
 	// Set the string.
 	testText.SetText(szMetricsString);
