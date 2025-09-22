@@ -438,7 +438,7 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 //-------------------------------------------------------------------------
 void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
 {
-	dirLight.vecDirection = vecDirection;
+	dirLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
 	dirLight.flBrightness = flBrightness;
 	dirLight.lightColor = vecLightColor;
 	dirLight.ambientLightColor = vecAmbientLightColor;
@@ -471,7 +471,6 @@ void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirecti
 
 	spotLight.vecPosition = vecPosition;
 	// Direction needs to be converted from degrees to radians.
-	// MAPTODO: Figure out which axes are which and that they are consistent with our y-vertical coordinate space.
 	spotLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
 	spotLight.lightColor = vecLightColor;
 	spotLight.flBrightness = flBrightness;

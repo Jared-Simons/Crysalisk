@@ -38,8 +38,7 @@ geometry=static_mesh
 
 entity=light_environment
 {
-	# MAPTODO: Express these in degrees in a manner that is consistent with spotlights.
-	rotation="-0.2 -1.0 -0.3"
+	rotation="-10.0 -57.0 -17.0"
 	lightColor="240 185 130"
 	brightness="0.7"
 	ambientLightColor="104 133 162"

@@ -207,7 +207,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease)
 {
-	TextureLookup*					pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
+	TextureLookup*					pTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
 	Texture*						pTexture = nullptr;
 
 	// Get the next free slot in the texture dictionary.

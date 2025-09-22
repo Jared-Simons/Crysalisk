@@ -97,7 +97,7 @@ namespace Utl
 
 			if (m_pKeys[hashedValue] == nullptr)
 			{
-				m_pKeys[hashedValue] = key;
+				m_pKeys[hashedValue] = Utl::StringDuplicate(key);
 			}
 			else
 			{
@@ -108,7 +108,7 @@ namespace Utl
 					// We can use this slot.
 					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
 					{
-						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = key;
+						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = Utl::StringDuplicate(key);
 						return &m_pValues[(hashedValue + iProbeIdx) % m_Capacity];
 					}
 				}
