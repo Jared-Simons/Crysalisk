@@ -32,6 +32,9 @@ public:
 	// Acquires a set of instance level resources for a shader.
 	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID) override;
 
+	// Releases a set of instance level resources for a shader.
+	virtual void			ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsigned int pInstanceID) override;
+
 	// Binds a given shader for use in rendering ops.
 	virtual void			BindShader(ShaderHandle_t hShader) override;
 
@@ -342,6 +345,20 @@ void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsig
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
 
 	g_pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases a set of instance level resources for a shader.
+// Input:	hShader - The shader to release resources for.
+//			pInstanceID - The instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CShaderSystem::ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsigned int pInstanceID)
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
+
+	g_pRenderer->ReleaseShaderInstanceResources(pShader, pInstanceID);
 }
 
 //-------------------------------------------------------------------------

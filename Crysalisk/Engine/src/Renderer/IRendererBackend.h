@@ -45,6 +45,7 @@ public:
 	virtual void	DestroyShader(class Shader* pShader) = 0;
 
 	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID) = 0;
+	virtual void	ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) = 0;
 
 	virtual void	BindShader(class Shader* pShader) = 0;
 

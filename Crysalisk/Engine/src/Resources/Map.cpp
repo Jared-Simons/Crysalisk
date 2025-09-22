@@ -156,6 +156,15 @@ void CMap::UnloadMap()
 		m_pszMapName = nullptr;
 	}
 
+	// Release all material references.
+	for (int iMeshIdx = 0; iMeshIdx < m_Meshes.Count(); iMeshIdx++)
+	{
+		for (int iSubmeshIdx = 0; iSubmeshIdx < m_Meshes[iMeshIdx].m_Geometries.Count(); iSubmeshIdx++)
+		{
+			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial);
+		}
+	}
+
 	m_Meshes.Clear();
 }
 

@@ -408,6 +408,17 @@ void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOu
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Releases instance-level resources for a shader.
+// Input:	pShader - The shader to get release an instance for.
+//			pInstanceID - The instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+{
+	m_RendererBackend->ReleaseShaderInstanceResources(pShader, pInstanceID);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Binds a shader for use in rendering operations.
 // Input:	pShader - The shader to bind.
 // Output:	none.

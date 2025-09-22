@@ -1087,6 +1087,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	descriptorPoolInfo.maxSets = kMaxVulkanInstances;
 	descriptorPoolInfo.poolSizeCount = descriptorPoolsNeeded;
 	descriptorPoolInfo.pPoolSizes = descriptorPoolSizes;
+	descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, m_Allocator, &pInternalShader->m_DescriptorPool));
 
@@ -1465,6 +1466,21 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	// Bump up the next available descriptor set index.
 	*pOutInstanceID = pInternalShader->m_NextFreeDescriptorSetIndex;
 	pInternalShader->m_NextFreeDescriptorSetIndex++;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases a set of instance level resources for a shader.
+// Input:	hShader - The shader to release resources for.
+//			pInstanceID - The instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+{
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
+
+	// Release the descriptor sets.
+	vkFreeDescriptorSets(m_Device.m_Device, pInternalShader->m_DescriptorPool, 3, pInternalShader->m_DescriptorSets[pInstanceID].m_DescriptorSets);
 }
 
 //-------------------------------------------------------------------------

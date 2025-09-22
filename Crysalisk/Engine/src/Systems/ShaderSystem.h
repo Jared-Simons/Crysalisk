@@ -36,6 +36,9 @@ public:
 	// Acquires a set of instance level resources for a shader.
 	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID) = 0;
 
+	// Releases a set of instance level resources for a shader.
+	virtual void			ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsigned int pInstanceID) = 0;
+
 	// Binds a given shader for use in rendering ops.
 	virtual void			BindShader(ShaderHandle_t hShader) = 0;
 

@@ -53,6 +53,8 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
 
+	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial) override;
+
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
 
@@ -332,6 +334,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
+		// Save off the texture handles.
+		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
+		pMaterial->m_hSpecularTextureHandle = textureHandles[1];
+		pMaterial->m_hNormalTextureHandle = textureHandles[2];
+
 		// Set any instance-level uniform data.
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
 		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
@@ -359,6 +366,48 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 	}
 
 	return newMaterialHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases an existing reference to a material.
+// Input:	hMaterial - The material to release a reference to.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial)
+{
+	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+
+	if (pMaterial.m_iInternalHandle == kInvalidID_U32 || pMaterial.m_pszMaterialName == nullptr)
+	{
+		// It's possible this material has already been released. Boot out.
+		return;
+	}
+
+	MaterialLookup& pLookup = m_MaterialDictionary.m_MaterialHashmap[pMaterial.m_pszMaterialName];
+
+	LOG_DEBUG("Attempting to release material '%s'.", pMaterial.m_pszMaterialName);
+
+	// MAPTODO: Handle reference counting here.
+	// MAPTODO: This function needs error checking/handling.
+	g_pShaderSystem->ReleaseShaderInstanceResources(pMaterial.m_hShaderHandle, pMaterial.m_iInternalHandle);
+
+	// LEFTOFF: This is not yet working.
+	/*g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hDiffuseTextureHandle);
+	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hSpecularTextureHandle);
+	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hNormalTextureHandle);*/
+
+	// MAPTODO: Abstract this logic into it's own method.
+	pLookup.MaterialIndex = kInvalidID_U32;
+	pLookup.ReferenceCount = 0;
+	pLookup.AutoRelease = false;
+
+	if (pMaterial.m_pszMaterialName)
+	{
+		Utl::StringFree(pMaterial.m_pszMaterialName);
+		pMaterial.m_pszMaterialName = nullptr;
+	}
+
+	pMaterial.m_iInternalHandle = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------

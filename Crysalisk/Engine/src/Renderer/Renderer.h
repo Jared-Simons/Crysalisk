@@ -41,7 +41,7 @@ class Renderer
 public:
 	bool			Initialize(RendererConfig_t& pConfig);
 	void			Shutdown();
-	bool			Update(struct RenderPacket_t& pRenderData, struct CMap& pCurrentMap);
+	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);
@@ -50,6 +50,7 @@ public:
 	void			DestroyShader(class Shader* pShader);
 
 	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID);
+	void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID);
 
 	void			BindShader(class Shader* pShader);
 	void			BindShaderPerFrameUniforms(class Shader* pShader);

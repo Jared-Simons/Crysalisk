@@ -200,7 +200,7 @@ class Material
 {
 public:
 	// This material's name.
-	const char*		m_pszMaterialName{ nullptr };
+	char*			m_pszMaterialName{ nullptr };
 	// The internal handle of this material.
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	// The shader used to render this material.

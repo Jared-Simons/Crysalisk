@@ -264,6 +264,15 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	TextureLookup*	pLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
 	CAssert(hTexture == pLookup->TextureIndex);	// These need to line up...
 
+	// Do absolutely nothing with default textures.
+	// They need to stick around until the end.
+	if (pTexture->internalHandle == m_pDefaultTextureLookup->TextureIndex
+		|| pTexture->internalHandle == m_pDefaultSpecularTexture->TextureIndex
+		|| pTexture->internalHandle == m_pDefaultNormalTexture->TextureIndex)
+	{
+		return;
+	}
+
 	// Decrement the reference count.
 	pLookup->ReferenceCount--;
 
