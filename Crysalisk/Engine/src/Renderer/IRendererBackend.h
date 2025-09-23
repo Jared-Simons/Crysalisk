@@ -32,7 +32,7 @@ public:
 
 	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) = 0;
 
-	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) = 0;
+	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) = 0;
 	
 	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) = 0;
@@ -44,7 +44,7 @@ public:
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) = 0;
 	virtual void	DestroyShader(class Shader* pShader) = 0;
 
-	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID) = 0;
+	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) = 0;
 	virtual void	ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) = 0;
 
 	virtual void	BindShader(class Shader* pShader) = 0;

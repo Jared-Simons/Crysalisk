@@ -31,7 +31,7 @@ public:
 
 	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
 
-	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer) override;
+	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
 	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
@@ -43,7 +43,7 @@ public:
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;
 
-	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID) override;
+	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) override;
 	virtual void	ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) override;
 
 	virtual void	BindShader(class Shader* pShader) override;

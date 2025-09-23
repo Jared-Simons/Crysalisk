@@ -192,6 +192,11 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 
 		// Cache this off in case we need it later.
 		pSwapchain.m_pFramebufferPass = pMainRenderpass;
+
+		// Create a debug label.
+		char szFramebufferName[512]{};
+		Utl::StringFormat_V("%s%i", szFramebufferName, "swapchain_framebuffer_", imageIdx);
+		VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, szFramebufferName, VK_OBJECT_TYPE_FRAMEBUFFER, pSwapchain.m_Framebuffers[imageIdx]);
 	}
 
 	return true;

@@ -49,7 +49,7 @@ public:
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
 
-	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID);
+	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName);
 	void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID);
 
 	void			BindShader(class Shader* pShader);

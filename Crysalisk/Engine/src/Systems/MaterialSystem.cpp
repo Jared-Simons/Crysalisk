@@ -310,7 +310,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		}
 
 		// Acquire shader instance resources for this material.
-		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle);
+		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle, pInResource.pszMaterialName);
 
 		// Texture maps.
 		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
@@ -584,7 +584,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 	m_DefaultMaterialLookup.ReferenceCount = 0;
 
 	// Acquire shader instance resources for this material.
-	g_pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle);
+	g_pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
 
 	// Texture maps.
 	Utl::CVector<TextureHandle_t>	textureHandles(3);

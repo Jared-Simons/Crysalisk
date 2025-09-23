@@ -558,10 +558,11 @@ static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferU
 // Input:	bufferSize - The size in bytes of the buffer.
 //			bufferUsage - Indicates the buffer's usage (i.e. Vertex, Index, Uniform).
 //			bUseFreelist - Indicates if this buffer will use a freelist to track it's memory.
+//			pszBufferName - Label for the buffer resource, used for debugging purposes.
 //			pOutBuffer - The generic buffer structure that will hold this buffer.
 // Output:	Returns true on successful buffer creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
+bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
 {
 	// Allocate our internal buffer.
 	pOutBuffer.m_pInternalData = new VulkanBuffer;
@@ -575,6 +576,14 @@ bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBuffe
 	{
 		return false;
 	}
+
+	// Create buffer debug label.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (pszBufferName != nullptr)
+	{
+		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pszBufferName, VK_OBJECT_TYPE_BUFFER, pInternalBuffer->m_Handle);
+	}
+#endif
 
 	return true;
 }
@@ -1254,6 +1263,9 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	graphicsPipelineInfo.subpass = 0;
 	VK_CHECK(vkCreateGraphicsPipelines(m_Device.m_Device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, m_Allocator, &pInternalShader->m_Pipeline));
 
+	// Create a debug label.
+	VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pConfig.pszShaderName, VK_OBJECT_TYPE_PIPELINE, pInternalShader->m_Pipeline);
+
 	// We no longer need the shader modules.
 	for (int stageIdx = 0; stageIdx < modules.Count(); stageIdx++)
 	{
@@ -1285,6 +1297,13 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		allocInfo.pSetLayouts = pGlobalLayout;
 
 		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]));	// Per-frame descriptors are always first.
+
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+		char szDescriptorSetLabel[512]{};
+		Utl::StringFormat_V("%s_Per_Frame_DescriptorSet_%d", szDescriptorSetLabel, pConfig.pszShaderName, idx);
+		// Create descriptor set debug label.
+		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, szDescriptorSetLabel, VK_OBJECT_TYPE_DESCRIPTOR_SET, pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]);
+#endif
 	}
 	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
 
@@ -1363,9 +1382,10 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 // Purpose: Acquires the shader resources needed for rendering an instance with the provided shader.
 // Input:	pShader - The generic front-end shader to acquire resources for.
 //			pOutInstanceID - A pointer to hold the instance of the new instance ID.
+//			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
+void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
 {
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
@@ -1392,6 +1412,16 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		allocInfo.pSetLayouts = &instanceDescriptorSetLayout;
 
 		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx]));
+
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+		if (pszResourceName != nullptr)
+		{
+			char szDescriptorSetLabel[512]{};
+			Utl::StringFormat_V("%s_Instance_DescriptorSet_%s_%d", szDescriptorSetLabel, pShader->m_pszShaderName, pszResourceName, frameIdx);
+			// Create descriptor set debug label.
+			VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, szDescriptorSetLabel, VK_OBJECT_TYPE_DESCRIPTOR_SET, pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx]);
+		}
+#endif
 
 		Utl::CVector<VkWriteDescriptorSet>	descriptorWrites{};
 		Utl::CVector<VkDescriptorImageInfo> samplerDescriptors{};

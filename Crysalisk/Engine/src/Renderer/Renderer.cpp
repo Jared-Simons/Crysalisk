@@ -122,11 +122,11 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Set up our renderbuffers
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_WorldVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_WorldIndexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer", m_WorldVertexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer", m_WorldIndexBuffer);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, m_UIVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, m_UIIndexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
@@ -400,11 +400,12 @@ void Renderer::DestroyShader(Shader* pShader)
 //				Typically called when setting up a material or similar scenarios.
 // Input:	pShader - The shader to get set up an instance for.
 //			pOutInstanceID - A pointer to an int to hold the ID of the instance.
+//			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
+void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
 {
-	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID);
+	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
 }
 
 //-------------------------------------------------------------------------
