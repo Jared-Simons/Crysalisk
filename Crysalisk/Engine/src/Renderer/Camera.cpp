@@ -93,3 +93,32 @@ void Camera_t::UpdateCameraData(double deltaTime)
 		RecalculateCameraVectors();
 	}
 }
+
+// MAPTODO: Documentation.
+Frustum Camera_t::CreateFrustumFromCamera(float flAspect, float fovY, float zNear, float zFar)
+{
+	Frustum outFrustum{};
+	const float flHalfVSide = zFar * M_TAN_F(fovY * 0.5f);
+	const float flHalfHSide = flHalfVSide * flAspect;
+	Vector3D vecFrontMultFar = vecFront * zFar;
+
+	outFrustum.nearFace.vecNormal = vecFront.Normalize();
+	outFrustum.nearFace.flDistance = Vector3D::DotProduct(outFrustum.nearFace.vecNormal, vecPosition + vecFront * zNear);
+
+	outFrustum.farFace.vecNormal = (vecFront.Normalize()).Negate();
+	outFrustum.farFace.flDistance = Vector3D::DotProduct(outFrustum.farFace.vecNormal, vecPosition + vecFrontMultFar);
+
+	outFrustum.rightFace.vecNormal = (Vector3D::CrossProduct(vecFrontMultFar - vecRight * flHalfHSide, vecUp)).Normalize();
+	outFrustum.rightFace.flDistance = Vector3D::DotProduct(outFrustum.rightFace.vecNormal, vecPosition);
+
+	outFrustum.leftFace.vecNormal = (Vector3D::CrossProduct(vecUp, vecFrontMultFar  + vecRight * flHalfHSide)).Normalize();
+	outFrustum.leftFace.flDistance = Vector3D::DotProduct(outFrustum.leftFace.vecNormal, vecPosition);
+
+	outFrustum.topFace.vecNormal = (Vector3D::CrossProduct(vecRight, vecFrontMultFar - vecUp * flHalfVSide)).Normalize();
+	outFrustum.topFace.flDistance = Vector3D::DotProduct(outFrustum.topFace.vecNormal, vecPosition);
+
+	outFrustum.bottomFace.vecNormal = (Vector3D::CrossProduct(vecFrontMultFar + vecUp * flHalfVSide, vecRight)).Normalize();
+	outFrustum.bottomFace.flDistance = Vector3D::DotProduct(outFrustum.bottomFace.vecNormal, vecPosition);
+
+	return outFrustum;
+}

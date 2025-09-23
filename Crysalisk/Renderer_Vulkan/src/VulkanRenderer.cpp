@@ -1506,6 +1506,9 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 //-------------------------------------------------------------------------
 void CVulkanRenderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
 {
+	// Make sure none of our resources are in use.
+	vkDeviceWaitIdle(m_Device.m_Device);
+
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 

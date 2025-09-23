@@ -105,6 +105,28 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 						pOutMap.m_Meshes.Back().m_Geometries.PushBack(GeometryInstance_t{});
 						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back().m_Geometries.Back();
 
+						// Set up extent data.
+						{
+							// TODO: Use some actual limits for these values.
+							Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
+							Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
+							
+							for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
+							{
+								vecMinAABB.x = IntMin(vecMinAABB.x, newConfig.Vertices[vertIdx].Pos.x);
+								vecMinAABB.y = IntMin(vecMinAABB.y, newConfig.Vertices[vertIdx].Pos.y);
+								vecMinAABB.z = IntMin(vecMinAABB.z, newConfig.Vertices[vertIdx].Pos.z);
+
+								vecMaxAABB.x = IntMax(vecMaxAABB.x, newConfig.Vertices[vertIdx].Pos.x);
+								vecMaxAABB.y = IntMax(vecMaxAABB.y, newConfig.Vertices[vertIdx].Pos.y);
+								vecMaxAABB.z = IntMax(vecMaxAABB.z, newConfig.Vertices[vertIdx].Pos.z);
+							}
+
+							newGeometry.vecMinExtents = vecMinAABB;
+							newGeometry.vecMaxExtents = vecMaxAABB;
+							newGeometry.vecCenter = (newGeometry.vecMaxExtents + newGeometry.vecMinExtents) * 0.5f;
+						}
+
 						g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
 
 						// Acquire material resources.

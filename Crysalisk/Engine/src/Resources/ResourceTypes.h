@@ -265,10 +265,17 @@ struct GeometryInstance_t
 
 	// The material used in rendering this mesh.
 	MaterialHandle_t	hMaterial;
-	// The index of the model matrix to use during rendering.
-	uint8_t				iLocalToWorldTransform{};
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
+
+	// The index of the model matrix to use during rendering.
+	uint8_t				iLocalToWorldTransform{};
+	// The center of the mesh in world space.
+	Vector3D			vecCenter{};
+	// The minimum extents of the mesh in local space.
+	Vector3D			vecMinExtents{};
+	// The maximum extents of the mesh in local space.
+	Vector3D			vecMaxExtents{};
 };
 
 // Represents a mesh/model, made up of numerous submeshes.

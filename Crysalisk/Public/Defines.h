@@ -110,3 +110,13 @@ static void intClamp(i32* val, i32* min, i32* max)
 		val = max;
 	}
 }
+
+static inline int IntMin(int a, int b)
+{
+	return (a < b) ? a : b;
+}
+
+static inline int IntMax(int a, int b)
+{
+	return (a > b) ? a : b;
+}

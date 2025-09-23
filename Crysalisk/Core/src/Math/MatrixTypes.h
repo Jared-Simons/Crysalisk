@@ -152,6 +152,34 @@ public:
 		return *this * pOtherMatrix;
 	}
 
+	Vector4D operator*(Vector4D& pVec)
+	{
+		Vector4D outVector{};
+
+		// TODO: We could wrap this in a loop if we made our vector elements into an array.
+		outVector.x = data[0] * pVec.x;
+		outVector.x += data[1] * pVec.y;
+		outVector.x += data[2] * pVec.z;
+		outVector.x += data[3] * pVec.w;
+
+		outVector.y = data[4] * pVec.x;
+		outVector.y += data[5] * pVec.y;
+		outVector.y += data[6] * pVec.z;
+		outVector.y += data[7] * pVec.w;
+
+		outVector.z = data[8] * pVec.x;
+		outVector.z += data[9] * pVec.y;
+		outVector.z += data[10] * pVec.z;
+		outVector.z += data[11] * pVec.w;
+
+		outVector.w = data[12] * pVec.x;
+		outVector.w += data[13] * pVec.y;
+		outVector.w += data[14] * pVec.z;
+		outVector.w += data[15] * pVec.w;
+
+		return outVector;
+	}
+
 	static Matrix4x4& Translate(Matrix4x4& inMatrix, const Vector3D& inVector)
 	{
 		inMatrix.data[12] += inVector.x;

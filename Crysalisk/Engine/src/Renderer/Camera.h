@@ -9,6 +9,7 @@
 #include "Core/Input.h"
 #include <Math/MatrixTypes.h>
 #include <Math/VectorTypes.h>
+#include "Renderer/RendererTypes.h"
 
 //-------------------------------------------------------------------------
 // A general purpose camera.
@@ -39,4 +40,8 @@ struct Camera_t
 
 	// A simple update function.
 	void UpdateCameraData(double deltaTime);
+
+	// MAPTODO: Documentation.
+	// MAPTODO: Include aspect/near/far planes in the camera class?
+	Frustum CreateFrustumFromCamera(float flAspect, float fovY, float zNear, float zFar);
 };

@@ -257,6 +257,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	if (true)
 	{
+		// MAPTODO: Move all frustum culling to the map logic.
+		// Get the frustum from the camera.
+		Frustum frustum = s_MainCamera.CreateFrustumFromCamera((float)m_iWindowWidth / (float)m_iWindowHeight, M_DEG2RAD_F(75.0f), 0.1f, 10000.0f);
+
 		// TODO: Make this work with an allocator.
 		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
@@ -264,6 +268,28 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 		for (int idx = 0; idx < pGeometries.Count(); idx++)
 		{
+			bool bIsInCameraFrustum = false;
+
+			// First, perform frustum culling.
+			for (int iSubMesh = 0; iSubMesh < pGeometries[idx].m_Geometries.Count(); iSubMesh++)
+			{
+				Vector4D vecGlobalCenter = pGeometries[idx].m_matLocalToWorldTransform * Vector4D{ pGeometries[idx].m_Geometries[iSubMesh].vecCenter.x, pGeometries[idx].m_Geometries[iSubMesh].vecCenter.y, pGeometries[idx].m_Geometries[iSubMesh].vecCenter.z, 1.0f };
+				Vector3D vecWorldCenter = { vecGlobalCenter.x, vecGlobalCenter.y, vecGlobalCenter.z };
+
+				Vector3D vecWorldMins = vecWorldCenter + pGeometries[idx].m_Geometries[iSubMesh].vecMinExtents;
+				Vector3D vecWorldMaxs = vecWorldCenter + pGeometries[idx].m_Geometries[iSubMesh].vecMaxExtents;
+
+				// LEFTOFF: Frustum faces need to be made into an array.
+				for (int frustumFace = 0; frustumFace < 6; frustumFace++)
+				{
+					Vector3D vecExtents{ vecWorldMaxs.x - vecWorldCenter.x, vecWorldMaxs.y - vecWorldCenter.y, vecWorldMaxs.z - vecWorldCenter.z };
+					//float flProjectionRadius = vecExtents.x * M_ABS(frustum.)
+				}
+			}
+
+			/*if (!bIsInCameraFrustum)
+				continue;*/
+
 			// Split out the model matrices.
 			TransformMatrices.PushBack(pGeometries[idx].m_matLocalToWorldTransform);
 			for (int iSubmesh = 0; iSubmesh < pGeometries[idx].m_Geometries.Count(); iSubmesh++)
@@ -642,47 +668,10 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		s_bDisplayProfilingText = !s_bDisplayProfilingText;
 	}
 
-	if (data.c[0] >= 0  && data.c[0] <= 9)
+	if (data.c[0] >= 0 && data.c[0] <= 9)
 	{
 		g_pRenderer->m_iRendererDebugMode = data.c[0];
-
-		switch (data.c[0])
-		{
-		default:
-		case 0:
-			g_pRenderer->m_iRendererDebugMode = 0;
-			LOG_INFO("Visualization mode set to default.");
-			break;
-		case 1:
-			LOG_INFO("Visualization mode set to fullbright.");
-			break;
-		case 2:
-			LOG_INFO("Visualization mode set to lighting only.");
-			break;
-		case 3:
-			LOG_INFO("Visualization mode set to diffuse lighting.");
-			break;
-		case 4:
-			LOG_INFO("Visualization mode set to specular lighting.");
-			break;
-		case 5:
-			LOG_INFO("Visualization mode set to normals - tangent space.");
-			break;
-		case 6:
-			LOG_INFO("Visualization mode set to normals - world space.");
-			break;
-		case 7:
-			LOG_INFO("Visualization mode set to geometric normal.");
-			break;
-		case 8:
-			LOG_INFO("Visualization mode set to tangent u - world space.");
-			break;
-		case 9:
-			LOG_INFO("Visualization mode set to tangent v - world space.");
-			break;
-		}
 	}
-	return false;
 
 	// Let other listeners handle this event.
 	return false;

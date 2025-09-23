@@ -252,3 +252,28 @@ public:
 	// A pointer to the internal data of the buffer.
 	void*	m_pInternalData{ nullptr };
 };
+
+// MAPTODO: Documentation.
+struct Plane
+{
+	Vector3D	vecNormal{};
+	float		flDistance{};
+
+	inline float	GetSignedDistanceToPlane(Vector3D& pPoint)
+	{
+		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
+	}
+};
+
+// MAPTODO: Documentation.
+struct Frustum
+{
+	Plane	topFace{};
+	Plane	bottomFace{};
+
+	Plane	rightFace{};
+	Plane	leftFace{};
+
+	Plane	farFace{};
+	Plane	nearFace{};
+};

@@ -222,7 +222,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator+(Vector3D& otherVector)
+	Vector3D operator+(const Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x + otherVector.x;
