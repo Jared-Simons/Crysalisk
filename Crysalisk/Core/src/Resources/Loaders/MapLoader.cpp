@@ -181,19 +181,20 @@ namespace MapLoader
 			}
 			else if (Utl::StringCompare(szKey, "position"))
 			{
-				newMeshResource.vecPosition = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &newMeshResource.vecPosition);
 			}
 			else if (Utl::StringCompare(szKey, "rotation"))
 			{
 				// NOTE: We need to swap the x and y angles because that is how the quaternion operations are expecting them.
-				Vector3D vecTempAngles = Utl::String_ToVector3(szValue);
+				Vector3D vecTempAngles;
+				Utl::String_ToVector3(szValue, &vecTempAngles);
 				newMeshResource.vecEulerAngles.x = vecTempAngles.y;
 				newMeshResource.vecEulerAngles.y = vecTempAngles.x;
 				newMeshResource.vecEulerAngles.z = vecTempAngles.z;
 			}
 			else if (Utl::StringCompare(szKey, "scale"))
 			{
-				newMeshResource.vecScale = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &newMeshResource.vecScale);
 			}
 			else
 			{
@@ -276,15 +277,15 @@ namespace MapLoader
 			// Process mesh properties.
 			if (Utl::StringCompare(szKey, "position"))
 			{
-				pLightResource->vecPosition = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &pLightResource->vecPosition);
 			}
 			else if (Utl::StringCompare(szKey, "rotation") || Utl::StringCompare(szKey, "direction"))
 			{
-				pLightResource->vecDirection = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &pLightResource->vecDirection);
 			}
 			else if (Utl::StringCompare(szKey, "lightColor"))
 			{
-				pLightResource->lightColor = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &pLightResource->lightColor);
 
 				// Bring this value into a range of [0..1]
 				pLightResource->lightColor.x /= 255.0f;
@@ -293,7 +294,7 @@ namespace MapLoader
 			}
 			else if (Utl::StringCompare(szKey, "ambientLightColor"))
 			{
-				pLightResource->ambientLightColor = Utl::String_ToVector3(szValue);
+				Utl::String_ToVector3(szValue, &pLightResource->ambientLightColor);
 
 				// Bring this value into a range of [0..1]
 				pLightResource->ambientLightColor.x /= 255.0f;

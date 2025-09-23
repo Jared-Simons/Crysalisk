@@ -360,16 +360,13 @@ namespace Utl
 	// Purpose: Converts an ascii string to a Vector3D.
 	// 
 	// Input:	c - The character to convert to a float.
-	// Output:	Vector3D - The converted character.
+	//			pOutVec - Vector that will hold the converted character.
+	// Output:	none.
 	//-------------------------------------------------------------------------
-	Vector3D String_ToVector3(const char* c)
+	void String_ToVector3(const char* c, Vector3D* pOutVec)
 	{
-		Vector3D outVector{};
-
-		int numElements = sscanf_s(c, "\"%f %f %f\"", &outVector.x, &outVector.y, &outVector.z);
+		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->x, &pOutVec->y, &pOutVec->z);
 		CAssert(numElements == 3);
-
-		return outVector;
 	}
 
 } // namespace Utl
