@@ -161,7 +161,7 @@ void CMap::UnloadMap()
 	{
 		for (int iSubmeshIdx = 0; iSubmeshIdx < m_Meshes[iMeshIdx].m_Geometries.Count(); iSubmeshIdx++)
 		{
-			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial);
+			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial, false);
 		}
 	}
 

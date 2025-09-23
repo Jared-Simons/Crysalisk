@@ -34,7 +34,7 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(struct MaterialLoader::MaterialResource_t& pInResource) = 0;
 
-	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial) = 0;
+	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) = 0;
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	// TODO: Make this return flags instead.
