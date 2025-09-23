@@ -42,6 +42,21 @@ ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 
 GeometryConfig_t testCubeConfig{};
 GeometryConfig_t testCubeConfig2{};
+
+static const char* szRendererVisualizationModesLabels[9] =
+{
+	"FULLBRIGHT",
+	"LIGHTING ONLY",
+	"DIFFUSE LIGHTING",
+	"SPECULAR LIGHTING",
+	"NORMAL MAPS - TANGENT-SPACE",
+	"NORMAL MAPS - WORLD SPACE-SPACE",
+	"GEOMETRIC NORMALS",
+	"GEOMETRIC TANGENTS",
+	"GEOMETRIC BITANGENTS",
+};
+
+static bool s_bDisplayProfilingText = false;
 // END TEMP!
 
 //-------------------------------------------------------------------------
@@ -313,7 +328,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->EndRenderpass();
 
-	if (testText.m_pszText != nullptr)
+	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
 		m_RendererBackend->StartRenderpass(m_UIView);
 
@@ -333,17 +348,21 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// Clear out bound shader state.
 	g_pShaderSystem->BindShader(kInvalidID_U32);
 
-	// Display renderer matrics.
-	char szMetricsString[512]{};
-	Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d\nCurrent memory pool usage: %.5f\nCurrent map: '%s'", 
-							szMetricsString, 
-							m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS, 
-							m_Metrics.NumDrawCalls, 
-							g_pMemoryManager->GetPercentAllocated(), 
-							pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None");
-	
-	// Set the string.
-	testText.SetText(szMetricsString);
+	if (s_bDisplayProfilingText)
+	{
+		// Display renderer matrics.
+		char szMetricsString[512]{};
+		Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
+			szMetricsString,
+			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
+			m_Metrics.NumDrawCalls,
+			g_pMemoryManager->GetPercentAllocated(),
+			pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None",
+			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
+
+		// Set the string.
+		testText.SetText(szMetricsString);
+	}
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
@@ -615,6 +634,12 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 		static bool s_bCubeTest = false;
 		s_bCubeTest = !s_bCubeTest;
 		s_Renderer.UpdateGeometryResources(s_Renderer.m_WorldVertexBuffer, s_Renderer.m_WorldIndexBuffer, s_Renderer.m_TestCube, s_bCubeTest ? testCubeConfig2 : testCubeConfig);
+	}
+
+	if (data.c[0] == 'Y')
+	{
+		// Toggle profiling text.
+		s_bDisplayProfilingText = !s_bDisplayProfilingText;
 	}
 
 	if (data.c[0] >= 0  && data.c[0] <= 9)
