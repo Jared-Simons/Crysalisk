@@ -263,7 +263,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				{
 					// If not transparent, add them to the list!
 					pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubmesh]);
-					pOpaqueGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
+					pTransparentGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
 				}
 			}
 		}
@@ -300,7 +300,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
+			model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
 			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
 
 			// Bind the appropriate material.
