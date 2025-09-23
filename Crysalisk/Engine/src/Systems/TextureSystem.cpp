@@ -164,7 +164,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 	}
 
 	// Check to see if the texture is already loaded.
-	pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
+	pTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
 	if (pTextureLookup->TextureIndex == kInvalidID_U32)
 	{
 		// Texture data does not exist yet, get that going.
@@ -194,6 +194,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
+	CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -207,7 +208,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageResource_t& pResource, const char* pszTextureName, bool bAutoRelease)
 {
-	TextureLookup*					pTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
+	TextureLookup*					pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
 	Texture*						pTexture = nullptr;
 
 	// Get the next free slot in the texture dictionary.

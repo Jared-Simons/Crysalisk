@@ -99,6 +99,11 @@ namespace Utl
 			{
 				m_pKeys[hashedValue] = Utl::StringDuplicate(key);
 			}
+			else if (Utl::StringCompare(m_pKeys[hashedValue], key))
+			{
+				// This key already exists in the table, return it's value.
+				return &m_pValues[hashedValue];
+			}
 			else
 			{
 				// Perform linear probing.

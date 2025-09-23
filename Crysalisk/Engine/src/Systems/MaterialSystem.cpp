@@ -392,9 +392,9 @@ void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial)
 	g_pShaderSystem->ReleaseShaderInstanceResources(pMaterial.m_hShaderHandle, pMaterial.m_iInternalHandle);
 
 	// LEFTOFF: This is not yet working.
-	/*g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hDiffuseTextureHandle);
+ 	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hDiffuseTextureHandle);
 	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hSpecularTextureHandle);
-	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hNormalTextureHandle);*/
+	g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hNormalTextureHandle);
 
 	// MAPTODO: Abstract this logic into it's own method.
 	pLookup.MaterialIndex = kInvalidID_U32;
