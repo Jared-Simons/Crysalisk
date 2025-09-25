@@ -34,6 +34,8 @@ struct RenderMetrics_t
 	double	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
 	int		NumDrawCalls{ 0 };
+	// The number of meshes frustum culled in the previous frame
+	int		NumGeometriesFrustumCulled{ 0 };
 	// Number of frames rendered in the previous frame.
 	int		PreviousFrameFPS{ 0 };
 	// Number of frames rendered in the current frame.
@@ -259,21 +261,35 @@ struct Plane
 	Vector3D	vecNormal{};
 	float		flDistance{};
 
+	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
+	{
+		Plane outPlane{};
+		outPlane.vecNormal = pVecNormal.Normalize();
+		outPlane.flDistance = Vector3D::DotProduct(outPlane.vecNormal, pVecPoint);
+		return outPlane;
+	}
+
 	inline float	GetSignedDistanceToPlane(Vector3D& pPoint)
 	{
 		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
 	}
 };
 
+enum eFrustumPlanes
+{
+	TOP_FACE = 0,
+	BOTTOM_FACE,
+	RIGHT_FACE,
+	LEFT_FACE,
+	FAR_FACE,
+	NEAR_FACE,
+
+	MAX_FRUSTUM_PLANES
+};
+
 // MAPTODO: Documentation.
 struct Frustum
 {
-	Plane	topFace{};
-	Plane	bottomFace{};
-
-	Plane	rightFace{};
-	Plane	leftFace{};
-
-	Plane	farFace{};
-	Plane	nearFace{};
+	// Can be indexed using the eFrustumPlanes enum.
+	Plane	faces[MAX_FRUSTUM_PLANES];
 };

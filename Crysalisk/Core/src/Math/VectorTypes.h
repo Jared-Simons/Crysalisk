@@ -368,6 +368,13 @@ public:
 		, z{ pOtherVec.z }
 		, w{ pOtherVec.w } { }
 
+	Vector4D(Vector3D& pOtherVec)
+		: x{ pOtherVec.x }
+		, y{ pOtherVec.y }
+		, z{ pOtherVec.z }
+		, w{ 1.0f } {
+	}
+
 	Vector4D operator=(const Vector4D& pOtherVec)
 	{
 		x = pOtherVec.x;
@@ -518,6 +525,11 @@ public:
 		outVector.y = vecA.z * vecB.x - vecA.x * vecB.z;
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
 		return outVector;
+	}
+
+	Vector3D AsVector3() const
+	{
+		return Vector3D{ x, y, z };
 	}
 };
 

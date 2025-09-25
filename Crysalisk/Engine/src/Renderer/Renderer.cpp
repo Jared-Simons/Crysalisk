@@ -222,6 +222,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// Clear out the previous frame's metrics.
 	m_Metrics.FrameTime = 0.0f;
 	m_Metrics.NumDrawCalls = 0;
+	m_Metrics.NumGeometriesFrustumCulled = 0;
 
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
@@ -268,42 +269,48 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 		for (int idx = 0; idx < pGeometries.Count(); idx++)
 		{
-			bool bIsInCameraFrustum = false;
-
+			// Split out the model matrices.
+			TransformMatrices.PushBack(pGeometries[idx].m_matLocalToWorldTransform);
+			
 			// First, perform frustum culling.
 			for (int iSubMesh = 0; iSubMesh < pGeometries[idx].m_Geometries.Count(); iSubMesh++)
 			{
-				Vector4D vecGlobalCenter = pGeometries[idx].m_matLocalToWorldTransform * Vector4D{ pGeometries[idx].m_Geometries[iSubMesh].vecCenter.x, pGeometries[idx].m_Geometries[iSubMesh].vecCenter.y, pGeometries[idx].m_Geometries[iSubMesh].vecCenter.z, 1.0f };
-				Vector3D vecWorldCenter = { vecGlobalCenter.x, vecGlobalCenter.y, vecGlobalCenter.z };
+				bool bIsInCameraFrustum = true;
 
-				Vector3D vecWorldMins = vecWorldCenter + pGeometries[idx].m_Geometries[iSubMesh].vecMinExtents;
-				Vector3D vecWorldMaxs = vecWorldCenter + pGeometries[idx].m_Geometries[iSubMesh].vecMaxExtents;
+				// MAPTODO: This logic is terrible.
+				Vector4D vecCenter{ pGeometries[idx].m_Geometries[iSubMesh].vecCenter };
+				Vector4D vecMaxExtents{ pGeometries[idx].m_Geometries[iSubMesh].vecMaxExtents };
 
-				// LEFTOFF: Frustum faces need to be made into an array.
-				for (int frustumFace = 0; frustumFace < 6; frustumFace++)
+				Vector4D vecTranslatedMaxExtents = pGeometries[idx].m_matLocalToWorldTransform * vecMaxExtents;
+				Vector4D vecTranslatedCenter = (pGeometries[idx].m_matLocalToWorldTransform) * vecCenter;
+
+				Vector3D vecHalfExtents = {
+					(float)M_ABS(vecTranslatedMaxExtents.x - vecTranslatedCenter.x),
+					(float)M_ABS(vecTranslatedMaxExtents.y - vecTranslatedCenter.y),
+					(float)M_ABS(vecTranslatedMaxExtents.z - vecTranslatedCenter.z)
+				};
+
+				for (int iFrustumPlane = 0; iFrustumPlane < MAX_FRUSTUM_PLANES; iFrustumPlane++)
 				{
-					Vector3D vecExtents{ vecWorldMaxs.x - vecWorldCenter.x, vecWorldMaxs.y - vecWorldCenter.y, vecWorldMaxs.z - vecWorldCenter.z };
-					//float flProjectionRadius = vecExtents.x * M_ABS(frustum.)
+					float r = vecTranslatedMaxExtents.x * M_ABS(frustum.faces[iFrustumPlane].vecNormal.x) +
+						vecTranslatedMaxExtents.y * M_ABS(frustum.faces[iFrustumPlane].vecNormal.y) +
+						vecTranslatedMaxExtents.z * M_ABS(frustum.faces[iFrustumPlane].vecNormal.z);
+
+					if (!(r <= frustum.faces[iFrustumPlane].GetSignedDistanceToPlane(vecTranslatedCenter.AsVector3())))
+					{
+						bIsInCameraFrustum = false;
+					}
 				}
-			}
 
-			/*if (!bIsInCameraFrustum)
-				continue;*/
-
-			// Split out the model matrices.
-			TransformMatrices.PushBack(pGeometries[idx].m_matLocalToWorldTransform);
-			for (int iSubmesh = 0; iSubmesh < pGeometries[idx].m_Geometries.Count(); iSubmesh++)
-			{
-				if (!pGeometries[idx].m_Geometries[iSubmesh].bIsTransparent)
+				// If the geometry is within the camera's frustum, add it to the list to be rendered.
+				if (!pGeometries[idx].m_Geometries[iSubMesh].bIsTransparent)
 				{
-					// If not transparent, add them to the list!
-					pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubmesh]);
+					pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
 					pOpaqueGeometries.Back()->iLocalToWorldTransform = idx;	// Set the correct transform index.
 				}
 				else
 				{
-					// If not transparent, add them to the list!
-					pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubmesh]);
+					pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
 					pTransparentGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
 				}
 			}
@@ -378,10 +385,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	{
 		// Display renderer matrics.
 		char szMetricsString[512]{};
-		Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
+		Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
 			szMetricsString,
 			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
-			m_Metrics.NumDrawCalls,
+			m_Metrics.NumDrawCalls,	m_Metrics.NumGeometriesFrustumCulled,
 			g_pMemoryManager->GetPercentAllocated(),
 			pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None",
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
