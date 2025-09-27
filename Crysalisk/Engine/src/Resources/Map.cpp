@@ -190,8 +190,61 @@ void CMap::UnloadMap()
 	m_Meshes.Clear();
 }
 
-const Utl::CVector<Mesh>& CMap::GetRenderablesFromScene() const
+void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
 {
-	return m_Meshes;
+	Mesh*				pCurrentMesh = nullptr;
+	GeometryInstance_t* pCurrentSubmesh = nullptr;
+
+	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	{
+		pCurrentMesh = &m_Meshes[iMesh];
+		CAssert(pCurrentMesh);
+
+		// Split out transform matrices.
+		pTransformationMatrices.PushBack(m_Meshes[iMesh].m_matLocalToWorldTransform);
+
+		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		{
+			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
+			CAssert(pCurrentSubmesh);
+
+			bool bIsInCameraFrustum = true;
+
+			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
+			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+
+			Vector3D vecHalfExtents = {
+				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
+				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
+				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
+			};
+
+			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3(), vecHalfExtents))
+			{
+				bIsInCameraFrustum = false;
+			}
+
+			// If the geometry is within the camera's frustum, add it to the list to be rendered.
+			if (bIsInCameraFrustum)
+			{
+				if (!pCurrentSubmesh->bIsTransparent)
+				{
+					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
+					pVisibleOpaqueGeometries.Back()->iLocalToWorldTransform = iMesh;		// Set the correct transform index.
+				}
+				else
+				{
+					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
+					pVisibleTranslucentGeometries.Back()->iLocalToWorldTransform = iMesh;	// Set the correct transform index.
+				}
+			}
+			else
+			{
+				(*pCulledGeometries)++;
+				continue;
+			}
+		}
+	}
+
 }
 

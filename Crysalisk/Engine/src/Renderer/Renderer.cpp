@@ -40,9 +40,6 @@ FontHandle_t	testFont;
 TextObject		testText;
 ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 
-GeometryConfig_t testCubeConfig{};
-GeometryConfig_t testCubeConfig2{};
-
 static const char* szRendererVisualizationModesLabels[9] =
 {
 	"FULLBRIGHT",
@@ -190,13 +187,8 @@ void Renderer::Shutdown()
 
 	// Release any heap allocations
 	m_SponzaModel.m_Geometries.Clear();
-	testCubeConfig.Vertices.Clear();
-	testCubeConfig.Indices.Clear();
-	testCubeConfig2.Vertices.Clear();
-	testCubeConfig2.Indices.Clear();
 }
 
-extern bool s_bLevelGeometryLoaded;
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pRenderData - Frame-specific data to be used in rendering ops.
@@ -248,84 +240,23 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
 	Vector3D vecCameraPos = s_MainCamera.vecPosition;
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
-	/*Quaternion quatRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), Platform::GetAbsoluteTime());
-	Matrix4x4 matRotation = Mat4FromQuaternion(quatRotation);
-	model = model * matRotation;*/
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
-	const Utl::CVector<Mesh>& pGeometries = pCurrentMap.GetRenderablesFromScene();
-
 	if (true)
 	{
-		// MAPTODO: Move all frustum culling to the map logic.
 		// Get the frustum from the camera.
 		Frustum frustum = s_MainCamera.CreateFrustumFromCamera((float)m_iWindowWidth / (float)m_iWindowHeight, M_DEG2RAD_F(75.0f), 0.1f, 10000.0f);
-
+		
 		// TODO: Make this work with an allocator.
-		Utl::CVector<GeometryInstance_t*> pOpaqueGeometries(512);
-		Utl::CVector<GeometryInstance_t*> pTransparentGeometries(512);
-		Utl::CVector<Matrix4x4>			  TransformMatrices(32);
+		Utl::CVector<Matrix4x4>				TransformMatrices(32);
+		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
+		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
+		unsigned int						pCulledGeometries{ 0 };
 
-		for (int idx = 0; idx < pGeometries.Count(); idx++)
-		{
-			// Split out the model matrices.
-			TransformMatrices.PushBack(pGeometries[idx].m_matLocalToWorldTransform);
-			
-			// First, perform frustum culling.
-			for (int iSubMesh = 0; iSubMesh < pGeometries[idx].m_Geometries.Count(); iSubMesh++)
-			{
-				bool bIsInCameraFrustum = true;
-
-				// MAPTODO: This logic is terrible.
-				Vector4D vecCenter{ pGeometries[idx].m_Geometries[iSubMesh].vecCenter };
-				Vector4D vecMaxExtents{ pGeometries[idx].m_Geometries[iSubMesh].vecMaxExtents };
-
-				Vector4D vecTranslatedMaxExtents = pGeometries[idx].m_matLocalToWorldTransform * vecMaxExtents;
-				Vector4D vecTranslatedCenter = (pGeometries[idx].m_matLocalToWorldTransform) * vecCenter;
-
-				Vector3D vecHalfExtents = {
-					(float)M_ABS(vecTranslatedMaxExtents.x - vecTranslatedCenter.x),
-					(float)M_ABS(vecTranslatedMaxExtents.y - vecTranslatedCenter.y),
-					(float)M_ABS(vecTranslatedMaxExtents.z - vecTranslatedCenter.z)
-				};
-
-				if (!frustum.FrustumIntersectsAABB(vecTranslatedCenter.AsVector3(), vecHalfExtents))
-				{
-					bIsInCameraFrustum = false;
-					m_Metrics.NumGeometriesFrustumCulled++;
-					continue;
-				}
-
-				// If the geometry is within the camera's frustum, add it to the list to be rendered.
-				if (bIsInCameraFrustum)
-				{
-					if (!pGeometries[idx].m_Geometries[iSubMesh].bIsTransparent)
-					{
-						pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
-						pOpaqueGeometries.Back()->iLocalToWorldTransform = idx;	// Set the correct transform index.
-					}
-					else
-					{
-						pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
-						pTransparentGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
-					}
-				}
-			}
-		}
-
-		// Render our temp geometry.
-
-		// Apply a slow rotation to the test cube.
-		Quaternion quatCubeRotation = QuaternionFromAxisAngle(Vector3D(0.0f, 1.0f, 0.0f), (float)Platform::GetAbsoluteTime());
-		Matrix4x4 matCubeRotation = Mat4FromQuaternion(quatCubeRotation);
-		model = model * matCubeRotation;
-		g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-
-		// Bind the appropriate material.
-		g_pMaterialSystemInternal->ApplyMaterialInstance(m_TestCube.hMaterial);
-		//DrawGeometry(m_TestCube, m_WorldVertexBuffer, m_WorldIndexBuffer);
-		//m_Metrics.NumDrawCalls++;
+		// Get the renderables from the map.
+		pCurrentMap.GetRenderablesFromScene(frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
+		m_Metrics.NumGeometriesFrustumCulled = pCulledGeometries;
 
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
@@ -339,8 +270,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			m_Metrics.NumDrawCalls++;
 		}
-
-		// TODO: Sort the transparent geometries from farthest to closest to the camera.
 
 		// Render the sorted transparent geometries.
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
@@ -657,14 +586,6 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	{
 		// Print the camera's position and angles.
 		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
-	}
-
-	if (data.c[0] == 'O')
-	{
-		// Geometry buffer update test.
-		static bool s_bCubeTest = false;
-		s_bCubeTest = !s_bCubeTest;
-		s_Renderer.UpdateGeometryResources(s_Renderer.m_WorldVertexBuffer, s_Renderer.m_WorldIndexBuffer, s_Renderer.m_TestCube, s_bCubeTest ? testCubeConfig2 : testCubeConfig);
 	}
 
 	if (data.c[0] == 'Y')

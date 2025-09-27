@@ -152,6 +152,12 @@ public:
 		return *this * pOtherMatrix;
 	}
 
+	Vector4D operator*(Vector3D& pVec)
+	{
+		Vector4D outVector{ pVec.x, pVec.y, pVec.z, 1.0f };
+		return (*this) * outVector;
+	}
+
 	Vector4D operator*(Vector4D& pVec)
 	{
 		Vector4D outVector{};
