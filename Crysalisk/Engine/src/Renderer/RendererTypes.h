@@ -253,6 +253,8 @@ public:
 	bool	m_bShouldClear{ false };
 	// A pointer to the internal data of the buffer.
 	void*	m_pInternalData{ nullptr };
+	// A color used for debugging tools. Otherwise does nothing.
+	Vector3D m_debuggingColor{};
 };
 
 //-------------------------------------------------------------------------

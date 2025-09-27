@@ -109,6 +109,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
+		m_SceneView.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
+
 		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
 	}
 
@@ -129,6 +131,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		m_UIView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.9f };
 
 		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
 	}

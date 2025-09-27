@@ -86,7 +86,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Setup Vulkan Instance.
 	VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	appInfo.pApplicationName = pConfig.szApplicationName;
-	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 0); 
+	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 0);
 	appInfo.pEngineName = "Crysalisk";
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 0);
 	appInfo.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0); // We're using Vulkan 1.3 for now.
@@ -121,7 +121,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	instanceExtensions.PushBack(Platform::GetVulkanPlatformExtension());
 
 #if defined _DEBUG || defined VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED // We need the debug utils extension here as well, since this handles all resource tagging.
-	instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); 
+	instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
 	if (!QueryInstanceExtensionSupport(instanceExtensions))
@@ -132,7 +132,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	instanceInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.Count());
 	instanceInfo.ppEnabledExtensionNames = instanceExtensions.Data();
-	
+
 	VK_CHECK(vkCreateInstance(&instanceInfo, m_Allocator, &m_Instance));
 	LOG_DEBUG("Vulkan instance initialized");
 
@@ -142,6 +142,23 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	if (!m_pfnSetDebugObjectName)
 	{
 		LOG_WARN("Failed to find Vulkan function pointer 'vkSetDebugUtilsObjectNameEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	m_pfnBeginDebugLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_Instance, "vkCmdBeginDebugUtilsLabelEXT"));
+	if (!m_pfnBeginDebugLabel)
+	{
+		LOG_WARN("Failed to find Vulkan function pointer 'vkCmdBeginDebugUtilsLabelEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	m_pfnEndDebugLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_Instance, "vkCmdEndDebugUtilsLabelEXT"));
+	if (!m_pfnEndDebugLabel)
+	{
+		LOG_WARN("Failed to find Vulkan function pointer 'vkCmdEndDebugUtilsLabelEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	if (m_pfnSetDebugObjectName && m_pfnBeginDebugLabel && m_pfnEndDebugLabel)
+	{
+		LOG_DEBUG("Found all Vulkan debug PFNs for resource tagging");
 	}
 #endif
 
@@ -464,6 +481,23 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 	renderpassInfo.clearValueCount = 2;
 	renderpassInfo.pClearValues = clearColors;
 
+	// Set a label for debugging.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnBeginDebugLabel)
+	{
+		VkDebugUtilsLabelEXT labelDetails{};
+		labelDetails.pLabelName = pRendererView.m_pszViewName;
+		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
+		// TODO: Make this dynamic.
+		labelDetails.color[0] = pRendererView.m_debuggingColor.x;
+		labelDetails.color[1] = pRendererView.m_debuggingColor.y;
+		labelDetails.color[2] = pRendererView.m_debuggingColor.z;
+		labelDetails.color[3] = 1.0f;
+
+		m_pfnBeginDebugLabel(commandBuffer, &labelDetails);
+	}
+#endif
+
 	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	return true;
@@ -478,6 +512,14 @@ void CVulkanRenderer::EndRenderpass()
 {
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
+
+	// Close the debugging label.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnEndDebugLabel)
+	{
+		m_pfnEndDebugLabel(commandBuffer);
+	}
+#endif
 }
 
 //-------------------------------------------------------------------------
@@ -522,7 +564,6 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
-		//vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, (uint32_t)pGeometry.indexDataOffset, (int32_t)pGeometry.vertexDataOffset, 0);
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexCount, 1, 0, 0, 0);
 	}
 	else
@@ -2275,9 +2316,4 @@ static bool RendererEvent_WindowResized(EventData_t data)
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
 	return false;
-}
-
-// TODO: This should be removed!
-void CVulkanRenderer::DestroyDefaultGeometry()
-{
 }
