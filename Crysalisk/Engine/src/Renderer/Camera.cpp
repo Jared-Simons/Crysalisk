@@ -95,6 +95,7 @@ void Camera_t::UpdateCameraData(double deltaTime)
 }
 
 // MAPTODO: Documentation.
+// MAPTODO: This needs to be cleaned up.
 Frustum Camera_t::CreateFrustumFromCamera(float flAspect, float fovY, float zNear, float zFar)
 {
 	Frustum outFrustum{};

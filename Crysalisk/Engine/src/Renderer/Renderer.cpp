@@ -290,28 +290,26 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 					(float)M_ABS(vecTranslatedMaxExtents.z - vecTranslatedCenter.z)
 				};
 
-				for (int iFrustumPlane = 0; iFrustumPlane < MAX_FRUSTUM_PLANES; iFrustumPlane++)
+				if (!frustum.FrustumIntersectsAABB(vecTranslatedCenter.AsVector3(), vecHalfExtents))
 				{
-					float r = vecTranslatedMaxExtents.x * M_ABS(frustum.faces[iFrustumPlane].vecNormal.x) +
-						vecTranslatedMaxExtents.y * M_ABS(frustum.faces[iFrustumPlane].vecNormal.y) +
-						vecTranslatedMaxExtents.z * M_ABS(frustum.faces[iFrustumPlane].vecNormal.z);
-
-					if (!(r <= frustum.faces[iFrustumPlane].GetSignedDistanceToPlane(vecTranslatedCenter.AsVector3())))
-					{
-						bIsInCameraFrustum = false;
-					}
+					bIsInCameraFrustum = false;
+					m_Metrics.NumGeometriesFrustumCulled++;
+					continue;
 				}
 
 				// If the geometry is within the camera's frustum, add it to the list to be rendered.
-				if (!pGeometries[idx].m_Geometries[iSubMesh].bIsTransparent)
+				if (bIsInCameraFrustum)
 				{
-					pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
-					pOpaqueGeometries.Back()->iLocalToWorldTransform = idx;	// Set the correct transform index.
-				}
-				else
-				{
-					pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
-					pTransparentGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
+					if (!pGeometries[idx].m_Geometries[iSubMesh].bIsTransparent)
+					{
+						pOpaqueGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
+						pOpaqueGeometries.Back()->iLocalToWorldTransform = idx;	// Set the correct transform index.
+					}
+					else
+					{
+						pTransparentGeometries.PushBack(&pGeometries[idx].m_Geometries[iSubMesh]);
+						pTransparentGeometries.Back()->iLocalToWorldTransform = idx; // Set the correct transform index.
+					}
 				}
 			}
 		}

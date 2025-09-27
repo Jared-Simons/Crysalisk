@@ -292,4 +292,16 @@ struct Frustum
 {
 	// Can be indexed using the eFrustumPlanes enum.
 	Plane	faces[MAX_FRUSTUM_PLANES];
+
+	inline bool		FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
+	{
+		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
+		{
+			float r = pVecExtents.x * M_ABS(faces[iFrustumFace].vecNormal.x) +
+				pVecExtents.y * M_ABS(faces[iFrustumFace].vecNormal.y) +
+				pVecExtents.z * M_ABS(faces[iFrustumFace].vecNormal.z);
+			
+			return -r <= faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter);
+		}
+	}
 };
