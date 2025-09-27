@@ -255,7 +255,9 @@ public:
 	void*	m_pInternalData{ nullptr };
 };
 
-// MAPTODO: Documentation.
+//-------------------------------------------------------------------------
+// Purpose: A geometric plane, used to build a frustum.
+//-------------------------------------------------------------------------
 struct Plane
 {
 	Vector3D	vecNormal{};
@@ -269,12 +271,15 @@ struct Plane
 		return outPlane;
 	}
 
-	inline float	GetSignedDistanceToPlane(Vector3D& pPoint)
+	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
 	{
 		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
 	}
 };
 
+//-------------------------------------------------------------------------
+// Purpose: The different faces of a frustum.
+//-------------------------------------------------------------------------
 enum eFrustumPlanes
 {
 	TOP_FACE = 0,
@@ -287,21 +292,26 @@ enum eFrustumPlanes
 	MAX_FRUSTUM_PLANES
 };
 
-// MAPTODO: Documentation.
+//-------------------------------------------------------------------------
+// Purpose: A frustum, typically created by a camera and used for frustum-culling.
+//-------------------------------------------------------------------------
 struct Frustum
 {
 	// Can be indexed using the eFrustumPlanes enum.
-	Plane	faces[MAX_FRUSTUM_PLANES];
+	Plane	m_Faces[MAX_FRUSTUM_PLANES];
 
-	inline bool		FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
+	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
 	{
 		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
 		{
-			float r = pVecExtents.x * M_ABS(faces[iFrustumFace].vecNormal.x) +
-				pVecExtents.y * M_ABS(faces[iFrustumFace].vecNormal.y) +
-				pVecExtents.z * M_ABS(faces[iFrustumFace].vecNormal.z);
+			float r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
+				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +
+				pVecExtents.z * M_ABS_F(m_Faces[iFrustumFace].vecNormal.z);
 			
-			return -r <= faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter);
+			if (!(-r <= m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter)))
+				return false;
 		}
+
+		return true;
 	}
 };

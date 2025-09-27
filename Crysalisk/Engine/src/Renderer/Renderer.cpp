@@ -243,10 +243,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 
-	if (true)
+	if (pCurrentMap.IsMapLoaded())
 	{
 		// Get the frustum from the camera.
-		Frustum frustum = s_MainCamera.CreateFrustumFromCamera((float)m_iWindowWidth / (float)m_iWindowHeight, M_DEG2RAD_F(75.0f), 0.1f, 10000.0f);
+		Frustum frustum = s_MainCamera.CreateFrustumFromCamera();
 		
 		// TODO: Make this work with an allocator.
 		Utl::CVector<Matrix4x4>				TransformMatrices(32);
@@ -312,7 +312,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	{
 		// Display renderer matrics.
 		char szMetricsString[512]{};
-		Utl::StringFormat_V("Frametime: %.5f ms (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
+		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
 			szMetricsString,
 			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
 			m_Metrics.NumDrawCalls,	m_Metrics.NumGeometriesFrustumCulled,
@@ -570,6 +570,9 @@ static bool RendererEvent_WindowResized(EventData_t data)
 
 	// Cache off the new dimensions.
 	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
+
+	// Make sure to resize the camera's aspect ratio as well.
+	s_MainCamera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;

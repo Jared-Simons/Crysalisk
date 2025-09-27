@@ -120,3 +120,13 @@ static inline int IntMax(int a, int b)
 {
 	return (a > b) ? a : b;
 }
+
+static inline float FloatMin(float a, float b)
+{
+	return (a < b) ? a : b;
+}
+
+static inline float FloatMax(float a, float b)
+{
+	return (a > b) ? a : b;
+}

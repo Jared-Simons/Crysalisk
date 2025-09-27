@@ -32,6 +32,11 @@ struct Camera_t
 	float	MoveSpeed{ 6.0f };
 	float	TurnSpeed{ 0.5f };
 
+	float	flFOV{ 75.0f };
+	float	flZNear{ 0.1f };
+	float	flZFar{ 10000.0f };
+	float	flAspectRatio{ 16 / 9.0f };
+
 	// Returns the camera's view matrix.
 	inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 
@@ -41,7 +46,6 @@ struct Camera_t
 	// A simple update function.
 	void UpdateCameraData(double deltaTime);
 
-	// MAPTODO: Documentation.
-	// MAPTODO: Include aspect/near/far planes in the camera class?
-	Frustum CreateFrustumFromCamera(float flAspect, float fovY, float zNear, float zFar);
+	// Creates and returns a frustum based on the camera's internal state.
+	Frustum CreateFrustumFromCamera();
 };

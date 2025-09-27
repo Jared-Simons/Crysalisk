@@ -94,22 +94,24 @@ void Camera_t::UpdateCameraData(double deltaTime)
 	}
 }
 
-// MAPTODO: Documentation.
-// MAPTODO: This needs to be cleaned up.
-Frustum Camera_t::CreateFrustumFromCamera(float flAspect, float fovY, float zNear, float zFar)
+//-------------------------------------------------------------------------
+// Purpose: Creates and returns a frustum based on the camera's internal state.
+// Input:	none.
+// Output:	A new frustum that contains the camera's viewing volume.
+//-------------------------------------------------------------------------
+Frustum Camera_t::CreateFrustumFromCamera()
 {
 	Frustum outFrustum{};
-	const float flHalfVSide = zFar * M_TAN_F(fovY * 0.5f);
-	const float flHalfHSide = flHalfVSide * flAspect;
-	Vector3D vecFrontCopy = vecFront;
-	Vector3D vecFrontMultFar = vecFrontCopy * zFar;
+	const float flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);
+	const float flHalfHSide = flHalfVSide * flAspectRatio;
+	Vector3D vecFrontFar = vecFront * flZFar;
 
-	outFrustum.faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontMultFar + (vecUp * flHalfVSide), vecRight));
-	outFrustum.faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecRight, vecFrontMultFar - (vecUp * flHalfVSide)));
-	outFrustum.faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecUp, vecFrontMultFar + (vecRight * flHalfHSide)));
-	outFrustum.faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontMultFar - (vecRight * flHalfHSide), vecUp));
-	outFrustum.faces[TOP_FACE] = Plane::PlaneCreate((vecFrontCopy * zNear) + vecPosition, vecFrontCopy);
-	outFrustum.faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition + vecFrontMultFar, vecFrontCopy * -1.0f);
+	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar + (vecUp * flHalfVSide), vecRight));
+	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecRight, vecFrontFar - (vecUp * flHalfVSide)));
+	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecUp, vecFrontFar + (vecRight * flHalfHSide)));
+	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar - (vecRight * flHalfHSide), vecUp));
+	outFrustum.m_Faces[TOP_FACE] = Plane::PlaneCreate((vecFront * flZNear) + vecPosition, vecFront);
+	outFrustum.m_Faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition + vecFrontFar, vecFront * -1.0f);
 
 	return outFrustum;
 }

@@ -16,7 +16,6 @@
 #include <Memory/MemoryManager.h>
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
-	// MAPTODO: Frustum culling test.
 #include "Renderer/Camera.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
@@ -219,17 +218,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
-
-	// MAPTODO: Frustum culling test.
-	{
-		Camera_t testCamera{};
-		testCamera.vecPosition = Vector3D{ 0, 0, 5 };
-		testCamera.vecFront = Vector3D{ 0, 0, -1 };
-		testCamera.vecUp = Vector3D{ 0, 1, 0 };
-		testCamera.vecRight = Vector3D{ 1, 0, 0 };
-
-		Frustum testFrustum = testCamera.CreateFrustumFromCamera(((float)1920 / 1080), M_DEG2RAD_F(45.0f), 0.1f, 100.0f);
-	}
 
 	return true;
 }

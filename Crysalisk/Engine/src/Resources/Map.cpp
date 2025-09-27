@@ -113,13 +113,13 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 							
 							for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
 							{
-								vecMinAABB.x = IntMin(vecMinAABB.x, newConfig.Vertices[vertIdx].Pos.x);
-								vecMinAABB.y = IntMin(vecMinAABB.y, newConfig.Vertices[vertIdx].Pos.y);
-								vecMinAABB.z = IntMin(vecMinAABB.z, newConfig.Vertices[vertIdx].Pos.z);
+								vecMinAABB.x = FloatMin(vecMinAABB.x, newConfig.Vertices[vertIdx].Pos.x);
+								vecMinAABB.y = FloatMin(vecMinAABB.y, newConfig.Vertices[vertIdx].Pos.y);
+								vecMinAABB.z = FloatMin(vecMinAABB.z, newConfig.Vertices[vertIdx].Pos.z);
 
-								vecMaxAABB.x = IntMax(vecMaxAABB.x, newConfig.Vertices[vertIdx].Pos.x);
-								vecMaxAABB.y = IntMax(vecMaxAABB.y, newConfig.Vertices[vertIdx].Pos.y);
-								vecMaxAABB.z = IntMax(vecMaxAABB.z, newConfig.Vertices[vertIdx].Pos.z);
+								vecMaxAABB.x = FloatMax(vecMaxAABB.x, newConfig.Vertices[vertIdx].Pos.x);
+								vecMaxAABB.y = FloatMax(vecMaxAABB.y, newConfig.Vertices[vertIdx].Pos.y);
+								vecMaxAABB.z = FloatMax(vecMaxAABB.z, newConfig.Vertices[vertIdx].Pos.z);
 							}
 
 							newGeometry.vecMinExtents = vecMinAABB;
