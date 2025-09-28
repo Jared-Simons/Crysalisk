@@ -30,7 +30,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	// Attempt to load the resource from disk.
 	if (!MapLoader::LoadMapResource(szFormattedMapPath, mapResource))
 	{
-		// TODO: Logging
+		LOG_ERROR("Failed to load map '%s'.", pszMapName);
 		return false;
 	}
 
@@ -39,7 +39,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	// Use the loaded resource to acquire assets.
 	if (!CMap::InitializeFromResource(mapResource, pOutMapResource))
 	{
-		// TODO: Logging
+		LOG_ERROR("Failed to initialize map '%s'.", pszMapName);
 		return false;
 	}
 
