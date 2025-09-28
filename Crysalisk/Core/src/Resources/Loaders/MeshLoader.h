@@ -16,7 +16,7 @@
 namespace MeshLoader
 {
 	// Attempts to load an existing mesh asset from disk.
-	CORE_API bool LoadMeshResource(const char* pszMeshFileName, struct MeshResource_t& pOutResource);
+	CORE_API bool LoadMeshResource(char* pszMeshFileName, struct MeshResource_t& pOutResource);
 
 	// A mesh resource generated from a file on disk.
 	// Can be used by the engine at runtime for rendering.
@@ -66,10 +66,19 @@ namespace MeshLoader
 			{
 				// Make sure to free the strings.
 				if (pszDebugName)
+				{
 					Utl::StringFree(pszDebugName);
+					pszDebugName = nullptr;
+				}
 
 				if (pszMaterialName)
+				{
 					Utl::StringFree(pszMaterialName);
+					pszMaterialName = nullptr;
+				}
+
+				Vertices.Clear();
+				Indices.Clear();
 			}
 		};
 
@@ -80,7 +89,7 @@ namespace MeshLoader
 			// The name of the group.
 			char*							pszDebugName{ nullptr };
 			// An array of submeshes.
-			Utl::CVector<GeometryObject_t*>	pGroups{};
+			Utl::CVector<GeometryObject_t>	pGroups{};
 
 			GeometryGroup_t() {}
 
@@ -107,37 +116,59 @@ namespace MeshLoader
 				if (pszDebugName)
 					Utl::StringFree(pszDebugName);
 
-				for (int idx = 0; idx < pGroups.Count(); idx++)
+				for (int idx = 0; idx < pGroups.Capacity(); idx++)
 				{
-					delete pGroups[idx];
+					pGroups[idx].~GeometryObject_t();
 				}
 			}
 		};
 
-		MeshResource_t() {}
+		MeshResource_t() 
+		{
+		}
+		
 		MeshResource_t(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
+
+			vecPosition = pOther.vecPosition;
+			vecEulerAngles = pOther.vecEulerAngles;
+			vecScale = pOther.vecScale;
 		}
 
 		MeshResource_t& operator=(const MeshResource_t& pOther)
 		{
 			pObjects = pOther.pObjects;
+			pMaterials = pOther.pMaterials;
+
+			vecPosition = pOther.vecPosition;
+			vecEulerAngles = pOther.vecEulerAngles;
+			vecScale = pOther.vecScale;
 
 			return *this;
 		}
 
 		~MeshResource_t()
 		{
-			for (int idx = 0; idx < pObjects.Count(); idx++)
+			for (int idx = 0; idx < pObjects.Capacity(); idx++)
 			{
-				delete pObjects[idx];
+				pObjects[idx].~GeometryGroup_t();
+			}
+
+			for (int idx = 0; idx < pMaterials.Capacity(); idx++)
+			{
+				pMaterials[idx].~MaterialResource_t();
 			}
 		}
 
 		// An array of groups (which contain submesh data).
-		Utl::CVector<GeometryGroup_t*>						pObjects{};
+		Utl::CVector<GeometryGroup_t>						pObjects{};
 		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
+
+		// Transformation data.
+		Vector3D						vecPosition{};
+		Vector3D						vecEulerAngles{};
+		Vector3D						vecScale{};
 	};
 }

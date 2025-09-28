@@ -97,7 +97,12 @@ namespace Utl
 
 			if (m_pKeys[hashedValue] == nullptr)
 			{
-				m_pKeys[hashedValue] = key;
+				m_pKeys[hashedValue] = Utl::StringDuplicate(key);
+			}
+			else if (Utl::StringCompare(m_pKeys[hashedValue], key))
+			{
+				// This key already exists in the table, return it's value.
+				return &m_pValues[hashedValue];
 			}
 			else
 			{
@@ -108,7 +113,7 @@ namespace Utl
 					// We can use this slot.
 					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
 					{
-						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = key;
+						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = Utl::StringDuplicate(key);
 						return &m_pValues[(hashedValue + iProbeIdx) % m_Capacity];
 					}
 				}
@@ -153,6 +158,39 @@ namespace Utl
 		Value& ValueElementAt(int index)
 		{
 			return m_pValues[index];
+		}
+
+		bool IsValueInTable(char* pszKey) const
+		{
+			int hashedValue = ::SimpleHash_StringToInt(pszKey, m_Capacity);
+			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
+			
+			if (m_pKeys[hashedValue] == nullptr)
+			{
+				return false;
+			}
+			else if (Utl::StringCompare(m_pKeys[hashedValue], pszKey))
+			{
+				return true;
+			}
+			else
+			{
+				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				{
+					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
+					{
+						continue;
+					}
+					else if (Utl::StringCompare(m_pKeys[(hashedValue + iProbeIdx) % m_Capacity], pszKey))
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			return false;
 		}
 
 	private:

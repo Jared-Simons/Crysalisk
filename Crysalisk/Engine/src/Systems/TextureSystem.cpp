@@ -164,7 +164,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 	}
 
 	// Check to see if the texture is already loaded.
-	pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
+	pTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(pszTextureName);
 	if (pTextureLookup->TextureIndex == kInvalidID_U32)
 	{
 		// Texture data does not exist yet, get that going.
@@ -194,6 +194,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
+	CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -263,6 +264,15 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	Texture*		pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
 	TextureLookup*	pLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
 	CAssert(hTexture == pLookup->TextureIndex);	// These need to line up...
+
+	// Do absolutely nothing with default textures.
+	// They need to stick around until the end.
+	if (pTexture->internalHandle == m_pDefaultTextureLookup->TextureIndex
+		|| pTexture->internalHandle == m_pDefaultSpecularTexture->TextureIndex
+		|| pTexture->internalHandle == m_pDefaultNormalTexture->TextureIndex)
+	{
+		return;
+	}
 
 	// Decrement the reference count.
 	pLookup->ReferenceCount--;

@@ -93,3 +93,25 @@ void Camera_t::UpdateCameraData(double deltaTime)
 		RecalculateCameraVectors();
 	}
 }
+
+//-------------------------------------------------------------------------
+// Purpose: Creates and returns a frustum based on the camera's internal state.
+// Input:	none.
+// Output:	A new frustum that contains the camera's viewing volume.
+//-------------------------------------------------------------------------
+Frustum Camera_t::CreateFrustumFromCamera()
+{
+	Frustum outFrustum{};
+	const float flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);
+	const float flHalfHSide = flHalfVSide * flAspectRatio;
+	Vector3D vecFrontFar = vecFront * flZFar;
+
+	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar + (vecUp * flHalfVSide), vecRight));
+	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecRight, vecFrontFar - (vecUp * flHalfVSide)));
+	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecUp, vecFrontFar + (vecRight * flHalfHSide)));
+	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar - (vecRight * flHalfHSide), vecUp));
+	outFrustum.m_Faces[TOP_FACE] = Plane::PlaneCreate((vecFront * flZNear) + vecPosition, vecFront);
+	outFrustum.m_Faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition + vecFrontFar, vecFront * -1.0f);
+
+	return outFrustum;
+}

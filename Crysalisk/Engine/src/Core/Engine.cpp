@@ -16,9 +16,11 @@
 #include <Memory/MemoryManager.h>
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
+#include "Renderer/Camera.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
+#include "Resources/Map.h"
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -56,6 +58,11 @@ private:
 	EngineConfig_t	m_engineConfig;
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
+
+	CMap			m_CurrentMap{};
+
+	// These need access to our members.
+	friend static bool Event_KeyReleased(EventData_t data);
 };
 
 // Engine context.
@@ -76,7 +83,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(50);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(100);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -207,8 +214,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	initializationClock.Update();
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 
+	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
+
 	// Create temporary geometry.
-	g_pRenderer->CreateTempGeometry();
+	g_pRenderer->CreateTempTextObjects();
 
 	return true;
 }
@@ -231,7 +240,8 @@ bool CEngine::Run()
 
 			RenderPacket_t frameRenderData{};
 
-			g_pRenderer->Update(frameRenderData);
+			// Get our renderable geometry from the map.
+			g_pRenderer->Update(frameRenderData, m_CurrentMap);
 		}
 	}
 
@@ -247,6 +257,9 @@ bool CEngine::Run()
 void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
+
+	if (m_CurrentMap.IsMapLoaded())
+		m_CurrentMap.UnloadMap();
 
 	g_pFontSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
@@ -306,15 +319,18 @@ bool Event_KeyReleased(EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
-		if (!s_bLevelGeometryLoaded)
+		if (!s_Engine.m_CurrentMap.IsMapLoaded())
 		{
-			g_pRenderer->CreateTempGeometry();
-			s_bLevelGeometryLoaded = true;
+			LoadMap("TestMap", s_Engine.m_CurrentMap);
+			LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
 		}
-		else
+	}
+	else if (keycode == 'U')
+	{
+		if (s_Engine.m_CurrentMap.IsMapLoaded())
 		{
-			s_bLevelGeometryLoaded = false;
-			g_pRenderer->DestroyTempGeometry();
+			s_Engine.m_CurrentMap.UnloadMap();
+			LOG_DEBUG("Memory usage post-map unload: %.10f", g_pMemoryManager->GetPercentAllocated());
 		}
 	}
 

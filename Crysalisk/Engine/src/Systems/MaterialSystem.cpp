@@ -29,6 +29,7 @@ struct PhongShaderLocations_t
 	uint16_t	pointLight2{ kInvalidID_U16 };
 	uint16_t	pointLight3{ kInvalidID_U16 };
 	uint16_t	pointLight4{ kInvalidID_U16 };
+	uint16_t	spotLight{ kInvalidID_U16 };
 	uint16_t	renderMode{ kInvalidID_U16 };
 	uint16_t	shininess{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
@@ -52,6 +53,8 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
 
+	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) override;
+
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
 
@@ -66,9 +69,21 @@ public:
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
+	// Sets directional light data to be used during rendering.
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
+	virtual void				ApplyLightData() override;
+
 private:
-	// Creates the default textures to be used in the engine.
+	// Creates the default material(s) to be used in the engine.
 	void						CreateDefaultMaterial();
+
+	// Destroys the default material(s).
+	void						DestroyDefaultMaterial();
+
+	// Clears a given material dictionary entry.
+	void						ClearMaterialDictionaryEntry(const char* pszMaterialName);
 
 	// Returns the first available handle in the material dictionary.
 	MaterialHandle_t			FindFirstFreeMaterialHandle() const;
@@ -107,6 +122,43 @@ private:
 	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
 	// The default material shader (in case a custom shader is not available).
 	ShaderHandle_t		m_DefaultMaterialShader{ kInvalidID_U32 };
+
+	// Current light data.
+	struct DirectionalLight_t
+	{
+		Vector3D	vecDirection{};
+		float		padding1{};
+		Vector3D	lightColor{};
+		float		flBrightness{};
+		Vector3D	ambientLightColor{};
+		float		flAmbientStrength{};
+	} dirLight;
+
+	struct PointLight_t
+	{
+		Vector4D	vecPosition{};
+		Vector3D	lightColor{};
+		float		flBrightness{};
+
+		float		flConstant{};
+		float		flLinear{};
+		float		flQuadratic{};
+	} pointLights[4];
+
+	struct SpotLight_t
+	{
+		Vector4D	vecPosition{};
+		Vector4D	vecDirection{};
+		Vector3D	lightColor{};
+		float		flBrightness{};
+
+		float		flConstant{};
+		float		flLinear{};
+		float		flQuadratic{};
+
+		float		flInnerCutoff{};
+		float		flOuterCutoff{};
+	} spotLight;
 };
 
 // Material System context.
@@ -134,6 +186,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	s_PhongShaderLocations.pointLight2 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight2");
 	s_PhongShaderLocations.pointLight3 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight3");
 	s_PhongShaderLocations.pointLight4 = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "pointLight4");
+	s_PhongShaderLocations.spotLight = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "spotlight");
 	s_PhongShaderLocations.renderMode = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "renderMode");
 	s_PhongShaderLocations.shininess = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "shininess");
 	s_PhongShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "color");
@@ -141,74 +194,7 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	s_PhongShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_DefaultMaterialShader, "model");
 
 	// Default material.
-	// TODO: Make this work with new shader system.
 	CreateDefaultMaterial();
-
-	// TEMP!
-	// Set up a temporary light sources.
-	{
-		struct DirectionalLight_t
-		{
-			Vector3D	vecDirection{};
-			float		padding1{};
-			Vector3D	lightColor{};
-			float		padding2{};
-			Vector3D	ambientLightColor{};
-			float		flAmbientStrength{};
-		};
-
-		struct PointLight_t
-		{
-			Vector3D	vecPosition{};
-			float		padding1{};
-			Vector3D	lightColor{};
-
-			float		flConstant{};
-			float		flLinear{};
-			float		flQuadratic{};
-		};
-
-		DirectionalLight_t testLight{};
-		testLight.vecDirection = { -0.2f, -1.0f, -0.3f };
-		testLight.lightColor = { 1.0f, 0.785f, 0.534f };
-		testLight.ambientLightColor = { 0.592f, 0.679f, 0.812f };
-		testLight.flAmbientStrength = 0.3f;
-
-		PointLight_t	light1{};
-		light1.vecPosition = { 0.7f, 2.0f, 2.0f };
-		light1.lightColor = { 0.8f, 0.8f, 0.8f };
-		light1.flConstant = 1.0f;
-		light1.flLinear = 0.09f;
-		light1.flQuadratic = 0.032f;
-
-		PointLight_t	light2{};
-		light2.vecPosition = { 2.3f, 2.0f, -4.0f };
-		light2.lightColor = { 1.0f, 0.0f, 0.0f };
-		light2.flConstant = 1.0f;
-		light2.flLinear = 0.09f;
-		light2.flQuadratic = 0.032f;
-
-		PointLight_t	light3{};
-		light3.vecPosition = { -4.0f, 2.0f, -12.0f };
-		light3.lightColor = { 0.0f, 1.0f, 0.0f };
-		light3.flConstant = 1.0f;
-		light3.flLinear = 0.09f;
-		light3.flQuadratic = 0.032f;
-
-		PointLight_t	light4{};
-		light4.vecPosition = { 0.0f, 2.0f, -3.0f };
-		light4.lightColor = { 0.0f, 0.0f, 1.0f };
-		light4.flConstant = 1.0f;
-		light4.flLinear = 0.09f;
-		light4.flQuadratic = 0.032f;
-
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.dirLight, 0, 0, &testLight);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight1, 0, 0, &light1);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight2, 0, 0, &light2);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight3, 0, 0, &light3);
-		g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight4, 0, 0, &light4);
-	}
-	// END TEMP LIGHTING!
 
 	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
 
@@ -220,10 +206,13 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 //-------------------------------------------------------------------------
 void CMaterialSystem::Shutdown()
 {
-	g_pShaderSystem->ReleaseShader(m_DefaultMaterialShader);
+	for (int matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx++)
+	{
+		ReleaseMaterial(matIdx, true);	// Force release of resources.
+	}
 
+	DestroyDefaultMaterial();
 	delete[] m_MaterialDictionary.m_MaterialArray;
-	LOG_WARN("TODO: IMPLEMENT MATERIAL SYSTEM RESOURCE RELEASE METHOD!!!");
 }
 
 //-------------------------------------------------------------------------
@@ -262,6 +251,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 		}
 
 		newMaterialHandle = AcquireMaterialFromResource(newMaterialResource);
+
+		pLookup->ReferenceCount++;
+		pLookup->AutoRelease = true; // NOTE: Materials automatically release themselves by default for now.
 	}
 	else
 	{
@@ -318,7 +310,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		}
 
 		// Acquire shader instance resources for this material.
-		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle);
+		g_pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle, pInResource.pszMaterialName);
 
 		// Texture maps.
 		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
@@ -353,6 +345,11 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
+		// Save off the texture handles.
+		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
+		pMaterial->m_hSpecularTextureHandle = textureHandles[1];
+		pMaterial->m_hNormalTextureHandle = textureHandles[2];
+
 		// Set any instance-level uniform data.
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
 		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
@@ -370,6 +367,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
+		pLookup->ReferenceCount = 0;
+
 		// Save off the index.
 		pLookup->MaterialIndex = newMaterialHandle;
 	}
@@ -380,6 +379,49 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 	}
 
 	return newMaterialHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases an existing reference to a material.
+// Input:	hMaterial - The material to release a reference to.
+//			bForceResourceRelease - Forces the material to release all it's resources,
+//									regardless of it's reference count.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease)
+{
+	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+
+	if (pMaterial.m_iInternalHandle == kInvalidID_U32 || pMaterial.m_pszMaterialName == nullptr)
+	{
+		// It's possible this material has already been released. Boot out.
+		return;
+	}
+
+	MaterialLookup& pLookup = m_MaterialDictionary.m_MaterialHashmap[pMaterial.m_pszMaterialName];
+
+	// Do nothing with default materials.
+	if (pLookup.MaterialIndex == m_DefaultMaterialLookup.MaterialIndex)
+	{
+		return;
+	}
+
+	pLookup.ReferenceCount--;
+
+	CAssert(pLookup.ReferenceCount >= 0);
+
+	if (pLookup.ReferenceCount == 0 && (pLookup.AutoRelease == true || bForceResourceRelease))
+	{
+		LOG_VERBOSE("Releasing material '%s'.", pMaterial.m_pszMaterialName);
+
+		g_pShaderSystem->ReleaseShaderInstanceResources(pMaterial.m_hShaderHandle, pMaterial.m_iInternalHandle);
+
+		g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hDiffuseTextureHandle);
+		g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hSpecularTextureHandle);
+		g_pTextureSystem_Internal->ReleaseTexture(pMaterial.m_hNormalTextureHandle);
+
+		ClearMaterialDictionaryEntry(pMaterial.m_pszMaterialName);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -409,6 +451,10 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	//CAssert(hMaterial != kInvalidID_U32);
 	if (hMaterial == kInvalidID_U32)
 		hMaterial = 0; // TODO: This is not elegant
+
+	// Don't do any extra work!
+	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
+		return;
 
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
@@ -453,6 +499,71 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 }
 
 //-------------------------------------------------------------------------
+// Sets directional light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
+{
+	dirLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
+	dirLight.flBrightness = flBrightness;
+	dirLight.lightColor = vecLightColor;
+	dirLight.ambientLightColor = vecAmbientLightColor;
+	dirLight.flAmbientStrength = flAmbientStrength;
+}
+
+//-------------------------------------------------------------------------
+// Sets point light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
+{
+	pointLights[lightIndex].vecPosition = vecPoint;
+	pointLights[lightIndex].lightColor = vecLightColor;
+	pointLights[lightIndex].flBrightness = flBrightness;
+	pointLights[lightIndex].flConstant = flConstant;
+	pointLights[lightIndex].flLinear = flLinear;
+	pointLights[lightIndex].flQuadratic = flQuadratic;
+}
+
+//-------------------------------------------------------------------------
+// Sets spot light data to be used during rendering.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
+{
+	CAssert(flInnerCutoff < flOuterCutoff);
+
+	spotLight.vecPosition = vecPosition;
+	// Direction needs to be converted from degrees to radians.
+	spotLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
+	spotLight.lightColor = vecLightColor;
+	spotLight.flBrightness = flBrightness;
+	spotLight.flConstant = flConstant;
+	spotLight.flLinear = flLinear;
+	spotLight.flQuadratic = flQuadratic;
+	spotLight.flInnerCutoff = M_COS_F(M_DEG2RAD_F(flInnerCutoff));
+	spotLight.flOuterCutoff = M_COS_F(M_DEG2RAD_F(flOuterCutoff));
+}
+
+//-------------------------------------------------------------------------
+// Pushes current light data to the shaders for use.
+// NOTE: This lives here and not in the renderer because we need access
+// to Material-Specific shader information.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ApplyLightData()
+{
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.dirLight, 0, 0, &dirLight);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight1, 0, 0, &pointLights[0]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight2, 0, 0, &pointLights[1]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight3, 0, 0, &pointLights[2]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.pointLight4, 0, 0, &pointLights[3]);
+	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.spotLight, 0, 0, &spotLight);
+}
+
+//-------------------------------------------------------------------------
 // Purpose:	Creates the default, fallback material.
 // Input:	none.
 // Output:	none.
@@ -468,12 +579,16 @@ void CMaterialSystem::CreateDefaultMaterial()
 	pNewMaterial->m_hSpecularTextureHandle = g_pTextureSystem_Internal->GetDefaultSpecularTexture();
 	pNewMaterial->m_hNormalTextureHandle = g_pTextureSystem_Internal->GetDefaultNormalTexture();
 
-	MaterialLookup* newMaterialLookup = &m_DefaultMaterialLookup;
+	MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pNewMaterial->m_pszMaterialName);
 	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
 	newMaterialLookup->MaterialIndex = matIdx;
+	// Storing this off in two places, this second lookup is dedicated to the default material, and should never change until it's released.
+	m_DefaultMaterialLookup.MaterialIndex = matIdx;
+	m_DefaultMaterialLookup.AutoRelease = false;
+	m_DefaultMaterialLookup.ReferenceCount = 0;
 
 	// Acquire shader instance resources for this material.
-	g_pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle);
+	g_pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
 
 	// Texture maps.
 	Utl::CVector<TextureHandle_t>	textureHandles(3);
@@ -492,6 +607,52 @@ void CMaterialSystem::CreateDefaultMaterial()
 	float flShininess = 32;
 	// Set the instance uniform.
 	g_pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
+}
+
+//-------------------------------------------------------------------------
+// Purpose:	Releases resources for the default material.
+// Input:	none.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CMaterialSystem::DestroyDefaultMaterial()
+{
+	// NOTE: Don't have to worry about releasing default textures here, 
+	// the texture system will take care of that.
+
+	MaterialLookup* pLookup = &m_DefaultMaterialLookup;
+	CAssert(pLookup && pLookup->MaterialIndex != kInvalidID_U32);
+	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
+
+	g_pShaderSystem->ReleaseShaderInstanceResources(pMaterial->m_hShaderHandle, pMaterial->m_iInternalHandle);
+
+	ClearMaterialDictionaryEntry(pMaterial->m_pszMaterialName);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Clears a given material dictionary entry.
+// Input:	pszMaterialName - The name of the material whose entry to vacate.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CMaterialSystem::ClearMaterialDictionaryEntry(const char* pszMaterialName)
+{
+	CAssert(pszMaterialName);
+
+	MaterialLookup* pLookup = &m_MaterialDictionary.m_MaterialHashmap[pszMaterialName];
+	Material*		pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
+
+	CAssert(pLookup && pMaterial);
+
+	pLookup->MaterialIndex = kInvalidID_U32;
+	pLookup->ReferenceCount = 0;
+	pLookup->AutoRelease = false;
+
+	if (pMaterial->m_pszMaterialName)
+	{
+		Utl::StringFree(pMaterial->m_pszMaterialName);
+		pMaterial->m_pszMaterialName = nullptr;
+	}
+
+	pMaterial->m_iInternalHandle = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------

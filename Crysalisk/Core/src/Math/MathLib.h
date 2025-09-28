@@ -30,4 +30,5 @@ DLL_EXPORT double M_RAD2DEG(double angleInRadians);
 DLL_EXPORT float M_DEG2RAD_F(float angleInDegrees);
 DLL_EXPORT double M_DEG2RAD(double angleInDegrees);
 
+DLL_EXPORT float M_ABS_F(float x);
 DLL_EXPORT double M_ABS(double x);

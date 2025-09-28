@@ -30,7 +30,10 @@ public:
 	virtual void			ReleaseShader(ShaderHandle_t hShader) override;
 
 	// Acquires a set of instance level resources for a shader.
-	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID) override;
+	virtual void			AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID, const char* pszResourceName) override;
+
+	// Releases a set of instance level resources for a shader.
+	virtual void			ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsigned int pInstanceID) override;
 
 	// Binds a given shader for use in rendering ops.
 	virtual void			BindShader(ShaderHandle_t hShader) override;
@@ -334,14 +337,29 @@ void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 // Purpose: Acquires a set of instance level resources for a shader.
 // Input:	hShader - The shader to acquire instance resources from.
 //			pOutInstanceID - A pointer to hold the instance ID for the new instance.
+//			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID)
+void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsigned int* pOutInstanceID, const char* pszResourceName)
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
 
-	g_pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID);
+	g_pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases a set of instance level resources for a shader.
+// Input:	hShader - The shader to release resources for.
+//			pInstanceID - The instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CShaderSystem::ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsigned int pInstanceID)
+{
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
+
+	g_pRenderer->ReleaseShaderInstanceResources(pShader, pInstanceID);
 }
 
 //-------------------------------------------------------------------------

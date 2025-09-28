@@ -200,7 +200,7 @@ class Material
 {
 public:
 	// This material's name.
-	const char*		m_pszMaterialName{ nullptr };
+	char*			m_pszMaterialName{ nullptr };
 	// The internal handle of this material.
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	// The shader used to render this material.
@@ -267,6 +267,15 @@ struct GeometryInstance_t
 	MaterialHandle_t	hMaterial;
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
+
+	// The index of the model matrix to use during rendering.
+	uint8_t				iLocalToWorldTransform{};
+	// The center of the mesh in world space.
+	Vector3D			vecCenter{};
+	// The minimum extents of the mesh in local space.
+	Vector3D			vecMinExtents{};
+	// The maximum extents of the mesh in local space.
+	Vector3D			vecMaxExtents{};
 };
 
 // Represents a mesh/model, made up of numerous submeshes.
@@ -276,4 +285,6 @@ struct Mesh
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// Origin of this mesh in world space.
 	Vector3D							m_vecAbsOrigin{};
+	// Transformation matrix for this mesh.
+	Matrix4x4							m_matLocalToWorldTransform{};
 };

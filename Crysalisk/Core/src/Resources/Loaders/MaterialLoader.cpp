@@ -84,7 +84,7 @@ namespace MaterialLoader
 			}
 			else if (Utl::StringCompare(szKey, "map_normal"))
 			{
-				// Specular texture map.
+				// Normal texture map.
 				MaterialResource_t::eTextureMapConfig_t normalMap{};
 				normalMap.pszTextureName = Utl::StringDuplicate(szValue);
 				normalMap.eType = MaterialResource_t::eTextureType::NORMAL;
@@ -96,8 +96,6 @@ namespace MaterialLoader
 				pOutResource.pszCustomKeys.PushBack(Utl::StringDuplicate(szKey));
 				pOutResource.pszCustomValues.PushBack(Utl::StringDuplicate(szValue));
 			}
-
-			int myBreakPoint = 0;
 		}
 
 		FileSystem::CloseFile(&hMaterialConfigFile);

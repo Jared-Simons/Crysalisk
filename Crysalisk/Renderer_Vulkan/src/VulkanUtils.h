@@ -7,7 +7,7 @@
 #pragma once
 
 // Enable this to mark every Vulkan resource object with tags for viewing in RenderDoc.
-// This is separate from _DEBUG because I prefer to debug the Vulkan Renderer with Distribution builds.
+// This is separate from _DEBUG so that we can debug Vulkan frames with the speed of Distribution builds.
 #define VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
 
 #ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED

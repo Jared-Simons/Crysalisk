@@ -69,6 +69,11 @@ double M_DEG2RAD(double angleInDegrees)
 	return angleInDegrees * (kPI / 180.0);
 }
 
+float M_ABS_F(float x)
+{
+	return fabsf(x);
+}
+
 double M_ABS(double x)
 {
 	return abs(x);

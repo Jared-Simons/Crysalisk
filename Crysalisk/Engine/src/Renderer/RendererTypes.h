@@ -30,8 +30,16 @@ struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
 	double	FrameTime{ 0.0 };
+	// The time in seconds since the last metrics update.
+	double	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
 	int		NumDrawCalls{ 0 };
+	// The number of meshes frustum culled in the previous frame
+	int		NumGeometriesFrustumCulled{ 0 };
+	// Number of frames rendered in the previous frame.
+	int		PreviousFrameFPS{ 0 };
+	// Number of frames rendered in the current frame.
+	int		CurrentFrameFPS{ 0 };
 };
 
 //-------------------------------------------------------------------------
@@ -245,4 +253,67 @@ public:
 	bool	m_bShouldClear{ false };
 	// A pointer to the internal data of the buffer.
 	void*	m_pInternalData{ nullptr };
+	// A color used for debugging tools. Otherwise does nothing.
+	Vector3D m_debuggingColor{};
+};
+
+//-------------------------------------------------------------------------
+// Purpose: A geometric plane, used to build a frustum.
+//-------------------------------------------------------------------------
+struct Plane
+{
+	Vector3D	vecNormal{};
+	float		flDistance{};
+
+	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
+	{
+		Plane outPlane{};
+		outPlane.vecNormal = pVecNormal.Normalize();
+		outPlane.flDistance = Vector3D::DotProduct(outPlane.vecNormal, pVecPoint);
+		return outPlane;
+	}
+
+	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
+	{
+		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
+	}
+};
+
+//-------------------------------------------------------------------------
+// Purpose: The different faces of a frustum.
+//-------------------------------------------------------------------------
+enum eFrustumPlanes
+{
+	TOP_FACE = 0,
+	BOTTOM_FACE,
+	RIGHT_FACE,
+	LEFT_FACE,
+	FAR_FACE,
+	NEAR_FACE,
+
+	MAX_FRUSTUM_PLANES
+};
+
+//-------------------------------------------------------------------------
+// Purpose: A frustum, typically created by a camera and used for frustum-culling.
+//-------------------------------------------------------------------------
+struct Frustum
+{
+	// Can be indexed using the eFrustumPlanes enum.
+	Plane	m_Faces[MAX_FRUSTUM_PLANES];
+
+	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
+	{
+		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
+		{
+			float r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
+				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +
+				pVecExtents.z * M_ABS_F(m_Faces[iFrustumFace].vecNormal.z);
+			
+			if (!(-r <= m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter)))
+				return false;
+		}
+
+		return true;
+	}
 };

@@ -49,9 +49,9 @@ namespace MeshSerializer
 
 		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
 		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
+			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx].pGroups.Count(); gpIdx++)
 			{
-				totalVerts += (uint32_t)pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Count();
+				totalVerts += (uint32_t)pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Count();
 			}
 		}
 
@@ -60,7 +60,7 @@ namespace MeshSerializer
 
 		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
 		{
-			totalSubmeshes += (uint32_t)pInResource.pObjects[objIdx]->pGroups.Count();
+			totalSubmeshes += (uint32_t)pInResource.pObjects[objIdx].pGroups.Count();
 		}
 
 		// Write out the header.
@@ -77,27 +77,40 @@ namespace MeshSerializer
 		// Write out all of the submesh data.
 		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
 		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx]->pGroups.Count(); gpIdx++)
+			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx].pGroups.Count(); gpIdx++)
 			{
 				CModel_SubmeshHeader_t subMesh{};
 
-				subMesh.iVertexCount = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Count();
-				subMesh.iVertexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Stride();
+				subMesh.iVertexCount = pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Count();
+				subMesh.iVertexStride = pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Stride();
 
-				subMesh.iIndexCount = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Count();
-				subMesh.iIndexStride = pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Stride();
+				subMesh.iIndexCount = pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Count();
+				subMesh.iIndexStride = pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Stride();
 
 				// Material data.
-				subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName);
-				subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName);
+				if (pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName)
+					subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName);
+				else
+				{
+					// Add in a string for debugging purposes.
+					static const char* pszAssetDirectory = "Assets/Models";
+					static size_t iDirectoryLength = Utl::StringLength(pszAssetDirectory);
+					char szNewDebugString[512]{};
+					Utl::StringFormat_V("%s_submesh_%i", szNewDebugString, &pszModelName[iDirectoryLength], gpIdx);
+
+					subMesh.iSubmeshNameLength = Utl::StringLength(szNewDebugString);
+				}
+
+				if (pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName)
+					subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName);
 
 				// Write the header, then the data.
 				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszDebugName, subMesh.iSubmeshNameLength, &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->pszMaterialName, subMesh.iMaterialNameLength, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName, subMesh.iSubmeshNameLength, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName, subMesh.iMaterialNameLength, &pCModelFileHandle);
 
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx]->pGroups[gpIdx]->Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);
+				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
 			}
 		}
 

@@ -95,7 +95,6 @@ namespace Utl
 						ReleaseNodeBackToFreelist(pCurrentNode);
 						//CAssert(retDataOffset != 0);
 						return retDataOffset; // Early return here since pCurrentNode will be nullified.
-						CAssert(retDataOffset != 2);
 					}
 				}
 
@@ -103,15 +102,13 @@ namespace Utl
 				pCurrentNode = pCurrentNode->pNextNode;
 			}
 
-			CAssert(retDataOffset != 2);
 			return retDataOffset;
 		}
+
 		void	Free(size_t size, size_t offset)
 		{
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
-
-			//CAssert(!(size == 3556 && offset == 2211703));
 
 			if (m_HeadNode->Offset >= offset)	// >= because the offset could just be 0, if we're freeing the first range of the memory block.
 			{
@@ -146,6 +143,16 @@ namespace Utl
 				{
 					pPreviousNode = pCurrentNode;
 					pCurrentNode = pCurrentNode->pNextNode;
+				}
+
+				if (pCurrentNode && pCurrentNode->Offset == offset && pCurrentNode->Size == size)
+				{
+					// The current node is exactly what we need to free.
+					// Return it back to the list while we're here.
+					pPreviousNode->pNextNode = pCurrentNode->pNextNode;
+					ReleaseNodeBackToFreelist(pCurrentNode);
+					pCurrentNode = nullptr;
+					return;
 				}
 
 				// At this point, the previous node should be the closest free range of memory to us, so append ourselves there!

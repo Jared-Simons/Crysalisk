@@ -6,6 +6,7 @@
 //=============================================================================
 #pragma once
 
+#include <Containers/CVector.h>
 #include "Core/Clock.h"
 #include "Core/Logging.h"
 #include "Defines.h"
@@ -40,7 +41,7 @@ class Renderer
 public:
 	bool			Initialize(RendererConfig_t& pConfig);
 	void			Shutdown();
-	bool			Update(struct RenderPacket_t& pRenderData);
+	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);
@@ -48,7 +49,8 @@ public:
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
 	void			DestroyShader(class Shader* pShader);
 
-	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID);
+	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName);
+	void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID);
 
 	void			BindShader(class Shader* pShader);
 	void			BindShaderPerFrameUniforms(class Shader* pShader);
@@ -67,7 +69,7 @@ public:
 	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig);
 
 	// Temp geometry stuff
-	bool	CreateTempGeometry();
+	bool	CreateTempTextObjects();
 	void	DestroyTempGeometry();
 
 	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }

@@ -86,7 +86,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Setup Vulkan Instance.
 	VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	appInfo.pApplicationName = pConfig.szApplicationName;
-	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 0); 
+	appInfo.applicationVersion = VK_MAKE_VERSION(0, 0, 0);
 	appInfo.pEngineName = "Crysalisk";
 	appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 0);
 	appInfo.apiVersion = VK_MAKE_API_VERSION(0, 1, 3, 0); // We're using Vulkan 1.3 for now.
@@ -121,7 +121,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	instanceExtensions.PushBack(Platform::GetVulkanPlatformExtension());
 
 #if defined _DEBUG || defined VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED // We need the debug utils extension here as well, since this handles all resource tagging.
-	instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); 
+	instanceExtensions.PushBack(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
 	if (!QueryInstanceExtensionSupport(instanceExtensions))
@@ -132,7 +132,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	instanceInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.Count());
 	instanceInfo.ppEnabledExtensionNames = instanceExtensions.Data();
-	
+
 	VK_CHECK(vkCreateInstance(&instanceInfo, m_Allocator, &m_Instance));
 	LOG_DEBUG("Vulkan instance initialized");
 
@@ -142,6 +142,23 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	if (!m_pfnSetDebugObjectName)
 	{
 		LOG_WARN("Failed to find Vulkan function pointer 'vkSetDebugUtilsObjectNameEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	m_pfnBeginDebugLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_Instance, "vkCmdBeginDebugUtilsLabelEXT"));
+	if (!m_pfnBeginDebugLabel)
+	{
+		LOG_WARN("Failed to find Vulkan function pointer 'vkCmdBeginDebugUtilsLabelEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	m_pfnEndDebugLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_Instance, "vkCmdEndDebugUtilsLabelEXT"));
+	if (!m_pfnEndDebugLabel)
+	{
+		LOG_WARN("Failed to find Vulkan function pointer 'vkCmdEndDebugUtilsLabelEXT' despite having resource debugging enabled. Resources will not be tagged.");
+	}
+
+	if (m_pfnSetDebugObjectName && m_pfnBeginDebugLabel && m_pfnEndDebugLabel)
+	{
+		LOG_DEBUG("Found all Vulkan debug PFNs for resource tagging");
 	}
 #endif
 
@@ -464,6 +481,23 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 	renderpassInfo.clearValueCount = 2;
 	renderpassInfo.pClearValues = clearColors;
 
+	// Set a label for debugging.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnBeginDebugLabel)
+	{
+		VkDebugUtilsLabelEXT labelDetails{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		labelDetails.pLabelName = pRendererView.m_pszViewName;
+		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
+		// TODO: Make this dynamic.
+		labelDetails.color[0] = pRendererView.m_debuggingColor.x;
+		labelDetails.color[1] = pRendererView.m_debuggingColor.y;
+		labelDetails.color[2] = pRendererView.m_debuggingColor.z;
+		labelDetails.color[3] = 1.0f;
+
+		m_pfnBeginDebugLabel(commandBuffer, &labelDetails);
+	}
+#endif
+
 	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	return true;
@@ -478,6 +512,14 @@ void CVulkanRenderer::EndRenderpass()
 {
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 	vkCmdEndRenderPass(commandBuffer);
+
+	// Close the debugging label.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnEndDebugLabel)
+	{
+		m_pfnEndDebugLabel(commandBuffer);
+	}
+#endif
 }
 
 //-------------------------------------------------------------------------
@@ -522,7 +564,6 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
-		//vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexDataSize, 1, (uint32_t)pGeometry.indexDataOffset, (int32_t)pGeometry.vertexDataOffset, 0);
 		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexCount, 1, 0, 0, 0);
 	}
 	else
@@ -558,10 +599,11 @@ static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferU
 // Input:	bufferSize - The size in bytes of the buffer.
 //			bufferUsage - Indicates the buffer's usage (i.e. Vertex, Index, Uniform).
 //			bUseFreelist - Indicates if this buffer will use a freelist to track it's memory.
+//			pszBufferName - Label for the buffer resource, used for debugging purposes.
 //			pOutBuffer - The generic buffer structure that will hold this buffer.
 // Output:	Returns true on successful buffer creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, RenderBuffer& pOutBuffer)
+bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
 {
 	// Allocate our internal buffer.
 	pOutBuffer.m_pInternalData = new VulkanBuffer;
@@ -575,6 +617,14 @@ bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBuffe
 	{
 		return false;
 	}
+
+	// Create buffer debug label.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (pszBufferName != nullptr)
+	{
+		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pszBufferName, VK_OBJECT_TYPE_BUFFER, pInternalBuffer->m_Handle);
+	}
+#endif
 
 	return true;
 }
@@ -628,7 +678,7 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 		{
 			case eRendererViewAttachmentType::COLOR:
 				newAttachment.format = m_Swapchain.m_SwapchainImageFormat;	// NOTE: Just using the swapchain image format for now.
-				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 				newAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -640,7 +690,7 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 
 			case eRendererViewAttachmentType::DEPTH:
 				newAttachment.format = m_Swapchain.m_DepthImageFormat;	// Get the depth image format from the swapchain.
-				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 				newAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1000,7 +1050,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	{
 		depthStencil.depthTestEnable = VK_TRUE;
 		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.stencilTestEnable = VK_FALSE;
 		depthStencil.minDepthBounds = 0.0f;
@@ -1087,6 +1137,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	descriptorPoolInfo.maxSets = kMaxVulkanInstances;
 	descriptorPoolInfo.poolSizeCount = descriptorPoolsNeeded;
 	descriptorPoolInfo.pPoolSizes = descriptorPoolSizes;
+	descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 	VK_CHECK(vkCreateDescriptorPool(m_Device.m_Device, &descriptorPoolInfo, m_Allocator, &pInternalShader->m_DescriptorPool));
 
@@ -1253,6 +1304,9 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	graphicsPipelineInfo.subpass = 0;
 	VK_CHECK(vkCreateGraphicsPipelines(m_Device.m_Device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, m_Allocator, &pInternalShader->m_Pipeline));
 
+	// Create a debug label.
+	VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pConfig.pszShaderName, VK_OBJECT_TYPE_PIPELINE, pInternalShader->m_Pipeline);
+
 	// We no longer need the shader modules.
 	for (int stageIdx = 0; stageIdx < modules.Count(); stageIdx++)
 	{
@@ -1284,6 +1338,13 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		allocInfo.pSetLayouts = pGlobalLayout;
 
 		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]));	// Per-frame descriptors are always first.
+
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+		char szDescriptorSetLabel[512]{};
+		Utl::StringFormat_V("%s_Per_Frame_DescriptorSet_%d", szDescriptorSetLabel, pConfig.pszShaderName, idx);
+		// Create descriptor set debug label.
+		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, szDescriptorSetLabel, VK_OBJECT_TYPE_DESCRIPTOR_SET, pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]);
+#endif
 	}
 	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
 
@@ -1362,9 +1423,10 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 // Purpose: Acquires the shader resources needed for rendering an instance with the provided shader.
 // Input:	pShader - The generic front-end shader to acquire resources for.
 //			pOutInstanceID - A pointer to hold the instance of the new instance ID.
+//			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID)
+void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
 {
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
@@ -1391,6 +1453,16 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		allocInfo.pSetLayouts = &instanceDescriptorSetLayout;
 
 		VK_CHECK(vkAllocateDescriptorSets(m_Device.m_Device, &allocInfo, &pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx]));
+
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+		if (pszResourceName != nullptr)
+		{
+			char szDescriptorSetLabel[512]{};
+			Utl::StringFormat_V("%s_Instance_DescriptorSet_%s_%d", szDescriptorSetLabel, pShader->m_pszShaderName, pszResourceName, frameIdx);
+			// Create descriptor set debug label.
+			VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, szDescriptorSetLabel, VK_OBJECT_TYPE_DESCRIPTOR_SET, pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx]);
+		}
+#endif
 
 		Utl::CVector<VkWriteDescriptorSet>	descriptorWrites{};
 		Utl::CVector<VkDescriptorImageInfo> samplerDescriptors{};
@@ -1465,6 +1537,24 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	// Bump up the next available descriptor set index.
 	*pOutInstanceID = pInternalShader->m_NextFreeDescriptorSetIndex;
 	pInternalShader->m_NextFreeDescriptorSetIndex++;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Releases a set of instance level resources for a shader.
+// Input:	hShader - The shader to release resources for.
+//			pInstanceID - The instance to be released.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+{
+	// Make sure none of our resources are in use.
+	vkDeviceWaitIdle(m_Device.m_Device);
+
+	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
+	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
+
+	// Release the descriptor sets.
+	vkFreeDescriptorSets(m_Device.m_Device, pInternalShader->m_DescriptorPool, 3, pInternalShader->m_DescriptorSets[pInstanceID].m_DescriptorSets);
 }
 
 //-------------------------------------------------------------------------
@@ -2226,9 +2316,4 @@ static bool RendererEvent_WindowResized(EventData_t data)
 static bool RendererEvent_KeyPressed(EventData_t data)
 {
 	return false;
-}
-
-// TODO: This should be removed!
-void CVulkanRenderer::DestroyDefaultGeometry()
-{
 }

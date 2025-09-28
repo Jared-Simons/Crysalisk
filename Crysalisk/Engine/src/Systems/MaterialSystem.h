@@ -34,6 +34,8 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(struct MaterialLoader::MaterialResource_t& pInResource) = 0;
 
+	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) = 0;
+
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	// TODO: Make this return flags instead.
 	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const = 0;
@@ -48,6 +50,12 @@ public:
 	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) = 0;
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
+
+	// Sets lighting data to be used during rendering.
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) = 0;
+	virtual void				ApplyLightData() = 0;
 };
 
 // Global interface to the material system context.

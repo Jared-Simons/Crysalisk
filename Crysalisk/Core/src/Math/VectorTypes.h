@@ -222,7 +222,7 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator+(Vector3D& otherVector)
+	Vector3D operator+(const Vector3D& otherVector)
 	{
 		Vector3D outVector{};
 		outVector.x = x + otherVector.x;
@@ -368,6 +368,33 @@ public:
 		, z{ pOtherVec.z }
 		, w{ pOtherVec.w } { }
 
+	Vector4D(Vector3D& pOtherVec)
+		: x{ pOtherVec.x }
+		, y{ pOtherVec.y }
+		, z{ pOtherVec.z }
+		, w{ 1.0f } {
+	}
+
+	Vector4D operator=(const Vector4D& pOtherVec)
+	{
+		x = pOtherVec.x;
+		y = pOtherVec.y;
+		z = pOtherVec.z;
+		w = pOtherVec.w;
+
+		return *this;
+	}
+
+	Vector4D operator=(const Vector3D& pOtherVec)
+	{
+		x = pOtherVec.x;
+		y = pOtherVec.y;
+		z = pOtherVec.z;
+		w = 1.0f;
+
+		return *this;
+	}
+
 	void operator+(const float scalar)
 	{
 		x = x + scalar;
@@ -499,6 +526,11 @@ public:
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
 		return outVector;
 	}
+
+	Vector3D AsVector3() const
+	{
+		return Vector3D{ x, y, z };
+	}
 };
 
 class Quaternion
@@ -538,5 +570,25 @@ inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAn
 	outQuat.y = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.y;
 	outQuat.z = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.z;
 	outQuat.w = M_COS_F(flAngle / 2.0f);
+	return outQuat;
+}
+
+// NOTE: This expects the euler angles to be in degrees and this method will convert to radians.
+inline Quaternion QuaternionFromEulerAngles(Vector3D vecEulerAngles)
+{
+	Quaternion outQuat{};
+
+	float flSinX = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flCosX = M_COS_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flSinY = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flCosY = M_COS_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flSinZ = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+	float flCosZ = M_COS_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+
+	outQuat.x = flCosX * flSinY * flCosZ + flSinX * flCosY * flSinZ;
+	outQuat.y = flSinX * flCosY * flCosZ - flCosX * flSinX * flSinZ;
+	outQuat.z = flCosX * flCosY * flSinZ - flSinX * flSinY * flCosZ;
+	outQuat.w = flCosX * flCosY * flCosZ + flSinX * flCosX * flSinZ;
+
 	return outQuat;
 }

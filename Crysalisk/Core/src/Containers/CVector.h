@@ -12,6 +12,8 @@
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
+#include <new>	// For placement new.
+
 namespace Utl 
 {
 	//--------------------------------------------------
@@ -81,7 +83,6 @@ namespace Utl
 			}
 
 			// Allocate memory for our array.
-			//m_pValues = new T[initialCapacity];
 			if (initialCapacity > 0)
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * m_ValueStride));
 		}
@@ -105,7 +106,6 @@ namespace Utl
 
 			if (m_Capacity > 0)
 			{
-				//m_pValues = new T[m_Capacity];
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
@@ -119,7 +119,7 @@ namespace Utl
 			, m_Capacity{ pOtherVector.m_Capacity }
 			, m_ValueStride{ pOtherVector.m_ValueStride }
 			, m_ResizeFactor{ pOtherVector.m_ResizeFactor }
-			, m_pValues{ pOtherVector.m_pValues }
+			/*, m_pValues{pOtherVector.m_pValues} */
 		{
 			if (m_ResizeFactor == 0)
 			{
@@ -129,10 +129,11 @@ namespace Utl
 			// Make sure to copy over a custom allocator, if we have one!
 			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
 
-			// Release the other vector's referece to these resources.
-			pOtherVector.m_pValues = nullptr;
-			pOtherVector.m_Count = 0;
-			pOtherVector.m_Capacity = 0;
+			if (m_Capacity > 0)
+			{
+				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
+			}
 		}
 
 		//--------------------------------------------------
@@ -141,13 +142,13 @@ namespace Utl
 		~CVector()
 		{
 			if (m_pValues && m_Capacity > 0)
+			{
 				m_Allocator.Free(m_pValues);
-				//delete[] m_pValues;	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
+			}
 			m_pValues = nullptr;
 
 			m_Count = 0;
 			m_Capacity = 0;
-			//m_ValueStride = 0;	// We CAN'T set this to 0 in case the user decides they want to re-use this container.
 		}
 
 		//--------------------------------------------------
@@ -170,7 +171,6 @@ namespace Utl
 
 			if (m_Capacity > 0)
 			{
-				//m_pValues = new T[m_Capacity];	// Some memory alignment requirements are causing this to not work rn :(
 				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
@@ -275,9 +275,12 @@ namespace Utl
 		void Clear()
 		{
 			if (m_pValues)
-				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
-			//delete[] m_pValues;
+			{
+				delete m_pValues;
+			}
+
 			m_pValues = nullptr;
+
 			m_Capacity = 0;
 			m_Count = 0;
 		}
@@ -290,6 +293,9 @@ namespace Utl
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
+				if (m_ResizeFactor < 1)
+					m_ResizeFactor = 2; // Just a safety in case something got messed up along the way.
+
 				// We need to resize to make space for us.
 				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.
@@ -337,8 +343,8 @@ namespace Utl
 			}
 
 			// Allocate some new memory.
-			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);	// There is something screwy happening with new and delete where it is not accessing the correct addresses (Perhaps an alignment issue?)
-			T* pNewArray = (T*)pNewData;												// For example, using new[] here seems to be inconsistent with returning a pointer to the correct address allocated, or an address that is some amount of bytes ahead of the allocated address.
+			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);
+			T* pNewArray = new (pNewData) T[newCapacity];	// This is required so that our allocator is always properly initialized.
 			CAssert(pNewArray);
 
 			// Copy the current array over.
@@ -346,9 +352,8 @@ namespace Utl
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				m_Allocator.Free(m_pValues);	// The overloaded delete[] operator can't seem to be found in here...
-				//delete[] m_pValues;
-			m_pValues = reinterpret_cast<T*>(pNewArray);
+				m_Allocator.Free(m_pValues);
+			m_pValues = pNewArray;
 
 			// Bump up our capacity!
 			m_Capacity = newCapacity;

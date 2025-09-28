@@ -207,7 +207,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		TextureHandle_t hFontAtlas = g_pTextureSystem_Internal->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
 
 		// Get our shader instance data and bind the font atlas.
-		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID);
+		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
 		g_pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
 
 		// Setup the font atlas.
