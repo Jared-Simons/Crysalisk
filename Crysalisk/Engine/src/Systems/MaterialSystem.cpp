@@ -452,6 +452,10 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	if (hMaterial == kInvalidID_U32)
 		hMaterial = 0; // TODO: This is not elegant
 
+	// Don't do any extra work!
+	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
+		return;
+
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
 

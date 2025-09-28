@@ -485,7 +485,7 @@ bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
 #ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
 	if (m_pfnBeginDebugLabel)
 	{
-		VkDebugUtilsLabelEXT labelDetails{};
+		VkDebugUtilsLabelEXT labelDetails{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
 		labelDetails.pLabelName = pRendererView.m_pszViewName;
 		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
 		// TODO: Make this dynamic.

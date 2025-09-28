@@ -160,6 +160,39 @@ namespace Utl
 			return m_pValues[index];
 		}
 
+		bool IsValueInTable(char* pszKey) const
+		{
+			int hashedValue = ::SimpleHash_StringToInt(pszKey, m_Capacity);
+			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
+			
+			if (m_pKeys[hashedValue] == nullptr)
+			{
+				return false;
+			}
+			else if (Utl::StringCompare(m_pKeys[hashedValue], pszKey))
+			{
+				return true;
+			}
+			else
+			{
+				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				{
+					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
+					{
+						continue;
+					}
+					else if (Utl::StringCompare(m_pKeys[(hashedValue + iProbeIdx) % m_Capacity], pszKey))
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			return false;
+		}
+
 	private:
 		size_t			m_Capacity;
 		size_t			m_KeyStride;
