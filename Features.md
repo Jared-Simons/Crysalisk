@@ -7,6 +7,7 @@
 	- [X] File System
 	- [X] Math Library
 	- [ ] Networking
+	- [ ] Multi-threading
 
 - [-] Containers
 	- [X] Dynamic array (Utl::CVector<T>)
@@ -56,8 +57,8 @@
 	- [ ] Water
 	- [ ] Anti-aliasing
 	- [ ] Render Targets
-	- [-] Configurable Renderpasses
 		- [ ] MSAA
+	- [-] Configurable Renderpasses
 	- [ ] Rendering Pipelines
 		- [-] Forward Rendering
 		- [ ] Deferred Rendering
@@ -73,6 +74,7 @@
 	- [ ] Shadow maps
 	- [ ] Cubemaps
 	- [ ] Environment mapping
+	- [ ] Particles
 	
 - [-] Vulkan Renderer
 	- [-] Configurable from the frontend.
