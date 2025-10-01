@@ -1,0 +1,1 @@
+cmake BuildScripts/ -B Build/
