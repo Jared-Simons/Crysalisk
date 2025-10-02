@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 #set(ENGINE_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src)
 set(ENGINE_ROOT ../Crysalisk/Engine/src/)
 
-project(Engine VERSION 1.0)
+project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/EntryPoint.cpp
@@ -41,8 +41,8 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Systems/TextureSystem.h
 )
 
-# Create Crysalisk Engine library
-add_library(Engine ${CRYSALISK_ENGINE_SRC_FILES})
+# Create Crysalisk Engine library.
+add_library(Engine SHARED ${CRYSALISK_ENGINE_SRC_FILES})
 
 # Include directories
 # TODO: Get these directories from somewhere else.
@@ -50,3 +50,17 @@ target_include_directories(Engine PUBLIC ${ENGINE_ROOT})
 target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public)
+
+# Force multi-byte character set.
+target_compile_definitions(Engine PRIVATE _MBCS)
+
+target_compile_definitions(Engine PRIVATE DLLNAME=\"Engine.dll\")
+target_compile_definitions(Engine PRIVATE ENGINE_DLL)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_compile_definitions(Engine PRIVATE PLAT_WINDOWS)
+endif()
+
+# Linker input.
+target_link_libraries(Engine PRIVATE Core)
+target_link_libraries(Engine PRIVATE Interfaces)

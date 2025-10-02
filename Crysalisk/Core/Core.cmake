@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 #set(CORE_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Core/src)
 set(CORE_ROOT ../Crysalisk/Core/src/)
 
-project(Engine VERSION 1.0)
+project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/MemOverride.cpp
@@ -63,8 +63,8 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Vendor/stb_truetype.h
 )
 
-# Create Crysalisk Core Utilities library
-add_library(Core ${CRYSALISK_CORE_SRC_FILES})
+# Create Crysalisk Core Utilities library.
+add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
 
 # Include directories
 # TODO: Get these directories from somewhere else.
@@ -72,3 +72,13 @@ target_include_directories(Core PUBLIC ${CORE_ROOT})
 target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
+
+# Force multi-byte character set.
+target_compile_definitions(Core PRIVATE _MBCS)
+
+target_compile_definitions(Core PRIVATE DLLNAME=\"Core.dll\")
+target_compile_definitions(Core PRIVATE CORE_DLL)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	target_compile_definitions(Core PRIVATE PLAT_WINDOWS)
+endif()
