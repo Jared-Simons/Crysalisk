@@ -15,6 +15,9 @@ set(CRYSALISK_INTERFACES_SRC_FILES
 	${INTERFACE_ROOT}/Interfaces.h
 )
 
+# Group source files
+source_group(TREE ${INTERFACE_ROOT} FILES ${CRYSALISK_INTERFACES_SRC_FILES})
+
 # Create Crysalisk Interface library.
 add_library(Interfaces STATIC ${CRYSALISK_INTERFACES_SRC_FILES})
 

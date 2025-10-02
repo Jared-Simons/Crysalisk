@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Camera.h"
 
+#include "Core/Engine.h"
 #include "Core/Input.h"
 
 //-------------------------------------------------------------------------
@@ -27,6 +28,12 @@ void Camera_t::RecalculateCameraVectors()
 
 	Vector3D newUp = Vector3D::CrossProduct(vecRight, vecFront);
 	vecUp = newUp.Normalize();
+
+	// Recalculate the aspect ratio in case the resolution changed.
+	// TODO: This should probably be triggered any time the screen size changes.
+	unsigned int iWindowWidth, iWindowHeight;
+	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
+	flAspectRatio = (iWindowWidth / (float)iWindowHeight);
 }
 
 //-------------------------------------------------------------------------

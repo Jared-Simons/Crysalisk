@@ -14,6 +14,9 @@ set(CRYSALISK_TESTAPP_SRC_FILES
 	${TESTAPP_ROOT}/Main.cpp
 )
 
+# Group source files
+source_group(TREE ${TESTAPP_ROOT} FILES ${CRYSALISK_TESTAPP_SRC_FILES})
+
 # Create Crysalisk Testapp executable
 add_executable(Testapp ${CRYSALISK_TESTAPP_SRC_FILES})
 

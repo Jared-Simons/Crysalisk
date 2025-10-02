@@ -41,6 +41,9 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Systems/TextureSystem.h
 )
 
+# Group source files
+source_group(TREE ${ENGINE_ROOT} FILES ${CRYSALISK_ENGINE_SRC_FILES})
+
 # Create Crysalisk Engine library.
 add_library(Engine SHARED ${CRYSALISK_ENGINE_SRC_FILES})
 

@@ -33,7 +33,7 @@ struct Camera_t
 	float	TurnSpeed{ 0.5f };
 
 	float	flFOV{ 75.0f };
-	float	flZNear{ 0.1f };
+	float	flZNear{ 0.0f };
 	float	flZFar{ 10000.0f };
 	float	flAspectRatio{ 16 / 9.0f };
 

@@ -63,6 +63,9 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Vendor/stb_truetype.h
 )
 
+# Group source files
+source_group(TREE ${CORE_ROOT} FILES ${CRYSALISK_CORE_SRC_FILES})
+
 # Create Crysalisk Core Utilities library.
 add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
 
