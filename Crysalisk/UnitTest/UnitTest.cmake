@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # UnitTest root
 # TODO: This variable isn't properly expanding
 #set(UNITTEST_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/UnitTest/src)
-set(UNITTEST_ROOT ../Crysalisk/UnitTest/src/)
+set(UNITTEST_ROOT Crysalisk/UnitTest/src/)
 
 project(Crysalisk VERSION 1.0)
 

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Interface root
 # TODO: This variable isn't properly expanding
 #set(INTERFACE_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src)
-set(INTERFACE_ROOT ../Crysalisk/Interfaces/src/)
+set(INTERFACE_ROOT Crysalisk/Interfaces/src/)
 
 project(Crysalisk VERSION 1.0)
 

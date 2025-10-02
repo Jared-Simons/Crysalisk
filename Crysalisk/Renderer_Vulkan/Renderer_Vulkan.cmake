@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Vulkan Renderer root
 # TODO: This variable isn't properly expanding
 #set(RENDERER_VULKAN_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Renderer_Vulkan/src)
-set(RENDERER_VULKAN_ROOT ../Crysalisk/Renderer_Vulkan/src/)
+set(RENDERER_VULKAN_ROOT Crysalisk/Renderer_Vulkan/src/)
 
 project(Crysalisk VERSION 1.0)
 

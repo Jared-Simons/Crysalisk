@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Engine root
 # TODO: This variable isn't properly expanding
 #set(ENGINE_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src)
-set(ENGINE_ROOT ../Crysalisk/Engine/src/)
+set(ENGINE_ROOT Crysalisk/Engine/src/)
 
 project(Crysalisk VERSION 1.0)
 
