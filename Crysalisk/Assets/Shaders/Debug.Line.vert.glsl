@@ -1,7 +1,7 @@
 #version 450
 
 // Vertex input
-layout(location = 0) in vec2 inPosition;
+layout(location = 0) in vec3 inPosition;
 
 // NOTE: Must match FSIn in the corresponding fragment shaders.
 struct VSOut
@@ -24,5 +24,5 @@ layout(push_constant) uniform push_constants
 
 void main()
 {
-	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0, 1.0);
+	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }

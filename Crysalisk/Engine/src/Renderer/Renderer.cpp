@@ -307,29 +307,49 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			m_Metrics.NumDrawCalls++;
 		}
-	}
 
-	// DEBUGTODO: Just a test.
-	// DEBUGTODO: Create a separate renderpass for debug geometries.
-	if (hDebugLineShader != kInvalidID_U32)
-	{
-		g_pShaderSystem->BindShader(hDebugLineShader);
-		Matrix4x4 matIdentity(1.0f);
-		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
-		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
-		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &matIdentity);
+		if (pCurrentMap.IsMapLoaded() && debugInstance.vertexCount == kInvalidID_U64)
+		{
+			//LOG_INFO("TIME TO LOAD DEBUG STUFF!");
 
-		g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
+			int iAirConditionerIndex = 0;
+			for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+			{
+				if (pOpaqueGeometries[idx]->hMaterial == 2)
+					iAirConditionerIndex = idx;
+			}
 
-		double flTime = Platform::GetAbsoluteTime();
-		float flSin = (M_SIN_F(flTime) / 2.0f) + 0.5f;
-		float flCos = (M_COS_F(flTime) / 2.0f) + 0.5f;
+			Vector3D vecTransformedCenter = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * pOpaqueGeometries[iAirConditionerIndex]->vecCenter).AsVector3();
+			Vector3D vecTransformedMins = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents)).AsVector3();
+			Vector3D vecTransformedMaxs = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents)).AsVector3();
 
-		Vector4D vecColor{ flSin, 0.0f, flCos, 1.0f };
-		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
+			Vector3D vertices[12]{};
+			vertices[0] = vecTransformedMins;
+			vertices[1] = Vector3D{ vecTransformedMaxs.x, vecTransformedMins.y, vecTransformedMins.z };
 
-		// DEBUGTODO: Change this to take renderbuffer pointers so that we don't HAVE to pass an index buffer.
-		DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
+			vertices[2] = vecTransformedMins;
+			vertices[3] = Vector3D{ vecTransformedMins.x, vecTransformedMaxs.y, vecTransformedMins.z };
+
+			m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 4, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
+		}
+
+		// DEBUGTODO: Just a test.
+		// DEBUGTODO: Create a separate renderpass for debug geometries.
+		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64)
+		{
+			g_pShaderSystem->BindShader(hDebugLineShader);
+			Matrix4x4 matIdentity(1.0f);
+			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
+			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
+			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &matIdentity);
+
+			g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
+
+			Vector4D vecColor{ 1.0f, 0.0f, 0.0f, 1.0f };
+			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
+
+			DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
+		}
 	}
 
 	m_RendererBackend->EndRenderpass();
@@ -592,11 +612,15 @@ bool Renderer::CreateTempTextObjects()
 
 		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");
 
-		Vector3D positions[2]{};
-		positions[0] = Vector3D{ -240.0f, 0.0f, -140.0f };
-		positions[1] = Vector3D{ 275.0f, 0.0f, -140.0f };
+		/*Vector3D positions[6]{};
+		positions[0] = Vector3D{ 0.0f, 0.0f, 0.0f };
+		positions[1] = Vector3D{ 100.0f, 0.0f, 0.0f };
+		positions[2] = Vector3D{ 0.0f, 0.0f, 0.0f };
+		positions[3] = Vector3D{ 0.0f, 100.0f, 0.0f };
+		positions[4] = Vector3D{ 0.0f, 0.0f, 0.0f };
+		positions[5] = Vector3D{ 0.0f, 0.0f, 100.0f };
 
-		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 2, sizeof(Vector3D) * 2, positions, 0, nullptr, debugInstance);
+		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D), positions, 0, nullptr, debugInstance);*/
 
 		LOG_INFO("A breakpoint");
 	}
