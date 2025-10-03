@@ -8,9 +8,14 @@ struct FSIn
 	int iDummyVar;
 };
 
+layout(set = 1, binding = 0) uniform InstanceUniformBuffer
+{
+	vec4 color;
+} instance_ubo;
+
 layout(location = 0) flat in FSIn fsInput;
 
 void main()
 {
-	outColor = vec4(1.0, 0.0, 0.0, 1.0);
+	outColor = instance_ubo.color;
 }

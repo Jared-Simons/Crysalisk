@@ -25,3 +25,5 @@ Features to be developed:
 
 - There seems to be an issue with importing .objs and then attempting to upload that data to the GPU.
 	- If the data is serialized as a .CModel_c, and loaded from there, then all is good, but the Vulkan renderer is crashing with .obj GPU upload.
+
+- Instance-level uniforms in shaders should be labelled as 'Instance' and not 'Material'.

@@ -46,6 +46,7 @@ struct DebugShaderUniformLocations
 {
 	uint16_t	projection{ kInvalidID_U16 };
 	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
 	uint16_t	model{ kInvalidID_U16 };
 };
 
@@ -313,13 +314,19 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	if (hDebugLineShader != kInvalidID_U32)
 	{
 		g_pShaderSystem->BindShader(hDebugLineShader);
-		g_pShaderSystem->BindPerFrameUniforms();
 		Matrix4x4 matIdentity(1.0f);
 		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
 		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
 		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &matIdentity);
 
 		g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
+
+		double flTime = Platform::GetAbsoluteTime();
+		float flSin = (M_SIN_F(flTime) / 2.0f) + 0.5f;
+		float flCos = (M_COS_F(flTime) / 2.0f) + 0.5f;
+
+		Vector4D vecColor{ flSin, 0.0f, flCos, 1.0f };
+		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
 
 		// DEBUGTODO: Change this to take renderbuffer pointers so that we don't HAVE to pass an index buffer.
 		DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
@@ -580,6 +587,7 @@ bool Renderer::CreateTempTextObjects()
 
 		s_DebugShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "projection");
 		s_DebugShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "view");
+		s_DebugShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color");
 		s_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "model");
 
 		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");

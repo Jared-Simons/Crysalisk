@@ -1541,10 +1541,10 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 				imageDescriptorWrite.pImageInfo = &imageDescriptors.Back();
 				descriptorWrites.PushBack(imageDescriptorWrite);
 			}
-
-			// Update the descriptor sets.
-			vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 		}
+
+		// Update the descriptor sets.
+		vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	// Bump up the next available descriptor set index.

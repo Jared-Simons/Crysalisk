@@ -1,4 +1,4 @@
-name="Core.Phong"
+name="Debug.Line"
 num_shader_stages=2
 
 stages
@@ -22,5 +22,6 @@ uniforms
 {
 	"projection", 	"mat4", 			"frame" 
 	"view", 		"mat4", 			"frame" 
+	"color",		"vec4",				"material"
 	"model", 		"mat4", 			"draw" 
 } 
