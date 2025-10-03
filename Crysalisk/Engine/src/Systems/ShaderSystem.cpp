@@ -210,8 +210,6 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			newShaderConfig.vertexAttributes.PushBack(newAttribute);
 			newShaderConfig.vertexStride += newAttribute.stride;	// Make sure to keep track of our vertex stride.
 		}
-		// For now, make sure that the math adds up so we're configurable with an existing vertex type.
-		CAssert((newShaderConfig.vertexStride == sizeof(Vertex3D)) || (newShaderConfig.vertexStride == sizeof(Vertex2D)));
 
 		// Parse the uniform configs.
 		for (int uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
@@ -431,13 +429,13 @@ void CShaderSystem::BindPerInstanceUniforms(unsigned int hInstanceID)
 uint16_t CShaderSystem::GetShaderUniformLocation(ShaderHandle_t hShader, char* pszUniformName)
 {
 	CAssert(hShader != kInvalidID_U32);
+	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
+
 	if (!pszUniformName)
 	{
-		LOG_ERROR("Failed to acquire shader uniform location for '%s'. Returning invalid handle.", pszUniformName);
+		LOG_ERROR("Failed to acquire shader uniform location for shader '%s'. Returning invalid handle.", pShader->m_pszShaderName);
 		return kInvalidID_U16;
 	}
-
-	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	return pShader->m_UniformLookup[pszUniformName];
 }
 

@@ -97,6 +97,9 @@ public:
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
 
+	// NOTE: Does not have an index buffer.
+	RenderBuffer		m_DebugRendererBuffer{};
+
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
 

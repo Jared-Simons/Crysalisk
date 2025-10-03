@@ -529,11 +529,14 @@ void CVulkanRenderer::EndRenderpass()
 //			pGeometry - The geometry instance to be rendered.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
+void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryInstance_t& pGeometry)
 {
 	CAssert(m_pCurrentlyBoundShader);
-	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
-	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = nullptr;
+
+	if (pGeometry.indexCount > 0)
+		pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer->m_pInternalData);
 
 	if (m_bResizingFramebuffer)
 	{
@@ -546,6 +549,8 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pI
 		LOG_WARN("DrawGeometry() called with an invalid shader bound! Aborting draw.");
 		return;
 	}
+
+	CAssert(pGeometry.indexCount == 0 || pIndexBuffer != nullptr);
 
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
@@ -1219,9 +1224,14 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	// Setup uniform buffers.
 	pInternalShader->m_UniformBuffers.Resize(m_MaxImagesInFlight);
 	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perInstanceUBOStride * kMaxVulkanInstances);
+	bool bUseFreelist = true;
+
+	if (pConfig.perInstanceUBOStride == 0)
+		bUseFreelist = false;	// We do not need a freelist if we're only tracking per-frame state.
+
 	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
-		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true, pInternalShader->m_UniformBuffers[idx]))
+		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bUseFreelist, pInternalShader->m_UniformBuffers[idx]))
 		{
 			LOG_ERROR("Failed to create uniform buffer.");
 			// TODO: Make sure to release any allocated resoures!
@@ -1495,43 +1505,46 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 
 		// Setup image samplers.
 		VkDescriptorImageInfo samplerInfo{};
-		samplerInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Only using the first sampler for now...
-
-		for (int sampIdx = 0; sampIdx < pShader->m_iPerInstanceTextureCount; sampIdx++)
+		if (pInternalShader->m_ImageSamplers.Count() > 0)
 		{
-			VkWriteDescriptorSet samplerDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			samplerDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-			samplerDescriptorWrite.dstBinding = 1;
-			samplerDescriptorWrite.descriptorCount = 1;
-			samplerDescriptorWrite.dstArrayElement = sampIdx;
-			samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-			samplerDescriptorWrite.pImageInfo = &samplerInfo;
-			descriptorWrites.PushBack(samplerDescriptorWrite);
+			samplerInfo.sampler = pInternalShader->m_ImageSamplers[0];	// Only using the first sampler for now...
+
+			for (int sampIdx = 0; sampIdx < pShader->m_iPerInstanceTextureCount; sampIdx++)
+			{
+				VkWriteDescriptorSet samplerDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				samplerDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+				samplerDescriptorWrite.dstBinding = 1;
+				samplerDescriptorWrite.descriptorCount = 1;
+				samplerDescriptorWrite.dstArrayElement = sampIdx;
+				samplerDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+				samplerDescriptorWrite.pImageInfo = &samplerInfo;
+				descriptorWrites.PushBack(samplerDescriptorWrite);
+			}
+
+			TextureHandle_t	hDefaultWhiteTexture = g_pTextureSystem->GetDefaultWhiteTexture();
+
+			// Setup image descriptors, and point them at the default texture for now.
+			for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)
+			{
+				VkDescriptorImageInfo imageDescriptor{};
+				imageDescriptor.sampler = pInternalShader->m_ImageSamplers[1];	// Only using the first sampler for now...
+				imageDescriptor.imageView = m_pInternalTextureData[hDefaultWhiteTexture].m_Image.m_View;
+				imageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageDescriptors.PushBack(imageDescriptor);
+
+				VkWriteDescriptorSet imageDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+				imageDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
+				imageDescriptorWrite.dstBinding = 2;
+				imageDescriptorWrite.descriptorCount = 1;
+				imageDescriptorWrite.dstArrayElement = imageIdx;
+				imageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+				imageDescriptorWrite.pImageInfo = &imageDescriptors.Back();
+				descriptorWrites.PushBack(imageDescriptorWrite);
+			}
+
+			// Update the descriptor sets.
+			vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 		}
-
-		TextureHandle_t	hDefaultWhiteTexture = g_pTextureSystem->GetDefaultWhiteTexture();
-
-		// Setup image descriptors, and point them at the default texture for now.
-		for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)
-		{
-			VkDescriptorImageInfo imageDescriptor{};
-			imageDescriptor.sampler = pInternalShader->m_ImageSamplers[1];	// Only using the first sampler for now...
-			imageDescriptor.imageView = m_pInternalTextureData[hDefaultWhiteTexture].m_Image.m_View;
-			imageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageDescriptors.PushBack(imageDescriptor);
-
-			VkWriteDescriptorSet imageDescriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-			imageDescriptorWrite.dstSet = pInternalShader->m_DescriptorSets[pInternalShader->m_NextFreeDescriptorSetIndex].m_DescriptorSets[frameIdx];
-			imageDescriptorWrite.dstBinding = 2;
-			imageDescriptorWrite.descriptorCount = 1;
-			imageDescriptorWrite.dstArrayElement = imageIdx;
-			imageDescriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-			imageDescriptorWrite.pImageInfo = &imageDescriptors.Back();
-			descriptorWrites.PushBack(imageDescriptorWrite);
-		}
-
-		// Update the descriptor sets.
-		vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	// Bump up the next available descriptor set index.
@@ -1734,29 +1747,47 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 
 //-------------------------------------------------------------------------
 // Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
+// Input:	pVertexBuffer - The vertex buffer to upload vertex data to.
+//			pIndexBuffer - The index buffer to be upload index data to. Optional.
+//			iVertexCount - The number of vertices to upload, must be greater than 0.
+//			iVertexStride - The length of each vertex, must be greater than 0.
+//			pVertices - An opaque array to the vertex data.
+//			iIndexCount - The number of indices. 
+//			pIndices - An opaque array to the index data.
 //			pOutInstance - A structure that holds the instance of geometry after acquisition.
 // Output:	none.
-// TODO: THIS SHOULDN'T RETURN ANYTHING!
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
-	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
-	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = nullptr;
+
+	if (pIndexBuffer)
+		pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer->m_pInternalData);
+
+	if (!iVertexCount || !iVertexStride || !pVertices)
+	{
+		// DEBUGTODO: Logging
+		return;
+	}
+
+	if (iIndexCount && (!pIndices || !pInternalIndexBuffer))
+	{
+		// DEBUGTODO: Logging
+		return;
+	}
 
 	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+	pOutInstance.vertexCount = iVertexCount;
 
 	VulkanCommandBuffer cmdBuffer{};
 	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
 	// Create a staging buffer for transfer to the GPU.
 	VulkanBuffer stagingBuffer{};
-	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+	VulkanBuffer::CreateBuffer(s_VulkanContext, iVertexCount * iVertexStride, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
 
-	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
+	stagingBuffer.UploadDataRange(s_VulkanContext, iVertexCount * iVertexStride, pVertices);
 
 	size_t finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
 	// Use the device local buffer's freelist to get the dstOffset.
@@ -1766,7 +1797,7 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	}
 
 	pOutInstance.vertexDataOffset = finalBufferOffset;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
+	pOutInstance.vertexCount = iVertexCount;
 
 	// Copy over to the device-local buffer.
 	VkBufferCopy copyRegion{};
@@ -1779,15 +1810,15 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 
 	// TODO: Handle index buffers as well...
-	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
+	if (iIndexCount) // TODO: Better check could be used here.
 	{
 		pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
-		pOutInstance.indexCount = pGeometryConfig.Indices.Count();
+		pOutInstance.indexCount = iIndexCount;
 
 		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
-		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
-		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
+		VulkanBuffer::CreateBuffer(s_VulkanContext, iIndexCount * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexCount * sizeof(uint32_t), pIndices);
 		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
 		if (pInternalIndexBuffer->m_bUsesFreelist)
 		{
@@ -1802,94 +1833,14 @@ bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, Rend
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 	}
 
-	pInternalVertexBuffer->m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
-	pInternalIndexBuffer->m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
+	pInternalVertexBuffer->m_BytesAllocated += iVertexCount * iVertexStride;
+
+	if (pInternalIndexBuffer)
+		pInternalIndexBuffer->m_BytesAllocated += iIndexCount * sizeof(uint32_t);
 
 	// Copy over element strides.
-	pOutInstance.vertexDataStride = pGeometryConfig.Vertices.Stride();
-	pOutInstance.indexDataStride = pGeometryConfig.Indices.Stride();
-
-	return true;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-// TODO: THIS SHOULDN'T RETURN ANYTHING!
-//-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer.m_pInternalData);
-	VulkanBuffer* pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer.m_pInternalData);
-
-	VulkanCommandBuffer cmdBuffer{};
-	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
-
-	// Create a staging buffer for transfer to the GPU.
-	VulkanBuffer stagingBuffer{};
-	VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
-	stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data());
-
-	size_t finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
-	// Use the device local buffer's freelist to get the dstOffset.
-	if (pInternalVertexBuffer->m_bUsesFreelist)
-	{
-		finalBufferOffset = pInternalVertexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
-	}
-
-	pOutInstance.vertexDataOffset = finalBufferOffset;
-	pOutInstance.vertexCount = pGeometryConfig.Vertices.Count();
-
-	//pOutInstance.indexDataOffset = m_UIIndexBuffer.m_BytesAllocated;
-	//pOutInstance.indexDataSize = pGeometryConfig.Indices.Count();
-
-	// Copy over to the device-local buffer.
-	VkBufferCopy copyRegion{};
-	copyRegion.size = stagingBuffer.m_BufferSize;
-	copyRegion.dstOffset = finalBufferOffset;
-	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
-
-	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
-
-	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
-
-	// TODO: Handle index buffers as well...
-	if (pGeometryConfig.Indices.Count() != 0) // TODO: Better check could be used here.
-	{
-		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
-
-		VulkanBuffer::CreateBuffer(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
-		stagingBuffer.UploadDataRange(s_VulkanContext, pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride(), pGeometryConfig.Indices.Data());
-
-		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
-		if (pInternalIndexBuffer->m_bUsesFreelist)
-		{
-			finalBufferOffset = pInternalIndexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
-		}
-
-		pOutInstance.indexDataOffset = finalBufferOffset;
-		pOutInstance.indexCount = pGeometryConfig.Indices.Count();
-
-		copyRegion.size = stagingBuffer.m_BufferSize;
-		copyRegion.dstOffset = finalBufferOffset;
-		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
-
-		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
-		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
-	}
-
-	pInternalVertexBuffer->m_BytesAllocated += pGeometryConfig.Vertices.Count() * pGeometryConfig.Vertices.Stride();
-	pInternalIndexBuffer->m_BytesAllocated += pGeometryConfig.Indices.Count() * pGeometryConfig.Indices.Stride();
-
-	// Copy over element strides.
-	pOutInstance.vertexDataStride = pGeometryConfig.Vertices.Stride();
-	pOutInstance.indexDataStride = pGeometryConfig.Indices.Stride();
-
-	return true;
+	pOutInstance.vertexDataStride = iVertexStride;
+	pOutInstance.indexDataStride = sizeof(uint32_t);
 }
 
 //-------------------------------------------------------------------------

@@ -29,7 +29,7 @@ public:
 	virtual bool	StartRenderpass(RendererView& pRendererView) override;
 	virtual void	EndRenderpass() override;
 
-	virtual void	DrawGeometry(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
+	virtual void	DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
@@ -53,8 +53,7 @@ public:
 
 	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
 
-	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-	virtual bool	AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
+	virtual void	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual void	UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;

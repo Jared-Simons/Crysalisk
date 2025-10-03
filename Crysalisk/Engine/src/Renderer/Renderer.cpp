@@ -40,6 +40,21 @@ FontHandle_t	testFont;
 TextObject		testText;
 ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 
+// DEBUGTODO: Just a test.
+static ShaderHandle_t hDebugLineShader{ kInvalidID_U32 };
+struct DebugShaderUniformLocations
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+
+static DebugShaderUniformLocations s_DebugShaderUniforms{};
+static unsigned int s_DebugInstanceID{ kInvalidID_U32 };
+
+static GeometryInstance_t debugInstance{};
+// DEBUGTODO: End test.
+
 static const char* szRendererVisualizationModesLabels[9] =
 {
 	"FULLBRIGHT",
@@ -144,6 +159,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
+
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
@@ -177,6 +194,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+	m_RendererBackend->DestroyRenderBufferInternal(m_DebugRendererBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
@@ -288,6 +306,23 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			m_Metrics.NumDrawCalls++;
 		}
+	}
+
+	// DEBUGTODO: Just a test.
+	// DEBUGTODO: Create a separate renderpass for debug geometries.
+	if (hDebugLineShader != kInvalidID_U32)
+	{
+		g_pShaderSystem->BindShader(hDebugLineShader);
+		g_pShaderSystem->BindPerFrameUniforms();
+		Matrix4x4 matIdentity(1.0f);
+		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
+		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
+		g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &matIdentity);
+
+		g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
+
+		// DEBUGTODO: Change this to take renderbuffer pointers so that we don't HAVE to pass an index buffer.
+		DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
 	}
 
 	m_RendererBackend->EndRenderpass();
@@ -455,7 +490,7 @@ void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsi
 //-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -468,7 +503,7 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 //-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -492,7 +527,7 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 //-------------------------------------------------------------------------
 void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
 {
-	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
+	m_RendererBackend->DrawGeometry(&pVertexBuffer, &pIndexBuffer, pGeometry);
 }
 
 //-------------------------------------------------------------------------
@@ -538,6 +573,25 @@ bool Renderer::CreateTempTextObjects()
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 	// END TEMP
+
+	// DEBUGTODO: Just a test.
+	{
+		hDebugLineShader = g_pShaderSystem->AcquireShader("Debug.Line");
+
+		s_DebugShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "projection");
+		s_DebugShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "view");
+		s_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "model");
+
+		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");
+
+		Vector3D positions[2]{};
+		positions[0] = Vector3D{ -240.0f, 0.0f, -140.0f };
+		positions[1] = Vector3D{ 275.0f, 0.0f, -140.0f };
+
+		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 2, sizeof(Vector3D) * 2, positions, 0, nullptr, debugInstance);
+
+		LOG_INFO("A breakpoint");
+	}
 
 	return true;
 }

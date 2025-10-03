@@ -1,0 +1,26 @@
+name="Core.Phong"
+num_shader_stages=2
+
+stages
+{
+	"Debug.Line.vert.spv", "vertex"
+	"Debug.Line.frag.spv", "fragment"
+}
+
+topology_type="line_list" 
+enable_depth_testing="false"
+enable_blending="false"
+
+# Vertex attributes 
+attributes
+{
+	"position", "vec3"
+}
+
+# Uniforms
+uniforms
+{
+	"projection", 	"mat4", 			"frame" 
+	"view", 		"mat4", 			"frame" 
+	"model", 		"mat4", 			"draw" 
+} 
