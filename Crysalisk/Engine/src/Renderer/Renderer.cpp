@@ -319,18 +319,37 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 					iAirConditionerIndex = idx;
 			}
 
-			Vector3D vecTransformedCenter = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * pOpaqueGeometries[iAirConditionerIndex]->vecCenter).AsVector3();
-			Vector3D vecTransformedMins = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents)).AsVector3();
-			Vector3D vecTransformedMaxs = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents)).AsVector3();
+			//Vector3D vecTransformedCenter = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * pOpaqueGeometries[iAirConditionerIndex]->vecCenter).AsVector3();
+			//Vector3D vecTransformedMins = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents)).AsVector3();
+			//Vector3D vecTransformedMaxs = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents)).AsVector3();
+
+			Vector3D vecTransformedCenter = pOpaqueGeometries[iAirConditionerIndex]->vecCenter;
+			Vector3D vecTransformedMins = pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents;
+			Vector3D vecTransformedMaxs = pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents;
 
 			Vector3D vertices[12]{};
+			//vertices[0] = Vector3D{ vecTransformedCenter };
 			vertices[0] = vecTransformedMins;
-			vertices[1] = Vector3D{ vecTransformedMaxs.x, vecTransformedMins.y, vecTransformedMins.z };
+			vertices[1] = vecTransformedMins;
+			vertices[1].x = vecTransformedMaxs.x;
 
 			vertices[2] = vecTransformedMins;
-			vertices[3] = Vector3D{ vecTransformedMins.x, vecTransformedMaxs.y, vecTransformedMins.z };
+			vertices[3] = vecTransformedMins;
+			vertices[3].y = vecTransformedMaxs.y;
 
-			m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 4, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
+			vertices[4] = vecTransformedMins;
+			vertices[5] = vecTransformedMins;
+			vertices[5].z = vecTransformedMaxs.z;
+
+			vertices[6] = vertices[5];
+			vertices[7] = vertices[6];
+			vertices[7].x = vecTransformedMaxs.x;
+
+			vertices[8] = vertices[5];
+			vertices[9] = vertices[6];
+			vertices[9].y = vecTransformedMaxs.y;
+
+			m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 10, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
 		}
 
 		// DEBUGTODO: Just a test.

@@ -219,6 +219,29 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
 
+	// DEBUGTODO: TEST
+	{
+		Matrix4x4 testMatrix{};
+		testMatrix.data[0] = 1;
+		testMatrix.data[1] = 1;
+		testMatrix.data[2] = 1;
+		testMatrix.data[3] = 1;
+		testMatrix.data[4] = 1;
+		testMatrix.data[5] = -1;
+		testMatrix.data[6] = 1;
+		testMatrix.data[7] = 0;
+		testMatrix.data[8] = 1;
+		testMatrix.data[9] = 1;
+		testMatrix.data[10] = 0;
+		testMatrix.data[11] = 0;
+		testMatrix.data[12] = 1;
+		testMatrix.data[13] = 0;
+		testMatrix.data[14] = 0;
+		testMatrix.data[15] = 0;
+
+		Matrix4x4 inverseMatrix = testMatrix.Invert();
+	}
+
 	return true;
 }
 

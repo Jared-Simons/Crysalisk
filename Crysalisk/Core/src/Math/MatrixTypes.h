@@ -241,6 +241,15 @@ public:
 		return inMatrix;
 	}
 
+	Matrix4x4 Invert()
+	{
+		Matrix4x4 outMatrix(1.0f);
+
+		// LEFTOFF: Implement
+
+		return outMatrix;
+	}
+
 	static Matrix4x4 LookAt(Vector3D position, Vector3D target, Vector3D vecUp)
 	{
 		Matrix4x4 newMatrix(1.0f);
