@@ -76,6 +76,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				// Add a new mesh entry to the map.
 				pOutMap.m_Meshes.PushBack(Mesh{});
 				Mesh* pCurOutMesh = &pOutMap.m_Meshes.Back();
+				pCurOutMesh->m_MeshID = (uint32_t)pOutMap.m_Meshes.Count();
 
 				// Set the transformation matrix.
 				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -124,7 +125,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 
 							newGeometry.vecMinExtents = vecMinAABB;
 							newGeometry.vecMaxExtents = vecMaxAABB;
-							newGeometry.vecCenter = (newGeometry.vecMaxExtents + newGeometry.vecMinExtents) * 0.5f;
+							newGeometry.vecCenter = (newGeometry.vecMinExtents + newGeometry.vecMaxExtents) * 0.5f;
 						}
 
 						g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
@@ -231,11 +232,13 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				{
 					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
 					pVisibleOpaqueGeometries.Back()->iLocalToWorldTransform = iMesh;		// Set the correct transform index.
+					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 				else
 				{
 					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
 					pVisibleTranslucentGeometries.Back()->iLocalToWorldTransform = iMesh;	// Set the correct transform index.
+					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}
 			else

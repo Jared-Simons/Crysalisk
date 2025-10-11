@@ -308,65 +308,83 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			m_Metrics.NumDrawCalls++;
 		}
 
+		unsigned int iDebugGeoIndex = kInvalidID_U32;
+		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+		{
+			//if (pOpaqueGeometries[idx]->hMaterial == 2)
+			//if (pOpaqueGeometries[idx]->hMaterial == 28)
+			if (pOpaqueGeometries[idx]->m_MeshID == 3)
+			{
+				iDebugGeoIndex = idx;
+				break;
+			}
+		}
 		if (pCurrentMap.IsMapLoaded() && debugInstance.vertexCount == kInvalidID_U64)
 		{
-			//LOG_INFO("TIME TO LOAD DEBUG STUFF!");
-
-			int iAirConditionerIndex = 0;
-			for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+			if (iDebugGeoIndex != 0)
 			{
-				if (pOpaqueGeometries[idx]->hMaterial == 2)
-					iAirConditionerIndex = idx;
+				Vector3D vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
+				Vector3D vecLocalMins = pOpaqueGeometries[iDebugGeoIndex]->vecMinExtents;
+				Vector3D vecLocalMaxs = pOpaqueGeometries[iDebugGeoIndex]->vecMaxExtents;
+
+				Vector3D vertices[16]{};
+
+				vertices[0] = vecLocalMins;
+				vertices[1] = vecLocalMins;
+				vertices[1].x = vecLocalMaxs.x;
+
+				vertices[2] = vecLocalMins;
+				vertices[3] = vecLocalMins;
+				vertices[3].y = vecLocalMaxs.y;
+
+				vertices[4] = vertices[3];
+				vertices[5] = vertices[3];
+				vertices[5].x = vecLocalMaxs.x;
+
+				vertices[6] = vecLocalMins;
+				vertices[6].x = vecLocalMaxs.x;
+				vertices[7] = vecLocalMins;
+				vertices[7].x = vecLocalMaxs.x;
+				vertices[7].y = vecLocalMaxs.y;
+
+				vertices[8] = vecLocalMaxs;
+				vertices[9] = vecLocalMaxs;
+				vertices[9].x = vecLocalMins.x;
+
+				vertices[10] = vecLocalMaxs;
+				vertices[11] = vecLocalMaxs;
+				vertices[11].y = vecLocalMins.y;
+
+				vertices[12] = vertices[11];
+				vertices[13] = vertices[11];
+				vertices[13].x = vecLocalMins.x;
+
+				vertices[14] = vecLocalMaxs;
+				vertices[14].x = vecLocalMins.x;
+				vertices[15] = vecLocalMaxs;
+				vertices[15].x = vecLocalMins.x;
+				vertices[15].y = vecLocalMins.y;
+
+				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
 			}
-
-			//Vector3D vecTransformedCenter = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * pOpaqueGeometries[iAirConditionerIndex]->vecCenter).AsVector3();
-			//Vector3D vecTransformedMins = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents)).AsVector3();
-			//Vector3D vecTransformedMaxs = (TransformMatrices[pOpaqueGeometries[iAirConditionerIndex]->iLocalToWorldTransform] * (pOpaqueGeometries[iAirConditionerIndex]->vecCenter + pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents)).AsVector3();
-
-			Vector3D vecTransformedCenter = pOpaqueGeometries[iAirConditionerIndex]->vecCenter;
-			Vector3D vecTransformedMins = pOpaqueGeometries[iAirConditionerIndex]->vecMinExtents;
-			Vector3D vecTransformedMaxs = pOpaqueGeometries[iAirConditionerIndex]->vecMaxExtents;
-
-			Vector3D vertices[12]{};
-			//vertices[0] = Vector3D{ vecTransformedCenter };
-			vertices[0] = vecTransformedMins;
-			vertices[1] = vecTransformedMins;
-			vertices[1].x = vecTransformedMaxs.x;
-
-			vertices[2] = vecTransformedMins;
-			vertices[3] = vecTransformedMins;
-			vertices[3].y = vecTransformedMaxs.y;
-
-			vertices[4] = vecTransformedMins;
-			vertices[5] = vecTransformedMins;
-			vertices[5].z = vecTransformedMaxs.z;
-
-			vertices[6] = vertices[5];
-			vertices[7] = vertices[6];
-			vertices[7].x = vecTransformedMaxs.x;
-
-			vertices[8] = vertices[5];
-			vertices[9] = vertices[6];
-			vertices[9].y = vecTransformedMaxs.y;
-
-			m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 10, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
 		}
 
 		// DEBUGTODO: Just a test.
 		// DEBUGTODO: Create a separate renderpass for debug geometries.
-		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64)
+		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64 && iDebugGeoIndex != kInvalidID_U32)
 		{
 			g_pShaderSystem->BindShader(hDebugLineShader);
-			Matrix4x4 matIdentity(1.0f);
+			model = Matrix4x4::Matrix4x4(1.0f);
+			model = TransformMatrices[pOpaqueGeometries[iDebugGeoIndex]->iLocalToWorldTransform];
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
-			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &matIdentity);
 
 			g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
 
-			Vector4D vecColor{ 1.0f, 0.0f, 0.0f, 1.0f };
+			Vector4D vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
 
+			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &model);
 			DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
 		}
 	}

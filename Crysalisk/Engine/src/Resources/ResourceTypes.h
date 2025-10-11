@@ -268,9 +268,11 @@ struct GeometryInstance_t
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
 
+	// A unique identifier for the mesh resource this instance is tied to.
+	uint32_t							m_MeshID{ kInvalidID_U32 };
 	// The index of the model matrix to use during rendering.
 	uint8_t				iLocalToWorldTransform{};
-	// The center of the mesh in world space.
+	// The center of the mesh relative to it's AABB in local space.
 	Vector3D			vecCenter{};
 	// The minimum extents of the mesh in local space.
 	Vector3D			vecMinExtents{};
@@ -281,6 +283,8 @@ struct GeometryInstance_t
 // Represents a mesh/model, made up of numerous submeshes.
 struct Mesh
 {
+	// A unique identifier per mesh.
+	uint32_t							m_MeshID{ kInvalidID_U32 };
 	// An array of submeshes that make up this mesh.
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// Origin of this mesh in world space.
