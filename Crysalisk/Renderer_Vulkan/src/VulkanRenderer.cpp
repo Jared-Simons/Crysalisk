@@ -327,7 +327,7 @@ bool CVulkanRenderer::CreateSwapchainFramebuffers(RendererView& pMainView)
 // Input:	pRenderData - Frame specific render data provided by the application.
 // Output:	bool - Returns true on successful start, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::StartFrame(RenderPacket_t& pRenderData)
+bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 {
 	if (m_bResizingFramebuffer)
 	{
@@ -464,7 +464,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 // Input:	pRendererView - The renderpass to be started.
 // Output:	Returns true on successfull pass start, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::StartRenderpass(RendererView& pRendererView)
+bool CVulkanRenderer::BeginRenderpass(RendererView& pRendererView)
 {
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pRendererView.m_pInternalData);

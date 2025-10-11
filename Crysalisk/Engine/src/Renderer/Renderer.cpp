@@ -12,6 +12,7 @@
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
+#include "Renderer/DebugRenderer.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/Map.h"
@@ -148,7 +149,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_UIView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.9f };
+		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
 
 		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
 	}
@@ -175,6 +176,13 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
+	// Setup the debug renderer.
+	if (!g_pDebugRenderer->Initialize())
+	{
+		LOG_ERROR("Failed to initialize the debug renderer.");
+		return false;
+	}
+
 	s_MainCamera.RecalculateCameraVectors();
 
 	// Start the clock now and we'll take the delta time each frame.
@@ -195,6 +203,10 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+
+	// Shutdown the debug renderer.
+	g_pDebugRenderer->Shutdown();
+
 	m_RendererBackend->DestroyRenderBufferInternal(m_DebugRendererBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
@@ -250,12 +262,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Draw the frame!
-	if (!m_RendererBackend->StartFrame(pRenderData))
+	if (!m_RendererBackend->BeginFrame(pRenderData))
 	{
 		return false;
 	}
 
-	m_RendererBackend->StartRenderpass(m_SceneView);
+	m_RendererBackend->BeginRenderpass(m_SceneView);
 
 	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
@@ -391,9 +403,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->EndRenderpass();
 
+	// Render our debug geometry.
+	g_pDebugRenderer->Render();
+
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
-		m_RendererBackend->StartRenderpass(m_UIView);
+		m_RendererBackend->BeginRenderpass(m_UIView);
 
 		// Render some test UI text.
 		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
@@ -533,6 +548,54 @@ void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInst
 }
 
 //-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+bool Renderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
+{
+	return m_RendererBackend->CreateRendererViewInternal(pViewConfig, pOutView);
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+void Renderer::DestroyRendererView(RendererView& pView)
+{
+	m_RendererBackend->DestroyRendererViewInternal(pView);
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+bool Renderer::BeginRendererView(RendererView& pView)
+{
+	return m_RendererBackend->BeginRenderpass(pView);
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+void Renderer::EndRendererView()
+{
+	m_RendererBackend->EndRenderpass();
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
+{
+	return m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+void Renderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
+{
+	m_RendererBackend->DestroyRenderBufferInternal(pBuffer);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Sets a shader's uniform.
 // Input:	pShader - The shader who's uniform is to be set.
 //			pUniform - A pointer to the uniform to be set.
@@ -658,8 +721,6 @@ bool Renderer::CreateTempTextObjects()
 		positions[5] = Vector3D{ 0.0f, 0.0f, 100.0f };
 
 		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D), positions, 0, nullptr, debugInstance);*/
-
-		LOG_INFO("A breakpoint");
 	}
 
 	return true;

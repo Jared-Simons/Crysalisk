@@ -23,10 +23,10 @@ public:
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
 
-	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) override;
+	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
 
-	virtual bool	StartRenderpass(RendererView& pRendererView) override;
+	virtual bool	BeginRenderpass(RendererView& pRendererView) override;
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, struct GeometryInstance_t& pGeometry) override;

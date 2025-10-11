@@ -24,10 +24,10 @@ public:
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
 
-	virtual bool	StartFrame(struct RenderPacket_t& pRenderData) = 0;
+	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
 
-	virtual bool	StartRenderpass(class RendererView& pRendererView) = 0;
+	virtual bool	BeginRenderpass(class RendererView& pRendererView) = 0;
 	virtual void	EndRenderpass() = 0;
 
 	virtual void	DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, struct GeometryInstance_t& pGeometry) = 0;

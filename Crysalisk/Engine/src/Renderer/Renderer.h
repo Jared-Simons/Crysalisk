@@ -58,6 +58,15 @@ public:
 
 	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData);
 
+	bool			CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView);
+	void			DestroyRendererView(RendererView& pView);
+
+	bool			BeginRendererView(RendererView& pView);
+	void			EndRendererView();
+
+	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer);
+	void			DestroyRenderBuffer(RenderBuffer& pBuffer);
+
 	void			AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
 
 	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
