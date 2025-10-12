@@ -282,7 +282,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	{
 		// Get the frustum from the camera.
 		Frustum frustum = s_MainCamera.CreateFrustumFromCamera();
-		
+
 		// TODO: Make this work with an allocator.
 		Utl::CVector<Matrix4x4>				TransformMatrices(32);
 		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
@@ -301,7 +301,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+			DrawGeometry(*pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
@@ -315,7 +315,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+			DrawGeometry(*pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
@@ -397,14 +397,17 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
 
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &model);
-			DrawGeometry(debugInstance, m_DebugRendererBuffer, m_DebugRendererBuffer);
+			DrawGeometry(debugInstance, &m_DebugRendererBuffer, &m_DebugRendererBuffer);
 		}
 	}
 
 	m_RendererBackend->EndRenderpass();
 
 	// Render our debug geometry.
-	g_pDebugRenderer->Render();
+	DebugRendererFrameData_t debugFrameData{};
+	debugFrameData.matProjection = matProjection;
+	debugFrameData.matView = matView;
+	g_pDebugRenderer->Render(debugFrameData);
 
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
@@ -415,7 +418,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);
-		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
+		DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
 	}
@@ -611,13 +614,15 @@ void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsi
 
 //-------------------------------------------------------------------------
 // Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pGeometryConfig - The specific geometry data.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
 //			pOutInstance - A structure that holds the instance of geometry after acquisition.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -631,6 +636,15 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+// Just a straight passthrough.
+//-------------------------------------------------------------------------
+void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -652,9 +666,9 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 //			pIndexBuffer - The index buffer to be associated with this geometry.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
+void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
 {
-	m_RendererBackend->DrawGeometry(&pVertexBuffer, &pIndexBuffer, pGeometry);
+	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 //-------------------------------------------------------------------------
@@ -690,16 +704,23 @@ void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryCo
 // Purpose: A temporary function to create geometry for testing.
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
+// DEBUGTODO:	Find a better name/place for this function.
+//				This really is responsible for creating/initializing structures
+//				that need to be created post system-initialization.
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempTextObjects()
 {
-	// TEMP: Setup our test text.
 	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
-	// END TEMP
+
+	if (!g_pDebugRenderer->InitializeDebugShaders())
+	{
+		LOG_ERROR("Failed to initialize debug shaders!");
+		return false;
+	}
 
 	// DEBUGTODO: Just a test.
 	{

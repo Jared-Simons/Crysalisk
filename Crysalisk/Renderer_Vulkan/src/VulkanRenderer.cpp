@@ -1832,6 +1832,10 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 	}
+	else
+	{
+		pOutInstance.indexCount = 0;
+	}
 
 	pInternalVertexBuffer->m_BytesAllocated += iVertexCount * iVertexStride;
 

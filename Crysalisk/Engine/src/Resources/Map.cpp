@@ -128,7 +128,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 							newGeometry.vecCenter = (newGeometry.vecMinExtents + newGeometry.vecMaxExtents) * 0.5f;
 						}
 
-						g_pRenderer->AcquireGeometryResources(newConfig, newGeometry);
+						g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, newGeometry);
 
 						// Acquire material resources.
 						if (pCurMesh->pGroups[subMeshIdx].pszMaterialName != nullptr)

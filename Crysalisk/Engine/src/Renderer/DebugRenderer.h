@@ -6,6 +6,17 @@
 //=============================================================================
 #pragma once
 
+#include <Math/MatrixTypes.h>
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+struct DebugRendererFrameData_t
+{
+	Matrix4x4	matProjection{};
+	Matrix4x4	matView{};
+};
+
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
@@ -13,9 +24,10 @@ class IDebugRenderer
 {
 public:
 	virtual bool	Initialize() = 0;
+	virtual bool	InitializeDebugShaders() = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual void	Render() = 0;
+	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 };
 
 extern IDebugRenderer* g_pDebugRenderer;

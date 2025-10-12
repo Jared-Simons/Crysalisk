@@ -23,5 +23,7 @@ uniforms
 	"projection", 	"mat4", 			"frame" 
 	"view", 		"mat4", 			"frame" 
 	"color",		"vec4",				"material"
+	"dummy1",		"vec4",				"material"
+	"dummy2",		"vec4",				"material" #DEBUGTODO: Figure out how to handle uniform buffer alignment so that we don't have to do this padding in the shadercfg.
 	"model", 		"mat4", 			"draw" 
 } 
