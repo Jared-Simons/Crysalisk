@@ -50,6 +50,7 @@ public:
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
+	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
 
 private:
 	int				GetFirstFreeGeometryDataIndex() const;
@@ -160,16 +161,16 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 	{
 		// DEBUGTODO: Test
 		{
-			if (m_GeometryData[0].iInstanceID != kInvalidID_U32)
+			if (m_GeometryData[1].iInstanceID != kInvalidID_U32)
 			{
-				DebugGeometry_t& pTestGeometry = m_GeometryData[0];
+				DebugGeometry_t& pTestGeometry = m_GeometryData[1];
 				g_pShaderSystem->BindShader(m_hDebugLineShader);
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, pTestGeometry.iInstanceID, &pTestGeometry.color);
 
 				// DEBUGTODO: Get this from somewhere!
-				Matrix4x4 matModel{ 1.0f };
+				Matrix4x4 matModel = pFrameData.pTransformMatrices[pTestGeometry.geometryInstance.iLocalToWorldTransform];
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, pTestGeometry.iInstanceID, &matModel);
 
 				g_pShaderSystem->BindPerFrameUniforms();
@@ -203,6 +204,83 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
 
 	return iDebugGeometryIndex;
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
+{
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+	pNewGeometry.color = color;
+
+	// Acquire new shader instance resources.
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
+
+	Vector3D& vecLocalCenter = pGeometry.vecCenter;
+	Vector3D& vecLocalMins = pGeometry.vecMinExtents;
+	Vector3D& vecLocalMaxs = pGeometry.vecMaxExtents;
+
+	const int iNumVertices = 24;
+
+	Vector3D ptVertices[iNumVertices]{};
+
+	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
+	ptVertices[0] = vecLocalMins;
+	ptVertices[1] = vecLocalMins;
+	ptVertices[1].z = vecLocalMaxs.z;
+
+	ptVertices[2] = vecLocalMins;
+	ptVertices[2].x = vecLocalMaxs.x;
+	ptVertices[3] = vecLocalMins;
+	ptVertices[3].x = vecLocalMaxs.x;
+	ptVertices[3].z = vecLocalMaxs.z;
+
+	ptVertices[4] = vecLocalMins;
+	ptVertices[5] = vecLocalMins;
+	ptVertices[5].x = vecLocalMaxs.x;
+
+	ptVertices[6] = vecLocalMins;
+	ptVertices[6].z = vecLocalMaxs.z;
+	ptVertices[7] = vecLocalMins;
+	ptVertices[7].x = vecLocalMaxs.x;
+	ptVertices[7].z = vecLocalMaxs.z;
+
+	// Directly copy the verts and raise them all up to max Y to form the horizontal square along the top of the geometry.
+	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D) * 8);
+	for (int idx = 8; idx < 16; idx++)
+	{
+		ptVertices[idx].y = vecLocalMaxs.y;
+	}
+
+	// Now for the four corners of the box.
+	ptVertices[16] = vecLocalMins;
+	ptVertices[17] = vecLocalMins;
+	ptVertices[17].y = vecLocalMaxs.y;
+
+	ptVertices[18] = vecLocalMins;
+	ptVertices[18].x = vecLocalMaxs.x;
+	ptVertices[19] = vecLocalMins;
+	ptVertices[19].x = vecLocalMaxs.x;
+	ptVertices[19].y = vecLocalMaxs.y;
+
+	ptVertices[20] = vecLocalMins;
+	ptVertices[20].z = vecLocalMaxs.z;
+	ptVertices[21] = vecLocalMins;
+	ptVertices[21].z = vecLocalMaxs.z;
+	ptVertices[21].y = vecLocalMaxs.y;
+
+	ptVertices[22] = vecLocalMaxs;
+	ptVertices[22].y = vecLocalMins.y;
+	ptVertices[23] = vecLocalMaxs;
+
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+
+	// Store off the transform index.
+	pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
+
+	return 0;
 }
 
 //-------------------------------------------------------------------------

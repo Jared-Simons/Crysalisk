@@ -277,6 +277,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
+	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
 	if (pCurrentMap.IsMapLoaded())
 	{
@@ -284,7 +285,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		Frustum frustum = s_MainCamera.CreateFrustumFromCamera();
 
 		// TODO: Make this work with an allocator.
-		Utl::CVector<Matrix4x4>				TransformMatrices(32);
 		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
 		unsigned int						pCulledGeometries{ 0 };
@@ -321,6 +321,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		}
 
 		unsigned int iDebugGeoIndex = kInvalidID_U32;
+		static bool bDebugGeoLoaded = false;
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			//if (pOpaqueGeometries[idx]->hMaterial == 2)
@@ -331,11 +332,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				break;
 			}
 		}
-		if (pCurrentMap.IsMapLoaded() && debugInstance.vertexCount == kInvalidID_U64)
+		if (pCurrentMap.IsMapLoaded() && !bDebugGeoLoaded)
 		{
 			if (iDebugGeoIndex != 0)
 			{
-				Vector3D vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
+				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
+				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen);
+				bDebugGeoLoaded = true;
+
+				/*Vector3D vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
 				Vector3D vecLocalMins = pOpaqueGeometries[iDebugGeoIndex]->vecMinExtents;
 				Vector3D vecLocalMaxs = pOpaqueGeometries[iDebugGeoIndex]->vecMaxExtents;
 
@@ -377,7 +382,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				vertices[15].x = vecLocalMins.x;
 				vertices[15].y = vecLocalMins.y;
 
-				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);
+				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);*/
 			}
 		}
 
@@ -407,6 +412,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	DebugRendererFrameData_t debugFrameData{};
 	debugFrameData.matProjection = matProjection;
 	debugFrameData.matView = matView;
+	debugFrameData.pTransformMatrices = TransformMatrices.Data();
 	g_pDebugRenderer->Render(debugFrameData);
 
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
