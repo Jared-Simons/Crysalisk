@@ -2139,6 +2139,146 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+// TODO: Combine this with the above methods!
+//-------------------------------------------------------------------------
+void CVulkanRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+{
+	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
+	VulkanBuffer* pInternalIndexBuffer = nullptr;
+	if (iIndexCount > 0 && pIndexBuffer)
+		pInternalIndexBuffer = reinterpret_cast<VulkanBuffer*>(pIndexBuffer->m_pInternalData);
+
+	VulkanCommandBuffer	commandBuffer{};
+
+	VulkanBuffer		stagingBuffer{};
+	size_t				iVertexDataSize = iVertexCount * iVertexStride;
+	size_t				iIndexDataSize = iIndexCount * sizeof(uint32_t);
+
+	bool				bVertexReallocRequired = iVertexCount != pOutInstance.vertexCount;
+	bool				bIndexReallocRequired = (iIndexDataSize > 0) && iIndexCount != pOutInstance.indexCount;
+
+	// Vertex data is required.
+	if (iVertexDataSize < 1)
+	{
+		CAssert(0);
+	}
+
+	// Create a staging buffer for GPU upload.
+	if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iVertexDataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer))
+	{
+		LOG_ERROR("Failed to create staging buffer for geometry update. Nothing was done.");
+		return;
+	}
+
+	// Upload the new vertex data to the staging buffer.
+	stagingBuffer.UploadDataRange(s_VulkanContext, iVertexDataSize, pVertices);
+
+	// Create a command buffer to handle the upload.
+	commandBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Free/allocate memory if needed, otherwise just overwrite the existing range.
+	if (bVertexReallocRequired)
+	{
+		// We need to free and reallocate the memory to fit this in.
+		if (!pInternalVertexBuffer->m_bUsesFreelist)
+		{
+			LOG_WARN("UpdateGeometryResources was provided with a vertex buffer that does not use a freelist. There will be a memory leak.");
+
+			// Just allocate in a linear fashion.
+			pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
+		}
+		else
+		{
+			pInternalVertexBuffer->FreeDataRange(s_VulkanContext, pOutInstance.vertexDataOffset, pOutInstance.vertexCount * pOutInstance.vertexDataStride);
+
+			// Allocate from the freelist.
+			pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_Freelist.Allocate(iVertexDataSize);
+		}
+
+		pOutInstance.vertexCount = iVertexCount;
+		pOutInstance.vertexDataStride = iVertexStride;
+	}
+
+	// Copy the data to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.srcOffset = 0;
+	copyRegion.size = iVertexDataSize;
+	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
+	vkCmdCopyBuffer(commandBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
+
+	commandBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Clear out the staging buffer, in case we need to upload index data.
+	stagingBuffer.FreeDataRange(s_VulkanContext, 0, iVertexDataSize);
+
+	// Now handle the index data, if applicable.
+	if (iIndexDataSize > 0)
+	{
+		VulkanBuffer::Resize(s_VulkanContext, &stagingBuffer, iIndexDataSize);
+
+		// Upload the new index data to the staging buffer.
+		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexDataSize, pIndices);
+
+		// Create a command buffer to handle the upload.
+		commandBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		// Free/allocate memory if needed, otherwise just overwrite the existing range.
+		if (bIndexReallocRequired)
+		{
+			// We need to free and reallocate the memory to fit this in.
+			if (!pInternalIndexBuffer->m_bUsesFreelist)
+			{
+				LOG_WARN("UpdateGeometryResources was provided with an index buffer that does not use a freelist. There will be a memory leak.");
+
+				// Just allocate in a linear fashion.
+				pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
+			}
+			else
+			{
+				pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pOutInstance.indexDataOffset, pOutInstance.indexCount * pOutInstance.indexDataStride);
+
+				// Allocate from the freelist.
+				pOutInstance.indexDataOffset = pInternalIndexBuffer->m_Freelist.Allocate(iIndexDataSize);
+			}
+
+			pOutInstance.indexCount = iIndexCount;
+			pOutInstance.indexDataStride = sizeof(uint32_t);
+		}
+
+		// Copy the data to the device-local buffer.
+		VkBufferCopy copyRegion{};
+		copyRegion.srcOffset = 0;
+		copyRegion.size = iIndexDataSize;
+		copyRegion.dstOffset = pOutInstance.indexDataOffset;
+		vkCmdCopyBuffer(commandBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
+
+		commandBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+	}
+	else
+	{
+		if (pInternalIndexBuffer)
+		{
+			// If no index data is present in the new config, simply free the existing range.
+			if (pOutInstance.indexCount != kInvalidID_U64)
+			{
+				pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pOutInstance.indexDataOffset, pOutInstance.indexCount);
+				pOutInstance.indexCount = 0;
+				pOutInstance.indexDataOffset = kInvalidID_U64;
+			}
+		}
+	}
+
+	// Destroy resources allocated for the upload.
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Checks to make sure that support for all required validation layers are present.
 // Input:	expectedLayers - Validation layers that are required to be supported.
 // Output:	Returns true if all validation layers are supported, otherwise false.
