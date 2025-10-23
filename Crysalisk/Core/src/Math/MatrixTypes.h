@@ -152,7 +152,7 @@ public:
 		return *this * pOtherMatrix;
 	}
 
-	Vector4D operator*(Vector3D& pVec)
+	Vector4D operator*(Vector3D_OLD& pVec)
 	{
 		Vector4D outVector{ pVec.x, pVec.y, pVec.z, 1.0f };
 		return (*this) * outVector;
@@ -186,7 +186,7 @@ public:
 		return outVector;
 	}
 
-	static Matrix4x4& Translate(Matrix4x4& inMatrix, const Vector3D& inVector)
+	static Matrix4x4& Translate(Matrix4x4& inMatrix, const Vector3D_OLD& inVector)
 	{
 		inMatrix.data[12] += inVector.x;
 		inMatrix.data[13] += inVector.y;
@@ -206,7 +206,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Scale(Matrix4x4& inMatrix, Vector3D& inVector)
+	static Matrix4x4& Scale(Matrix4x4& inMatrix, Vector3D_OLD& inVector)
 	{
 		inMatrix.data[0] *= inVector.x;
 		inMatrix.data[5] *= inVector.y;
@@ -216,7 +216,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D& axis)
+	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D_OLD& axis)
 	{
 		inMatrix.data[0] = M_COS_F(angle) + (axis.x * axis.x) * (1 - M_COS_F(angle));
 		inMatrix.data[1] = (axis.y * axis.x) * (1 - M_COS_F(angle)) + (axis.z * M_SIN_F(angle));
@@ -250,20 +250,20 @@ public:
 		return outMatrix;
 	}
 
-	static Matrix4x4 LookAt(Vector3D position, Vector3D target, Vector3D vecUp)
+	static Matrix4x4 LookAt(Vector3D_OLD position, Vector3D_OLD target, Vector3D_OLD vecUp)
 	{
 		Matrix4x4 newMatrix(1.0f);
-		Vector3D zAxis;
+		Vector3D_OLD zAxis;
 
 		zAxis.x = target.x - position.x;
 		zAxis.y = target.y - position.y;
 		zAxis.z = target.z - position.z;
 
 		zAxis.NormalizeInPlace();
-		Vector3D xAxis = Vector3D::CrossProduct(zAxis, vecUp);
+		Vector3D_OLD xAxis = Vector3D_OLD::CrossProduct(zAxis, vecUp);
 		xAxis.NormalizeInPlace();
 
-		Vector3D yAxis = Vector3D::CrossProduct(xAxis, zAxis);
+		Vector3D_OLD yAxis = Vector3D_OLD::CrossProduct(xAxis, zAxis);
 
 		newMatrix.data[0] = xAxis.x;
 		newMatrix.data[1] = yAxis.x;
@@ -280,9 +280,9 @@ public:
 		newMatrix.data[10] = -zAxis.z;
 		newMatrix.data[11] = 0;
 
-		newMatrix.data[12] = -Vector3D::DotProduct(xAxis, position);
-		newMatrix.data[13] = -Vector3D::DotProduct(yAxis, position);
-		newMatrix.data[14] = Vector3D::DotProduct(zAxis, position);
+		newMatrix.data[12] = -Vector3D_OLD::DotProduct(xAxis, position);
+		newMatrix.data[13] = -Vector3D_OLD::DotProduct(yAxis, position);
+		newMatrix.data[14] = Vector3D_OLD::DotProduct(zAxis, position);
 		newMatrix.data[15] = 1.0f;
 
 		return newMatrix;

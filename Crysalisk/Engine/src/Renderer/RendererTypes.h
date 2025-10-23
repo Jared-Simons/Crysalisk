@@ -254,7 +254,7 @@ public:
 	// A pointer to the internal data of the buffer.
 	void*	m_pInternalData{ nullptr };
 	// A color used for debugging tools. Otherwise does nothing.
-	Vector3D m_debuggingColor{};
+	Vector3D_OLD m_debuggingColor{};
 };
 
 //-------------------------------------------------------------------------
@@ -262,20 +262,20 @@ public:
 //-------------------------------------------------------------------------
 struct Plane
 {
-	Vector3D	vecNormal{};
+	Vector3D_OLD	vecNormal{};
 	float		flDistance{};
 
-	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
+	static inline Plane PlaneCreate(Vector3D_OLD pVecPoint, Vector3D_OLD pVecNormal)
 	{
 		Plane outPlane{};
 		outPlane.vecNormal = pVecNormal.Normalize();
-		outPlane.flDistance = Vector3D::DotProduct(outPlane.vecNormal, pVecPoint);
+		outPlane.flDistance = Vector3D_OLD::DotProduct(outPlane.vecNormal, pVecPoint);
 		return outPlane;
 	}
 
-	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
+	inline float GetSignedDistanceToPlane(Vector3D_OLD& pPoint)
 	{
-		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
+		return Vector3D_OLD::DotProduct(vecNormal, pPoint) - flDistance;
 	}
 };
 
@@ -302,7 +302,7 @@ struct Frustum
 	// Can be indexed using the eFrustumPlanes enum.
 	Plane	m_Faces[MAX_FRUSTUM_PLANES];
 
-	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
+	inline bool	FrustumIntersectsAABB(Vector3D_OLD& pVecCenter, Vector3D_OLD& pVecExtents)
 	{
 		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
 		{

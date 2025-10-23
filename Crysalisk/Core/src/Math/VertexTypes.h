@@ -14,9 +14,9 @@
 class Vertex2D
 {
 public:
-	Vector2D Pos;
+	Vector2D_OLD Pos;
 	Vector4D Color;
-	Vector2D TexCoord;
+	Vector2D_OLD TexCoord;
 };
 
 class Vertex3D
@@ -25,7 +25,7 @@ public:
 	Vertex3D()
 		: Pos{}, TexCoord{}, Normal{}, Tangent{} {}
 
-	Vertex3D(Vector3D&& inPos, Vector3D&& inColor, Vector2D&& intexCoord)
+	Vertex3D(Vector3D_OLD&& inPos, Vector3D_OLD&& inColor, Vector2D_OLD&& intexCoord)
 		: Pos{ inPos }, TexCoord{ intexCoord } {}
 
 	bool operator==(const Vertex3D& pOther)
@@ -36,9 +36,9 @@ public:
 				(Tangent == pOther.Tangent));
 	}
 
-	Vector3D Pos;
-	//Vector3D Color;
-	Vector2D TexCoord;
-	Vector3D Normal;
-	Vector3D Tangent;
+	Vector3D_OLD Pos;
+	//Vector3D_OLD Color;
+	Vector2D_OLD TexCoord;
+	Vector3D_OLD Normal;
+	Vector3D_OLD Tangent;
 };

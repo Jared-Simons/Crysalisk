@@ -50,7 +50,7 @@ public:
 
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
+	virtual int		AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D color);
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) override;
 
@@ -71,9 +71,9 @@ private:
 
 	// FRUSTUM TEST
 	DebugGeometry_t		m_TestCameraFrustum{};
-	Vector3D			m_vecCameraPosition{};
-	Vector3D			m_CameraEulerAngles{};
-	Vector3D			m_vecCameraForward{};
+	Vector3D_OLD			m_vecCameraPosition{};
+	Vector3D_OLD			m_CameraEulerAngles{};
+	Vector3D_OLD			m_vecCameraForward{};
 	// END FRUSTUM TEST
 };
 
@@ -108,7 +108,7 @@ bool CDebugRenderer::Initialize()
 	debugViewConfig.attachmentConfigs.PushBack(colorAttachment);
 	debugViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-	m_DebugView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.7f };
+	m_DebugView.m_debuggingColor = Vector3D_OLD{ 0.5f, 0.0f, 0.7f };
 
 	if (!g_pRenderer->CreateRendererView(debugViewConfig, m_DebugView))
 	{
@@ -116,7 +116,7 @@ bool CDebugRenderer::Initialize()
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugVertexBuffer))
+	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D_OLD) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugVertexBuffer))
 	{
 		LOG_ERROR("Failed to create debug render buffer!");
 		return false;
@@ -139,8 +139,8 @@ bool CDebugRenderer::InitializeDebugShaders()
 
 	// DEBUGTODO: Test
 	{
-		Vector3D ptStartPos{ -90, 94, -178 };
-		Vector3D ptEndPos{ 470, 94, -178 };
+		Vector3D_OLD ptStartPos{ -90, 94, -178 };
+		Vector3D_OLD ptEndPos{ 470, 94, -178 };
 		Vector4D color{ 1.0f, 0.0f, 0.0f, 1.0f };
 		AddLine(ptStartPos, ptEndPos, color);
 	}
@@ -192,12 +192,12 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 
 				Matrix4x4 matModel(1.0f);
 
-				/*Vector3D vecCameraAnglesRadians{M_DEG2RAD_F(m_CameraEulerAngles.x), M_DEG2RAD_F(m_CameraEulerAngles.y), M_DEG2RAD_F(m_CameraEulerAngles.z)};
+				/*Vector3D_OLD vecCameraAnglesRadians{M_DEG2RAD_F(m_CameraEulerAngles.x), M_DEG2RAD_F(m_CameraEulerAngles.y), M_DEG2RAD_F(m_CameraEulerAngles.z)};
 				Quaternion quatAngles = QuaternionFromEulerAngles(vecCameraAnglesRadians);
 				Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
 				matModel = matModel * matAngles; */
 
-				Vector3D vecWorldPos = m_vecCameraPosition + (m_vecCameraForward * 30.0f);
+				Vector3D_OLD vecWorldPos = m_vecCameraPosition + (m_vecCameraForward * 30.0f);
 				matModel = Matrix4x4::Translate(matModel, vecWorldPos);
 
 				Matrix4x4 inverseMatrix = matModel.Invert();
@@ -221,7 +221,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color)
+int CDebugRenderer::AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D color)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
@@ -230,8 +230,8 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
 
-	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
+	Vector3D_OLD vecPositions[2] = { ptStartPos, ptEndPos };
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D_OLD), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
 
 	return iDebugGeometryIndex;
 }
@@ -248,12 +248,12 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
 
-	Vector3D& vecLocalCenter = pGeometry.vecCenter;
-	Vector3D& vecLocalMins = pGeometry.vecMinExtents;
-	Vector3D& vecLocalMaxs = pGeometry.vecMaxExtents;
+	Vector3D_OLD& vecLocalCenter = pGeometry.vecCenter;
+	Vector3D_OLD& vecLocalMins = pGeometry.vecMinExtents;
+	Vector3D_OLD& vecLocalMaxs = pGeometry.vecMaxExtents;
 
 	const int iNumVertices = 24;
-	Vector3D ptVertices[iNumVertices]{};
+	Vector3D_OLD ptVertices[iNumVertices]{};
 
 	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
 	ptVertices[0] = vecLocalMins;
@@ -277,7 +277,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 	ptVertices[7].z = vecLocalMaxs.z;
 
 	// Directly copy the verts and raise them all up to max Y to form the horizontal square along the top of the geometry.
-	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D) * 8);
+	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D_OLD) * 8);
 	for (int idx = 8; idx < 16; idx++)
 	{
 		ptVertices[idx].y = vecLocalMaxs.y;
@@ -304,7 +304,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 	ptVertices[22].y = vecLocalMins.y;
 	ptVertices[23] = vecLocalMaxs;
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D_OLD), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Store off the transform index.
 	pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
@@ -330,25 +330,25 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 	}
 
 	const int iNumVertices = 2;
-	Vector3D ptVertices[iNumVertices]{};
+	Vector3D_OLD ptVertices[iNumVertices]{};
 
-	ptVertices[0] = Vector3D{ -50.0f, 0.0f, -60.0f, };
-	ptVertices[1] = Vector3D{ 50.0f, 0.0f, -60.0f };
+	ptVertices[0] = Vector3D_OLD{ -50.0f, 0.0f, -60.0f, };
+	ptVertices[1] = Vector3D_OLD{ 50.0f, 0.0f, -60.0f };
 
 	if (bAcquireNewResources)
 	{
-		g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+		g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D_OLD), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 	}
 	else
 	{
-		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D_OLD), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 	}
 
 	// Save off details about the camera.
 	m_vecCameraPosition = pCamera.vecPosition;
 	// DEBUGLEFTOFF: Figure this out!
-	//m_CameraEulerAngles = Vector3D{ pCamera.Pitch, pCamera.Yaw, 0.0f };
-	m_CameraEulerAngles = Vector3D{ pCamera.Yaw, pCamera.Pitch, 0.0f };
+	//m_CameraEulerAngles = Vector3D_OLD{ pCamera.Pitch, pCamera.Yaw, 0.0f };
+	m_CameraEulerAngles = Vector3D_OLD{ pCamera.Yaw, pCamera.Pitch, 0.0f };
 	m_vecCameraForward = pCamera.vecFront;
 
 	return 0;

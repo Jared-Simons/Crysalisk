@@ -186,7 +186,7 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "rotation"))
 			{
 				// NOTE: We need to swap the x and y angles because that is how the quaternion operations are expecting them.
-				Vector3D vecTempAngles;
+				Vector3D_OLD vecTempAngles;
 				Utl::String_ToVector3(szValue, &vecTempAngles);
 				newMeshResource.vecEulerAngles.x = vecTempAngles.y;
 				newMeshResource.vecEulerAngles.y = vecTempAngles.x;

@@ -81,6 +81,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	m_engineConfig = engineConfig;
 
+	Vector testVec1{ 1.0f, 3.0f, 4.0f };
+	Vector testVec2{ 2.0f, -5.0f, 8.0 };
+	Vector testVecResult = Vector::Cross(testVec1, testVec2);
+
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
 	memoryConfig.totalMemoryBudget = MEBIBYTES(100);

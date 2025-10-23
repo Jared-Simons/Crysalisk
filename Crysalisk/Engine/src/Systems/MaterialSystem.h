@@ -47,14 +47,14 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) = 0;
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) = 0;
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
 
 	// Sets lighting data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
-	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) = 0;
+	virtual void				SetDirectionalLightData(Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, Vector3D_OLD vecAmbientLightColor, float flAmbientStrength) = 0;
+	virtual void				SetPointLightData(int lightIndex, Vector3D_OLD vecPoint, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
+	virtual void				SetSpotLightData(Vector3D_OLD vecPosition, Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) = 0;
 	virtual void				ApplyLightData() = 0;
 };
 

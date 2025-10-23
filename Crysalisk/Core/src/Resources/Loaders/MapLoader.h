@@ -21,16 +21,16 @@ namespace MapLoader
 		// Light entities.
 		struct LightResource_t
 		{
-			Vector3D	lightColor{};
+			Vector3D_OLD	lightColor{};
 
 			// NOTE: Does not apply to directional/sky lights.
-			Vector3D	vecPosition{};
+			Vector3D_OLD	vecPosition{};
 
 			// NOTE: Has no effect on point lights.
-			Vector3D	vecDirection{};
+			Vector3D_OLD	vecDirection{};
 
 			// NOTE: Only applies to directional/sky lights.
-			Vector3D	ambientLightColor{};
+			Vector3D_OLD	ambientLightColor{};
 			float		flAmbientStrength{};
 
 			// NOTE: Does not apply to directional/sky lights.

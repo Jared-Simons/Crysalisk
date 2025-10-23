@@ -17,15 +17,15 @@
 struct Camera_t
 {
 	// The camera's position in world space.
-	Vector3D vecPosition{ 0, 0, 3 };
+	Vector3D_OLD vecPosition{ 0, 0, 3 };
 	// The camera's current forward vector.
-	Vector3D vecFront{ 0, 0, -1 };
+	Vector3D_OLD vecFront{ 0, 0, -1 };
 	// The camera's current right vector.
-	Vector3D vecRight{ 1, 0, 0 };
+	Vector3D_OLD vecRight{ 1, 0, 0 };
 	// The camera's current up vector.
-	Vector3D vecUp{ 0, 1, 0 };
+	Vector3D_OLD vecUp{ 0, 1, 0 };
 	// The absolute up vector in world space.
-	Vector3D vecWorldUp{ 0, 1, 0 };
+	Vector3D_OLD vecWorldUp{ 0, 1, 0 };
 
 	float	Yaw{ -90.0f };
 	float	Pitch{ 0.0f };

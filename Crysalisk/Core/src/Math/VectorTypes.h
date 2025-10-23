@@ -13,46 +13,46 @@
 // Vector elements must be within this range to be considered 'equal'.
 const float kVectorElementEpsilon = 1.192092896e-07f;
 
-class Vector2D
+class Vector2D_OLD
 {
 public:
 	float x;
 	float y;
 
 public:
-	Vector2D()
+	Vector2D_OLD()
 		: x{ 0 }
 		, y{ 0 } {}
 
-	Vector2D(float x_, float y_)
+	Vector2D_OLD(float x_, float y_)
 		: x{ x_ }
 		, y{ y_ } {}
 
-	Vector2D operator+(const float scalar)
+	Vector2D_OLD operator+(const float scalar)
 	{
-		Vector2D outVector{ x, y };
+		Vector2D_OLD outVector{ x, y };
 		outVector.x = x + scalar;
 		outVector.y = y + scalar;
 		return outVector;
 	}
 
-	Vector2D operator-(const float scalar)
+	Vector2D_OLD operator-(const float scalar)
 	{
-		Vector2D outVector{ x, y };
+		Vector2D_OLD outVector{ x, y };
 		outVector.x = x - scalar;
 		outVector.y = y - scalar;
 		return outVector;
 	}
 
-	bool operator==(const Vector2D& pOther)
+	bool operator==(const Vector2D_OLD& pOther)
 	{
 		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
 				M_ABS(y - pOther.y) < kVectorElementEpsilon);
 	}
 
-	Vector2D operator*(const float scalar)
+	Vector2D_OLD operator*(const float scalar)
 	{
-		Vector2D outVector{ x, y };
+		Vector2D_OLD outVector{ x, y };
 		outVector.x = x * scalar;
 		outVector.y = y * scalar;
 		return outVector;
@@ -64,9 +64,9 @@ public:
 		y = y * scalar;
 	}
 
-	Vector2D operator/(const float scalar)
+	Vector2D_OLD operator/(const float scalar)
 	{
-		Vector2D outVector{ x, y };
+		Vector2D_OLD outVector{ x, y };
 		outVector.x = x / scalar;
 		outVector.y = y / scalar;
 		return outVector;
@@ -78,46 +78,46 @@ public:
 		y = y / scalar;
 	}
 
-	Vector2D operator+(Vector2D& otherVector)
+	Vector2D_OLD operator+(Vector2D_OLD& otherVector)
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		outVector.x = x + otherVector.x;
 		outVector.y = y + otherVector.y;
 		return outVector;
 	}
 
-	Vector2D operator-(Vector2D& otherVector)
+	Vector2D_OLD operator-(Vector2D_OLD& otherVector)
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		outVector.x = x - otherVector.x;
 		outVector.y = y - otherVector.y;
 		return outVector;
 	}
 
-	Vector2D operator*(Vector2D& otherVector)
+	Vector2D_OLD operator*(Vector2D_OLD& otherVector)
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		outVector.x = x * otherVector.x;
 		outVector.y = y * otherVector.y;
 		return outVector;
 	}
 
-	Vector2D operator/(Vector2D& otherVector)
+	Vector2D_OLD operator/(Vector2D_OLD& otherVector)
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		outVector.x = x / otherVector.x;
 		outVector.y = y / otherVector.y;
 		return outVector;
 	}
 
-	Vector2D operator!()
+	Vector2D_OLD operator!()
 	{
 		return Negate();
 	}
 
-	Vector2D Negate() const
+	Vector2D_OLD Negate() const
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		outVector.x = -x;
 		outVector.y = -y;
 		return outVector;
@@ -134,9 +134,9 @@ public:
 		return M_SQRT_F((x * x) + (y * y));
 	}
 
-	Vector2D Normalize() const
+	Vector2D_OLD Normalize() const
 	{
-		Vector2D outVector{};
+		Vector2D_OLD outVector{};
 		float length = Length();
 
 		outVector.x = x / length;
@@ -153,38 +153,38 @@ public:
 		y = y / length;
 	}
 
-	static float DotProduct(const Vector2D& vecA, const Vector2D& vecB)
+	static float DotProduct(const Vector2D_OLD& vecA, const Vector2D_OLD& vecB)
 	{
 		return (vecA.x * vecB.x) + (vecA.y * vecB.y);
 	}
 };
 
 
-class Vector3D
+class Vector3D_OLD
 {
 public:
 	float x;
 	float y;
 	float z;
 
-	Vector3D()
+	Vector3D_OLD()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 } {}
 
-	Vector3D(float x_, float y_, float z_)
+	Vector3D_OLD(float x_, float y_, float z_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ } {}
 
-	bool operator==(const Vector3D& pOther)
+	bool operator==(const Vector3D_OLD& pOther)
 	{
 		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
 				M_ABS(y - pOther.y) < kVectorElementEpsilon &&
 				M_ABS(z - pOther.z) < kVectorElementEpsilon);
 	}
 
-	Vector3D operator+(const float scalar)
+	Vector3D_OLD operator+(const float scalar)
 	{
 		x = x + scalar;
 		y = y + scalar;
@@ -193,7 +193,7 @@ public:
 		return *this;
 	}
 
-	Vector3D operator-(const float scalar)
+	Vector3D_OLD operator-(const float scalar)
 	{
 		x = x - scalar;
 		y = y - scalar;
@@ -202,9 +202,9 @@ public:
 		return *this;
 	}
 
-	Vector3D operator*(const float scalar)
+	Vector3D_OLD operator*(const float scalar)
 	{
-		Vector3D outVector;
+		Vector3D_OLD outVector;
 		outVector.x = x * scalar;
 		outVector.y = y * scalar;
 		outVector.z = z * scalar;
@@ -212,9 +212,9 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator/(const float scalar)
+	Vector3D_OLD operator/(const float scalar)
 	{
-		Vector3D outVector;
+		Vector3D_OLD outVector;
 		outVector.x = x / scalar;
 		outVector.y = y / scalar;
 		outVector.z = z / scalar;
@@ -222,68 +222,68 @@ public:
 		return outVector;
 	}
 
-	Vector3D operator+(const Vector3D& otherVector)
+	Vector3D_OLD operator+(const Vector3D_OLD& otherVector)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = x + otherVector.x;
 		outVector.y = y + otherVector.y;
 		outVector.z = z + otherVector.z;
 		return outVector;
 	}
 
-	void operator+=(Vector3D& otherVector)
+	void operator+=(Vector3D_OLD& otherVector)
 	{
 		x += otherVector.x;
 		y += otherVector.y;
 		z += otherVector.z;
 	}
 
-	void operator-=(Vector3D& otherVector)
+	void operator-=(Vector3D_OLD& otherVector)
 	{
 		x -= otherVector.x;
 		y -= otherVector.y;
 		z -= otherVector.z;
 	}
 
-	Vector3D operator-(Vector3D& otherVector)
+	Vector3D_OLD operator-(Vector3D_OLD& otherVector)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = x - otherVector.x;
 		outVector.y = y - otherVector.y;
 		outVector.z = z - otherVector.z;
 		return outVector;
 	}
 
-	Vector3D operator*(Vector3D& otherVector)
+	Vector3D_OLD operator*(Vector3D_OLD& otherVector)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = x * otherVector.x;
 		outVector.y = y * otherVector.y;
 		outVector.z = z * otherVector.z;
 		return outVector;
 	}
 
-	Vector3D operator/(Vector3D& otherVector)
+	Vector3D_OLD operator/(Vector3D_OLD& otherVector)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = x / otherVector.x;
 		outVector.y = y / otherVector.y;
 		outVector.z = z / otherVector.z;
 		return outVector;
 	}
 
-	Vector3D operator=(const Vector3D& otherVector)
+	Vector3D_OLD operator=(const Vector3D_OLD& otherVector)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		x = otherVector.x;
 		y = otherVector.y;
 		z = otherVector.z;
 		return outVector;
 	}
 
-	Vector3D Negate() const
+	Vector3D_OLD Negate() const
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = -x;
 		outVector.y = -y;
 		outVector.z = -z;
@@ -302,11 +302,11 @@ public:
 		return M_SQRT_F((x * x) + (y * y) + (z * z));
 	}
 
-	Vector3D Normalize() const
+	Vector3D_OLD Normalize() const
 	{
-		Vector3D outVector{x, y, z};
+		Vector3D_OLD outVector{x, y, z};
 
-		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		float flDot = Vector3D_OLD::DotProduct(Vector3D_OLD(x, y, z), Vector3D_OLD(x, y, z));
 		float invSqrt = 1.0f / M_SQRT_F(flDot);
 
 		return outVector * invSqrt;
@@ -314,32 +314,32 @@ public:
 
 	void NormalizeInPlace()
 	{
-		Vector3D outVector{ x, y, z };
+		Vector3D_OLD outVector{ x, y, z };
 
-		float flDot = Vector3D::DotProduct(Vector3D(x, y, z), Vector3D(x, y, z));
+		float flDot = Vector3D_OLD::DotProduct(Vector3D_OLD(x, y, z), Vector3D_OLD(x, y, z));
 		float invSqrt = 1.0f / M_SQRT_F(flDot);
 
 		*this * invSqrt;
 	}
 
-	static float DotProduct(Vector3D& vecA, Vector3D& vecB)
+	static float DotProduct(Vector3D_OLD& vecA, Vector3D_OLD& vecB)
 	{
-		Vector3D tempVec(vecA * vecB);
+		Vector3D_OLD tempVec(vecA * vecB);
 		return tempVec.x + tempVec.y + tempVec.z;
 	}
 
-	static Vector3D CrossProduct(const Vector3D& vecA, const Vector3D& vecB)
+	static Vector3D_OLD CrossProduct(const Vector3D_OLD& vecA, const Vector3D_OLD& vecB)
 	{
-		Vector3D outVector{};
+		Vector3D_OLD outVector{};
 		outVector.x = vecA.y * vecB.z - vecA.z * vecB.y;
 		outVector.y = vecA.z * vecB.x - vecA.x * vecB.z;
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;
 		return outVector;
 	}
 
-	inline Vector2D AsVector2D()
+	inline Vector2D_OLD AsVector2D()
 	{
-		return Vector2D(x, y);
+		return Vector2D_OLD(x, y);
 	}
 };
 
@@ -368,7 +368,7 @@ public:
 		, z{ pOtherVec.z }
 		, w{ pOtherVec.w } { }
 
-	Vector4D(Vector3D& pOtherVec)
+	Vector4D(Vector3D_OLD& pOtherVec)
 		: x{ pOtherVec.x }
 		, y{ pOtherVec.y }
 		, z{ pOtherVec.z }
@@ -385,7 +385,7 @@ public:
 		return *this;
 	}
 
-	Vector4D operator=(const Vector3D& pOtherVec)
+	Vector4D operator=(const Vector3D_OLD& pOtherVec)
 	{
 		x = pOtherVec.x;
 		y = pOtherVec.y;
@@ -527,9 +527,9 @@ public:
 		return outVector;
 	}
 
-	Vector3D AsVector3() const
+	Vector3D_OLD AsVector3() const
 	{
-		return Vector3D{ x, y, z };
+		return Vector3D_OLD{ x, y, z };
 	}
 };
 
@@ -563,7 +563,7 @@ public:
 };
 
 // Quaternion operations.
-inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAngle)
+inline Quaternion QuaternionFromAxisAngle(Vector3D_OLD vecAxisOfRotation, float flAngle)
 {
 	Quaternion outQuat{};
 	outQuat.x = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.x;
@@ -574,7 +574,7 @@ inline Quaternion QuaternionFromAxisAngle(Vector3D vecAxisOfRotation, float flAn
 }
 
 // NOTE: This expects the euler angles to be in degrees and this method will convert to radians.
-inline Quaternion QuaternionFromEulerAngles(Vector3D vecEulerAngles)
+inline Quaternion QuaternionFromEulerAngles(Vector3D_OLD vecEulerAngles)
 {
 	Quaternion outQuat{};
 

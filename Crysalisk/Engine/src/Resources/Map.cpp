@@ -109,8 +109,8 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 						// Set up extent data.
 						{
 							// TODO: Use some actual limits for these values.
-							Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
-							Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
+							Vector3D_OLD vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
+							Vector3D_OLD vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
 							
 							for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
 							{
@@ -214,7 +214,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
 			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
-			Vector3D vecHalfExtents = {
+			Vector3D_OLD vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
 				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)

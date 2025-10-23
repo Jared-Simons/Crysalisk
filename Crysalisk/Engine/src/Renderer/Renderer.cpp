@@ -126,7 +126,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_SceneView.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
+		m_SceneView.m_debuggingColor = Vector3D_OLD{ 0.3f, 0.0f, 0.7f };
 
 		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
 	}
@@ -149,7 +149,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
+		m_UIView.m_debuggingColor = Vector3D_OLD{ 0.7f, 0.0f, 0.9f };
 
 		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
 	}
@@ -161,7 +161,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D_OLD) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
@@ -273,7 +273,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// Flip the y-axis.
 	matProjection.data[5] *= -1;
 	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
-	Vector3D vecCameraPos = s_MainCamera.vecPosition;
+	Vector3D_OLD vecCameraPos = s_MainCamera.vecPosition;
 	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
@@ -340,11 +340,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen);
 				bDebugGeoLoaded = true;
 
-				/*Vector3D vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
-				Vector3D vecLocalMins = pOpaqueGeometries[iDebugGeoIndex]->vecMinExtents;
-				Vector3D vecLocalMaxs = pOpaqueGeometries[iDebugGeoIndex]->vecMaxExtents;
+				/*Vector3D_OLD vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
+				Vector3D_OLD vecLocalMins = pOpaqueGeometries[iDebugGeoIndex]->vecMinExtents;
+				Vector3D_OLD vecLocalMaxs = pOpaqueGeometries[iDebugGeoIndex]->vecMaxExtents;
 
-				Vector3D vertices[16]{};
+				Vector3D_OLD vertices[16]{};
 
 				vertices[0] = vecLocalMins;
 				vertices[1] = vecLocalMins;
@@ -382,7 +382,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				vertices[15].x = vecLocalMins.x;
 				vertices[15].y = vecLocalMins.y;
 
-				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D), vertices, 0, nullptr, debugInstance);*/
+				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D_OLD), vertices, 0, nullptr, debugInstance);*/
 			}
 		}
 		else if (pCurrentMap.IsMapLoaded())
@@ -758,15 +758,15 @@ bool Renderer::CreateTempTextObjects()
 
 		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");
 
-		/*Vector3D positions[6]{};
-		positions[0] = Vector3D{ 0.0f, 0.0f, 0.0f };
-		positions[1] = Vector3D{ 100.0f, 0.0f, 0.0f };
-		positions[2] = Vector3D{ 0.0f, 0.0f, 0.0f };
-		positions[3] = Vector3D{ 0.0f, 100.0f, 0.0f };
-		positions[4] = Vector3D{ 0.0f, 0.0f, 0.0f };
-		positions[5] = Vector3D{ 0.0f, 0.0f, 100.0f };
+		/*Vector3D_OLD positions[6]{};
+		positions[0] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
+		positions[1] = Vector3D_OLD{ 100.0f, 0.0f, 0.0f };
+		positions[2] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
+		positions[3] = Vector3D_OLD{ 0.0f, 100.0f, 0.0f };
+		positions[4] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
+		positions[5] = Vector3D_OLD{ 0.0f, 0.0f, 100.0f };
 
-		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D), positions, 0, nullptr, debugInstance);*/
+		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D_OLD), positions, 0, nullptr, debugInstance);*/
 	}
 
 	return true;

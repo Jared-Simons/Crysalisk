@@ -65,14 +65,14 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode) override;
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) override;
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
-	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
+	virtual void				SetDirectionalLightData(Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, Vector3D_OLD vecAmbientLightColor, float flAmbientStrength) override;
+	virtual void				SetPointLightData(int lightIndex, Vector3D_OLD vecPoint, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
+	virtual void				SetSpotLightData(Vector3D_OLD vecPosition, Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
 	virtual void				ApplyLightData() override;
 
 private:
@@ -126,18 +126,18 @@ private:
 	// Current light data.
 	struct DirectionalLight_t
 	{
-		Vector3D	vecDirection{};
+		Vector3D_OLD	vecDirection{};
 		float		padding1{};
-		Vector3D	lightColor{};
+		Vector3D_OLD	lightColor{};
 		float		flBrightness{};
-		Vector3D	ambientLightColor{};
+		Vector3D_OLD	ambientLightColor{};
 		float		flAmbientStrength{};
 	} dirLight;
 
 	struct PointLight_t
 	{
 		Vector4D	vecPosition{};
-		Vector3D	lightColor{};
+		Vector3D_OLD	lightColor{};
 		float		flBrightness{};
 
 		float		flConstant{};
@@ -149,7 +149,7 @@ private:
 	{
 		Vector4D	vecPosition{};
 		Vector4D	vecDirection{};
-		Vector3D	lightColor{};
+		Vector3D_OLD	lightColor{};
 		float		flBrightness{};
 
 		float		flConstant{};
@@ -478,7 +478,7 @@ MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D& pVecPosition, int renderDebugMode)
+void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode)
 {
 	g_pShaderSystem->BindShader(m_DefaultMaterialShader);
 
@@ -503,9 +503,9 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
+void CMaterialSystem::SetDirectionalLightData(Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, Vector3D_OLD vecAmbientLightColor, float flAmbientStrength)
 {
-	dirLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
+	dirLight.vecDirection = Vector3D_OLD{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
 	dirLight.flBrightness = flBrightness;
 	dirLight.lightColor = vecLightColor;
 	dirLight.ambientLightColor = vecAmbientLightColor;
@@ -517,7 +517,7 @@ void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D ve
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
+void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D_OLD vecPoint, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
 {
 	pointLights[lightIndex].vecPosition = vecPoint;
 	pointLights[lightIndex].lightColor = vecLightColor;
@@ -532,13 +532,13 @@ void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vecto
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
+void CMaterialSystem::SetSpotLightData(Vector3D_OLD vecPosition, Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
 {
 	CAssert(flInnerCutoff < flOuterCutoff);
 
 	spotLight.vecPosition = vecPosition;
 	// Direction needs to be converted from degrees to radians.
-	spotLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
+	spotLight.vecDirection = Vector3D_OLD{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };
 	spotLight.lightColor = vecLightColor;
 	spotLight.flBrightness = flBrightness;
 	spotLight.flConstant = flConstant;

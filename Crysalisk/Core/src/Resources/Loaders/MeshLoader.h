@@ -167,8 +167,8 @@ namespace MeshLoader
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 
 		// Transformation data.
-		Vector3D						vecPosition{};
-		Vector3D						vecEulerAngles{};
-		Vector3D						vecScale{};
+		Vector3D_OLD						vecPosition{};
+		Vector3D_OLD						vecEulerAngles{};
+		Vector3D_OLD						vecScale{};
 	};
 }

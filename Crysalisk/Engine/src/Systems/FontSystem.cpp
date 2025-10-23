@@ -244,13 +244,13 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	
 	unsigned int				iSurfaceWidth, iSurfaceHeight;
 	float						flPixelScaleFactor = 0.0f;
-	Vector2D					vecCurPos = pTextObject.m_vecPos;
+	Vector2D_OLD					vecCurPos = pTextObject.m_vecPos;
 
 	// Geometry data.
-	Vector2D					vecGlyphSize = {};
-	Vector2D					vecGlyphBottomLeftPos = {};
-	Vector2D					vecCharVertices[4] = {};
-	Vector2D					vecCharTexCoords[4] = {};
+	Vector2D_OLD					vecGlyphSize = {};
+	Vector2D_OLD					vecGlyphBottomLeftPos = {};
+	Vector2D_OLD					vecCharVertices[4] = {};
+	Vector2D_OLD					vecCharTexCoords[4] = {};
 	
 	// We need to scale the geometry by the rendering surface's dimensions.
 	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceWidth, iSurfaceHeight);

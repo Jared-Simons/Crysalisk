@@ -23,7 +23,7 @@
 //			flHeight - The height of the quad.
 // Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
 //-------------------------------------------------------------------------
-GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight)
+GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D_OLD vecOrigin, float flWidth, float flHeight)
 {
 	GeometryConfig_t quadConfig{};
 
@@ -69,7 +69,7 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 //			flDepth - The depth of the cube.
 // Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
 //-------------------------------------------------------------------------
-GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth)
+GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D_OLD vecOrigin, float flWidth, float flHeight, float flDepth)
 {
 	GeometryConfig_t cubeConfig{};
 	int faceIdx = 0;
@@ -237,14 +237,14 @@ void MeshGenerator::GenerateTangentData(GeometryConfig_t& pConfig)
 	{
 		for (int triIdx = 0; triIdx < triCount; triIdx++)
 		{
-			Vector3D position1 = pConfig.Vertices[(triIdx * 3) + 0].Pos;
-			Vector3D position2 = pConfig.Vertices[(triIdx * 3) + 1].Pos;
-			Vector3D position3 = pConfig.Vertices[(triIdx * 3) + 2].Pos;
+			Vector3D_OLD position1 = pConfig.Vertices[(triIdx * 3) + 0].Pos;
+			Vector3D_OLD position2 = pConfig.Vertices[(triIdx * 3) + 1].Pos;
+			Vector3D_OLD position3 = pConfig.Vertices[(triIdx * 3) + 2].Pos;
 
-			Vector3D edge1 = position2 - position1;
-			Vector3D edge2 = position3 - position1;
-			Vector2D dUV1 = pConfig.Vertices[(triIdx * 3) + 1].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
-			Vector2D dUV2 = pConfig.Vertices[(triIdx * 3) + 2].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
+			Vector3D_OLD edge1 = position2 - position1;
+			Vector3D_OLD edge2 = position3 - position1;
+			Vector2D_OLD dUV1 = pConfig.Vertices[(triIdx * 3) + 1].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
+			Vector2D_OLD dUV2 = pConfig.Vertices[(triIdx * 3) + 2].TexCoord - pConfig.Vertices[(triIdx * 3) + 0].TexCoord;
 
 			float dividend = (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
 			float f = 1.0f / dividend;
