@@ -211,8 +211,8 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			bool bIsInCameraFrustum = true;
 
-			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
-			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			Vector4D_OLD vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
+			Vector4D_OLD vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
 			Vector3D_OLD vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),

@@ -304,10 +304,10 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		vecCharTexCoords[3] = { pCurGlyph->sMax, pCurGlyph->tMax };
 
 		// Add these to the geometry config.
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D_OLD(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D_OLD(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D_OLD(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D_OLD(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
 
 		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
 

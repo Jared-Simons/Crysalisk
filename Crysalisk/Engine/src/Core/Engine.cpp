@@ -81,9 +81,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	m_engineConfig = engineConfig;
 
-	Vector testVec1{ 1.0f, 3.0f, 4.0f };
-	Vector testVec2{ 2.0f, -5.0f, 8.0 };
-	Vector testVecResult = Vector::Cross(testVec1, testVec2);
+	Vector vecTest1{ 7.0f, -2.0f, -3.0f };
+	Vector vecTest2{ 6.0f, 6.0f, -4.0f };
+	Vector vecTest3 = vecTest1 + vecTest2;
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};

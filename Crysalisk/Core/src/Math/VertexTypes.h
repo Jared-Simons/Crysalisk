@@ -15,7 +15,7 @@ class Vertex2D
 {
 public:
 	Vector2D_OLD Pos;
-	Vector4D Color;
+	Vector4D_OLD Color;
 	Vector2D_OLD TexCoord;
 };
 

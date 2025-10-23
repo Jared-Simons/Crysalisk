@@ -32,8 +32,8 @@ public:
 
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
-	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color) = 0;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) = 0;
+	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D_OLD color) = 0;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D_OLD color) = 0;
 };
 
 extern IDebugRenderer* g_pDebugRenderer;

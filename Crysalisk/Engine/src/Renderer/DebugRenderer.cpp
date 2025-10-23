@@ -23,7 +23,7 @@
 struct DebugGeometry_t
 {
 	unsigned int		iInstanceID{ kInvalidID_U32 };
-	Vector4D			color{}; // DEBUGTODO: See if we have to store this off (if the color is constant, could we just write to the descriptor and forget?)
+	Vector4D_OLD			color{}; // DEBUGTODO: See if we have to store this off (if the color is constant, could we just write to the descriptor and forget?)
 	GeometryInstance_t	geometryInstance{};
 };
 
@@ -50,9 +50,9 @@ public:
 
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
-	virtual int		AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D color);
-	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) override;
+	virtual int		AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D_OLD color);
+	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D_OLD color) override;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D_OLD color) override;
 
 private:
 	int				GetFirstFreeGeometryDataIndex() const;
@@ -141,7 +141,7 @@ bool CDebugRenderer::InitializeDebugShaders()
 	{
 		Vector3D_OLD ptStartPos{ -90, 94, -178 };
 		Vector3D_OLD ptEndPos{ 470, 94, -178 };
-		Vector4D color{ 1.0f, 0.0f, 0.0f, 1.0f };
+		Vector4D_OLD color{ 1.0f, 0.0f, 0.0f, 1.0f };
 		AddLine(ptStartPos, ptEndPos, color);
 	}
 
@@ -221,7 +221,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D color)
+int CDebugRenderer::AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vector4D_OLD color)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
@@ -239,7 +239,7 @@ int CDebugRenderer::AddLine(Vector3D_OLD ptStartPos, Vector3D_OLD ptEndPos, Vect
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
+int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D_OLD color)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
@@ -315,7 +315,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
+int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D_OLD color)
 {
 	//int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	//DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];

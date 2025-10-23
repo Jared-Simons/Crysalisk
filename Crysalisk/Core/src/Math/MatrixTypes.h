@@ -152,15 +152,15 @@ public:
 		return *this * pOtherMatrix;
 	}
 
-	Vector4D operator*(Vector3D_OLD& pVec)
+	Vector4D_OLD operator*(Vector3D_OLD& pVec)
 	{
-		Vector4D outVector{ pVec.x, pVec.y, pVec.z, 1.0f };
+		Vector4D_OLD outVector{ pVec.x, pVec.y, pVec.z, 1.0f };
 		return (*this) * outVector;
 	}
 
-	Vector4D operator*(Vector4D& pVec)
+	Vector4D_OLD operator*(Vector4D_OLD& pVec)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 
 		// TODO: We could wrap this in a loop if we made our vector elements into an array.
 		outVector.x = data[0] * pVec.x;

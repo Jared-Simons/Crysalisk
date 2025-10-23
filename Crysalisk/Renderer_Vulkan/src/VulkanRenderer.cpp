@@ -1737,7 +1737,7 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 	case ShaderAttribute_t::Vector3:
 		return sizeof(Vector3D_OLD);
 	case ShaderAttribute_t::Vector4:
-		return sizeof(Vector4D);
+		return sizeof(Vector4D_OLD);
 	case ShaderAttribute_t::Matrix4x4:
 		return sizeof(Matrix4x4);
 	default:

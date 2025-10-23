@@ -343,39 +343,39 @@ public:
 	}
 };
 
-class Vector4D
+class Vector4D_OLD
 {
 public:
 	float x;
 	float y;
 	float z;
 	float w;
-	Vector4D()
+	Vector4D_OLD()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 } 
 		, w{ 0 } {}
 
-	Vector4D(float x_, float y_, float z_, float w_)
+	Vector4D_OLD(float x_, float y_, float z_, float w_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ }
 		, w{ w_ } {}
 
-	Vector4D(Vector4D& pOtherVec)
+	Vector4D_OLD(Vector4D_OLD& pOtherVec)
 		: x{ pOtherVec.x }
 		, y{ pOtherVec.y }
 		, z{ pOtherVec.z }
 		, w{ pOtherVec.w } { }
 
-	Vector4D(Vector3D_OLD& pOtherVec)
+	Vector4D_OLD(Vector3D_OLD& pOtherVec)
 		: x{ pOtherVec.x }
 		, y{ pOtherVec.y }
 		, z{ pOtherVec.z }
 		, w{ 1.0f } {
 	}
 
-	Vector4D operator=(const Vector4D& pOtherVec)
+	Vector4D_OLD operator=(const Vector4D_OLD& pOtherVec)
 	{
 		x = pOtherVec.x;
 		y = pOtherVec.y;
@@ -385,7 +385,7 @@ public:
 		return *this;
 	}
 
-	Vector4D operator=(const Vector3D_OLD& pOtherVec)
+	Vector4D_OLD operator=(const Vector3D_OLD& pOtherVec)
 	{
 		x = pOtherVec.x;
 		y = pOtherVec.y;
@@ -427,9 +427,9 @@ public:
 		w = w / scalar;
 	}
 
-	Vector4D operator+(Vector4D& otherVector)
+	Vector4D_OLD operator+(Vector4D_OLD& otherVector)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = x + otherVector.x;
 		outVector.y = y + otherVector.y;
 		outVector.z = z + otherVector.z;
@@ -437,9 +437,9 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator-(Vector4D& otherVector)
+	Vector4D_OLD operator-(Vector4D_OLD& otherVector)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = x - otherVector.x;
 		outVector.y = y - otherVector.y;
 		outVector.z = z - otherVector.z;
@@ -447,9 +447,9 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator*(Vector4D& otherVector)
+	Vector4D_OLD operator*(Vector4D_OLD& otherVector)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = x * otherVector.x;
 		outVector.y = y * otherVector.y;
 		outVector.z = z * otherVector.z;
@@ -457,9 +457,9 @@ public:
 		return outVector;
 	}
 
-	Vector4D operator/(Vector4D& otherVector)
+	Vector4D_OLD operator/(Vector4D_OLD& otherVector)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = x / otherVector.x;
 		outVector.y = y / otherVector.y;
 		outVector.z = z / otherVector.z;
@@ -467,9 +467,9 @@ public:
 		return outVector;
 	}
 
-	Vector4D Negate() const
+	Vector4D_OLD Negate() const
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = -x;
 		outVector.y = -y;
 		outVector.z = -z;
@@ -490,9 +490,9 @@ public:
 		return M_SQRT_F((x * x) + (y * y) + (z * z) + (w * w));
 	}
 
-	Vector4D Normalize() const
+	Vector4D_OLD Normalize() const
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		float length = Length();
 
 		outVector.x = x / length;
@@ -513,14 +513,14 @@ public:
 		w = w / length;
 	}
 
-	static float DotProduct(const Vector4D& vecA, const Vector4D& vecB)
+	static float DotProduct(const Vector4D_OLD& vecA, const Vector4D_OLD& vecB)
 	{
 		return (vecA.x * vecB.x) + (vecA.y * vecB.y) + (vecA.z * vecB.z) + (vecA.w * vecB.w);
 	}
 
-	static Vector4D CrossProduct(const Vector4D& vecA, const Vector4D& vecB)
+	static Vector4D_OLD CrossProduct(const Vector4D_OLD& vecA, const Vector4D_OLD& vecB)
 	{
-		Vector4D outVector{};
+		Vector4D_OLD outVector{};
 		outVector.x = vecA.y * vecB.z - vecA.z * vecB.y;
 		outVector.y = vecA.z * vecB.x - vecA.x * vecB.z;
 		outVector.z = vecA.x * vecB.y - vecA.y * vecB.x;

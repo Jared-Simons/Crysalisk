@@ -336,7 +336,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		{
 			if (iDebugGeoIndex != 0)
 			{
-				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
+				Vector4D_OLD vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
 				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen);
 				bDebugGeoLoaded = true;
 
@@ -387,7 +387,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		}
 		else if (pCurrentMap.IsMapLoaded())
 		{
-			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
+			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D_OLD{ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 
 		// DEBUGTODO: Just a test.
@@ -402,7 +402,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
 
-			Vector4D vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
+			Vector4D_OLD vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
 
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &model);

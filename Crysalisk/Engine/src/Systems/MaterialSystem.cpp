@@ -136,7 +136,7 @@ private:
 
 	struct PointLight_t
 	{
-		Vector4D	vecPosition{};
+		Vector4D_OLD	vecPosition{};
 		Vector3D_OLD	lightColor{};
 		float		flBrightness{};
 
@@ -147,8 +147,8 @@ private:
 
 	struct SpotLight_t
 	{
-		Vector4D	vecPosition{};
-		Vector4D	vecDirection{};
+		Vector4D_OLD	vecPosition{};
+		Vector4D_OLD	vecDirection{};
 		Vector3D_OLD	lightColor{};
 		float		flBrightness{};
 

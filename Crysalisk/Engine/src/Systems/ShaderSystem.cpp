@@ -536,10 +536,10 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 		attrib.type = ShaderAttribute_t::Vector3;
 		attrib.stride = sizeof(Vector3D_OLD);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "Vector4D_OLD"))
 	{
 		attrib.type = ShaderAttribute_t::Vector4;
-		attrib.stride = sizeof(Vector4D);
+		attrib.stride = sizeof(Vector4D_OLD);
 	}
 	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "matrix4x4"))
 	{
@@ -586,10 +586,10 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 		newUniformConfig.eType = ShaderAttribute_t::Vector3;
 		newUniformConfig.iStride = sizeof(Vector3D_OLD);
 	}
-	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec4") || Utl::StringCompareInsensitive(pszAttributeStr, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec4") || Utl::StringCompareInsensitive(pszAttributeStr, "Vector4D_OLD"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector4;
-		newUniformConfig.iStride = sizeof(Vector4D);
+		newUniformConfig.iStride = sizeof(Vector4D_OLD);
 	}
 	else if (Utl::StringCompareInsensitive(pszAttributeStr, "mat4") || Utl::StringCompareInsensitive(pszAttributeStr, "matrix4x4"))
 	{
@@ -674,7 +674,7 @@ static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute)
 	case ShaderAttribute_t::Vector3:
 		return sizeof(Vector3D_OLD);
 	case ShaderAttribute_t::Vector4:
-		return sizeof(Vector4D);
+		return sizeof(Vector4D_OLD);
 	case ShaderAttribute_t::Matrix4x4:
 		return sizeof(Matrix4x4);
 	case ShaderAttribute_t::Sampler:
