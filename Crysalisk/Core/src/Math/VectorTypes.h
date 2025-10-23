@@ -299,7 +299,7 @@ public:
 
 	float Length() const
 	{
-		return sqrt((x * x) + (y * y) + (z * z));
+		return M_SQRT_F((x * x) + (y * y) + (z * z));
 	}
 
 	Vector3D Normalize() const
@@ -487,7 +487,7 @@ public:
 
 	float Length() const
 	{
-		return sqrt((x * x) + (y * y) + (z * z) + (w * w));
+		return M_SQRT_F((x * x) + (y * y) + (z * z) + (w * w));
 	}
 
 	Vector4D Normalize() const

@@ -7,7 +7,7 @@
 
 #include "MathLib.h"
 
-#include <cmath>
+#include <math.h>
 
 float M_SQRT_F(float x)
 {
@@ -76,5 +76,5 @@ float M_ABS_F(float x)
 
 double M_ABS(double x)
 {
-	return abs(x);
+	return fabsl(x);
 }

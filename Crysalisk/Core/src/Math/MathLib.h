@@ -7,7 +7,6 @@
 #pragma once
 
 #include <Defines.h>
-#include <cmath>
 
 const double kPI = 3.14159265359;
 const float kPI_F = 3.14159265359f;
