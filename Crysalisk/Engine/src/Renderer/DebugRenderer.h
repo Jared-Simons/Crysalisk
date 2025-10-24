@@ -13,11 +13,11 @@
 //-------------------------------------------------------------------------
 struct DebugRendererFrameData_t
 {
-	Matrix4x4	matProjection{};
-	Matrix4x4	matView{};
+	Matrix4x4_OLD	matProjection{};
+	Matrix4x4_OLD	matView{};
 
 	// DEBUGTODO: Is this the best way to handle this?
-	Matrix4x4*	pTransformMatrices{ nullptr };
+	Matrix4x4_OLD*	pTransformMatrices{ nullptr };
 };
 
 //-------------------------------------------------------------------------

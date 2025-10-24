@@ -47,9 +47,9 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) = 0;
+	virtual void				ApplyGlobalRenderData(Matrix4x4_OLD& pMatProjection, Matrix4x4_OLD& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) = 0;
 	// Applies per-draw render data for the following draw calls.
-	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
+	virtual void				ApplyPerDrawRenderData(Matrix4x4_OLD& pMatModel) = 0;
 
 	// Sets lighting data to be used during rendering.
 	virtual void				SetDirectionalLightData(Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, Vector3D_OLD vecAmbientLightColor, float flAmbientStrength) = 0;

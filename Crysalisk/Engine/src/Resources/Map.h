@@ -20,7 +20,7 @@ public:
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	void										GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
+	void										GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4_OLD>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
 
 private:
 	char*								m_pszMapName{ nullptr };

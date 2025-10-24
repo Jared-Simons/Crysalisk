@@ -81,9 +81,21 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	m_engineConfig = engineConfig;
 
-	Vector vecTest1{ 7.0f, -2.0f, -3.0f };
-	Vector vecTest2{ 6.0f, 6.0f, -4.0f };
-	Vector vecTest3 = vecTest1 + vecTest2;
+	Matrix4x4 testMatrix{ 1.0f };
+
+	{
+		testMatrix.flData[0] = -4.0f;
+		testMatrix.flData[1] = -3.0f;
+		testMatrix.flData[2] = 3.0f;
+		testMatrix.flData[4] = 0.0f;
+		testMatrix.flData[5] = 2.0f;
+		testMatrix.flData[6] = -2.0f;
+		testMatrix.flData[8] = 1.0f;
+		testMatrix.flData[9] = 4.0f;
+		testMatrix.flData[10] = -1.0f;
+	}
+
+	Matrix4x4 testInverse = testMatrix.Inverse();
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
@@ -225,7 +237,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// DEBUGTODO: TEST
 	{
-		Matrix4x4 testMatrix{};
+		Matrix4x4_OLD testMatrix{};
 		testMatrix.data[0] = 1;
 		testMatrix.data[1] = 1;
 		testMatrix.data[2] = 1;
@@ -243,7 +255,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		testMatrix.data[14] = 0;
 		testMatrix.data[15] = 0;
 
-		Matrix4x4 inverseMatrix = testMatrix.Invert();
+		Matrix4x4_OLD inverseMatrix = testMatrix.Invert();
 	}
 
 	return true;

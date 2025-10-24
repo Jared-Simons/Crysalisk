@@ -38,7 +38,7 @@ struct Camera_t
 	float	flAspectRatio{ 16 / 9.0f };
 
 	// Returns the camera's view matrix.
-	inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
+	inline Matrix4x4_OLD GetViewMatrix() { return Matrix4x4_OLD::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 
 	// Recalculate's the camera's internal vectors, this is typically needed when the camera's rotation changes.
 	void RecalculateCameraVectors();

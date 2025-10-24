@@ -179,7 +179,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, pTestGeometry.iInstanceID, &pTestGeometry.color);
 
 				// DEBUGTODO: Get this from somewhere!
-				Matrix4x4 matModel = pFrameData.pTransformMatrices[pTestGeometry.geometryInstance.iLocalToWorldTransform];
+				Matrix4x4_OLD matModel = pFrameData.pTransformMatrices[pTestGeometry.geometryInstance.iLocalToWorldTransform];
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, pTestGeometry.iInstanceID, &matModel);
 
 				g_pShaderSystem->BindPerInstanceUniforms(pTestGeometry.iInstanceID);
@@ -190,17 +190,17 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			{
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, m_TestCameraFrustum.iInstanceID, &m_TestCameraFrustum.color);
 
-				Matrix4x4 matModel(1.0f);
+				Matrix4x4_OLD matModel(1.0f);
 
 				/*Vector3D_OLD vecCameraAnglesRadians{M_DEG2RAD_F(m_CameraEulerAngles.x), M_DEG2RAD_F(m_CameraEulerAngles.y), M_DEG2RAD_F(m_CameraEulerAngles.z)};
 				Quaternion quatAngles = QuaternionFromEulerAngles(vecCameraAnglesRadians);
-				Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
+				Matrix4x4_OLD matAngles = Mat4FromQuaternion(quatAngles);
 				matModel = matModel * matAngles; */
 
 				Vector3D_OLD vecWorldPos = m_vecCameraPosition + (m_vecCameraForward * 30.0f);
-				matModel = Matrix4x4::Translate(matModel, vecWorldPos);
+				matModel = Matrix4x4_OLD::Translate(matModel, vecWorldPos);
 
-				Matrix4x4 inverseMatrix = matModel.Invert();
+				Matrix4x4_OLD inverseMatrix = matModel.Invert();
 
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, m_TestCameraFrustum.iInstanceID, &matModel);
 

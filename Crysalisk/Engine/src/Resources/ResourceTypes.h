@@ -290,5 +290,5 @@ struct Mesh
 	// Origin of this mesh in world space.
 	Vector3D_OLD							m_vecAbsOrigin{};
 	// Transformation matrix for this mesh.
-	Matrix4x4							m_matLocalToWorldTransform{};
+	Matrix4x4_OLD							m_matLocalToWorldTransform{};
 };

@@ -65,9 +65,9 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) override;
+	virtual void				ApplyGlobalRenderData(Matrix4x4_OLD& pMatProjection, Matrix4x4_OLD& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode) override;
 	// Applies per-draw render data for the following draw calls.
-	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
+	virtual void				ApplyPerDrawRenderData(Matrix4x4_OLD& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
 	virtual void				SetDirectionalLightData(Vector3D_OLD vecDirection, Vector3D_OLD vecLightColor, float flBrightness, Vector3D_OLD vecAmbientLightColor, float flAmbientStrength) override;
@@ -478,7 +478,7 @@ MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode)
+void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4_OLD& pMatProjection, Matrix4x4_OLD& pMatView, Vector3D_OLD& pVecPosition, int renderDebugMode)
 {
 	g_pShaderSystem->BindShader(m_DefaultMaterialShader);
 
@@ -493,7 +493,7 @@ void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
+void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4_OLD& pMatModel)
 {
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.model, 0, 0, &pMatModel);
 }

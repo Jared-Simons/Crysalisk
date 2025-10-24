@@ -73,13 +73,13 @@ public:
 
 };
 
-class Matrix4x4
+class Matrix4x4_OLD
 {
 public:
 	//float data[4][4];
 	float data[16];
 
-	Matrix4x4()
+	Matrix4x4_OLD()
 	{
 		data[0] = 0;
 		data[1] = 0;
@@ -102,7 +102,7 @@ public:
 		data[15] = 0;
 	}
 
-	Matrix4x4(float initalValue)
+	Matrix4x4_OLD(float initalValue)
 	{
 		data[0] = initalValue;
 		data[1] = 0;
@@ -125,9 +125,9 @@ public:
 		data[15] = initalValue;
 	}
 
-	Matrix4x4 operator*(Matrix4x4& pOtherMatrix)
+	Matrix4x4_OLD operator*(Matrix4x4_OLD& pOtherMatrix)
 	{
-		Matrix4x4 outMatrix{};
+		Matrix4x4_OLD outMatrix{};
 
 		float* mat1Ptr = &data[0];
 		float* mat2Ptr = &pOtherMatrix.data[0];
@@ -147,7 +147,7 @@ public:
 		return outMatrix;
 	}
 
-	Matrix4x4 operator *=(Matrix4x4& pOtherMatrix)
+	Matrix4x4_OLD operator *=(Matrix4x4_OLD& pOtherMatrix)
 	{
 		return *this * pOtherMatrix;
 	}
@@ -186,7 +186,7 @@ public:
 		return outVector;
 	}
 
-	static Matrix4x4& Translate(Matrix4x4& inMatrix, const Vector3D_OLD& inVector)
+	static Matrix4x4_OLD& Translate(Matrix4x4_OLD& inMatrix, const Vector3D_OLD& inVector)
 	{
 		inMatrix.data[12] += inVector.x;
 		inMatrix.data[13] += inVector.y;
@@ -196,7 +196,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Scale(Matrix4x4& inMatrix, i32 valueToScaleBy)
+	static Matrix4x4_OLD& Scale(Matrix4x4_OLD& inMatrix, i32 valueToScaleBy)
 	{
 		inMatrix.data[0] *= valueToScaleBy;
 		inMatrix.data[5] *= valueToScaleBy;
@@ -206,7 +206,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Scale(Matrix4x4& inMatrix, Vector3D_OLD& inVector)
+	static Matrix4x4_OLD& Scale(Matrix4x4_OLD& inMatrix, Vector3D_OLD& inVector)
 	{
 		inMatrix.data[0] *= inVector.x;
 		inMatrix.data[5] *= inVector.y;
@@ -216,7 +216,7 @@ public:
 		return inMatrix;
 	}
 
-	static Matrix4x4& Rotate(Matrix4x4& inMatrix, float angle, Vector3D_OLD& axis)
+	static Matrix4x4_OLD& Rotate(Matrix4x4_OLD& inMatrix, float angle, Vector3D_OLD& axis)
 	{
 		inMatrix.data[0] = M_COS_F(angle) + (axis.x * axis.x) * (1 - M_COS_F(angle));
 		inMatrix.data[1] = (axis.y * axis.x) * (1 - M_COS_F(angle)) + (axis.z * M_SIN_F(angle));
@@ -241,18 +241,18 @@ public:
 		return inMatrix;
 	}
 
-	Matrix4x4 Invert()
+	Matrix4x4_OLD Invert()
 	{
-		Matrix4x4 outMatrix(1.0f);
+		Matrix4x4_OLD outMatrix(1.0f);
 
 		// LEFTOFF: Implement
 
 		return outMatrix;
 	}
 
-	static Matrix4x4 LookAt(Vector3D_OLD position, Vector3D_OLD target, Vector3D_OLD vecUp)
+	static Matrix4x4_OLD LookAt(Vector3D_OLD position, Vector3D_OLD target, Vector3D_OLD vecUp)
 	{
-		Matrix4x4 newMatrix(1.0f);
+		Matrix4x4_OLD newMatrix(1.0f);
 		Vector3D_OLD zAxis;
 
 		zAxis.x = target.x - position.x;
@@ -288,9 +288,9 @@ public:
 		return newMatrix;
 	}
 
-	static Matrix4x4 Perspective(float fov, float aspectRatio, float nearClippingPlane, float farClippingPlane)
+	static Matrix4x4_OLD Perspective(float fov, float aspectRatio, float nearClippingPlane, float farClippingPlane)
 	{
-		Matrix4x4 newMatrix(0.0f);
+		Matrix4x4_OLD newMatrix(0.0f);
 		float halfTanFOV = M_TAN_F(fov * 0.5f);
 
 		newMatrix.data[0] = 1.0f / (aspectRatio * halfTanFOV);
@@ -302,9 +302,9 @@ public:
 		return newMatrix;
 	}
 
-	static Matrix4x4 Ortho(float left, float right, float bottom, float top, float near, float far)
+	static Matrix4x4_OLD Ortho(float left, float right, float bottom, float top, float near, float far)
 	{
-		Matrix4x4 newMatrix(1.0f);
+		Matrix4x4_OLD newMatrix(1.0f);
 
 		float lr = 1.0f / (left - right);
 		float bt = 1.0f / (bottom - top);
@@ -331,9 +331,9 @@ public:
 	}
 };
 
-inline Matrix4x4 Mat4FromQuaternion(Quaternion& inQuat)
+inline Matrix4x4_OLD Mat4FromQuaternion(Quaternion& inQuat)
 {
-	Matrix4x4 outMat(1);
+	Matrix4x4_OLD outMat(1);
 
 	outMat.data[0] = 1 - 2 * (inQuat.y * inQuat.y) - 2 * (inQuat.x * inQuat.z);
 	outMat.data[1] = 2 * inQuat.x * inQuat.y + 2 * inQuat.w * inQuat.z;

@@ -269,15 +269,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->BeginRenderpass(m_SceneView);
 
-	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
+	Matrix4x4_OLD matProjection = Matrix4x4_OLD::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
 	matProjection.data[5] *= -1;
-	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
+	Matrix4x4_OLD matView = s_MainCamera.GetViewMatrix();
 	Vector3D_OLD vecCameraPos = s_MainCamera.vecPosition;
-	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
+	Matrix4x4_OLD model = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
-	Utl::CVector<Matrix4x4>				TransformMatrices(32);
+	Utl::CVector<Matrix4x4_OLD>				TransformMatrices(32);
 
 	if (pCurrentMap.IsMapLoaded())
 	{
@@ -395,7 +395,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64 && iDebugGeoIndex != kInvalidID_U32)
 		{
 			g_pShaderSystem->BindShader(hDebugLineShader);
-			model = Matrix4x4::Matrix4x4(1.0f);
+			model = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
 			model = TransformMatrices[pOpaqueGeometries[iDebugGeoIndex]->iLocalToWorldTransform];
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
@@ -424,7 +424,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		m_RendererBackend->BeginRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
+		Matrix4x4_OLD UIProjection = Matrix4x4_OLD::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);

@@ -79,14 +79,14 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				pCurOutMesh->m_MeshID = (uint32_t)pOutMap.m_Meshes.Count();
 
 				// Set the transformation matrix.
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
 
 				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-				Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
+				Matrix4x4_OLD matAngles = Mat4FromQuaternion(quatAngles);
 				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
 
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
 
 				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
@@ -191,7 +191,7 @@ void CMap::UnloadMap()
 	m_Meshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4_OLD>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
 {
 	Mesh*				pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
