@@ -579,6 +579,18 @@ public:
 	}
 
 	// ----------------------------
+	// Matrix-Vector Multiplication
+	// ----------------------------
+	inline Vector3D MultiplyByVector(const Vector& pVector) const
+	{
+		Vector3D outVector{};
+		outVector.x = (pVector.x * flData[0]) + (pVector.y * flData[1]) + (pVector.z * flData[2]);
+		outVector.y = (pVector.x * flData[4]) + (pVector.y * flData[5]) + (pVector.z * flData[6]);
+		outVector.z = (pVector.x * flData[8]) + (pVector.y * flData[9]) + (pVector.z * flData[10]);
+		return outVector;
+	}
+
+	// ----------------------------
 	// Matrix-Matrix Multiplication
 	// ----------------------------
 	inline Matrix4x4 MultiplyByMatrix(const Matrix4x4& pOtherMatrix) const
@@ -678,9 +690,82 @@ public:
 		return outMatrix;
 	}
 
+	// ---------
+	// Translate
+	// ---------
+	static inline Matrix4x4 Translate(const Matrix4x4& pInMatrix, const Vector& pInVector)
+	{
+		Matrix4x4 matTranslate{ pInMatrix };
+		matTranslate.flData[3] += pInVector.x;
+		matTranslate.flData[7] += pInVector.y;
+		matTranslate.flData[11] += pInVector.z;
+		return matTranslate;
+	}
+
+	// -----
+	// Scale
+	// -----
+	static inline Matrix4x4 Scale(const Matrix4x4& pInMatrix, const Vector& pInScale)
+	{
+		Matrix4x4 matScale{ pInMatrix };
+		matScale.flData[0] *= pInScale.x;
+		matScale.flData[5] *= pInScale.y;
+		matScale.flData[10] *= pInScale.z;
+		return matScale;
+	}
+
+	// ------
+	// Rotate
+	// ------
+	static inline Matrix4x4 RotateAboutXAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	{
+		Matrix4x4 matRotate{ pInMatrix };
+		matRotate.flData[5] = M_COS_F(flAngleInRadians);
+		matRotate.flData[6] = -M_SIN_F(flAngleInRadians);
+		matRotate.flData[9] = M_SIN_F(flAngleInRadians);
+		matRotate.flData[10] = M_COS_F(flAngleInRadians);
+		return matRotate;
+	}
+
+	static inline Matrix4x4 RotateAboutYAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	{
+		Matrix4x4 matRotate{ pInMatrix };
+		matRotate.flData[0] = M_COS_F(flAngleInRadians);
+		matRotate.flData[2] = M_SIN_F(flAngleInRadians);
+		matRotate.flData[8] = -M_SIN_F(flAngleInRadians);
+		matRotate.flData[10] = M_COS_F(flAngleInRadians);
+		return matRotate;
+	}
+
+	static inline Matrix4x4 RotateAboutZAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	{
+		Matrix4x4 matRotate{ pInMatrix };
+		matRotate.flData[0] = M_COS_F(flAngleInRadians);
+		matRotate.flData[1] = -M_SIN_F(flAngleInRadians);
+		matRotate.flData[4] = M_SIN_F(flAngleInRadians);
+		matRotate.flData[5] = M_COS_F(flAngleInRadians);
+		return matRotate;
+	}
+
+	static inline Matrix4x4 RotateAboutAxisAngles(const Matrix4x4& pInMatrix, const Vector& pInRotationAxis, const float flAngleInRadians)
+	{
+		Matrix4x4 matRotate{ pInMatrix };
+		matRotate.flData[0] = M_COS_F(flAngleInRadians) + ((pInRotationAxis.x * pInRotationAxis.x)) * (1 - M_COS_F(flAngleInRadians));
+		matRotate.flData[4] = pInRotationAxis.x * pInRotationAxis.y * (1 - M_COS_F(flAngleInRadians)) - pInRotationAxis.z * M_SIN_F(flAngleInRadians);
+		matRotate.flData[8] = (pInRotationAxis.x * pInRotationAxis.z * (1 - M_COS_F(flAngleInRadians))) + (pInRotationAxis.y * M_SIN_F(flAngleInRadians));
+		matRotate.flData[1] = (pInRotationAxis.y * pInRotationAxis.x * (1 - M_COS_F(flAngleInRadians))) + (pInRotationAxis.z * M_SIN_F(flAngleInRadians));
+		matRotate.flData[5] = M_COS_F(flAngleInRadians) + (pInRotationAxis.y * pInRotationAxis.y * (1 - M_COS_F(flAngleInRadians)));
+		matRotate.flData[9] = (pInRotationAxis.y * pInRotationAxis.z * (1 - M_COS_F(flAngleInRadians))) - (pInRotationAxis.x * M_SIN_F(flAngleInRadians));
+		matRotate.flData[2] = (pInRotationAxis.z * pInRotationAxis.x * (1 - M_COS_F(flAngleInRadians))) - (pInRotationAxis.y * M_SIN_F(flAngleInRadians));
+		matRotate.flData[6] = (pInRotationAxis.z * pInRotationAxis.y * (1 - M_COS_F(flAngleInRadians))) + (pInRotationAxis.x * M_SIN_F(flAngleInRadians));
+		matRotate.flData[10] = (M_COS_F(flAngleInRadians) + (pInRotationAxis.z * pInRotationAxis.z) * (1 - M_COS_F(flAngleInRadians)));
+		return matRotate;
+	}
+
 	// ------------------
 	// Operator overloads
 	// ------------------
 	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
+	inline Vector operator*(const Vector& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
