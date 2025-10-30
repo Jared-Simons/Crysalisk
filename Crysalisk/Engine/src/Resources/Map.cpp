@@ -83,7 +83,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
 
 				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-				Matrix4x4_OLD matAngles = Mat4FromQuaternion(quatAngles);
+				Matrix4x4_OLD matAngles = Mat4FromQuaternion_OLD(quatAngles);
 				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
 
 				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);

@@ -534,6 +534,38 @@ public:
 };
 
 //-------------------------------------------------------------------------
+// Quaternion
+//-------------------------------------------------------------------------
+class Quaternion
+{
+public:
+	float x;
+	float y;
+	float z;
+	float w;
+	Quaternion()
+		: x{ 0 }
+		, y{ 0 }
+		, z{ 0 }
+		, w{ 0 } {
+	}
+
+	Quaternion(float x_, float y_, float z_, float w_)
+		: x{ x_ }
+		, y{ y_ }
+		, z{ z_ }
+		, w{ w_ } {
+	}
+
+	Quaternion(Quaternion& pOtherQuat)
+		: x{ pOtherQuat.x }
+		, y{ pOtherQuat.y }
+		, z{ pOtherQuat.z }
+		, w{ pOtherQuat.w } {
+	}
+};
+
+//-------------------------------------------------------------------------
 // Matrix4x4
 //-------------------------------------------------------------------------
 class Matrix4x4
@@ -788,6 +820,65 @@ public:
 		viewMat.flData[14] = Vector3D::Dot(vecPosition, vecForward);
 
 		return viewMat;
+	}
+
+	// ----------
+	// Projection
+	// ----------
+	static inline Matrix4x4 Perspective(float flFOV, float flAspectRatio, float flNearZ, float flFarZ)
+	{
+		Matrix4x4 projMat{ 1.0f };
+
+		float flHalfTanFOV = M_TAN_F(flFOV * 0.5f);
+		projMat.flData[0] = 1.0f / (flAspectRatio * flHalfTanFOV);
+		projMat.flData[5] = 1.0f / flHalfTanFOV;
+		projMat.flData[10] = -((flFarZ + flNearZ) / (flFarZ - flNearZ));
+		projMat.flData[11] = -1.0f;
+		projMat.flData[14] = -((2.0f * flFarZ * flNearZ) / (flFarZ - flNearZ));
+
+		return projMat;
+	}
+
+	static inline Matrix4x4 Orthographic(float flLeft, float flRight, float flBottom, float flTop, float flNear, float flFar)
+	{
+		Matrix4x4 projMat{ 1.0f };
+
+		float lr = 1.0f / (flLeft - flRight);
+		float bt = 1.0f / (flBottom - flTop);
+		float nf = 1.0f / (flNear - flFar);
+
+		projMat.flData[0] = -2.0f * lr;
+		projMat.flData[5] = -2.0f * bt;
+		projMat.flData[10] = nf;
+
+		projMat.flData[12] = (flLeft + flRight) * lr;
+		projMat.flData[13] = (flTop + flBottom) * bt;
+		projMat.flData[14] = -flNear * nf;
+		projMat.flData[15] = 1.0f;
+
+		return projMat;
+	}
+
+	// --------------------
+	// Matrix -> Quaternion
+	// --------------------
+	inline Matrix4x4 Mat4FromQuaternion(class Quaternion& inQuat)
+	{
+		Matrix4x4 outMat{ 1.0f };
+
+		outMat.flData[0] = 1 - 2 * (inQuat.y * inQuat.y) - 2 * (inQuat.x * inQuat.z);
+		outMat.flData[1] = 2 * inQuat.x * inQuat.y + 2 * inQuat.w * inQuat.z;
+		outMat.flData[2] = 2 * (inQuat.x * inQuat.z) - 2 * (inQuat.w * inQuat.y);
+
+		outMat.flData[4] = 2 * (inQuat.x * inQuat.y) - 2 * (inQuat.w * inQuat.z);
+		outMat.flData[5] = 1 - 2 * (inQuat.x * inQuat.x) - 2 * (inQuat.z * inQuat.z);
+		outMat.flData[6] = 2 * (inQuat.y * inQuat.z) + 2 * (inQuat.w * inQuat.x);
+
+		outMat.flData[8] = 2 * (inQuat.x * inQuat.z) + 2 * (inQuat.w * inQuat.y);
+		outMat.flData[9] = 2 * (inQuat.y * inQuat.z) - 2 * (inQuat.w * inQuat.x);
+		outMat.flData[10] = 1 - 2 * (inQuat.x * inQuat.x) - 2 * (inQuat.y * inQuat.y);
+
+		return outMat;
 	}
 
 	// ------------------

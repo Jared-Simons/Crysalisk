@@ -533,35 +533,6 @@ public:
 	}
 };
 
-class Quaternion
-{
-public:
-	float x;
-	float y;
-	float z;
-	float w;
-	Quaternion()
-		: x{ 0 }
-		, y{ 0 }
-		, z{ 0 }
-		, w{ 0 } {
-	}
-
-	Quaternion(float x_, float y_, float z_, float w_)
-		: x{ x_ }
-		, y{ y_ }
-		, z{ z_ }
-		, w{ w_ } {
-	}
-
-	Quaternion(Quaternion& pOtherQuat)
-		: x{ pOtherQuat.x }
-		, y{ pOtherQuat.y }
-		, z{ pOtherQuat.z }
-		, w{ pOtherQuat.w } {
-	}
-};
-
 // Quaternion operations.
 inline Quaternion QuaternionFromAxisAngle(Vector3D_OLD vecAxisOfRotation, float flAngle)
 {

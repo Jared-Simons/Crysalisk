@@ -331,7 +331,7 @@ public:
 	}
 };
 
-inline Matrix4x4_OLD Mat4FromQuaternion(Quaternion& inQuat)
+inline Matrix4x4_OLD Mat4FromQuaternion_OLD(Quaternion& inQuat)
 {
 	Matrix4x4_OLD outMat(1);
 

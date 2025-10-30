@@ -275,6 +275,23 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Matrix4x4_OLD matView = s_MainCamera.GetViewMatrix();
 	Vector3D_OLD vecCameraPos = s_MainCamera.vecPosition;
 	Matrix4x4_OLD model = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
+	{
+		Vector3D cameraPos{ s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z };
+		Vector3D cameraFront{ s_MainCamera.vecFront.x, s_MainCamera.vecFront.y, s_MainCamera.vecFront.z };
+		Vector3D cameraUp{ s_MainCamera.vecUp.x, s_MainCamera.vecUp.y, s_MainCamera.vecUp.z };
+
+		Matrix4x4 testView = Matrix4x4::LookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		Matrix4x4 testProj = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				matView.data[(i + 4) + j] = testView.flData[(i + 4) + j];
+				matProjection.data[(i + 4) + j] = testProj.flData[(i + 4) + j];
+			}
+		}
+	}
+	matProjection.data[5] *= -1.0f;
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
 	Utl::CVector<Matrix4x4_OLD>				TransformMatrices(32);
