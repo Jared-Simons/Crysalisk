@@ -516,21 +516,21 @@ public:
 	// -----------------
 	// Dot Product
 	// -----------------
-static inline float Dot(const Vector4D& pVector0, const Vector4D& pVector1)
-{
-	return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]) + (pVector0.flElements[2] * pVector1.flElements[2]) + (pVector0.flElements[3] * pVector1.flElements[3]);
-}
+	static inline float Dot(const Vector4D& pVector0, const Vector4D& pVector1)
+	{
+		return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]) + (pVector0.flElements[2] * pVector1.flElements[2]) + (pVector0.flElements[3] * pVector1.flElements[3]);
+	}
 
-// ------------------
-// Operator overloads
-// ------------------
-inline Vector4D operator+(const Vector3D& pOtherVector) const { return Add(pOtherVector); }
-inline Vector4D operator-(const Vector3D& pOtherVector) const { return Subtract(pOtherVector); }
-inline Vector4D operator-() const { return Negate(); }
+	// ------------------
+	// Operator overloads
+	// ------------------
+	inline Vector4D operator+(const Vector3D& pOtherVector) const { return Add(pOtherVector); }
+	inline Vector4D operator-(const Vector3D& pOtherVector) const { return Subtract(pOtherVector); }
+	inline Vector4D operator-() const { return Negate(); }
 
-// NewMathTODO: This operation should be communicative... is it possible to define it to take the arguments in either order?
-inline Vector4D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
+	// NewMathTODO: This operation should be communicative... is it possible to define it to take the arguments in either order?
+	inline Vector4D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
+	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
 
 //-------------------------------------------------------------------------
@@ -605,17 +605,75 @@ public:
 	// --------------
 	// Matrix Inverse
 	// --------------
-	// NewMathLEFTOFF: Re-evaluate this and determine if this is necessary?
 	inline Matrix4x4 Inverse() const
 	{
 		Matrix4x4 outMatrix{ *this };
-		float flCofactors[16]{ 0.0f };
 
-		// First, compute the cofactors.
-		flCofactors[0] = (outMatrix.flData[5] * outMatrix.flData[10] * outMatrix.flData[15]) + (outMatrix.flData[6] * outMatrix.flData[11] * outMatrix.flData[13]) + (outMatrix.flData[7] * outMatrix.flData[9] * outMatrix.flData[14]
-			- (outMatrix.flData[7] * outMatrix.flData[10] * outMatrix.flData[13]) - (outMatrix.flData[6] * outMatrix.flData[9] * outMatrix.flData[15]) - (outMatrix.flData[5] * outMatrix.flData[11] * outMatrix.flData[14]));
-		flCofactors[1] = (outMatrix.flData[4] * outMatrix.flData[10] * outMatrix.flData[15]) + (outMatrix.flData[6] * outMatrix.flData[11] * outMatrix.flData[12]) + (outMatrix.flData[7] * outMatrix.flData[8] * outMatrix.flData[14]
-			- (outMatrix.flData[7] * outMatrix.flData[10] * outMatrix.flData[12]) - (outMatrix.flData[6] * outMatrix.flData[8] * outMatrix.flData[15]) - (outMatrix.flData[4] * outMatrix.flData[11] * outMatrix.flData[14]));
+		float flT1 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
+		float flT2 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
+		float flT3 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
+		float flT4 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
+		float flT5 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
+		float flT6 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
+		float flT7 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
+		float flT8 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
+		float flT9 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
+		float flT10 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
+		float flT11 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
+		float flT12 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
+		float flT13 = ((flData[6] * flData[15]) - (flData[7] * flData[14]));
+		float flT14 = ((flData[5] * flData[15]) - (flData[7] * flData[13]));
+		float flT15 = ((flData[5] * flData[14]) - (flData[6] * flData[13]));
+		float flT16 = ((flData[4] * flData[15]) - (flData[7] * flData[12]));
+		float flT17 = ((flData[4] * flData[14]) - (flData[6] * flData[12]));
+		float flT18 = ((flData[4] * flData[13]) - (flData[5] * flData[12]));
+		float flT19 = ((flData[6] * flData[11]) - (flData[7] * flData[10]));
+		float flT20 = ((flData[5] * flData[11]) - (flData[7] * flData[9]));
+		float flT21 = ((flData[5] * flData[10]) - (flData[6] * flData[9]));
+		float flT22 = ((flData[4] * flData[11]) - (flData[7] * flData[8]));
+		float flT23 = ((flData[4] * flData[10]) - (flData[6] * flData[8]));
+		float flT24 = ((flData[4] * flData[9]) - (flData[5] * flData[8]));
+
+		// Compute the determinant.
+		float flDeterminant = (flData[0] * (flData[5] * flT1 - flData[6] * flT2 + flData[7] * flT3))
+							- (flData[1] * (flData[4] * flT4 - flData[6] * flT5 + flData[7] * flT6))
+							+ (flData[2] * (flData[4] * flT7 - flData[5] * flT8 + flData[7] * flT9)
+							- (flData[3] * (flData[4] * flT10 - flData[5] * flT11 + flData[6] * flT12)));
+
+		// If the determinant is 0, then we cannot find an inverse matrix with this method, so return an identity matrix to be safe.
+		if (flDeterminant > 0.0001f || flDeterminant < 0.0001f)
+			return Matrix4x4::Matrix4x4(1.0f);
+
+		// Create the temp co-factor matrix.
+		float flTempMatrix[16]{ 0.0f };
+		flTempMatrix[0] = (flData[5] * flT1 - flData[6] * flT2 + flData[7] * flT3);
+		flTempMatrix[1] = -1.0f * (flData[4] * flT4 - flData[6] * flT5 + flData[7] * flT6);
+		flTempMatrix[2] = (flData[4] * flT7 - flData[5] * flT8 + flData[7] * flT9);
+		flTempMatrix[3] = -1.0f * (flData[4] * flT10 - flData[5] * flT11 + flData[6] * flT12);
+		flTempMatrix[4] = -1.0f * (flData[1] * flT1 - flData[2] * flT2 + flData[3] * flT3);
+		flTempMatrix[5] = (flData[0] * flT4 - flData[2] * flT5 + flData[3] * flT6);
+		flTempMatrix[6] = -1.0f * (flData[0] * flT2 - flData[1] * flT8 + flData[3] * flT9);
+		flTempMatrix[7] = (flData[0] * flT10 - flData[1] * flT6 + flData[2] * flT9);
+		flTempMatrix[8] = (flData[1] * flT13 - flData[2] * flT14 + flData[3] * flT15);
+		flTempMatrix[9] = -1.0f * (flData[0] * flT13 - flData[2] * flT16 + flData[3] * flT17);
+		flTempMatrix[10] = (flData[0] * flT14 - flData[1] * flT16 + flData[3] * flT18);
+		flTempMatrix[11] = -1.0f * (flData[0] * flT15 - flData[1] * flT17 + flData[2] * flT18);
+		flTempMatrix[12] = -1.0f * (flData[1] * flT19 - flData[2] * flT20 + flData[3] * flT21);
+		flTempMatrix[13] = (flData[0] * flT19 - flData[2] * flT22 + flData[3] * flT23);
+		flTempMatrix[14] = -1.0f * (flData[0] * flT20 - flData[1] * flT22 + flData[3] * flT24);
+		flTempMatrix[15] = (flData[0] * flT21 - flData[1] * flT23 + flData[2] * flT24);
+
+		// Transpose the co-factor matrix and write it to the output.
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				outMatrix.flData[(i * 4) + j] = flTempMatrix[(j * 4) + i];
+			}
+		}
+
+		// Finally, divide the new adjunct matrix by the determinant.
+		outMatrix = outMatrix * (1.0f / flDeterminant);
 
 		return outMatrix;
 	}
@@ -624,4 +682,5 @@ public:
 	// Operator overloads
 	// ------------------
 	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
+	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };

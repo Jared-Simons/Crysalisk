@@ -81,22 +81,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	m_engineConfig = engineConfig;
 
-	Matrix4x4 testMatrix{ 1.0f };
-
-	{
-		testMatrix.flData[0] = -4.0f;
-		testMatrix.flData[1] = -3.0f;
-		testMatrix.flData[2] = 3.0f;
-		testMatrix.flData[4] = 0.0f;
-		testMatrix.flData[5] = 2.0f;
-		testMatrix.flData[6] = -2.0f;
-		testMatrix.flData[8] = 1.0f;
-		testMatrix.flData[9] = 4.0f;
-		testMatrix.flData[10] = -1.0f;
-	}
-
-	Matrix4x4 testInverse = testMatrix.Inverse();
-
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
 	memoryConfig.totalMemoryBudget = MEBIBYTES(100);
