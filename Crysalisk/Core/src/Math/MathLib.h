@@ -653,7 +653,7 @@ public:
 							- (flData[3] * (flData[4] * flT10 - flData[5] * flT11 + flData[6] * flT12)));
 
 		// If the determinant is 0, then we cannot find an inverse matrix with this method, so return an identity matrix to be safe.
-		if (flDeterminant > 0.0001f || flDeterminant < 0.0001f)
+		if (flDeterminant > 0.0001f && flDeterminant < 0.0001f)
 			return Matrix4x4::Matrix4x4(1.0f);
 
 		// Create the temp co-factor matrix.
@@ -760,6 +760,34 @@ public:
 		matRotate.flData[6] = (pInRotationAxis.z * pInRotationAxis.y * (1 - M_COS_F(flAngleInRadians))) + (pInRotationAxis.x * M_SIN_F(flAngleInRadians));
 		matRotate.flData[10] = (M_COS_F(flAngleInRadians) + (pInRotationAxis.z * pInRotationAxis.z) * (1 - M_COS_F(flAngleInRadians)));
 		return matRotate;
+	}
+
+	// ------
+	// LookAt
+	// ------
+	static inline Matrix4x4 LookAt(Vector& vecPosition, Vector& vecTarget, Vector& pVecUp)
+	{
+		// Compute the camera's local space basis.
+		Vector3D vecForward = (vecTarget - vecPosition).Normalize();
+		Vector3D vecRight = (Vector3D::Cross(vecForward, pVecUp)).Normalize();
+		Vector3D vecUp = (Vector3D::Cross(vecRight, vecForward)).Normalize();
+
+		Matrix4x4 viewMat{ 1.0f };
+
+		viewMat.flData[0] = vecRight.x;
+		viewMat.flData[1] = vecUp.x;
+		viewMat.flData[2] = -vecForward.x;
+		viewMat.flData[4] = vecRight.y;
+		viewMat.flData[5] = vecUp.y;
+		viewMat.flData[6] = -vecForward.y;
+		viewMat.flData[8] = vecRight.z;
+		viewMat.flData[9] = vecUp.z;
+		viewMat.flData[10] = -vecForward.z;
+		viewMat.flData[12] = -Vector3D::Dot(vecPosition, vecRight);
+		viewMat.flData[13] = -Vector3D::Dot(vecPosition, vecUp);
+		viewMat.flData[14] = Vector3D::Dot(vecPosition, vecForward);
+
+		return viewMat;
 	}
 
 	// ------------------
