@@ -10,7 +10,7 @@
 
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include <Math/VertexTypes.h>
 #include <Renderer/RendererTypes.h>
 #include <Strings/String_Utils.h>

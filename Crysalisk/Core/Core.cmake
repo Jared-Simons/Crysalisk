@@ -23,8 +23,6 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Core/Logging.h
 	${CORE_ROOT}/Math/MathLib.cpp
 	${CORE_ROOT}/Math/MathLib.h
-	${CORE_ROOT}/Math/MatrixTypes.h
-	${CORE_ROOT}/Math/VectorTypes.h
 	${CORE_ROOT}/Math/VertexTypes.h
 	${CORE_ROOT}/Memory/DynamicAllocator.cpp
 	${CORE_ROOT}/Memory/DynamicAllocator.h

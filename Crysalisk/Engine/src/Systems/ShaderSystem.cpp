@@ -526,24 +526,24 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 		attrib.type = ShaderAttribute_t::Float32;
 		attrib.stride = sizeof(float);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec2") || Utl::StringCompareInsensitive(pszString, "vector2d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec2") || Utl::StringCompareInsensitive(pszString, "Vector2D_OLD"))
 	{
 		attrib.type = ShaderAttribute_t::Vector2;
 		attrib.stride = sizeof(Vector2D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec3") || Utl::StringCompareInsensitive(pszString, "vector3d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec3") || Utl::StringCompareInsensitive(pszString, "Vector3D_OLD"))
 	{
 		attrib.type = ShaderAttribute_t::Vector3;
 		attrib.stride = sizeof(Vector3D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "Vector4D_OLD"))
 	{
 		attrib.type = ShaderAttribute_t::Vector4;
 		attrib.stride = sizeof(Vector4D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "matrix4x4"))
+	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "Matrix4x4_OLD"))
 	{
-		attrib.type = ShaderAttribute_t::Matrix4x4;
+		attrib.type = ShaderAttribute_t::Matrix4;
 		attrib.stride = sizeof(Matrix4x4);
 	}
 	else
@@ -576,24 +576,24 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 		newUniformConfig.eType = ShaderAttribute_t::Float32;
 		newUniformConfig.iStride = sizeof(float);
 	}
-	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec2") || Utl::StringCompareInsensitive(pszAttributeStr, "vector2d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec2") || Utl::StringCompareInsensitive(pszAttributeStr, "Vector2D_OLD"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector2;
 		newUniformConfig.iStride = sizeof(Vector2D);
 	}
-	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec3") || Utl::StringCompareInsensitive(pszAttributeStr, "vector3d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec3") || Utl::StringCompareInsensitive(pszAttributeStr, "Vector3D_OLD"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector3;
 		newUniformConfig.iStride = sizeof(Vector3D);
 	}
-	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec4") || Utl::StringCompareInsensitive(pszAttributeStr, "vector4d"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "vec4") || Utl::StringCompareInsensitive(pszAttributeStr, "Vector4D_OLD"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Vector4;
 		newUniformConfig.iStride = sizeof(Vector4D);
 	}
-	else if (Utl::StringCompareInsensitive(pszAttributeStr, "mat4") || Utl::StringCompareInsensitive(pszAttributeStr, "matrix4x4"))
+	else if (Utl::StringCompareInsensitive(pszAttributeStr, "mat4") || Utl::StringCompareInsensitive(pszAttributeStr, "Matrix4x4_OLD"))
 	{
-		newUniformConfig.eType = ShaderAttribute_t::Matrix4x4;
+		newUniformConfig.eType = ShaderAttribute_t::Matrix4;
 		newUniformConfig.iStride = sizeof(Matrix4x4);
 	}
 	else if (Utl::StringCompareInsensitive(pszAttributeStr, "texture") || Utl::StringCompareInsensitive(pszAttributeStr, "sampler"))
@@ -675,7 +675,7 @@ static inline uint32_t GetAttributeStride(ShaderAttribute_t inAttribute)
 		return sizeof(Vector3D);
 	case ShaderAttribute_t::Vector4:
 		return sizeof(Vector4D);
-	case ShaderAttribute_t::Matrix4x4:
+	case ShaderAttribute_t::Matrix4:
 		return sizeof(Matrix4x4);
 	case ShaderAttribute_t::Sampler:
 		return 0; // Samplers don't count.
@@ -730,7 +730,7 @@ static uint32_t GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderA
 
 	case ShaderAttribute_t::Vector3:
 	case ShaderAttribute_t::Vector4:
-	case ShaderAttribute_t::Matrix4x4:
+	case ShaderAttribute_t::Matrix4:
 	case ShaderAttribute_t::GenericStructure: // TODO: Proper alignment value?
 		boundaryToAlignTo = 16;
 		break;

@@ -7,8 +7,7 @@
 #pragma once
 
 #include "Core/Input.h"
-#include <Math/MatrixTypes.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include "Renderer/RendererTypes.h"
 
 //-------------------------------------------------------------------------
@@ -17,15 +16,15 @@
 struct Camera_t
 {
 	// The camera's position in world space.
-	Vector3D vecPosition{ 0, 0, 3 };
+	Vector vecPosition{ 0, 0, 3 };
 	// The camera's current forward vector.
-	Vector3D vecFront{ 0, 0, -1 };
+	Vector vecFront{ 0, 0, -1 };
 	// The camera's current right vector.
-	Vector3D vecRight{ 1, 0, 0 };
+	Vector vecRight{ 1, 0, 0 };
 	// The camera's current up vector.
-	Vector3D vecUp{ 0, 1, 0 };
+	Vector vecUp{ 0, 1, 0 };
 	// The absolute up vector in world space.
-	Vector3D vecWorldUp{ 0, 1, 0 };
+	Vector vecWorldUp{ 0, 1, 0 };
 
 	float	Yaw{ -90.0f };
 	float	Pitch{ 0.0f };
@@ -38,6 +37,7 @@ struct Camera_t
 	float	flAspectRatio{ 16 / 9.0f };
 
 	// Returns the camera's view matrix.
+	//inline Matrix4x4_OLD GetViewMatrix() { return Matrix4x4_OLD::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 	inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 
 	// Recalculate's the camera's internal vectors, this is typically needed when the camera's rotation changes.

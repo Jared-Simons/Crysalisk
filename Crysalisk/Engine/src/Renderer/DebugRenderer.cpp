@@ -8,7 +8,7 @@
 
 #include "Camera.h"
 #include <Containers/CVector.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include "Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/ShaderSystem.h"
@@ -73,6 +73,7 @@ private:
 	DebugGeometry_t		m_TestCameraFrustum{};
 	Vector3D			m_vecCameraPosition{};
 	Vector3D			m_CameraEulerAngles{};
+	Vector3D			m_vecCameraForward{};
 	// END FRUSTUM TEST
 };
 
@@ -191,11 +192,16 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 
 				Matrix4x4 matModel(1.0f);
 
-				Quaternion quatRot = QuaternionFromEulerAngles(m_CameraEulerAngles);
-				Matrix4x4 matAngles = Mat4FromQuaternion(quatRot);
-				matModel = matAngles * matModel;
+				/*Vector3D_OLD vecCameraAnglesRadians{M_DEG2RAD_F(m_CameraEulerAngles.x), M_DEG2RAD_F(m_CameraEulerAngles.y), M_DEG2RAD_F(m_CameraEulerAngles.z)};
+				Quaternion quatAngles = QuaternionFromEulerAngles(vecCameraAnglesRadians);
+				Matrix4x4_OLD matAngles = Mat4FromQuaternion(quatAngles);
+				matModel = matModel * matAngles; */
 
-				matModel = Matrix4x4::Translate(matModel, m_vecCameraPosition);
+				Vector3D vecWorldPos = m_vecCameraPosition + (m_vecCameraForward * 30.0f);
+				matModel = Matrix4x4::Translate(matModel, vecWorldPos);
+
+				Matrix4x4 inverseMatrix = matModel.Inverse();
+
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, m_TestCameraFrustum.iInstanceID, &matModel);
 
 				g_pShaderSystem->BindPerInstanceUniforms(m_TestCameraFrustum.iInstanceID);
@@ -335,13 +341,15 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 	}
 	else
 	{
-		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D_OLD), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 	}
 
 	// Save off details about the camera.
 	m_vecCameraPosition = pCamera.vecPosition;
 	// DEBUGLEFTOFF: Figure this out!
-	m_CameraEulerAngles = Vector3D{ pCamera.Pitch, pCamera.Yaw, 0.0f };
+	//m_CameraEulerAngles = Vector3D_OLD{ pCamera.Pitch, pCamera.Yaw, 0.0f };
+	m_CameraEulerAngles = Vector3D{ pCamera.Yaw, pCamera.Pitch, 0.0f };
+	m_vecCameraForward = pCamera.vecFront;
 
 	return 0;
 }

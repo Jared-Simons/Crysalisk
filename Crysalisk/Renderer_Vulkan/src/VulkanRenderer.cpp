@@ -12,7 +12,6 @@
 #include <Defines.h>
 #include <Interfaces.h>
 #include <Math/MathLib.h>
-#include <Math/VectorTypes.h>
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
 #include <Platform/InterfaceRegistry.h>
@@ -1738,7 +1737,7 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 		return sizeof(Vector3D);
 	case ShaderAttribute_t::Vector4:
 		return sizeof(Vector4D);
-	case ShaderAttribute_t::Matrix4x4:
+	case ShaderAttribute_t::Matrix4:
 		return sizeof(Matrix4x4);
 	default:
 		return 0;

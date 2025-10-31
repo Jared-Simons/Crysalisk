@@ -9,8 +9,6 @@
 
 #include <Defines.h>
 
-#include "VectorTypes.h"
-
 class Vertex2D
 {
 public:

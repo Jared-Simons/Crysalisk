@@ -7,6 +7,7 @@
 #include "Map.h"
 
 #include <Core/Logging.h>
+#include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
@@ -79,11 +80,11 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				pCurOutMesh->m_MeshID = (uint32_t)pOutMap.m_Meshes.Count();
 
 				// Set the transformation matrix.
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
 				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
 
 				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-				Matrix4x4 matAngles = Mat4FromQuaternion(quatAngles);
+				Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
 				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
 
 				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
@@ -220,7 +221,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
-			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3(), vecHalfExtents))
+			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3D(), vecHalfExtents))
 			{
 				bIsInCameraFrustum = false;
 			}

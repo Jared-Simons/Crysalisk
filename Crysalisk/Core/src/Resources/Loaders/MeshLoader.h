@@ -8,7 +8,7 @@
 
 #include "Containers/CVector.h"
 #include <Defines.h>
-#include "Math/VectorTypes.h"
+#include "Math/MathLib.h"
 #include "Math/VertexTypes.h"
 #include "Resources/Loaders/MaterialLoader.h"	// We need this in the case that models have materials to load in.
 #include "Strings/String_Utils.h"

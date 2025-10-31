@@ -10,8 +10,7 @@
 
 #include <Containers/CFreeList.h>
 #include <Containers/CVector.h>
-#include <Math/MatrixTypes.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -53,7 +52,7 @@ enum class ShaderAttribute_t
 	Vector2,
 	Vector3,
 	Vector4,
-	Matrix4x4,
+	Matrix4,
 	GenericStructure,
 	Sampler,
 };
@@ -258,7 +257,7 @@ public:
 };
 
 //-------------------------------------------------------------------------
-// Purpose: A geometric plane, used to build a frustum.
+// Purpose: A geometric plane.
 //-------------------------------------------------------------------------
 struct Plane
 {
@@ -269,13 +268,13 @@ struct Plane
 	{
 		Plane outPlane{};
 		outPlane.vecNormal = pVecNormal.Normalize();
-		outPlane.flDistance = Vector3D::DotProduct(outPlane.vecNormal, pVecPoint);
+		outPlane.flDistance = Vector3D::Dot(outPlane.vecNormal, pVecPoint);
 		return outPlane;
 	}
 
 	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
 	{
-		return Vector3D::DotProduct(vecNormal, pPoint) - flDistance;
+		return Vector3D::Dot(vecNormal, pPoint) - flDistance;
 	}
 };
 
