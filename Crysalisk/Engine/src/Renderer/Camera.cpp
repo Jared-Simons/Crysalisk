@@ -17,16 +17,16 @@
 //-------------------------------------------------------------------------
 void Camera_t::RecalculateCameraVectors()
 {
-	Vector3D_OLD front{};
+	Vector3D front{};
 	front.x = M_COS_F(M_DEG2RAD_F(Yaw)) * M_COS_F(M_DEG2RAD_F(Pitch));
 	front.y = M_SIN_F(M_DEG2RAD_F(Pitch));
 	front.z = M_SIN_F(M_DEG2RAD_F(Yaw)) * M_COS_F(M_DEG2RAD_F(Pitch));
 	vecFront = front.Normalize();
 
-	Vector3D_OLD newRight = Vector3D_OLD::CrossProduct(vecFront, vecWorldUp);
+	Vector3D newRight = Vector3D::Cross(vecFront, vecWorldUp);
 	vecRight = newRight.Normalize();
 
-	Vector3D_OLD newUp = Vector3D_OLD::CrossProduct(vecRight, vecFront);
+	Vector3D newUp = Vector3D::Cross(vecRight, vecFront);
 	vecUp = newUp.Normalize();
 
 	// Recalculate the aspect ratio in case the resolution changed.
@@ -111,12 +111,12 @@ Frustum Camera_t::CreateFrustumFromCamera()
 	Frustum outFrustum{};
 	const float flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);
 	const float flHalfHSide = flHalfVSide * flAspectRatio;
-	Vector3D_OLD vecFrontFar = vecFront * flZFar;
+	Vector3D vecFrontFar = vecFront * flZFar;
 
-	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D_OLD::CrossProduct(vecFrontFar + (vecUp * flHalfVSide), vecRight));
-	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D_OLD::CrossProduct(vecRight, vecFrontFar - (vecUp * flHalfVSide)));
-	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D_OLD::CrossProduct(vecUp, vecFrontFar + (vecRight * flHalfHSide)));
-	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D_OLD::CrossProduct(vecFrontFar - (vecRight * flHalfHSide), vecUp));
+	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecFrontFar + (vecUp * flHalfVSide), vecRight));
+	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecRight, vecFrontFar - (vecUp * flHalfVSide)));
+	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecUp, vecFrontFar + (vecRight * flHalfHSide)));
+	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecFrontFar - (vecRight * flHalfHSide), vecUp));
 	outFrustum.m_Faces[TOP_FACE] = Plane::PlaneCreate((vecFront * flZNear) + vecPosition, vecFront);
 	outFrustum.m_Faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition + vecFrontFar, vecFront * -1.0f);
 

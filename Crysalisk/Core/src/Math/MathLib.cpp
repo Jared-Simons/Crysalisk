@@ -11,7 +11,7 @@
 
 float M_SQRT_F(float x)
 {
-	return sqrt(x);
+	return sqrtf(x);
 }
 
 double M_SQRT(double x)
@@ -21,7 +21,7 @@ double M_SQRT(double x)
 
 float M_SIN_F(float x)
 {
-	return sin(x);
+	return sinf(x);
 }
 
 double M_SIN(double x)
@@ -31,7 +31,7 @@ double M_SIN(double x)
 
 float M_COS_F(float x)
 {
-	return cos(x);
+	return cosf(x);
 }
 
 double M_COS(double x)
@@ -41,7 +41,7 @@ double M_COS(double x)
 
 float M_TAN_F(float x)
 {
-	return tan(x);
+	return tanf(x);
 }
 
 double M_TAN(double x)

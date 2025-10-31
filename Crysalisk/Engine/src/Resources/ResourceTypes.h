@@ -10,7 +10,7 @@
 
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include <Math/VertexTypes.h>
 #include <Renderer/RendererTypes.h>
 #include <Strings/String_Utils.h>
@@ -273,11 +273,11 @@ struct GeometryInstance_t
 	// The index of the model matrix to use during rendering.
 	uint8_t				iLocalToWorldTransform{};
 	// The center of the mesh relative to it's AABB in local space.
-	Vector3D_OLD			vecCenter{};
+	Vector3D			vecCenter{};
 	// The minimum extents of the mesh in local space.
-	Vector3D_OLD			vecMinExtents{};
+	Vector3D			vecMinExtents{};
 	// The maximum extents of the mesh in local space.
-	Vector3D_OLD			vecMaxExtents{};
+	Vector3D			vecMaxExtents{};
 };
 
 // Represents a mesh/model, made up of numerous submeshes.
@@ -288,7 +288,7 @@ struct Mesh
 	// An array of submeshes that make up this mesh.
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// Origin of this mesh in world space.
-	Vector3D_OLD							m_vecAbsOrigin{};
+	Vector3D							m_vecAbsOrigin{};
 	// Transformation matrix for this mesh.
-	Matrix4x4_OLD							m_matLocalToWorldTransform{};
+	Matrix4x4							m_matLocalToWorldTransform{};
 };

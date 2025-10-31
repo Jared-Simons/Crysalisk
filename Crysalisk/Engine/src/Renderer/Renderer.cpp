@@ -126,7 +126,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_SceneView.m_debuggingColor = Vector3D_OLD{ 0.3f, 0.0f, 0.7f };
+		m_SceneView.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
 
 		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
 	}
@@ -149,7 +149,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_UIView.m_debuggingColor = Vector3D_OLD{ 0.7f, 0.0f, 0.9f };
+		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
 
 		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
 	}
@@ -161,7 +161,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D_OLD) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
 
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
@@ -269,32 +269,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->BeginRenderpass(m_SceneView);
 
-	Matrix4x4_OLD matProjection = Matrix4x4_OLD::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
+	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
-	matProjection.data[5] *= -1;
-	Matrix4x4_OLD matView = s_MainCamera.GetViewMatrix();
-	Vector3D_OLD vecCameraPos = s_MainCamera.vecPosition;
-	Matrix4x4_OLD model = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
-	{
-		Vector3D cameraPos{ s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z };
-		Vector3D cameraFront{ s_MainCamera.vecFront.x, s_MainCamera.vecFront.y, s_MainCamera.vecFront.z };
-		Vector3D cameraUp{ s_MainCamera.vecUp.x, s_MainCamera.vecUp.y, s_MainCamera.vecUp.z };
-
-		Matrix4x4 testView = Matrix4x4::LookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-		Matrix4x4 testProj = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < 4; j++)
-			{
-				matView.data[(i + 4) + j] = testView.flData[(i + 4) + j];
-				matProjection.data[(i + 4) + j] = testProj.flData[(i + 4) + j];
-			}
-		}
-	}
-	matProjection.data[5] *= -1.0f;
+	matProjection.flData[5] *= -1;
+	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
+	Vector vecCameraPos = s_MainCamera.vecPosition;
+	Matrix4x4 model = Matrix4x4{ 1.0f };
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
-	Utl::CVector<Matrix4x4_OLD>				TransformMatrices(32);
+	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
 	if (pCurrentMap.IsMapLoaded())
 	{
@@ -351,60 +334,16 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		}
 		if (pCurrentMap.IsMapLoaded() && !bDebugGeoLoaded)
 		{
-			if (iDebugGeoIndex != 0)
+			if (iDebugGeoIndex != kInvalidID_U32)
 			{
-				Vector4D_OLD vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
+				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
 				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen);
 				bDebugGeoLoaded = true;
-
-				/*Vector3D_OLD vecLocalCenter = pOpaqueGeometries[iDebugGeoIndex]->vecCenter;
-				Vector3D_OLD vecLocalMins = pOpaqueGeometries[iDebugGeoIndex]->vecMinExtents;
-				Vector3D_OLD vecLocalMaxs = pOpaqueGeometries[iDebugGeoIndex]->vecMaxExtents;
-
-				Vector3D_OLD vertices[16]{};
-
-				vertices[0] = vecLocalMins;
-				vertices[1] = vecLocalMins;
-				vertices[1].x = vecLocalMaxs.x;
-
-				vertices[2] = vecLocalMins;
-				vertices[3] = vecLocalMins;
-				vertices[3].y = vecLocalMaxs.y;
-
-				vertices[4] = vertices[3];
-				vertices[5] = vertices[3];
-				vertices[5].x = vecLocalMaxs.x;
-
-				vertices[6] = vecLocalMins;
-				vertices[6].x = vecLocalMaxs.x;
-				vertices[7] = vecLocalMins;
-				vertices[7].x = vecLocalMaxs.x;
-				vertices[7].y = vecLocalMaxs.y;
-
-				vertices[8] = vecLocalMaxs;
-				vertices[9] = vecLocalMaxs;
-				vertices[9].x = vecLocalMins.x;
-
-				vertices[10] = vecLocalMaxs;
-				vertices[11] = vecLocalMaxs;
-				vertices[11].y = vecLocalMins.y;
-
-				vertices[12] = vertices[11];
-				vertices[13] = vertices[11];
-				vertices[13].x = vecLocalMins.x;
-
-				vertices[14] = vecLocalMaxs;
-				vertices[14].x = vecLocalMins.x;
-				vertices[15] = vecLocalMaxs;
-				vertices[15].x = vecLocalMins.x;
-				vertices[15].y = vecLocalMins.y;
-
-				m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 16, sizeof(Vector3D_OLD), vertices, 0, nullptr, debugInstance);*/
 			}
 		}
 		else if (pCurrentMap.IsMapLoaded())
 		{
-			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D_OLD{ 1.0f, 1.0f, 1.0f, 1.0f });
+			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 
 		// DEBUGTODO: Just a test.
@@ -412,14 +351,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64 && iDebugGeoIndex != kInvalidID_U32)
 		{
 			g_pShaderSystem->BindShader(hDebugLineShader);
-			model = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
+			model = Matrix4x4{ 1.0f };
 			model = TransformMatrices[pOpaqueGeometries[iDebugGeoIndex]->iLocalToWorldTransform];
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
 
 			g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
 
-			Vector4D_OLD vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
+			Vector4D vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
 
 			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &model);
@@ -441,7 +380,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		m_RendererBackend->BeginRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4_OLD UIProjection = Matrix4x4_OLD::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Orthographic(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);

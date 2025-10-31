@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include "Core/Assertions.h"
 
 const double kPI = 3.14159265359;
 const float kPI_F = 3.14159265359f;
@@ -31,6 +32,9 @@ DLL_EXPORT double M_DEG2RAD(double angleInDegrees);
 
 DLL_EXPORT float M_ABS_F(float x);
 DLL_EXPORT double M_ABS(double x);
+
+// Vector elements must be within this range to be considered 'equal'.
+const float kVectorElementEpsilon = 1.192092896e-07f;
 
 //-------------------------------------------------------------------------
 // Vector2D
@@ -136,9 +140,9 @@ public:
 	// ----------------
 	inline Vector2D Normalize() const
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		Vector2D outVector{ *this };
 		float flLength = outVector.Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -148,8 +152,8 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		float flLength = Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -186,8 +190,11 @@ public:
 	inline Vector2D operator+(const Vector2D& pOtherVector) const { return Add(pOtherVector); }
 	inline Vector2D operator-(const Vector2D& pOtherVector) const { return Subtract(pOtherVector); }
 	inline Vector2D operator-() const { return Negate(); }
-
-	// NewMathTODO: This operation should be communicative... is it possible to define it to take the arguments in either order?
+	inline bool operator==(const Vector2D& pOther) const
+	{
+		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
+			M_ABS(y - pOther.y) < kVectorElementEpsilon);
+	}
 	inline Vector2D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
 	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
@@ -298,9 +305,9 @@ public:
 	// ----------------
 	inline Vector3D Normalize() const
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		Vector3D outVector{ *this };
 		float flLength = outVector.Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -310,8 +317,8 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		float flLength = Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -358,8 +365,15 @@ public:
 	inline Vector3D operator+(const Vector3D& pOtherVector) const { return Add(pOtherVector); }
 	inline Vector3D operator-(const Vector3D& pOtherVector) const { return Subtract(pOtherVector); }
 	inline Vector3D operator-() const { return Negate(); }
-	
-	// NewMathTODO: This operation should be communicative... is it possible to define it to take the arguments in either order?
+	inline Vector3D operator+=(const Vector3D& pOtherVector) { *this = Add(pOtherVector); return *this; }
+	inline Vector3D operator-=(const Vector3D& pOtherVector) { *this = Subtract(pOtherVector); return *this; }
+
+	inline bool operator==(const Vector3D& pOther) const
+	{
+		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
+			M_ABS(y - pOther.y) < kVectorElementEpsilon &&
+			M_ABS(z - pOther.z) < kVectorElementEpsilon);
+	}
 	inline Vector3D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
 	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
@@ -475,9 +489,9 @@ public:
 	// ----------------
 	inline Vector4D Normalize() const
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		Vector4D outVector{ *this };
 		float flLength = outVector.Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -487,8 +501,8 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		// NewMathTODO: Should this check/assert against division by zero? (Probably...)
 		float flLength = Length();
+		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -521,14 +535,17 @@ public:
 		return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]) + (pVector0.flElements[2] * pVector1.flElements[2]) + (pVector0.flElements[3] * pVector1.flElements[3]);
 	}
 
+	inline Vector3D AsVector3D() const
+	{
+		return Vector3D{ flElements[0], flElements[1], flElements[2] };
+	}
+
 	// ------------------
 	// Operator overloads
 	// ------------------
 	inline Vector4D operator+(const Vector3D& pOtherVector) const { return Add(pOtherVector); }
 	inline Vector4D operator-(const Vector3D& pOtherVector) const { return Subtract(pOtherVector); }
 	inline Vector4D operator-() const { return Negate(); }
-
-	// NewMathTODO: This operation should be communicative... is it possible to define it to take the arguments in either order?
 	inline Vector4D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
 	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
@@ -728,9 +745,9 @@ public:
 	static inline Matrix4x4 Translate(const Matrix4x4& pInMatrix, const Vector& pInVector)
 	{
 		Matrix4x4 matTranslate{ pInMatrix };
-		matTranslate.flData[3] += pInVector.x;
-		matTranslate.flData[7] += pInVector.y;
-		matTranslate.flData[11] += pInVector.z;
+		matTranslate.flData[12] += pInVector.x;
+		matTranslate.flData[13] += pInVector.y;
+		matTranslate.flData[14] += pInVector.z;
 		return matTranslate;
 	}
 
@@ -862,7 +879,7 @@ public:
 	// --------------------
 	// Matrix -> Quaternion
 	// --------------------
-	inline Matrix4x4 Mat4FromQuaternion(class Quaternion& inQuat)
+	static inline Matrix4x4 Mat4FromQuaternion(class Quaternion& inQuat)
 	{
 		Matrix4x4 outMat{ 1.0f };
 
@@ -888,3 +905,34 @@ public:
 	inline Vector operator*(const Vector& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
+
+// Quaternion operations
+inline Quaternion QuaternionFromAxisAngle(Vector3D& vecAxisOfRotation, float flAngle)
+{
+	Quaternion outQuat{};
+	outQuat.x = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.x;
+	outQuat.y = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.y;
+	outQuat.z = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.z;
+	outQuat.w = M_COS_F(flAngle / 2.0f);
+	return outQuat;
+}
+
+// NOTE: This expects the euler angles to be in degrees and this method will convert to radians.
+inline Quaternion QuaternionFromEulerAngles(Vector3D& vecEulerAngles)
+{
+	Quaternion outQuat{};
+
+	float flSinX = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flCosX = M_COS_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	float flSinY = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flCosY = M_COS_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	float flSinZ = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+	float flCosZ = M_COS_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+
+	outQuat.x = flCosX * flSinY * flCosZ + flSinX * flCosY * flSinZ;
+	outQuat.y = flSinX * flCosY * flCosZ - flCosX * flSinX * flSinZ;
+	outQuat.z = flCosX * flCosY * flSinZ - flSinX * flSinY * flCosZ;
+	outQuat.w = flCosX * flCosY * flCosZ + flSinX * flCosX * flSinZ;
+
+	return outQuat;
+}

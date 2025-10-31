@@ -8,7 +8,7 @@
 
 #include "Containers/CVector.h"
 #include <Defines.h>
-#include "Math/VectorTypes.h"
+#include "Math/MathLib.h"
 #include "Math/VertexTypes.h"
 #include "Resources/Loaders/MaterialLoader.h"	// We need this in the case that models have materials to load in.
 #include "Strings/String_Utils.h"
@@ -167,8 +167,8 @@ namespace MeshLoader
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 
 		// Transformation data.
-		Vector3D_OLD						vecPosition{};
-		Vector3D_OLD						vecEulerAngles{};
-		Vector3D_OLD						vecScale{};
+		Vector3D						vecPosition{};
+		Vector3D						vecEulerAngles{};
+		Vector3D						vecScale{};
 	};
 }

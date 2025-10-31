@@ -6,18 +6,18 @@
 //=============================================================================
 #pragma once
 
-#include <Math/MatrixTypes.h>
+#include <Math/MathLib.h>
 
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
 struct DebugRendererFrameData_t
 {
-	Matrix4x4_OLD	matProjection{};
-	Matrix4x4_OLD	matView{};
+	Matrix4x4	matProjection{};
+	Matrix4x4	matView{};
 
 	// DEBUGTODO: Is this the best way to handle this?
-	Matrix4x4_OLD*	pTransformMatrices{ nullptr };
+	Matrix4x4*	pTransformMatrices{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -32,8 +32,8 @@ public:
 
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
-	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D_OLD color) = 0;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D_OLD color) = 0;
+	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color) = 0;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) = 0;
 };
 
 extern IDebugRenderer* g_pDebugRenderer;

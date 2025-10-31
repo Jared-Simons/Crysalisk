@@ -31,7 +31,7 @@ public:
 	// The size of this text.
 	float				m_flTextSize{ 0.0f };
 	// The position of this text (in Screen-Space [1080x720]).
-	Vector2D_OLD			m_vecPos{};
+	Vector2D			m_vecPos{};
 	// The text this element should be rendering.
 	char*				m_pszText{ nullptr };
 	// The font to be used in rendering.

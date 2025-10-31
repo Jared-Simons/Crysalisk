@@ -179,9 +179,9 @@ namespace MeshLoader
 		MeshResource_t::GeometryGroup_t*		pCurrentObject{ nullptr };
 		MeshResource_t::GeometryObject_t*		pCurrentGroup{ nullptr };
 		int										nObjectsProcessed{ 0 };
-		Utl::CVector<Vector3D_OLD>					vertexPositions{};
-		Utl::CVector<Vector2D_OLD>					vertexTexCoords{};
-		Utl::CVector<Vector3D_OLD>					vertexNormals{};
+		Utl::CVector<Vector3D>					vertexPositions{};
+		Utl::CVector<Vector2D>					vertexTexCoords{};
+		Utl::CVector<Vector3D>					vertexNormals{};
 
 		char* pszMtlPath = nullptr;
 		size_t mtlPathLength = 0;
@@ -279,7 +279,7 @@ namespace MeshLoader
 				{
 					case ' ':	// Vertex position.
 					{
-						Vector3D_OLD newVertex{};
+						Vector3D newVertex{};
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newVertex.x, &newVertex.y, &newVertex.z);
 
 						CAssert(numElements == 3);
@@ -290,7 +290,7 @@ namespace MeshLoader
 
 					case 't':	// Vertex texture coordinates.
 					{
-						Vector2D_OLD newTexCoord{};
+						Vector2D newTexCoord{};
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
 
 						CAssert(numElements == 2);
@@ -301,7 +301,7 @@ namespace MeshLoader
 
 					case 'n':	// Vertex normals.
 					{
-						Vector3D_OLD newNormal{};
+						Vector3D newNormal{};
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
 
 						CAssert(numElements == 3);
@@ -636,11 +636,11 @@ namespace MeshLoader
 			Vertex3D& vert1 = pConfig->Vertices[pConfig->Indices[idx + 1]];
 			Vertex3D& vert2 = pConfig->Vertices[pConfig->Indices[idx + 2]];
 
-			Vector3D_OLD edge1 = vert1.Pos - vert0.Pos;
-			Vector3D_OLD edge2 = vert2.Pos - vert0.Pos;
+			Vector3D edge1 = vert1.Pos - vert0.Pos;
+			Vector3D edge2 = vert2.Pos - vert0.Pos;
 
-			Vector2D_OLD deltaUV1 = vert1.TexCoord - vert0.TexCoord;
-			Vector2D_OLD deltaUV2 = vert2.TexCoord - vert0.TexCoord;
+			Vector2D deltaUV1 = vert1.TexCoord - vert0.TexCoord;
+			Vector2D deltaUV2 = vert2.TexCoord - vert0.TexCoord;
 
 			float dividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
 			float f = 1.0f / dividend;
@@ -654,7 +654,7 @@ namespace MeshLoader
 				continue;
 			}
 
-			Vector3D_OLD vecTangent{};
+			Vector3D vecTangent{};
 			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
 			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);

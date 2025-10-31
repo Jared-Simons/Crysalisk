@@ -363,9 +363,9 @@ namespace Utl
 	//			pOutVec - Vector that will hold the converted character.
 	// Output:	none.
 	//-------------------------------------------------------------------------
-	void String_ToVector3(const char* c, Vector3D_OLD* pOutVec)
+	void String_ToVector3(const char* c, Vector3D* pOutVec)
 	{
-		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->x, &pOutVec->y, &pOutVec->z);
+		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
 		CAssert(numElements == 3);
 	}
 

@@ -10,8 +10,7 @@
 
 #include <Containers/CFreeList.h>
 #include <Containers/CVector.h>
-#include <Math/MatrixTypes.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -53,7 +52,7 @@ enum class ShaderAttribute_t
 	Vector2,
 	Vector3,
 	Vector4,
-	Matrix4x4_OLD,
+	Matrix4,
 	GenericStructure,
 	Sampler,
 };
@@ -254,28 +253,28 @@ public:
 	// A pointer to the internal data of the buffer.
 	void*	m_pInternalData{ nullptr };
 	// A color used for debugging tools. Otherwise does nothing.
-	Vector3D_OLD m_debuggingColor{};
+	Vector3D m_debuggingColor{};
 };
 
 //-------------------------------------------------------------------------
-// Purpose: A geometric plane, used to build a frustum.
+// Purpose: A geometric plane.
 //-------------------------------------------------------------------------
 struct Plane
 {
-	Vector3D_OLD	vecNormal{};
+	Vector3D	vecNormal{};
 	float		flDistance{};
 
-	static inline Plane PlaneCreate(Vector3D_OLD pVecPoint, Vector3D_OLD pVecNormal)
+	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
 	{
 		Plane outPlane{};
 		outPlane.vecNormal = pVecNormal.Normalize();
-		outPlane.flDistance = Vector3D_OLD::DotProduct(outPlane.vecNormal, pVecPoint);
+		outPlane.flDistance = Vector3D::Dot(outPlane.vecNormal, pVecPoint);
 		return outPlane;
 	}
 
-	inline float GetSignedDistanceToPlane(Vector3D_OLD& pPoint)
+	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
 	{
-		return Vector3D_OLD::DotProduct(vecNormal, pPoint) - flDistance;
+		return Vector3D::Dot(vecNormal, pPoint) - flDistance;
 	}
 };
 
@@ -302,7 +301,7 @@ struct Frustum
 	// Can be indexed using the eFrustumPlanes enum.
 	Plane	m_Faces[MAX_FRUSTUM_PLANES];
 
-	inline bool	FrustumIntersectsAABB(Vector3D_OLD& pVecCenter, Vector3D_OLD& pVecExtents)
+	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
 	{
 		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
 		{

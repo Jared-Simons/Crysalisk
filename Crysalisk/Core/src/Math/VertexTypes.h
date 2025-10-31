@@ -9,14 +9,12 @@
 
 #include <Defines.h>
 
-#include "VectorTypes.h"
-
 class Vertex2D
 {
 public:
-	Vector2D_OLD Pos;
-	Vector4D_OLD Color;
-	Vector2D_OLD TexCoord;
+	Vector2D Pos;
+	Vector4D Color;
+	Vector2D TexCoord;
 };
 
 class Vertex3D
@@ -25,7 +23,7 @@ public:
 	Vertex3D()
 		: Pos{}, TexCoord{}, Normal{}, Tangent{} {}
 
-	Vertex3D(Vector3D_OLD&& inPos, Vector3D_OLD&& inColor, Vector2D_OLD&& intexCoord)
+	Vertex3D(Vector3D&& inPos, Vector3D&& inColor, Vector2D&& intexCoord)
 		: Pos{ inPos }, TexCoord{ intexCoord } {}
 
 	bool operator==(const Vertex3D& pOther)
@@ -36,9 +34,9 @@ public:
 				(Tangent == pOther.Tangent));
 	}
 
-	Vector3D_OLD Pos;
-	//Vector3D_OLD Color;
-	Vector2D_OLD TexCoord;
-	Vector3D_OLD Normal;
-	Vector3D_OLD Tangent;
+	Vector3D Pos;
+	//Vector3D Color;
+	Vector2D TexCoord;
+	Vector3D Normal;
+	Vector3D Tangent;
 };

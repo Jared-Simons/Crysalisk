@@ -7,6 +7,7 @@
 #include "Map.h"
 
 #include <Core/Logging.h>
+#include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
@@ -79,14 +80,14 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				pCurOutMesh->m_MeshID = (uint32_t)pOutMap.m_Meshes.Count();
 
 				// Set the transformation matrix.
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Matrix4x4_OLD(1.0f);
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
 
 				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-				Matrix4x4_OLD matAngles = Mat4FromQuaternion_OLD(quatAngles);
+				Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
 				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
 
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4_OLD::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
+				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
 
 				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
@@ -109,8 +110,8 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 						// Set up extent data.
 						{
 							// TODO: Use some actual limits for these values.
-							Vector3D_OLD vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
-							Vector3D_OLD vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
+							Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
+							Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
 							
 							for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
 							{
@@ -191,7 +192,7 @@ void CMap::UnloadMap()
 	m_Meshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4_OLD>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
 {
 	Mesh*				pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -211,16 +212,16 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			bool bIsInCameraFrustum = true;
 
-			Vector4D_OLD vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
-			Vector4D_OLD vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
+			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
-			Vector3D_OLD vecHalfExtents = {
+			Vector3D vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
 				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
-			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3(), vecHalfExtents))
+			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3D(), vecHalfExtents))
 			{
 				bIsInCameraFrustum = false;
 			}
