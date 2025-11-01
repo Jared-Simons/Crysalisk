@@ -190,17 +190,10 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			{
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, m_TestCameraFrustum.iInstanceID, &m_TestCameraFrustum.color);
 
-				Matrix4x4 matModel(1.0f);
-
-				/*Vector3D_OLD vecCameraAnglesRadians{M_DEG2RAD_F(m_CameraEulerAngles.x), M_DEG2RAD_F(m_CameraEulerAngles.y), M_DEG2RAD_F(m_CameraEulerAngles.z)};
-				Quaternion quatAngles = QuaternionFromEulerAngles(vecCameraAnglesRadians);
-				Matrix4x4_OLD matAngles = Mat4FromQuaternion(quatAngles);
-				matModel = matModel * matAngles; */
-
-				Vector3D vecWorldPos = m_vecCameraPosition + (m_vecCameraForward * 30.0f);
-				matModel = Matrix4x4::Translate(matModel, vecWorldPos);
-
-				Matrix4x4 inverseMatrix = matModel.Inverse();
+				// Generate a matrix that follows the camera's transform.
+				Matrix4x4 matModel{ 1.0f };
+				matModel = pFrameData.matProjection.Inverse();
+				matModel = matModel * pFrameData.matView.Inverse();
 
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, m_TestCameraFrustum.iInstanceID, &matModel);
 
@@ -329,11 +322,58 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 		g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
 	}
 
-	const int iNumVertices = 2;
+	const int iNumVertices = 24;
 	Vector3D ptVertices[iNumVertices]{};
 
-	ptVertices[0] = Vector3D{ -50.0f, 0.0f, -60.0f, };
-	ptVertices[1] = Vector3D{ 50.0f, 0.0f, -60.0f };
+	ptVertices[0] = m_vecCameraPosition + Vector3D{ -50.0f, 0.0f, -60.0f, };
+	ptVertices[1] = m_vecCameraPosition + Vector3D{ 50.0f, 0.0f, -60.0f };
+	// DEBUGTODO: Reuse from the scene's frustum instead of generating a second one.
+	Frustum cameraFrustum = pCamera.CreateFrustumFromCamera();
+	{
+		// DEBUGTODO: Document this process.
+		// DEBUGTODO: This frustum is compressed slightly so it actually shows up on the screen (we don't have multiple cameras working yet).
+		//				Make sure to make this go from (-1,-1,-1) to (1,1,1).
+
+		Vector frustumVerts[8]{};
+		frustumVerts[0] = Vector{ 0.95f, 0.95f, 0.95f };
+		frustumVerts[1] = Vector{ -0.95f, 0.95f, 0.95f };
+		frustumVerts[2] = Vector{ 0.95f, -0.95f, 0.95f };
+		frustumVerts[3] = Vector{ -0.95f, -0.95f, 0.95f };
+		frustumVerts[4] = Vector{ 0.95f, 0.95f, -0.9f };
+		frustumVerts[5] = Vector{ -0.95f, 0.95f, -0.9f };
+		frustumVerts[6] = Vector{ 0.95f, -0.95f, -0.9f };
+		frustumVerts[7] = Vector{ -0.95f, -0.95f, -0.9f };
+
+		// Defines the far-clipping plane.
+		ptVertices[0] = frustumVerts[0];
+		ptVertices[1] = frustumVerts[1];
+		ptVertices[2] = frustumVerts[2];
+		ptVertices[3] = frustumVerts[3];
+		ptVertices[4] = frustumVerts[0];
+		ptVertices[5] = frustumVerts[2];
+		ptVertices[6] = frustumVerts[1];
+		ptVertices[7] = frustumVerts[3];
+
+		// Defines the near-clipping plane.
+		ptVertices[8] = frustumVerts[4];
+		ptVertices[9] = frustumVerts[5];
+		ptVertices[10] = frustumVerts[6];
+		ptVertices[11] = frustumVerts[7];
+		ptVertices[12] = frustumVerts[4];
+		ptVertices[13] = frustumVerts[6];
+		ptVertices[14] = frustumVerts[5];
+		ptVertices[15] = frustumVerts[7];
+
+		// Connect the four corners.
+		ptVertices[16] = frustumVerts[0];
+		ptVertices[17] = frustumVerts[4];
+		ptVertices[18] = frustumVerts[1];
+		ptVertices[19] = frustumVerts[5];
+		ptVertices[20] = frustumVerts[2];
+		ptVertices[21] = frustumVerts[6];
+		ptVertices[22] = frustumVerts[3];
+		ptVertices[23] = frustumVerts[7];
+	}
 
 	if (bAcquireNewResources)
 	{
@@ -341,13 +381,12 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 	}
 	else
 	{
-		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D_OLD), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 	}
 
 	// Save off details about the camera.
 	m_vecCameraPosition = pCamera.vecPosition;
 	// DEBUGLEFTOFF: Figure this out!
-	//m_CameraEulerAngles = Vector3D_OLD{ pCamera.Pitch, pCamera.Yaw, 0.0f };
 	m_CameraEulerAngles = Vector3D{ pCamera.Yaw, pCamera.Pitch, 0.0f };
 	m_vecCameraForward = pCamera.vecFront;
 

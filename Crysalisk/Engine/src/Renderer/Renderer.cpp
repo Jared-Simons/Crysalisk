@@ -372,6 +372,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	DebugRendererFrameData_t debugFrameData{};
 	debugFrameData.matProjection = matProjection;
 	debugFrameData.matView = matView;
+	debugFrameData.vecCameraPosition = s_MainCamera.vecPosition;
+	debugFrameData.vecCameraForward = s_MainCamera.vecFront;
 	debugFrameData.pTransformMatrices = TransformMatrices.Data();
 	g_pDebugRenderer->Render(debugFrameData);
 

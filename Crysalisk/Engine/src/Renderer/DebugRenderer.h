@@ -15,6 +15,8 @@ struct DebugRendererFrameData_t
 {
 	Matrix4x4	matProjection{};
 	Matrix4x4	matView{};
+	Vector3D	vecCameraPosition{};
+	Vector3D	vecCameraForward{};
 
 	// DEBUGTODO: Is this the best way to handle this?
 	Matrix4x4*	pTransformMatrices{ nullptr };
