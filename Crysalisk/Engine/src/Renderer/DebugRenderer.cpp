@@ -61,8 +61,8 @@ private:
 private:
 	RendererView	m_DebugView{};
 
-	// NOTE: Does not have an index buffer.
 	RenderBuffer		m_DebugVertexBuffer{};
+	RenderBuffer		m_DebugIndexBuffer{};
 
 	ShaderHandle_t				m_hDebugLineShader{ kInvalidID_U32 };
 	DebugShaderUniformLocations	m_DebugShaderUniforms{};
@@ -117,9 +117,15 @@ bool CDebugRenderer::Initialize()
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugVertexBuffer))
+	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Vertex_Buffer", m_DebugVertexBuffer))
 	{
-		LOG_ERROR("Failed to create debug render buffer!");
+		LOG_ERROR("Failed to create debug vertex buffer!");
+		return false;
+	}
+
+	if (!g_pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Index_Buffer", m_DebugIndexBuffer))
+	{
+		LOG_ERROR("Failed to create debug index buffer!");
 		return false;
 	}
 
@@ -154,6 +160,7 @@ bool CDebugRenderer::InitializeDebugShaders()
 //-------------------------------------------------------------------------
 void CDebugRenderer::Shutdown()
 {
+	g_pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
 	g_pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
 	g_pRenderer->DestroyRendererView(m_DebugView);
 
@@ -185,7 +192,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, pTestGeometry.iInstanceID, &matModel);
 
 				g_pShaderSystem->BindPerInstanceUniforms(pTestGeometry.iInstanceID);
-				g_pRenderer->DrawGeometry(pTestGeometry.geometryInstance, &m_DebugVertexBuffer, nullptr);
+				g_pRenderer->DrawGeometry(pTestGeometry.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
 			}
 
 			if (m_TestCameraFrustum.iInstanceID != kInvalidID_U32)
@@ -320,26 +327,51 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
 
-	const int iNumSphereSectors = 1;
-	const int iNumSphereStacks = 10;
-
-	const int iNumVertices = (iNumSphereSectors * iNumSphereStacks) * 2; // * 2 because we aren't indexing these guys yet.
+	const int iNumVertices = 72;
 	Vector3D ptVertices[iNumVertices]{};
 
-	for (int iStack = 0; iStack < iNumSphereStacks; iStack++)
-	{
-		for (int iSector = 0; iSector < iNumSphereSectors; iSector++)
-		{
-			float flTheta = 2.0f * kPI_F * (float)((float)iSector / iNumSphereSectors);
-			float flPhi = (kPI_F / 2.0f) - kPI * (float)((float)iStack / iNumSphereStacks);
+	const float fl2PI = 2.0f * kPI_F;
+	int iCurrentVert = 0;
 
-			ptVertices[iStack + iSector].x = (flRadius * M_COS_F(flPhi)) * M_COS_F(flTheta);
-			ptVertices[iStack + iSector].y = (flRadius * M_COS_F(flPhi)) * M_SIN_F(flTheta);
-			ptVertices[iStack + iSector].z = (flRadius * M_SIN(flPhi));
-		}
+	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	{
+		ptVertices[iCurrentVert].x = flRadius * M_COS_F(flAngle);
+		ptVertices[iCurrentVert].y = flRadius * M_SIN_F(flAngle);
+		iCurrentVert += 1;
 	}
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	{
+		ptVertices[iCurrentVert].x = flRadius * M_COS_F(flAngle);
+		ptVertices[iCurrentVert].z = flRadius * M_SIN_F(flAngle);
+		iCurrentVert += 1;
+	}
+
+	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	{
+		ptVertices[iCurrentVert].y = flRadius * M_COS_F(flAngle);
+		ptVertices[iCurrentVert].z = flRadius * M_SIN_F(flAngle);
+		iCurrentVert += 1;
+	}
+
+	const int iNumIndices = 144;
+	uint32_t indices[iNumIndices]{};
+	iCurrentVert = 1;
+	// Setup index data.
+	for (int iIndex = 0; iIndex < iNumIndices; iIndex += 2)
+	{
+		indices[iIndex] = iCurrentVert - 1;
+		indices[iIndex + 1] = iCurrentVert;
+
+		iCurrentVert++;
+	}
+
+	// Create make sure the last vert of the circle links back to the first vert (because it's a circle!)
+	indices[47] = indices[0];
+	indices[95] = indices[48];
+	indices[143] = indices[96];
+
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, iNumVertices, sizeof(Vector3D), ptVertices, iNumIndices, indices, pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this sphere will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
