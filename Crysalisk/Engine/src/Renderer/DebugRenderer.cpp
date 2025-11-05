@@ -50,6 +50,7 @@ public:
 
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
+	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color) override;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) override;
@@ -218,6 +219,36 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 		LOG_ERROR("Failed to begin Debug Renderpass. Skipping debug rendering.");
 		return;
 	}
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color)
+{
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+	pNewGeometry.color = color;
+
+	// Acquire new shader instance resources.
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
+
+	// Create a 3D cross at the point that extends out from the origin by the given radius.
+	Vector ptVerts[4] = { pOrigin, pOrigin, pOrigin, pOrigin };
+	ptVerts[1].x += flRadius;
+	ptVerts[2].y += flRadius;
+	ptVerts[3].z += flRadius;
+
+	uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
+
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, 4, sizeof(Vector3D), ptVerts, 6, indices, pNewGeometry.geometryInstance);
+
+	// Create a new transform matrix (this method assumes that this geometry will not be parented with another transform).
+	Matrix4x4 matTransform{ 1.0f };
+	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
+
+	return iDebugGeometryIndex;
 }
 
 //-------------------------------------------------------------------------

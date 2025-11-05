@@ -728,7 +728,7 @@ bool Renderer::CreateTempTextObjects()
 		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D_OLD), positions, 0, nullptr, debugInstance);*/
 	}
 
-	g_pDebugRenderer->AddSphere(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f });
+	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	return true;
 }
