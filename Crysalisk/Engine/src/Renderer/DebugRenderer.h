@@ -35,6 +35,7 @@ public:
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
 	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color) = 0;
+	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) = 0;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) = 0;
 };
 

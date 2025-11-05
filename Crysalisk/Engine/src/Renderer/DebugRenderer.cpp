@@ -52,6 +52,7 @@ public:
 
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
+	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) override;
 
 private:
@@ -303,6 +304,47 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 	// Store off the transform index.
 	pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
+
+	return iDebugGeometryIndex;
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color)
+{
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+
+	pNewGeometry.color = color;
+
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
+
+	const int iNumSphereSectors = 1;
+	const int iNumSphereStacks = 10;
+
+	const int iNumVertices = (iNumSphereSectors * iNumSphereStacks) * 2; // * 2 because we aren't indexing these guys yet.
+	Vector3D ptVertices[iNumVertices]{};
+
+	for (int iStack = 0; iStack < iNumSphereStacks; iStack++)
+	{
+		for (int iSector = 0; iSector < iNumSphereSectors; iSector++)
+		{
+			float flTheta = 2.0f * kPI_F * (float)((float)iSector / iNumSphereSectors);
+			float flPhi = (kPI_F / 2.0f) - kPI * (float)((float)iStack / iNumSphereStacks);
+
+			ptVertices[iStack + iSector].x = (flRadius * M_COS_F(flPhi)) * M_COS_F(flTheta);
+			ptVertices[iStack + iSector].y = (flRadius * M_COS_F(flPhi)) * M_SIN_F(flTheta);
+			ptVertices[iStack + iSector].z = (flRadius * M_SIN(flPhi));
+		}
+	}
+
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+
+	// Create a new transform matrix (this method assumes that this sphere will not be parented with another transform).
+	Matrix4x4 matTransform{ 1.0f };
+	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
 
 	return iDebugGeometryIndex;
 }
