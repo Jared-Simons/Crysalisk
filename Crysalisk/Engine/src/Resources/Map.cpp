@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
+#include "Renderer/DebugRenderer.h"
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 {
@@ -60,7 +61,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 	{
 		LOG_INFO("Acquiring map mesh resources.");
 
-		size_t iMeshCount = pNewMapResource.MeshResources.Capacity();
+		size_t iMeshCount = pNewMapResource.MeshResources.Count();
 		pOutMap.m_Meshes.Resize(iMeshCount);
 
 		MeshLoader::MeshResource_t*						pCurObject = nullptr;
@@ -72,7 +73,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 			pCurObject = &pNewMapResource.MeshResources[objIdx];
 			CAssert(pCurObject != nullptr);
 
-			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Capacity(); meshIdx++)
+			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Count(); meshIdx++)
 			{
 				// Add a new mesh entry to the map.
 				pOutMap.m_Meshes.PushBack(Mesh{});
@@ -92,6 +93,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 				pCurMesh = &pCurObject->pObjects[meshIdx];
 				CAssert(pCurMesh != nullptr);
 
+				// TODO: Make this count, not capacity.
 				for (int subMeshIdx = 0; subMeshIdx < pCurMesh->pGroups.Capacity(); subMeshIdx++)
 				{
 					GeometryConfig_t newConfig{};
@@ -212,6 +214,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			bool bIsInCameraFrustum = true;
 
+			//CAssert(iMesh != 2);
 			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
 			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
@@ -221,10 +224,21 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
+			pCurrentSubmesh->matLocalToWorldTransform = pCurrentMesh->m_matLocalToWorldTransform;
+			static bool bTest = false;
+			if (!bTest && iMesh == 1)
+			{
+				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f });
+				bTest = true;
+			}
+
 			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3D(), vecHalfExtents))
 			{
 				bIsInCameraFrustum = false;
 			}
+
+			// DEBUGTODO: FIX FRUSTUM CULLING!!!
+			bIsInCameraFrustum = true;
 
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
 			if (bIsInCameraFrustum)

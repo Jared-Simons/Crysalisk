@@ -180,6 +180,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 
 				// DEBUGTODO: Get this from somewhere!
 				Matrix4x4 matModel = pFrameData.pTransformMatrices[pTestGeometry.geometryInstance.iLocalToWorldTransform];
+				matModel = pTestGeometry.geometryInstance.matLocalToWorldTransform;
 				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, pTestGeometry.iInstanceID, &matModel);
 
 				g_pShaderSystem->BindPerInstanceUniforms(pTestGeometry.iInstanceID);
@@ -301,6 +302,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 
 	// Store off the transform index.
 	pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
 
 	return iDebugGeometryIndex;
 }

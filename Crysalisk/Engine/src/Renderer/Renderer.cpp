@@ -324,9 +324,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		static bool bDebugGeoLoaded = false;
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
-			//if (pOpaqueGeometries[idx]->hMaterial == 2)
-			//if (pOpaqueGeometries[idx]->hMaterial == 28)
-			if (pOpaqueGeometries[idx]->m_MeshID == 3)
+			if (pOpaqueGeometries[idx]->hMaterial == 28)
+			//if (pTransparentGeometries[idx]->hMaterial == 17)
+			//if (pOpaqueGeometries[idx]->m_MeshID == 1)
+			//if (pOpaqueGeometries[idx]->m_MeshID == 3)
 			{
 				iDebugGeoIndex = idx;
 				break;

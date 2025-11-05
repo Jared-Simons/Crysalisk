@@ -272,6 +272,7 @@ struct GeometryInstance_t
 	uint32_t							m_MeshID{ kInvalidID_U32 };
 	// The index of the model matrix to use during rendering.
 	uint8_t				iLocalToWorldTransform{};
+	Matrix4x4			matLocalToWorldTransform{};  // DEBUGTODO: Figure out how to store these transforms effectively.
 	// The center of the mesh relative to it's AABB in local space.
 	Vector3D			vecCenter{};
 	// The minimum extents of the mesh in local space.

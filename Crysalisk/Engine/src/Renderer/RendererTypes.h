@@ -309,7 +309,8 @@ struct Frustum
 				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +
 				pVecExtents.z * M_ABS_F(m_Faces[iFrustumFace].vecNormal.z);
 			
-			if (!(-r <= m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter)))
+			//if (!(-r <= m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter)))
+			if (m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter) <= -r)
 				return false;
 		}
 
