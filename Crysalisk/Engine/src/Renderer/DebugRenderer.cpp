@@ -11,6 +11,7 @@
 #include <Math/MathLib.h>
 #include "Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/FontSystem.h"
 #include "Systems/ShaderSystem.h"
 
 // DEBUGLEFTOFF:
@@ -20,15 +21,29 @@
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-struct DebugGeometry_t
+enum class DebugGeometryType
 {
-	unsigned int		iInstanceID{ kInvalidID_U32 };
-	Vector4D			color{}; // DEBUGTODO: See if we have to store this off (if the color is constant, could we just write to the descriptor and forget?)
-	GeometryInstance_t	geometryInstance{};
+	UNDEFINED = 0,
+	LINE,
+	TEXT,
+
+	MAX_TYPES
 };
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: An instance of debug geometry, contains all of the
+//			data/resources necessary to render debug geometry.
+//-------------------------------------------------------------------------
+struct DebugGeometry_t
+{
+	unsigned int		iInstanceID{ kInvalidID_U32 };
+	Vector4D			color{};
+	GeometryInstance_t	geometryInstance{};
+	DebugGeometryType	type{ DebugGeometryType::LINE };	// DEBUGTODO: Don't default this and set it in each method.
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Indices for each of the debug shader uniform lookups.
 //-------------------------------------------------------------------------
 struct DebugShaderUniformLocations
 {
@@ -39,12 +54,12 @@ struct DebugShaderUniformLocations
 };
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Debug renderer implementation.
 //-------------------------------------------------------------------------
 class CDebugRenderer : public IDebugRenderer
 {
 public:
-	virtual bool	Initialize() override;
+	virtual bool	Initialize(DebugRendererConfig_t& pConfig) override;
 	virtual bool	InitializeDebugShaders() override;
 	virtual void	Shutdown() override;
 
@@ -54,29 +69,26 @@ public:
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) override;
+	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) override;
 
 private:
 	int				GetFirstFreeGeometryDataIndex() const;
 
 private:
+	// The debug renderer's renderpass.
 	RendererView	m_DebugView{};
 
-	RenderBuffer		m_DebugVertexBuffer{};
-	RenderBuffer		m_DebugIndexBuffer{};
+	RenderBuffer	m_DebugVertexBuffer{};
+	RenderBuffer	m_DebugIndexBuffer{};
 
 	ShaderHandle_t				m_hDebugLineShader{ kInvalidID_U32 };
 	DebugShaderUniformLocations	m_DebugShaderUniforms{};
 
+	ShaderHandle_t				m_hDebugTextShader{ kInvalidID_U32 };
+
 	int					m_iNumGeometryInstances{ 0 };
 	DebugGeometry_t*	m_GeometryData{ nullptr };
-
-	// FRUSTUM TEST
-	DebugGeometry_t		m_TestCameraFrustum{};
-	Vector3D			m_vecCameraPosition{};
-	Vector3D			m_CameraEulerAngles{};
-	Vector3D			m_vecCameraForward{};
-	// END FRUSTUM TEST
 };
 
 CDebugRenderer s_DebugRenderer;
@@ -85,10 +97,10 @@ IDebugRenderer* g_pDebugRenderer = &s_DebugRenderer;
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CDebugRenderer::Initialize()
+bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
 {
 	// Setup debug geometry array.
-	m_iNumGeometryInstances = 64; // DEBUGTODO: Make this configurable.
+	m_iNumGeometryInstances = pConfig.uMaxDebugGeometries;
 	m_GeometryData = new DebugGeometry_t[m_iNumGeometryInstances]; 
 
 	// Setup the debug renderpass.
@@ -134,7 +146,7 @@ bool CDebugRenderer::Initialize()
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Perform some post-initialization setup.
 //-------------------------------------------------------------------------
 bool CDebugRenderer::InitializeDebugShaders()
 {
@@ -145,12 +157,11 @@ bool CDebugRenderer::InitializeDebugShaders()
 	m_DebugShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
 	m_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
 
-	// DEBUGTODO: Test
+	m_hDebugTextShader = g_pShaderSystem->AcquireShader("Debug.Text");
+
+	// DEBUGTODO: TEST
 	{
-		Vector3D ptStartPos{ -90, 94, -178 };
-		Vector3D ptEndPos{ 470, 94, -178 };
-		Vector4D color{ 1.0f, 0.0f, 0.0f, 1.0f };
-		AddLine(ptStartPos, ptEndPos, color);
+		//AddText(Vector{ 0.0f, 0.0f, -200.0f }, 0, "TEST TEXT", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
 	}
 
 	return true;
@@ -171,45 +182,56 @@ void CDebugRenderer::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Render all active debug geometries.
 //-------------------------------------------------------------------------
 void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 {
 	if (g_pRenderer->BeginRendererView(m_DebugView))
 	{
-		// DEBUGTODO: Test
+		// Apply per-frame shader uniforms.
+		g_pShaderSystem->BindShader(m_hDebugLineShader);
+		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
+
+		g_pShaderSystem->BindShader(m_hDebugTextShader);
+		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
+
+		bool bLineShaderBound = false;
+		ShaderHandle_t hCurrentlyBoundShader = m_hDebugTextShader;
+
+		// Just iterate through everything for now.
+		// This is not very efficient, could make this work with a spatial partition or tie to entity/pvs.
+		for (int iGeo = 0; iGeo < m_iNumGeometryInstances; iGeo++)
 		{
-			if (m_GeometryData[1].iInstanceID != kInvalidID_U32)
+			DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
+			if (pCurGeo.iInstanceID == kInvalidID_U32)
+				continue;
+
+			if (pCurGeo.type == DebugGeometryType::TEXT)
 			{
-				DebugGeometry_t& pTestGeometry = m_GeometryData[1];
-				g_pShaderSystem->BindShader(m_hDebugLineShader);
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, pTestGeometry.iInstanceID, &pTestGeometry.color);
-
-				// DEBUGTODO: Get this from somewhere!
-				Matrix4x4 matModel = pFrameData.pTransformMatrices[pTestGeometry.geometryInstance.iLocalToWorldTransform];
-				matModel = pTestGeometry.geometryInstance.matLocalToWorldTransform;
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, pTestGeometry.iInstanceID, &matModel);
-
-				g_pShaderSystem->BindPerInstanceUniforms(pTestGeometry.iInstanceID);
-				g_pRenderer->DrawGeometry(pTestGeometry.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+				if (bLineShaderBound)
+				{
+					g_pShaderSystem->BindShader(m_hDebugTextShader);
+					hCurrentlyBoundShader = m_hDebugTextShader;
+					bLineShaderBound = false;
+				}
+			}
+			else
+			{
+				if (!bLineShaderBound)
+				{
+					g_pShaderSystem->BindShader(m_hDebugLineShader);
+					hCurrentlyBoundShader = m_hDebugLineShader;
+					bLineShaderBound = true;
+				}
 			}
 
-			if (m_TestCameraFrustum.iInstanceID != kInvalidID_U32)
-			{
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.color, 0, m_TestCameraFrustum.iInstanceID, &m_TestCameraFrustum.color);
+			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
 
-				// Generate a matrix that follows the camera's transform.
-				Matrix4x4 matModel{ 1.0f };
-				matModel = pFrameData.matProjection.Inverse();
-				matModel = matModel * pFrameData.matView.Inverse();
-
-				g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.model, 0, m_TestCameraFrustum.iInstanceID, &matModel);
-
-				g_pShaderSystem->BindPerInstanceUniforms(m_TestCameraFrustum.iInstanceID);
-				g_pRenderer->DrawGeometry(m_TestCameraFrustum.geometryInstance, &m_DebugVertexBuffer, nullptr);
-			}
+			g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
+			g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
 		}
 
 		g_pRenderer->EndRendererView();
@@ -222,7 +244,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Adds a point (provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color)
 {
@@ -265,6 +287,9 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 
 	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
+
+	// Just use an identity matrix for the transform (this shouldn't ever move around).
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 
 	return iDebugGeometryIndex;
 }
@@ -397,7 +422,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 		iCurrentVert++;
 	}
 
-	// Create make sure the last vert of the circle links back to the first vert (because it's a circle!)
+	// Make sure the last vert of the circle links back to the first vert (because it's a circle!)
 	indices[47] = indices[0];
 	indices[95] = indices[48];
 	indices[143] = indices[96];
@@ -414,26 +439,52 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
+// This is broken.
+//-------------------------------------------------------------------------
+int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color)
+{
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+	pNewGeometry.color = color;
+	pNewGeometry.type = DebugGeometryType::TEXT;
+
+	TextObject	pText{}; // DEBUGTODO: Do we need this??
+	pText.m_pszText = (char*)pszText; // NOTE: Not copying this because we probably won't need this once this function exits.
+	GeometryConfig2D_t textConfig = g_pFontSystem->AcquireConfigForText(pText, hFont, 12.0f);
+
+	g_pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
+
+	// Acquire new shader instance resources.
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
+
+	// Create a new transform matrix. TODO: Make this billboarded or something.
+	Matrix4x4 matTransform{ 1.0f };
+	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
+
+	return iDebugGeometryIndex;
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+// This is broken again.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 {
-	//int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
-	//DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
-	DebugGeometry_t& pNewGeometry = m_TestCameraFrustum;
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
-	bool bAcquireNewResources = pNewGeometry.iInstanceID == kInvalidID_U32;
 
-	if (bAcquireNewResources)
-	{
-		// Acquire new shader instance resources.
-		g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
-	}
+	// Acquire new shader instance resources.
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
 
 	const int iNumVertices = 24;
 	Vector3D ptVertices[iNumVertices]{};
 
-	ptVertices[0] = m_vecCameraPosition + Vector3D{ -50.0f, 0.0f, -60.0f, };
-	ptVertices[1] = m_vecCameraPosition + Vector3D{ 50.0f, 0.0f, -60.0f };
+	Vector vecCameraPosition = pCamera.vecPosition;
+
+	ptVertices[0] = vecCameraPosition + Vector3D{ -50.0f, 0.0f, -60.0f, };
+	ptVertices[1] = vecCameraPosition + Vector3D{ 50.0f, 0.0f, -60.0f };
 	// DEBUGTODO: Reuse from the scene's frustum instead of generating a second one.
 	Frustum cameraFrustum = pCamera.CreateFrustumFromCamera();
 	{
@@ -482,22 +533,9 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 		ptVertices[23] = frustumVerts[7];
 	}
 
-	if (bAcquireNewResources)
-	{
-		g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
-	}
-	else
-	{
-		//g_pRenderer->UpdateGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
-	}
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
-	// Save off details about the camera.
-	m_vecCameraPosition = pCamera.vecPosition;
-	// DEBUGLEFTOFF: Figure this out!
-	m_CameraEulerAngles = Vector3D{ pCamera.Yaw, pCamera.Pitch, 0.0f };
-	m_vecCameraForward = pCamera.vecFront;
-
-	return 0;
+	return iDebugGeometryIndex;
 }
 
 //-------------------------------------------------------------------------

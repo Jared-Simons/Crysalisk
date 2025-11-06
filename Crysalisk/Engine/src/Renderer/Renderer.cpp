@@ -177,7 +177,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Setup the debug renderer.
-	if (!g_pDebugRenderer->Initialize())
+	DebugRendererConfig_t debugRendererConfig{};
+	debugRendererConfig.uMaxDebugGeometries = 64;
+	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
 	{
 		LOG_ERROR("Failed to initialize the debug renderer.");
 		return false;
@@ -342,9 +344,12 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				bDebugGeoLoaded = true;
 			}
 		}
-		else if (pCurrentMap.IsMapLoaded())
+
+		static bool bFirstTest = false;
+		if (!bFirstTest)
 		{
 			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
+			bFirstTest = true;
 		}
 
 		// DEBUGTODO: Just a test.

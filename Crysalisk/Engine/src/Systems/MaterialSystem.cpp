@@ -17,7 +17,7 @@
 #include "Systems/TextureSystem.h"
 
 //-------------------------------------------------------------------------
-// Indices for each of the phong shader lookups.
+// Purpose: Indices for each of the phong shader uniform lookups.
 //-------------------------------------------------------------------------
 struct PhongShaderLocations_t
 {
