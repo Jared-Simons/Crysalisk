@@ -25,6 +25,7 @@ enum class DebugGeometryType
 {
 	UNDEFINED = 0,
 	LINE,
+	CAMERA_FRUSTUM,
 	TEXT,
 
 	MAX_TYPES
@@ -224,6 +225,14 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 					g_pShaderSystem->BindShader(m_hDebugLineShader);
 					hCurrentlyBoundShader = m_hDebugLineShader;
 					bLineShaderBound = true;
+				}
+
+				if (pCurGeo.type == DebugGeometryType::CAMERA_FRUSTUM)
+				{
+					// Parent this to the camera's (inverse) transform.
+					pCurGeo.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
+					pCurGeo.geometryInstance.matLocalToWorldTransform = pCurGeo.geometryInstance.matLocalToWorldTransform * pFrameData.matProjection.Inverse();
+					pCurGeo.geometryInstance.matLocalToWorldTransform = pCurGeo.geometryInstance.matLocalToWorldTransform * pFrameData.matView.Inverse();
 				}
 			}
 
@@ -474,6 +483,7 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.type = DebugGeometryType::CAMERA_FRUSTUM;
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
@@ -532,6 +542,10 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 		ptVertices[22] = frustumVerts[3];
 		ptVertices[23] = frustumVerts[7];
 	}
+
+	// Set a good ol' identity matrix here, we'll need to hook this to the camera at somepoint.
+	Matrix4x4 matTransform = Matrix4x4{ 1.0f };
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
 
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 

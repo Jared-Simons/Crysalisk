@@ -345,13 +345,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			}
 		}
 
-		static bool bFirstTest = false;
-		if (!bFirstTest)
-		{
-			g_pDebugRenderer->AddCameraFrustum(s_MainCamera, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
-			bFirstTest = true;
-		}
-
 		// DEBUGTODO: Just a test.
 		// DEBUGTODO: Create a separate renderpass for debug geometries.
 		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64 && iDebugGeoIndex != kInvalidID_U32)
