@@ -18,6 +18,7 @@ struct DebugRendererFrameData_t
 	Matrix4x4	matView{};
 	Vector3D	vecCameraPosition{};
 	Vector3D	vecCameraForward{};
+	float		flCurTime{ 0.0f };
 
 	// DEBUGTODO: Is this the best way to handle this?
 	Matrix4x4*	pTransformMatrices{ nullptr };
@@ -38,13 +39,14 @@ public:
 	virtual bool	InitializeDebugShaders() = 0;
 	virtual void	Shutdown() = 0;
 
+	virtual void	Update() = 0;
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
-	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color) = 0;
-	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color) = 0;
-	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) = 0;
-	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color) = 0;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) = 0;
+	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
+	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, float flDuration) = 0;
+	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
+	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;
 };
 
 extern IDebugRenderer* g_pDebugRenderer;

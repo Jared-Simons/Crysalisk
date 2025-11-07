@@ -340,7 +340,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			if (iDebugGeoIndex != kInvalidID_U32)
 			{
 				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
-				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen);
+				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen, 10.0f);
 				bDebugGeoLoaded = true;
 			}
 		}
@@ -367,12 +367,15 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->EndRenderpass();
 
+	g_pDebugRenderer->Update();
+
 	// Render our debug geometry.
 	DebugRendererFrameData_t debugFrameData{};
 	debugFrameData.matProjection = matProjection;
 	debugFrameData.matView = matView;
 	debugFrameData.vecCameraPosition = s_MainCamera.vecPosition;
 	debugFrameData.vecCameraForward = s_MainCamera.vecFront;
+	debugFrameData.flCurTime = m_RendererClock.GetElapsedTime();
 	debugFrameData.pTransformMatrices = TransformMatrices.Data();
 	g_pDebugRenderer->Render(debugFrameData);
 
@@ -726,7 +729,7 @@ bool Renderer::CreateTempTextObjects()
 		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D_OLD), positions, 0, nullptr, debugInstance);*/
 	}
 
-	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
+	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, 3.0f);
 
 	return true;
 }

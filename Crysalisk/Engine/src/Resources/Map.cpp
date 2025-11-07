@@ -228,7 +228,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			static bool bTest = false;
 			if (!bTest && iMesh == 1)
 			{
-				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f });
+				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, 10.0f);
 				bTest = true;
 			}
 

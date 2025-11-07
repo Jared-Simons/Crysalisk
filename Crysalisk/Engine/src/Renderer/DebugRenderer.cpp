@@ -41,6 +41,7 @@ struct DebugGeometry_t
 	Vector4D			color{};
 	GeometryInstance_t	geometryInstance{};
 	DebugGeometryType	type{ DebugGeometryType::LINE };	// DEBUGTODO: Don't default this and set it in each method.
+	float				flTimeToRemove{ 0.0f };
 };
 
 //-------------------------------------------------------------------------
@@ -64,16 +65,18 @@ public:
 	virtual bool	InitializeDebugShaders() override;
 	virtual void	Shutdown() override;
 
+	virtual void	Update() override;
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
-	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color) override;
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color);
-	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color) override;
-	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color) override;
-	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color) override;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color) override;
+	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
+	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration);
+	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
+	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
+	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
 
 private:
+	void			RemoveDebugGeometry(int debugGeoHandle);
 	int				GetFirstFreeGeometryDataIndex() const;
 
 private:
@@ -90,6 +93,9 @@ private:
 
 	int					m_iNumGeometryInstances{ 0 };
 	DebugGeometry_t*	m_GeometryData{ nullptr };
+
+	// NOTE: This gets updated from the main renderer's clock.
+	float			m_flRendererTime{ 0.0f };
 };
 
 CDebugRenderer s_DebugRenderer;
@@ -183,10 +189,31 @@ void CDebugRenderer::Shutdown()
 }
 
 //-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+void CDebugRenderer::Update()
+{
+	for (int iGeo = 0; iGeo < m_iNumGeometryInstances; iGeo++)
+	{
+		DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
+		if (pCurGeo.iInstanceID == kInvalidID_U32)
+			continue;
+
+		if (pCurGeo.flTimeToRemove < m_flRendererTime)
+		{
+			// Time to remove this geo.
+			RemoveDebugGeometry(iGeo);
+		}
+	}
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Render all active debug geometries.
 //-------------------------------------------------------------------------
 void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 {
+	m_flRendererTime = pFrameData.flCurTime;
+
 	if (g_pRenderer->BeginRendererView(m_DebugView))
 	{
 		// Apply per-frame shader uniforms.
@@ -255,11 +282,12 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 //-------------------------------------------------------------------------
 // Purpose: Adds a point (provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color)
+int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
@@ -285,11 +313,12 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color)
+int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
@@ -306,11 +335,12 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
+int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
@@ -383,10 +413,11 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color)
 //-------------------------------------------------------------------------
 // DEBUGTODO: Documentation.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color)
+int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
 	pNewGeometry.color = color;
 
@@ -450,11 +481,12 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 // DEBUGTODO: Documentation.
 // This is broken.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color)
+int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 	pNewGeometry.type = DebugGeometryType::TEXT;
 
 	TextObject	pText{}; // DEBUGTODO: Do we need this??
@@ -478,11 +510,12 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 // DEBUGTODO: Documentation.
 // This is broken again.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
+int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 	pNewGeometry.type = DebugGeometryType::CAMERA_FRUSTUM;
 
 	// Acquire new shader instance resources.
@@ -550,6 +583,22 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color)
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	return iDebugGeometryIndex;
+}
+
+//-------------------------------------------------------------------------
+// DEBUGTODO: Documentation.
+//-------------------------------------------------------------------------
+void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
+{
+	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
+	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
+	CAssert(pGeoToRemove.type != DebugGeometryType::TEXT); // We are not yet handling this case.
+
+	// DEBUGTODO: This is hardcoded to one shader.
+	g_pShaderSystem->ReleaseShaderInstanceResources(m_hDebugLineShader, pGeoToRemove.iInstanceID);
+	g_pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
+
+	pGeoToRemove.iInstanceID = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------
