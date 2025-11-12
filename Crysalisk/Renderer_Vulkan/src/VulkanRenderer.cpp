@@ -1860,11 +1860,13 @@ void CVulkanRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, Rend
 
 	// Mark the range in our renderbuffer as being free.
 	pInternalVertexBuffer->FreeDataRange(s_VulkanContext, pGeometry.vertexDataOffset, pGeometry.vertexCount * pGeometry.vertexDataStride);
+	pGeometry.vertexDataOffset = kInvalidID_U64;
 
 	// Free index data as well (if applicable)
 	if (pGeometry.indexCount != kInvalidID_U64)
 	{
 		pInternalIndexBuffer->FreeDataRange(s_VulkanContext, pGeometry.indexDataOffset, pGeometry.indexCount * pGeometry.indexDataStride);
+		pGeometry.indexDataOffset = kInvalidID_U64;
 	}
 }
 

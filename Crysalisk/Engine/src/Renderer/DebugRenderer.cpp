@@ -199,6 +199,9 @@ void CDebugRenderer::Update()
 		if (pCurGeo.iInstanceID == kInvalidID_U32)
 			continue;
 
+		if (pCurGeo.flTimeToRemove < 0.0f)
+			continue;
+
 		if (pCurGeo.flTimeToRemove < m_flRendererTime)
 		{
 			// Time to remove this geo.
@@ -289,6 +292,12 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
+
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
 
@@ -320,6 +329,12 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
+
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
 
@@ -341,6 +356,12 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
@@ -419,6 +440,12 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
+
 	pNewGeometry.color = color;
 
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
@@ -489,6 +516,12 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 	pNewGeometry.type = DebugGeometryType::TEXT;
 
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
+
 	TextObject	pText{}; // DEBUGTODO: Do we need this??
 	pText.m_pszText = (char*)pszText; // NOTE: Not copying this because we probably won't need this once this function exits.
 	GeometryConfig2D_t textConfig = g_pFontSystem->AcquireConfigForText(pText, hFont, 12.0f);
@@ -517,6 +550,12 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
 	pNewGeometry.type = DebugGeometryType::CAMERA_FRUSTUM;
+
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");

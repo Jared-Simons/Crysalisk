@@ -340,7 +340,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			if (iDebugGeoIndex != kInvalidID_U32)
 			{
 				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
-				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen, 10.0f);
+				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen, -1.0f);
 				bDebugGeoLoaded = true;
 			}
 		}
