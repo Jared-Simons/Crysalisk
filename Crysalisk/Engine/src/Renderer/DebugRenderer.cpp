@@ -40,7 +40,7 @@ struct DebugGeometry_t
 	unsigned int		iInstanceID{ kInvalidID_U32 };
 	Vector4D			color{};
 	GeometryInstance_t	geometryInstance{};
-	DebugGeometryType	type{ DebugGeometryType::LINE };	// DEBUGTODO: Don't default this and set it in each method.
+	DebugGeometryType	eType{ DebugGeometryType::LINE };	// DEBUGTODO: Don't default this and set it in each method.
 	float				flTimeToRemove{ 0.0f };
 };
 
@@ -83,8 +83,8 @@ private:
 	// The debug renderer's renderpass.
 	RendererView	m_DebugView{};
 
-	RenderBuffer	m_DebugVertexBuffer{};
-	RenderBuffer	m_DebugIndexBuffer{};
+	RenderBuffer				m_DebugVertexBuffer{};
+	RenderBuffer				m_DebugIndexBuffer{};
 
 	ShaderHandle_t				m_hDebugLineShader{ kInvalidID_U32 };
 	DebugShaderUniformLocations	m_DebugShaderUniforms{};
@@ -137,13 +137,13 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Vertex_Buffer", m_DebugVertexBuffer))
+	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
 	{
 		LOG_ERROR("Failed to create debug vertex buffer!");
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Index_Buffer", m_DebugIndexBuffer))
+	if (!g_pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
 	{
 		LOG_ERROR("Failed to create debug index buffer!");
 		return false;
@@ -239,7 +239,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			if (pCurGeo.iInstanceID == kInvalidID_U32)
 				continue;
 
-			if (pCurGeo.type == DebugGeometryType::TEXT)
+			if (pCurGeo.eType == DebugGeometryType::TEXT)
 			{
 				if (bLineShaderBound)
 				{
@@ -257,7 +257,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 					bLineShaderBound = true;
 				}
 
-				if (pCurGeo.type == DebugGeometryType::CAMERA_FRUSTUM)
+				if (pCurGeo.eType == DebugGeometryType::CAMERA_FRUSTUM)
 				{
 					// Parent this to the camera's (inverse) transform.
 					pCurGeo.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -514,7 +514,7 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.type = DebugGeometryType::TEXT;
+	pNewGeometry.eType = DebugGeometryType::TEXT;
 
 	if (flDuration < 0.0f)
 	{
@@ -522,11 +522,9 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 		pNewGeometry.flTimeToRemove = -1.0f;
 	}
 
-	TextObject	pText{}; // DEBUGTODO: Do we need this??
-	pText.m_pszText = (char*)pszText; // NOTE: Not copying this because we probably won't need this once this function exits.
-	GeometryConfig2D_t textConfig = g_pFontSystem->AcquireConfigForText(pText, hFont, 12.0f);
+	GeometryConfig_t textConfig = g_pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
 
-	g_pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
@@ -549,7 +547,7 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.type = DebugGeometryType::CAMERA_FRUSTUM;
+	pNewGeometry.eType = DebugGeometryType::CAMERA_FRUSTUM;
 
 	if (flDuration < 0.0f)
 	{
@@ -631,7 +629,7 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
-	CAssert(pGeoToRemove.type != DebugGeometryType::TEXT); // We are not yet handling this case.
+	CAssert(pGeoToRemove.eType != DebugGeometryType::TEXT); // We are not yet handling this case.
 
 	// DEBUGTODO: This is hardcoded to one shader.
 	g_pShaderSystem->ReleaseShaderInstanceResources(m_hDebugLineShader, pGeoToRemove.iInstanceID);

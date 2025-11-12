@@ -12,9 +12,13 @@ enable_depth_testing="false"
 enable_blending="false"
 
 # Vertex attributes 
+#DEBUGTODO: We don't need ALL of this for rendering 2d text in a 3d world, probably just need position and texcoord.
 attributes
 {
 	"position", "vec3"
+	"texcoord", "vec2"
+	"normal", "vec3"
+	"tangent", "vec3"
 }
 
 # Uniforms

@@ -23,6 +23,10 @@ public:
 	Vertex3D()
 		: Pos{}, TexCoord{}, Normal{}, Tangent{} {}
 
+	Vertex3D(Vector3D& inPos, Vector3D& inColor, Vector2D& intexCoord)
+		: Pos{ inPos }, TexCoord{ intexCoord } {
+	}
+
 	Vertex3D(Vector3D&& inPos, Vector3D&& inColor, Vector2D&& intexCoord)
 		: Pos{ inPos }, TexCoord{ intexCoord } {}
 
