@@ -43,7 +43,7 @@ ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 
 // DEBUGTODO: Just a test.
 static ShaderHandle_t hDebugLineShader{ kInvalidID_U32 };
-struct DebugShaderUniformLocations
+struct DebugLineShaderUniformLocations
 {
 	uint16_t	projection{ kInvalidID_U16 };
 	uint16_t	view{ kInvalidID_U16 };
@@ -51,7 +51,7 @@ struct DebugShaderUniformLocations
 	uint16_t	model{ kInvalidID_U16 };
 };
 
-static DebugShaderUniformLocations s_DebugShaderUniforms{};
+static DebugLineShaderUniformLocations s_DebugShaderUniforms{};
 static unsigned int s_DebugInstanceID{ kInvalidID_U32 };
 
 static GeometryInstance_t debugInstance{};

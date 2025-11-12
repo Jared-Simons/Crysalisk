@@ -47,11 +47,20 @@ struct DebugGeometry_t
 //-------------------------------------------------------------------------
 // Purpose: Indices for each of the debug shader uniform lookups.
 //-------------------------------------------------------------------------
-struct DebugShaderUniformLocations
+struct DebugLineShaderUniformLocations
 {
 	uint16_t	projection{ kInvalidID_U16 };
 	uint16_t	view{ kInvalidID_U16 };
 	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+
+struct DebugTextShaderUniformLocations
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	fontAtlas{ kInvalidID_U16 };
 	uint16_t	model{ kInvalidID_U16 };
 };
 
@@ -86,10 +95,11 @@ private:
 	RenderBuffer				m_DebugVertexBuffer{};
 	RenderBuffer				m_DebugIndexBuffer{};
 
-	ShaderHandle_t				m_hDebugLineShader{ kInvalidID_U32 };
-	DebugShaderUniformLocations	m_DebugShaderUniforms{};
+	ShaderHandle_t					m_hDebugLineShader{ kInvalidID_U32 };
+	DebugLineShaderUniformLocations	m_DebugLineShaderUniforms{};
 
-	ShaderHandle_t				m_hDebugTextShader{ kInvalidID_U32 };
+	ShaderHandle_t					m_hDebugTextShader{ kInvalidID_U32 };
+	DebugTextShaderUniformLocations	m_DebugTextShaderUniforms{};
 
 	int					m_iNumGeometryInstances{ 0 };
 	DebugGeometry_t*	m_GeometryData{ nullptr };
@@ -159,12 +169,18 @@ bool CDebugRenderer::InitializeDebugShaders()
 {
 	m_hDebugLineShader = g_pShaderSystem->AcquireShader("Debug.Line");
 
-	m_DebugShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "projection");
-	m_DebugShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "view");
-	m_DebugShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
-	m_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
+	m_DebugLineShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "projection");
+	m_DebugLineShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "view");
+	m_DebugLineShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
+	m_DebugLineShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
 
 	m_hDebugTextShader = g_pShaderSystem->AcquireShader("Debug.Text");
+
+	m_DebugTextShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "projection");
+	m_DebugTextShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "view");
+	m_DebugTextShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "color");
+	m_DebugTextShaderUniforms.fontAtlas = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "font_atlas");
+	m_DebugTextShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "model");
 
 	// DEBUGTODO: TEST
 	{
@@ -221,12 +237,12 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 	{
 		// Apply per-frame shader uniforms.
 		g_pShaderSystem->BindShader(m_hDebugLineShader);
-		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
+		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
 
 		g_pShaderSystem->BindShader(m_hDebugTextShader);
-		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugShaderUniforms.view, 0, 0, &pFrameData.matView);
+		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
 
 		bool bLineShaderBound = false;
 		ShaderHandle_t hCurrentlyBoundShader = m_hDebugTextShader;
@@ -266,8 +282,8 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				}
 			}
 
-			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
 
 			g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
 			g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
@@ -528,6 +544,10 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
+
+	// Apply the font atlas.
+	TextureHandle_t hTexture = g_pFontSystem->AcquireFontAtlasTexture(hFont);
+	g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
 
 	// Create a new transform matrix. TODO: Make this billboarded or something.
 	Matrix4x4 matTransform{ 1.0f };
