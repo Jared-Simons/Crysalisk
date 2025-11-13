@@ -220,7 +220,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
 
-	g_pDebugRenderer->AddText(Vector{ 0.0f, 0.0f, -100.0f }, 0, "Poggers", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+	g_pDebugRenderer->AddText(Vector{ 0.0f, 0.0f, -100.0f }, 0, "Test text", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
 
 	return true;
 }

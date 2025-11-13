@@ -49,6 +49,11 @@ double M_TAN(double x)
 	return tan(x);
 }
 
+double M_ATAN2(double x, double y)
+{
+	return atan2(x, y);
+}
+
 float M_RAD2DEG_F(float angleInRadians)
 {
 	return angleInRadians * (180.0f / kPI_F);

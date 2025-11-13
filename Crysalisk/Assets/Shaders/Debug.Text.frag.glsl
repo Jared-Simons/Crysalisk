@@ -16,13 +16,11 @@ layout(set = 1, binding = 0) uniform InstanceUniformBuffer
 layout(set = 1, binding = 1) uniform sampler inSampler;
 layout(set = 1, binding = 2) uniform texture2D inTexture;
 
-layout(location = 0) flat in FSIn fsInput;
+layout(location = 0) in FSIn fsInput;
 
 void main()
 {
 	vec4 textureSample = texture(sampler2D(inTexture, inSampler), fsInput.TexCoord);
 
-	vec4 textSample = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r);
-	//outColor = instance_ubo.color * textSample;
-	outColor = textSample;
+	outColor = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r);
 }

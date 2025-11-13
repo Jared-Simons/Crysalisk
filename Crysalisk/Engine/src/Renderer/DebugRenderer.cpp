@@ -35,6 +35,7 @@ enum class DebugGeometryType
 // Purpose: An instance of debug geometry, contains all of the
 //			data/resources necessary to render debug geometry.
 //-------------------------------------------------------------------------
+// DEBUGTODO: When a piece of debug geometry is removed, other transforms seem to be affected on the GPU (sometimes the push constants seem to be de-allocated?)
 struct DebugGeometry_t
 {
 	unsigned int		iInstanceID{ kInvalidID_U32 };
@@ -254,6 +255,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
 			if (pCurGeo.iInstanceID == kInvalidID_U32)
 				continue;
+			Matrix4x4 matSave = pCurGeo.geometryInstance.matLocalToWorldTransform;
 
 			if (pCurGeo.eType == DebugGeometryType::TEXT)
 			{
@@ -263,6 +265,8 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 					hCurrentlyBoundShader = m_hDebugTextShader;
 					bLineShaderBound = false;
 				}
+				// The text needs to be rotated to always face the camera (billboarding!)
+ 				// DEBUGTODO: Billboarding!
 			}
 			else
 			{
@@ -282,11 +286,23 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				}
 			}
 
-			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-			g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+			if (pCurGeo.eType == DebugGeometryType::TEXT)
+			{
+				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
 
-			g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
-			g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+				g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
+				g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+			}
+			else
+			{
+				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+
+				g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
+				g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+
+			}
 		}
 
 		g_pRenderer->EndRendererView();

@@ -24,6 +24,8 @@ DLL_EXPORT double M_COS(double x);
 DLL_EXPORT float M_TAN_F(float x);
 DLL_EXPORT double M_TAN(double x);
 
+DLL_EXPORT double M_ATAN2(double x, double y);
+
 DLL_EXPORT float M_RAD2DEG_F(float angleInRadians);
 DLL_EXPORT double M_RAD2DEG(double angleInRadians);
 
@@ -780,8 +782,8 @@ public:
 	{
 		Matrix4x4 matRotate{ pInMatrix };
 		matRotate.flData[0] = M_COS_F(flAngleInRadians);
-		matRotate.flData[2] = M_SIN_F(flAngleInRadians);
-		matRotate.flData[8] = -M_SIN_F(flAngleInRadians);
+		matRotate.flData[2] = -M_SIN_F(flAngleInRadians);
+		matRotate.flData[8] = M_SIN_F(flAngleInRadians);
 		matRotate.flData[10] = M_COS_F(flAngleInRadians);
 		return matRotate;
 	}
