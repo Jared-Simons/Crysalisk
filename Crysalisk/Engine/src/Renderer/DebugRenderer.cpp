@@ -255,6 +255,9 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
 			if (pCurGeo.iInstanceID == kInvalidID_U32)
 				continue;
+
+			// We need to save off the transform and restore it after rendering.
+			// DEBUGTODO: This probably isn't ideal.
 			Matrix4x4 matSave = pCurGeo.geometryInstance.matLocalToWorldTransform;
 
 			if (pCurGeo.eType == DebugGeometryType::TEXT)
@@ -266,7 +269,11 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 					bLineShaderBound = false;
 				}
 				// The text needs to be rotated to always face the camera (billboarding!)
- 				// DEBUGTODO: Billboarding!
+				Vector vecTextPos{ matSave.flData[12], matSave.flData[13], matSave.flData[14] };
+				Vector vecCameraPos{ pFrameData.vecCameraPosition };
+				double flAngle = M_ATAN2(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI);
+				matSave = Matrix4x4::RotateAboutYAxis(matSave, M_DEG2RAD_F(flAngle + 180.0f));	// NOTE: The +180 is to flip the text to face the right way.
+				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
 			}
 			else
 			{
@@ -293,6 +300,8 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 
 				g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
 				g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+
+				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
 			}
 			else
 			{
@@ -542,6 +551,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
+	// DEBUGTODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
