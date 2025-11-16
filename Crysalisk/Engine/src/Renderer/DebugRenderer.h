@@ -43,6 +43,7 @@ public:
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
+	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) = 0;
 	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, float flDuration) = 0;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;

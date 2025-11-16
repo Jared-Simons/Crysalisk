@@ -717,19 +717,9 @@ bool Renderer::CreateTempTextObjects()
 		s_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "model");
 
 		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");
-
-		/*Vector3D_OLD positions[6]{};
-		positions[0] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
-		positions[1] = Vector3D_OLD{ 100.0f, 0.0f, 0.0f };
-		positions[2] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
-		positions[3] = Vector3D_OLD{ 0.0f, 100.0f, 0.0f };
-		positions[4] = Vector3D_OLD{ 0.0f, 0.0f, 0.0f };
-		positions[5] = Vector3D_OLD{ 0.0f, 0.0f, 100.0f };
-
-		m_RendererBackend->AcquireGeometryResources(&m_DebugRendererBuffer, nullptr, 6, sizeof(Vector3D_OLD), positions, 0, nullptr, debugInstance);*/
 	}
 
-	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, 5.0f);
 
 	return true;
 }

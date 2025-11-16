@@ -201,7 +201,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
 	{
-		pCurrentMesh = &m_Meshes[iMesh];
+ 		pCurrentMesh = &m_Meshes[iMesh];
 		CAssert(pCurrentMesh);
 
 		// Split out transform matrices.
@@ -214,20 +214,66 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			bool bIsInCameraFrustum = true;
 
-			Vector4D vecCenter = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
-			Vector4D vecMaxExtents = pCurrentMesh->m_matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			pCurrentSubmesh->matLocalToWorldTransform = pCurrentMesh->m_matLocalToWorldTransform;
+
+			Vector4D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter.ToVector4D();
+			Vector4D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents.ToVector4D();
+			Vector4D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents.ToVector4D();
 
 			Vector3D vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
 				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
-
-			pCurrentSubmesh->matLocalToWorldTransform = pCurrentMesh->m_matLocalToWorldTransform;
 			static bool bTest = false;
+
 			if (!bTest && iMesh == 1)
 			{
-				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				//g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				//g_pDebugRenderer->AddLine(vecCenter, vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
+				Vector vecBoxBounds[8]{ vecMaxExtents.AsVector3D()};
+				vecBoxBounds[0] = vecMinExtents.AsVector3D();
+				vecBoxBounds[1] = vecMinExtents.AsVector3D();
+				vecBoxBounds[1].z = vecMaxExtents.z;
+
+				vecBoxBounds[2] = vecMinExtents.AsVector3D();
+				vecBoxBounds[2].x = vecMaxExtents.x;
+				vecBoxBounds[3].x = vecMaxExtents.x;
+				vecBoxBounds[3].z = vecMaxExtents.z;
+
+				vecBoxBounds[4] = vecMinExtents.AsVector3D();
+				vecBoxBounds[4].y = vecMaxExtents.y;
+				vecBoxBounds[5] = vecMinExtents.AsVector3D();
+				vecBoxBounds[5].y = vecMaxExtents.y;
+				vecBoxBounds[5].z = vecMaxExtents.z;
+
+				vecBoxBounds[6] = vecMinExtents.AsVector3D();
+				vecBoxBounds[6].x = vecMaxExtents.x;
+				vecBoxBounds[6].y = vecMaxExtents.y;
+				vecBoxBounds[7].x = vecMaxExtents.x;
+				vecBoxBounds[7].y = vecMaxExtents.y;
+				vecBoxBounds[7].z = vecMaxExtents.z;
+
+				for (int i = 0; i < 8; i++)
+				{
+					g_pDebugRenderer->AddPoint(vecBoxBounds[i], 10.0f, Vector4D{0.0f, 0.0f, 1.0f, 1.0f}, -1.0f);
+				}
+				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[1], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[2], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[1], vecBoxBounds[3], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[2], vecBoxBounds[3], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+
+				g_pDebugRenderer->AddLine(vecBoxBounds[4], vecBoxBounds[5], Vector4D{1.0f, 0.0f, 0.0f, 1.0f}, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[4], vecBoxBounds[6], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[5], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[6], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+
+				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[4], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[1], vecBoxBounds[5], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[2], vecBoxBounds[6], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecBoxBounds[3], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				
+				//g_pDebugRenderer->AddPoint(vecCenter, 10.0f, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 				bTest = true;
 			}
 
@@ -262,6 +308,5 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			}
 		}
 	}
-
 }
 

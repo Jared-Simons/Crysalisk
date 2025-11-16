@@ -19,13 +19,16 @@
 // - We should simplify this significantly.
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Defines different types of geometry that require different rendering behaviors.
 //-------------------------------------------------------------------------
 enum class DebugGeometryType
 {
 	UNDEFINED = 0,
+	// Geometry is rendered with lines.
 	LINE,
+	// Geometry is also rendered with lines, but needs to follow the camera.
 	CAMERA_FRUSTUM,
+	// Geometry is rendered as 2D glyphs in the 3D scene.
 	TEXT,
 
 	MAX_TYPES
@@ -35,13 +38,12 @@ enum class DebugGeometryType
 // Purpose: An instance of debug geometry, contains all of the
 //			data/resources necessary to render debug geometry.
 //-------------------------------------------------------------------------
-// DEBUGTODO: When a piece of debug geometry is removed, other transforms seem to be affected on the GPU (sometimes the push constants seem to be de-allocated?)
 struct DebugGeometry_t
 {
 	unsigned int		iInstanceID{ kInvalidID_U32 };
 	Vector4D			color{};
 	GeometryInstance_t	geometryInstance{};
-	DebugGeometryType	eType{ DebugGeometryType::LINE };	// DEBUGTODO: Don't default this and set it in each method.
+	DebugGeometryType	eType{ DebugGeometryType::UNDEFINED };
 	float				flTimeToRemove{ 0.0f };
 };
 
@@ -79,7 +81,7 @@ public:
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration);
+	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) override;
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
@@ -183,11 +185,6 @@ bool CDebugRenderer::InitializeDebugShaders()
 	m_DebugTextShaderUniforms.fontAtlas = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "font_atlas");
 	m_DebugTextShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "model");
 
-	// DEBUGTODO: TEST
-	{
-		//AddText(Vector{ 0.0f, 0.0f, -200.0f }, 0, "TEST TEXT", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
-	}
-
 	return true;
 }
 
@@ -206,7 +203,7 @@ void CDebugRenderer::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Updates internal debug renderer state.
 //-------------------------------------------------------------------------
 void CDebugRenderer::Update()
 {
@@ -257,7 +254,6 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				continue;
 
 			// We need to save off the transform and restore it after rendering.
-			// DEBUGTODO: This probably isn't ideal.
 			Matrix4x4 matSave = pCurGeo.geometryInstance.matLocalToWorldTransform;
 
 			if (pCurGeo.eType == DebugGeometryType::TEXT)
@@ -271,7 +267,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 				// The text needs to be rotated to always face the camera (billboarding!)
 				Vector vecTextPos{ matSave.flData[12], matSave.flData[13], matSave.flData[14] };
 				Vector vecCameraPos{ pFrameData.vecCameraPosition };
-				double flAngle = M_ATAN2(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI);
+				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
 				matSave = Matrix4x4::RotateAboutYAxis(matSave, M_DEG2RAD_F(flAngle + 180.0f));	// NOTE: The +180 is to flip the text to face the right way.
 				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
 			}
@@ -332,6 +328,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+	pNewGeometry.eType = DebugGeometryType::LINE;
 
 	if (flDuration < 0.0f)
 	{
@@ -343,7 +340,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
 
 	// Create a 3D cross at the point that extends out from the origin by the given radius.
-	Vector ptVerts[4] = { pOrigin, pOrigin, pOrigin, pOrigin };
+	Vector ptVerts[4]{};
 	ptVerts[1].x += flRadius;
 	ptVerts[2].y += flRadius;
 	ptVerts[3].z += flRadius;
@@ -361,7 +358,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Adds a line (endpoints provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration)
 {
@@ -369,6 +366,7 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+	pNewGeometry.eType = DebugGeometryType::LINE;
 
 	if (flDuration < 0.0f)
 	{
@@ -389,7 +387,7 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration)
 {
@@ -397,6 +395,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+	pNewGeometry.eType = DebugGeometryType::LINE;
 
 	if (flDuration < 0.0f)
 	{
@@ -473,13 +472,14 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Adds a sphere (origin provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+	pNewGeometry.eType = DebugGeometryType::LINE;
 
 	if (flDuration < 0.0f)
 	{
@@ -546,8 +546,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
-// This is broken.
+// Purpose: Adds a piece of text to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
@@ -575,7 +574,7 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 	TextureHandle_t hTexture = g_pFontSystem->AcquireFontAtlasTexture(hFont);
 	g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
 
-	// Create a new transform matrix. TODO: Make this billboarded or something.
+	// Create a new transform matrix.
 	Matrix4x4 matTransform{ 1.0f };
 	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
@@ -584,8 +583,7 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
-// This is broken again.
+// Purpose: Adds a camera frustum to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float flDuration)
 {
@@ -611,8 +609,6 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 
 	ptVertices[0] = vecCameraPosition + Vector3D{ -50.0f, 0.0f, -60.0f, };
 	ptVertices[1] = vecCameraPosition + Vector3D{ 50.0f, 0.0f, -60.0f };
-	// DEBUGTODO: Reuse from the scene's frustum instead of generating a second one.
-	Frustum cameraFrustum = pCamera.CreateFrustumFromCamera();
 	{
 		// DEBUGTODO: Document this process.
 		// DEBUGTODO: This frustum is compressed slightly so it actually shows up on the screen (we don't have multiple cameras working yet).
@@ -675,13 +671,13 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
-	CAssert(pGeoToRemove.eType != DebugGeometryType::TEXT); // We are not yet handling this case.
 
 	// DEBUGTODO: This is hardcoded to one shader.
 	g_pShaderSystem->ReleaseShaderInstanceResources(m_hDebugLineShader, pGeoToRemove.iInstanceID);
 	g_pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
 
 	pGeoToRemove.iInstanceID = kInvalidID_U32;
+	pGeoToRemove.eType = DebugGeometryType::UNDEFINED;
 }
 
 //-------------------------------------------------------------------------

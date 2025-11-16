@@ -49,6 +49,11 @@ double M_TAN(double x)
 	return tan(x);
 }
 
+float M_ATAN2_F(float x, float y)
+{
+	return atan2f(x, y);
+}
+
 double M_ATAN2(double x, double y)
 {
 	return atan2(x, y);

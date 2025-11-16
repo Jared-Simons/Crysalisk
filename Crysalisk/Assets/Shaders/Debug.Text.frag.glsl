@@ -22,5 +22,5 @@ void main()
 {
 	vec4 textureSample = texture(sampler2D(inTexture, inSampler), fsInput.TexCoord);
 
-	outColor = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r);
+	outColor = vec4(textureSample.r, textureSample.r, textureSample.r, textureSample.r) * instance_ubo.color;
 }

@@ -24,6 +24,7 @@ DLL_EXPORT double M_COS(double x);
 DLL_EXPORT float M_TAN_F(float x);
 DLL_EXPORT double M_TAN(double x);
 
+DLL_EXPORT float M_ATAN2_F(float x, float y);
 DLL_EXPORT double M_ATAN2(double x, double y);
 
 DLL_EXPORT float M_RAD2DEG_F(float angleInRadians);
@@ -37,6 +38,11 @@ DLL_EXPORT double M_ABS(double x);
 
 // Vector elements must be within this range to be considered 'equal'.
 const float kVectorElementEpsilon = 1.192092896e-07f;
+
+// Forward declarations
+class Vector2D;
+class Vector3D;
+class Vector4D;
 
 //-------------------------------------------------------------------------
 // Vector2D
@@ -378,6 +384,8 @@ public:
 	}
 	inline Vector3D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
 	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
+
+	inline Vector4D ToVector4D() const;
 };
 
 // Perhaps the most-used alias in the entire codebase.
@@ -553,6 +561,14 @@ public:
 };
 
 //-------------------------------------------------------------------------
+// Purpose: Utility to convert a 3D Vector to a 4D Vector (with a 1.0 w component).
+//-------------------------------------------------------------------------
+Vector4D Vector3D::ToVector4D() const
+{
+	 return Vector4D{ x, y, z, 1.0f }; 
+}
+
+//-------------------------------------------------------------------------
 // Quaternion
 //-------------------------------------------------------------------------
 class Quaternion
@@ -638,6 +654,16 @@ public:
 		outVector.x = (pVector.x * flData[0]) + (pVector.y * flData[1]) + (pVector.z * flData[2]);
 		outVector.y = (pVector.x * flData[4]) + (pVector.y * flData[5]) + (pVector.z * flData[6]);
 		outVector.z = (pVector.x * flData[8]) + (pVector.y * flData[9]) + (pVector.z * flData[10]);
+		return outVector;
+	}
+
+	inline Vector4D MultiplyByVector(const Vector4D& pVector) const
+	{
+		Vector4D outVector{};
+		outVector.x = (pVector.x * flData[0]) + (pVector.y * flData[4]) + (pVector.z * flData[8]) + (pVector.w * flData[12]);
+		outVector.y = (pVector.x * flData[1]) + (pVector.y * flData[5]) + (pVector.z * flData[9]) + (pVector.w * flData[13]);
+		outVector.z = (pVector.x * flData[2]) + (pVector.y * flData[6]) + (pVector.z * flData[10]) + (pVector.w * flData[14]);
+		outVector.w = (pVector.x * flData[3]) + (pVector.y * flData[7]) + (pVector.z * flData[11]) + (pVector.w * flData[15]);
 		return outVector;
 	}
 
@@ -904,7 +930,8 @@ public:
 	// Operator overloads
 	// ------------------
 	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline Vector operator*(const Vector& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector3D operator*(const Vector3D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
 

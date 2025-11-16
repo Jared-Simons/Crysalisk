@@ -17,7 +17,6 @@
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h" // DEBUGTODO: TEST!
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
@@ -219,8 +218,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
-
-	g_pDebugRenderer->AddText(Vector{ 0.0f, 0.0f, -100.0f }, 0, "Test text", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
 
 	return true;
 }
