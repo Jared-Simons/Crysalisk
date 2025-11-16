@@ -216,9 +216,9 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			pCurrentSubmesh->matLocalToWorldTransform = pCurrentMesh->m_matLocalToWorldTransform;
 
-			Vector4D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter.ToVector4D();
-			Vector4D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents.ToVector4D();
-			Vector4D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents.ToVector4D();
+			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
+			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			Vector3D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents;
 
 			Vector3D vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
@@ -231,23 +231,23 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			{
 				//g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
 				//g_pDebugRenderer->AddLine(vecCenter, vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
-				Vector vecBoxBounds[8]{ vecMaxExtents.AsVector3D()};
-				vecBoxBounds[0] = vecMinExtents.AsVector3D();
-				vecBoxBounds[1] = vecMinExtents.AsVector3D();
+				Vector vecBoxBounds[8]{ vecMaxExtents};
+				vecBoxBounds[0] = vecMinExtents;
+				vecBoxBounds[1] = vecMinExtents;
 				vecBoxBounds[1].z = vecMaxExtents.z;
 
-				vecBoxBounds[2] = vecMinExtents.AsVector3D();
+				vecBoxBounds[2] = vecMinExtents;
 				vecBoxBounds[2].x = vecMaxExtents.x;
 				vecBoxBounds[3].x = vecMaxExtents.x;
 				vecBoxBounds[3].z = vecMaxExtents.z;
 
-				vecBoxBounds[4] = vecMinExtents.AsVector3D();
+				vecBoxBounds[4] = vecMinExtents;
 				vecBoxBounds[4].y = vecMaxExtents.y;
-				vecBoxBounds[5] = vecMinExtents.AsVector3D();
+				vecBoxBounds[5] = vecMinExtents;
 				vecBoxBounds[5].y = vecMaxExtents.y;
 				vecBoxBounds[5].z = vecMaxExtents.z;
 
-				vecBoxBounds[6] = vecMinExtents.AsVector3D();
+				vecBoxBounds[6] = vecMinExtents;
 				vecBoxBounds[6].x = vecMaxExtents.x;
 				vecBoxBounds[6].y = vecMaxExtents.y;
 				vecBoxBounds[7].x = vecMaxExtents.x;
@@ -273,17 +273,14 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				g_pDebugRenderer->AddLine(vecBoxBounds[2], vecBoxBounds[6], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
 				g_pDebugRenderer->AddLine(vecBoxBounds[3], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
 				
-				//g_pDebugRenderer->AddPoint(vecCenter, 10.0f, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddPoint(vecCenter, 10.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 				bTest = true;
 			}
 
-			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter.AsVector3D(), vecHalfExtents))
+			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
 			{
 				bIsInCameraFrustum = false;
 			}
-
-			// DEBUGTODO: FIX FRUSTUM CULLING!!!
-			//bIsInCameraFrustum = true;
 
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
 			if (bIsInCameraFrustum)
