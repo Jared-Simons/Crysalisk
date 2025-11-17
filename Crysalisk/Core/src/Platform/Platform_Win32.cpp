@@ -487,8 +487,8 @@ namespace Platform
 
 	int ProcessWin32Input_MouseMove(LPARAM lParam)
 	{
-		float mouseXPos = 0;
-		float mouseYPos = 0;
+		int mouseXPos = 0;
+		int mouseYPos = 0;
 
 		if (lParam)
 		{

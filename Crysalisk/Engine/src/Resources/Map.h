@@ -10,6 +10,14 @@
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
+// RAYTODO: Should this live somewhere else?
+struct Ray_t
+{
+	Vector vecStart{};
+	Vector vecDirection{};
+	Vector vecEnd{};
+};
+
 class CMap
 {
 public:
@@ -21,6 +29,7 @@ public:
 
 	const char*									GetMapName() const { return m_pszMapName; }
 	void										GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
+	void										CastRayIntoScene(Ray_t& pRay) const;
 
 private:
 	char*								m_pszMapName{ nullptr };

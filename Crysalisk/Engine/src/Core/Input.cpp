@@ -27,9 +27,10 @@ public:
 	// Input processing.
 	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
 	void		ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) override;
-	void		ProcessMousePositionInput(const float mouseXPos, const float mouseYPos) override;
+	void		ProcessMousePositionInput(const int mouseXPos, const int mouseYPos) override;
 
-	bool		IsKeyPressed(const int key) const override;
+	bool			IsKeyPressed(const int key) const override;
+	virtual void	GetCurrentMousePos(int& iX, int& iY) override;
 
 private:
 	// Keyboard state this frame.
@@ -68,8 +69,8 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
 	}
 
 	// setup m_MouseState table
-	m_MouseState.m_XPos = 0.0f;
-	m_MouseState.m_YPos = 0.0f;
+	m_MouseState.m_XPos = 0;
+	m_MouseState.m_YPos = 0;
 	m_MouseState.m_bitsMouseButtons = 0;
 
 	// Register our callbacks with the platform layer.
@@ -150,38 +151,12 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 	{
 		m_MouseState.m_bitsMouseButtons = mouseButtonFlags;
 
-		if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_LEFT)
-		{
-			LOG_INFO("Left Mouse Button pressed.");
-		}
-		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
-		{
-			LOG_INFO("Right Mouse Button pressed.");
-		}
-		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
-		{
-			LOG_INFO("Middle Mouse Button pressed.");
-		}
-
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
 		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 	else
 	{
-		if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_LEFT)
-		{
-			LOG_INFO("Left Mouse Button released.");
-		}
-		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_RIGHT)
-		{
-			LOG_INFO("Right Mouse Button released.");
-		}
-		else if (m_MouseState.m_bitsMouseButtons & eMouseButtonTable::MOUSE_BUTTON_MIDDLE)
-		{
-			LOG_INFO("Middle Mouse Button released.");
-		}
-
 		// Zero out the pressed mouse buttons.
 		m_MouseState.m_bitsMouseButtons = 0;
 
@@ -192,15 +167,15 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 	}
 }
 
-void CInputSystem::ProcessMousePositionInput(const float mouseXPos, const float mouseYPos)
+void CInputSystem::ProcessMousePositionInput(const int mouseXPos, const int mouseYPos)
 {
 	m_MouseState.m_XPos = mouseXPos;
 	m_MouseState.m_YPos = mouseYPos;
 
 	// Fire off an event.
 	EventData_t eventData;
-	eventData.f32[0] = mouseXPos;
-	eventData.f32[1] = mouseYPos;
+	eventData.i32[0] = mouseXPos;
+	eventData.i32[1] = mouseYPos;
 
 	g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
 	return;
@@ -219,6 +194,17 @@ bool CInputSystem::IsKeyPressed(const int key) const
 	return false;
 }
 
+//-------------------------------------------------------------------------
+// Purpose - Returns the raster-space coordinates of the mouse.
+// Input - iX/iY - References to ints that store the current mouse coordinates.
+// Output - none.
+//-------------------------------------------------------------------------
+void CInputSystem::GetCurrentMousePos(int& iX, int& iY)
+{
+	iX = m_MouseState.m_XPos;
+	iY = m_MouseState.m_YPos;
+}
+
 //-----------------------------------------------------------------------------
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
@@ -232,7 +218,7 @@ void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed)
 	g_pInputSystem_Internal->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
 }
 
-void API_ProcessMouseMoveInput(const float mouseXPos, const float mouseYPos)
+void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos)
 {
 	g_pInputSystem_Internal->ProcessMousePositionInput(mouseXPos, mouseYPos);
 }

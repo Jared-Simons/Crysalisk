@@ -254,3 +254,9 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 	}
 }
 
+void CMap::CastRayIntoScene(Ray_t& pRay) const
+{
+	// Check every object and return the center position of the closest geometry to the ray's origin.
+	pRay.vecEnd = pRay.vecStart + (pRay.vecDirection * 100.0f);	// RAYTODO: An actual limit here would be good.
+}
+

@@ -32,7 +32,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	typedef void (*Platform_KeyboardEventCallback)(const int processedKeyInput, bool pressed);
 	typedef void (*Platform_MouseButtonEventCallback)(unsigned int mouseButtonFlags, bool bPressed);
-	typedef void (*Platform_MouseMoveEventCallback)(const float mouseXPos, const float mouseYPos);
+	typedef void (*Platform_MouseMoveEventCallback)(const int mouseXPos, const int mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
 	//-------------------------------------------------------------------------

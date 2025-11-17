@@ -34,7 +34,7 @@ static bool RendererEvent_KeyPressed(EventData_t data);
 typedef void* (*PFN_GetRendererBackendState)();
 
 // TEMP!
-static Camera_t s_MainCamera;
+Camera_t s_MainCamera;
 
 // TEMP Test font
 FontHandle_t	testFont;
