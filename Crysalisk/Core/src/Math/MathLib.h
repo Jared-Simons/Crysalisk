@@ -888,7 +888,7 @@ public:
 	{
 		Matrix4x4 projMat{ 1.0f };
 
-		float lr = 1.0f / (flLeft - flRight);
+		/*float lr = 1.0f / (flLeft - flRight);
 		float bt = 1.0f / (flBottom - flTop);
 		float nf = 1.0f / (flNear - flFar);
 
@@ -899,6 +899,14 @@ public:
 		projMat.flData[12] = (flLeft + flRight) * lr;
 		projMat.flData[13] = (flTop + flBottom) * bt;
 		projMat.flData[14] = -flNear * nf;
+		projMat.flData[15] = 1.0f;*/
+
+		projMat.flData[0] = 2.0f / (flRight - flLeft);
+		projMat.flData[5] = 2.0f / (flTop - flBottom);
+		projMat.flData[10] = -2.0f / (flFar - flNear);
+		projMat.flData[12] = -(flRight + flLeft) / (flRight - flLeft);
+		projMat.flData[13] = -(flTop + flBottom) / (flTop - flBottom);
+		projMat.flData[14] = -(flFar + flNear) / (flFar - flNear);
 		projMat.flData[15] = 1.0f;
 
 		return projMat;

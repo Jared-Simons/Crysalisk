@@ -1766,13 +1766,13 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 
 	if (!iVertexCount || !iVertexStride || !pVertices)
 	{
-		// DEBUGTODO: Logging
+		LOG_ERROR("AcquireGeometryResources() requires valid vertex data. Nothing was done.");
 		return;
 	}
 
 	if (iIndexCount && (!pIndices || !pInternalIndexBuffer))
 	{
-		// DEBUGTODO: Logging
+		LOG_ERROR("AcquireGeometryResources() was provided with iIndexCount > 0 but no index data and/or index buffer. Nothing was done.");
 		return;
 	}
 

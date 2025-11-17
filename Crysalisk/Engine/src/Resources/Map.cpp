@@ -288,13 +288,11 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				if (!pCurrentSubmesh->bIsTransparent)
 				{
 					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
-					pVisibleOpaqueGeometries.Back()->iLocalToWorldTransform = iMesh;		// Set the correct transform index.
 					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 				else
 				{
 					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
-					pVisibleTranslucentGeometries.Back()->iLocalToWorldTransform = iMesh;	// Set the correct transform index.
 					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}

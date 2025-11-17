@@ -41,22 +41,6 @@ FontHandle_t	testFont;
 TextObject		testText;
 ShaderHandle_t	hUIShader{ kInvalidID_U32 };
 
-// DEBUGTODO: Just a test.
-static ShaderHandle_t hDebugLineShader{ kInvalidID_U32 };
-struct DebugLineShaderUniformLocations
-{
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
-};
-
-static DebugLineShaderUniformLocations s_DebugShaderUniforms{};
-static unsigned int s_DebugInstanceID{ kInvalidID_U32 };
-
-static GeometryInstance_t debugInstance{};
-// DEBUGTODO: End test.
-
 static const char* szRendererVisualizationModesLabels[9] =
 {
 	"FULLBRIGHT",
@@ -229,7 +213,7 @@ void Renderer::Shutdown()
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pRenderData - Frame-specific data to be used in rendering ops.
-//		  pGeometries - An array of geometries to be rendered.
+//		  pCurrentMap - The current map to get rendering data from.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
 bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
@@ -279,6 +263,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Matrix4x4 model = Matrix4x4{ 1.0f };
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
+	// TODO: Figure out how to split out these matrices per model.
 	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
 	if (pCurrentMap.IsMapLoaded())
@@ -298,8 +283,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			//model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
+			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
@@ -312,8 +298,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			//model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
+			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
@@ -344,25 +331,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 				bDebugGeoLoaded = true;
 			}
 		}
-
-		// DEBUGTODO: Just a test.
-		// DEBUGTODO: Create a separate renderpass for debug geometries.
-		if (hDebugLineShader != kInvalidID_U32 && debugInstance.vertexCount != kInvalidID_U64 && iDebugGeoIndex != kInvalidID_U32)
-		{
-			g_pShaderSystem->BindShader(hDebugLineShader);
-			model = Matrix4x4{ 1.0f };
-			model = TransformMatrices[pOpaqueGeometries[iDebugGeoIndex]->iLocalToWorldTransform];
-			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.projection, 0, s_DebugInstanceID, &matProjection);
-			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.view, 0, s_DebugInstanceID, &matView);
-
-			g_pShaderSystem->BindPerInstanceUniforms(s_DebugInstanceID);
-
-			Vector4D vecColor{ 0.0f, 1.0f, 0.0f, 1.0f };
-			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.color, 0, s_DebugInstanceID, &vecColor);
-
-			g_pShaderSystem->SetShaderUniform(hDebugLineShader, s_DebugShaderUniforms.model, 0, s_DebugInstanceID, &model);
-			DrawGeometry(debugInstance, &m_DebugRendererBuffer, &m_DebugRendererBuffer);
-		}
 	}
 
 	m_RendererBackend->EndRenderpass();
@@ -375,8 +343,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	debugFrameData.matView = matView;
 	debugFrameData.vecCameraPosition = s_MainCamera.vecPosition;
 	debugFrameData.vecCameraForward = s_MainCamera.vecFront;
-	debugFrameData.flCurTime = m_RendererClock.GetElapsedTime();
-	debugFrameData.pTransformMatrices = TransformMatrices.Data();
+	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
 	g_pDebugRenderer->Render(debugFrameData);
 
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
@@ -384,7 +351,11 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		m_RendererBackend->BeginRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Orthographic(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
+		/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
+		float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
+		// TODO: Orthographic projection is broken.
+		Matrix4x4 UIProjection{ 1.0f };
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);
@@ -521,7 +492,10 @@ void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInst
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Creates/acquires the resources needed for a renderer view.
+// Input:	pViewConfig - The configuration for the new view.
+//			pOutView - The structure to store the newly created view.
+// Output:	Returns true on successful creation, otherwise false.
 //-------------------------------------------------------------------------
 bool Renderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
 {
@@ -529,7 +503,9 @@ bool Renderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererVie
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Destroys/releases the resources used for a renderer view.
+// Input:	pView - The view to be destroyed.
+// Output:	none.
 //-------------------------------------------------------------------------
 void Renderer::DestroyRendererView(RendererView& pView)
 {
@@ -537,7 +513,9 @@ void Renderer::DestroyRendererView(RendererView& pView)
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Begins a renderer view/renderpass.
+// Input:	pView - The view to start.
+// Output:	Returns true on successful start, otherwise false.
 //-------------------------------------------------------------------------
 bool Renderer::BeginRendererView(RendererView& pView)
 {
@@ -545,7 +523,9 @@ bool Renderer::BeginRendererView(RendererView& pView)
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Ends the current renderer view/renderpass.
+// Input:	none.
+// Output:	none.
 //-------------------------------------------------------------------------
 void Renderer::EndRendererView()
 {
@@ -553,7 +533,14 @@ void Renderer::EndRendererView()
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Creates/acquires the resources needed for a renderbuffer
+// Input:	bufferSize - The total size of the buffer in bytes.
+//			bufferUsage - Describes what the buffer will be used for.
+//			bUseFreelist - Indicates if the buffer should use a freelist for memory tracking.
+//						   If this is false, then the buffer allocates/frees memory in a linear fashion.
+//			pszBufferName - The name of the buffer, optional and only for debugging purposes.
+//			pOutBuffer - Stores the newly created renderbuffer.
+// Output:	Returns true on successful creation, otherwise false.
 //-------------------------------------------------------------------------
 bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
 {
@@ -561,7 +548,9 @@ bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUs
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Destroys/releases the resources used for a render buffer.
+// Input:	pBuffer - The buffer to be destroyed.
+// Output:	none.
 //-------------------------------------------------------------------------
 void Renderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 {
@@ -609,8 +598,16 @@ void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
-// Just a straight passthrough.
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			iVertexCount - The number of vertices to be uploaded.
+//			iVertexStride - The size (in bytes) of each vertex.
+//			pVertices - An array of vertices to be uploaded.
+//			iIndexCount - The number of indices to be uploaded.
+//			pIndices - An array of indices to be uploaded (assumed to be made of uint32_t's).
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
 //-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
@@ -689,7 +686,7 @@ void Renderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer
 // Purpose: A temporary function to create geometry for testing.
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
-// DEBUGTODO:	Find a better name/place for this function.
+// TODO:	Find a better name/place for this function.
 //				This really is responsible for creating/initializing structures
 //				that need to be created post system-initialization.
 //-------------------------------------------------------------------------
@@ -706,20 +703,6 @@ bool Renderer::CreateTempTextObjects()
 		LOG_ERROR("Failed to initialize debug shaders!");
 		return false;
 	}
-
-	// DEBUGTODO: Just a test.
-	{
-		hDebugLineShader = g_pShaderSystem->AcquireShader("Debug.Line");
-
-		s_DebugShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "projection");
-		s_DebugShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "view");
-		s_DebugShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color");
-		s_DebugShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "model");
-
-		g_pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &s_DebugInstanceID, "Test_Debug_Geometry");
-	}
-
-	g_pDebugRenderer->AddPoint(Vector{ 0.0f, 0.0f, -200.0f }, 32.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, 5.0f);
 
 	return true;
 }

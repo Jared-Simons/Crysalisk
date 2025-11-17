@@ -465,7 +465,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Store off the transform index.
-	pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
+	//pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
 
 	return iDebugGeometryIndex;
@@ -550,7 +550,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
-	// DEBUGTODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
+	// TODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
@@ -610,19 +610,17 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	ptVertices[0] = vecCameraPosition + Vector3D{ -50.0f, 0.0f, -60.0f, };
 	ptVertices[1] = vecCameraPosition + Vector3D{ 50.0f, 0.0f, -60.0f };
 	{
-		// DEBUGTODO: Document this process.
-		// DEBUGTODO: This frustum is compressed slightly so it actually shows up on the screen (we don't have multiple cameras working yet).
-		//				Make sure to make this go from (-1,-1,-1) to (1,1,1).
-
+		// Define the frustum vertices in clip-space.
+		// Then, during the rendering loop, we'll project into worldspace.
 		Vector frustumVerts[8]{};
-		frustumVerts[0] = Vector{ 0.95f, 0.95f, 0.95f };
-		frustumVerts[1] = Vector{ -0.95f, 0.95f, 0.95f };
-		frustumVerts[2] = Vector{ 0.95f, -0.95f, 0.95f };
-		frustumVerts[3] = Vector{ -0.95f, -0.95f, 0.95f };
-		frustumVerts[4] = Vector{ 0.95f, 0.95f, -0.9f };
-		frustumVerts[5] = Vector{ -0.95f, 0.95f, -0.9f };
-		frustumVerts[6] = Vector{ 0.95f, -0.95f, -0.9f };
-		frustumVerts[7] = Vector{ -0.95f, -0.95f, -0.9f };
+		frustumVerts[0] = Vector{ 1.0f, 1.0f, 1.0f };
+		frustumVerts[1] = Vector{ -1.0f, 1.0f, 1.0f };
+		frustumVerts[2] = Vector{ 1.0f, -1.0f, 1.0f };
+		frustumVerts[3] = Vector{ -1.0f, -1.0f, 1.0f };
+		frustumVerts[4] = Vector{ 1.0f, 1.0f, -1.0f };
+		frustumVerts[5] = Vector{ -1.0f, 1.0f, -1.0f };
+		frustumVerts[6] = Vector{ 1.0f, -1.0f, -1.0f };
+		frustumVerts[7] = Vector{ -1.0f, -1.0f, -1.0f };
 
 		// Defines the far-clipping plane.
 		ptVertices[0] = frustumVerts[0];
@@ -665,15 +663,16 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Releases all the data related to a debug geometry instance.
+// Input:   debugGeoHandle - A handle to the debug geometry to release.
+// Output:  none.
 //-------------------------------------------------------------------------
 void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
 
-	// DEBUGTODO: This is hardcoded to one shader.
-	g_pShaderSystem->ReleaseShaderInstanceResources(m_hDebugLineShader, pGeoToRemove.iInstanceID);
+	g_pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
 	g_pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
 
 	pGeoToRemove.iInstanceID = kInvalidID_U32;
@@ -681,7 +680,9 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Gets the first free slot for a new piece of rendering geometry.
+// Input:   none.
+// Output:  The new index, if one was found, otherwise an invalid ID.
 //-------------------------------------------------------------------------
 int CDebugRenderer::GetFirstFreeGeometryDataIndex() const
 {
@@ -694,6 +695,6 @@ int CDebugRenderer::GetFirstFreeGeometryDataIndex() const
 		}
 	}
 
-	// DEBUGTODO: Logging!
+	LOG_ERROR("Failed to find a free slot for new debug geometry data. Increase configuration to allow for more.");
 	return kInvalidID_U32;
 }

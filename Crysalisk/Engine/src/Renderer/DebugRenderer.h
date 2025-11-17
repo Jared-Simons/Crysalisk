@@ -10,7 +10,7 @@
 #include "Resources/ResourceTypes.h"
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Per-frame specific data needed to render debug geometries.
 //-------------------------------------------------------------------------
 struct DebugRendererFrameData_t
 {
@@ -19,18 +19,18 @@ struct DebugRendererFrameData_t
 	Vector3D	vecCameraPosition{};
 	Vector3D	vecCameraForward{};
 	float		flCurTime{ 0.0f };
-
-	// DEBUGTODO: Is this the best way to handle this?
-	Matrix4x4*	pTransformMatrices{ nullptr };
 };
 
+//-------------------------------------------------------------------------
+// Purpose: Debug renderer system config.
+//-------------------------------------------------------------------------
 struct DebugRendererConfig_t
 {
 	unsigned int uMaxDebugGeometries{ 0 };
 };
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Interface to the debug rendering system.
 //-------------------------------------------------------------------------
 class IDebugRenderer
 {
@@ -50,4 +50,5 @@ public:
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;
 };
 
+// Interface to the debug renderer context.
 extern IDebugRenderer* g_pDebugRenderer;

@@ -84,7 +84,7 @@ class CFontSystem : public IFontSystem
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
 
-	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) override;
+	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
 
 	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize) override;
@@ -232,11 +232,17 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Returns a handle to the provided font's atlas texture.
+// Input:	hFont - The font handle who's atlas to return.
+// Output:	Returns a handle to the font's atlas texture.
 //-------------------------------------------------------------------------
-TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont)
+TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont) const
 {
-	// DEBUGTODO: Error checking!
+	if (hFont == kInvalidID_U32 || hFont > m_Config.MaxFonts)
+	{
+		LOG_ERROR("AcquireFontAtlasTexture: Provided font handle is invalid. Returning invalid handle.");
+		return kInvalidID_U32;
+	}
 
 	return m_FontDictionary.m_FontArray[hFont].m_hFontTexture;
 }
@@ -344,7 +350,11 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 }
 
 //-------------------------------------------------------------------------
-// DEBUGTODO: Documentation.
+// Purpose: Generates the geometry necessary to render a piece of text in the 3D scene.
+// Input:	hFont - The font associated with this text object.
+//			flTextSize - The size of the text.
+//			pszText - The text to acquire geometry for.
+// Output:	Returns a new geometry config to use in rendering the new text.
 //-------------------------------------------------------------------------
 GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText)
 {
@@ -356,7 +366,7 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, float f
 	int							iCurNonWhitespaceCharCount = 0;
 	Vector3D					vecCurPos{ 0.0f, 0.0f, 0.0f };
 
-	// DEBUGTODO: Isn't this kinda arbitrary?
+	// TODO: Isn't this kinda arbitrary?
 	float						flTextScale = flTextSize / 128.0f;
 
 	// Geometry data.
