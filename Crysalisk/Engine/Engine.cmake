@@ -21,6 +21,8 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Core/Input.h
 	${ENGINE_ROOT}/Renderer/Camera.cpp
 	${ENGINE_ROOT}/Renderer/Camera.h
+	${ENGINE_ROOT}/Renderer/DebugRenderer.cpp
+	${ENGINE_ROOT}/Renderer/DebugRenderer.h
 	${ENGINE_ROOT}/Renderer/IRendererBackend.h
 	${ENGINE_ROOT}/Renderer/Renderer.cpp
 	${ENGINE_ROOT}/Renderer/Renderer.h
@@ -40,6 +42,9 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Systems/TextureSystem.cpp
 	${ENGINE_ROOT}/Systems/TextureSystem.h
 )
+
+# Group source files
+source_group(TREE ${ENGINE_ROOT} FILES ${CRYSALISK_ENGINE_SRC_FILES})
 
 # Create Crysalisk Engine library.
 add_library(Engine SHARED ${CRYSALISK_ENGINE_SRC_FILES})

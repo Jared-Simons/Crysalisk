@@ -17,6 +17,9 @@ set(CRYSALISK_UNITTEST_SRC_FILES
 	${UNITTEST_ROOT}/Containers/CVectorTests.h
 )
 
+# Group source files
+source_group(TREE ${UNITTEST_ROOT} FILES ${CRYSALISK_UNITTEST_SRC_FILES})
+
 # Create Crysalisk Unit Test executable.
 add_executable(UnitTest ${CRYSALISK_UNITTEST_SRC_FILES})
 

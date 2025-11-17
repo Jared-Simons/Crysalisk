@@ -23,8 +23,6 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Core/Logging.h
 	${CORE_ROOT}/Math/MathLib.cpp
 	${CORE_ROOT}/Math/MathLib.h
-	${CORE_ROOT}/Math/MatrixTypes.h
-	${CORE_ROOT}/Math/VectorTypes.h
 	${CORE_ROOT}/Math/VertexTypes.h
 	${CORE_ROOT}/Memory/DynamicAllocator.cpp
 	${CORE_ROOT}/Memory/DynamicAllocator.h
@@ -62,6 +60,9 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Vendor/stb_image.h
 	${CORE_ROOT}/Vendor/stb_truetype.h
 )
+
+# Group source files
+source_group(TREE ${CORE_ROOT} FILES ${CRYSALISK_CORE_SRC_FILES})
 
 # Create Crysalisk Core Utilities library.
 add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})

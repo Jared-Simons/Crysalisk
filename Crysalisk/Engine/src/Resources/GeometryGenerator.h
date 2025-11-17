@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include <Math/MathLib.h>
 #include "ResourceTypes.h"
 
 class ENGINE_API MeshGenerator

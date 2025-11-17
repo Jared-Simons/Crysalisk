@@ -10,7 +10,7 @@
 
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
-#include <Math/VectorTypes.h>
+#include <Math/MathLib.h>
 #include <Math/VertexTypes.h>
 #include <Renderer/RendererTypes.h>
 #include <Strings/String_Utils.h>
@@ -268,9 +268,11 @@ struct GeometryInstance_t
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
 
-	// The index of the model matrix to use during rendering.
-	uint8_t				iLocalToWorldTransform{};
-	// The center of the mesh in world space.
+	// A unique identifier for the mesh resource this instance is tied to.
+	uint32_t							m_MeshID{ kInvalidID_U32 };
+	// The model->world transform matrix.
+	Matrix4x4			matLocalToWorldTransform{};
+	// The center of the mesh relative to it's AABB in local space.
 	Vector3D			vecCenter{};
 	// The minimum extents of the mesh in local space.
 	Vector3D			vecMinExtents{};
@@ -281,6 +283,8 @@ struct GeometryInstance_t
 // Represents a mesh/model, made up of numerous submeshes.
 struct Mesh
 {
+	// A unique identifier per mesh.
+	uint32_t							m_MeshID{ kInvalidID_U32 };
 	// An array of submeshes that make up this mesh.
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// Origin of this mesh in world space.

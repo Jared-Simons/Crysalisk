@@ -357,7 +357,7 @@ namespace Utl
 	}
 
 	//-------------------------------------------------------------------------
-	// Purpose: Converts an ascii string to a Vector3D.
+	// Purpose: Converts an ascii string to a Vector3D_OLD.
 	// 
 	// Input:	c - The character to convert to a float.
 	//			pOutVec - Vector that will hold the converted character.
@@ -365,7 +365,7 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	void String_ToVector3(const char* c, Vector3D* pOutVec)
 	{
-		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->x, &pOutVec->y, &pOutVec->z);
+		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
 		CAssert(numElements == 3);
 	}
 

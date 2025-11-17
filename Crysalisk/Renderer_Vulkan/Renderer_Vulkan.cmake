@@ -23,6 +23,9 @@ set(CRYSALISK_RENDERER_VULKAN_SRC_FILES
 	${RENDERER_VULKAN_ROOT}/Platform/VulkanPlatform_Win32.cpp
 )
 
+# Group source files
+source_group(TREE ${RENDERER_VULKAN_ROOT} FILES ${CRYSALISK_RENDERER_VULKAN_SRC_FILES})
+
 # Create Crysalisk Vulkan Renderer library.
 add_library(Renderer_Vulkan SHARED ${CRYSALISK_RENDERER_VULKAN_SRC_FILES})
 

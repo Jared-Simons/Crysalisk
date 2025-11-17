@@ -83,8 +83,12 @@ class CFontSystem : public IFontSystem
 
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
+
+	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
+
 	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize) override;
+	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -209,6 +213,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		// Get our shader instance data and bind the font atlas.
 		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
 		g_pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
+		pFont->m_hFontTexture = hFontAtlas;
 
 		// Setup the font atlas.
 		pFont->m_pInternalFontAtlasData = new InternalFontAtlasData_t;
@@ -224,6 +229,22 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 	}
 
 	return fontHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Returns a handle to the provided font's atlas texture.
+// Input:	hFont - The font handle who's atlas to return.
+// Output:	Returns a handle to the font's atlas texture.
+//-------------------------------------------------------------------------
+TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont) const
+{
+	if (hFont == kInvalidID_U32 || hFont > m_Config.MaxFonts)
+	{
+		LOG_ERROR("AcquireFontAtlasTexture: Provided font handle is invalid. Returning invalid handle.");
+		return kInvalidID_U32;
+	}
+
+	return m_FontDictionary.m_FontArray[hFont].m_hFontTexture;
 }
 
 //-------------------------------------------------------------------------
@@ -318,6 +339,80 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 		// Advance the x-position over.
 		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
+
+		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
+		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
+		// as 'ch' includes escape codes, while 'iCurNonWhitespaceCharCount' does not.
+		iCurNonWhitespaceCharCount++;
+	}
+
+	return newConfig;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Generates the geometry necessary to render a piece of text in the 3D scene.
+// Input:	hFont - The font associated with this text object.
+//			flTextSize - The size of the text.
+//			pszText - The text to acquire geometry for.
+// Output:	Returns a new geometry config to use in rendering the new text.
+//-------------------------------------------------------------------------
+GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText)
+{
+	GeometryConfig_t				newConfig{};
+	InternalFontAtlasData_t*		pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
+	FontLoader::FontCharData_t*		pCurGlyph = pInternalAtlas->glyphs.Data();
+
+	size_t						iStringLength = Utl::StringLength(pszText);
+	int							iCurNonWhitespaceCharCount = 0;
+	Vector3D					vecCurPos{ 0.0f, 0.0f, 0.0f };
+
+	// TODO: Isn't this kinda arbitrary?
+	float						flTextScale = flTextSize / 128.0f;
+
+	// Geometry data.
+	Vector2D					vecGlyphSize = {};
+	Vector3D					vecGlyphBottomLeftPos = {};
+	Vector3D					vecCharVertices[4] = {};
+	Vector2D					vecCharTexCoords[4] = {};
+
+	for (int ch = 0; ch < iStringLength; ch++)
+	{
+		pCurGlyph = &pInternalAtlas->glyphs[pszText[ch] - kCodePointOfFirstChar];
+
+		// Vertex positions: top-right, top-left, bottom-left, bottom-right.
+		vecCharVertices[0] = Vector{ (100.0f * ch) + 50.0f, 100.0f, 0.0f };
+		vecCharVertices[1] = Vector{ (100.0f * ch), 100.0f, 0.0f };
+		vecCharVertices[2] = Vector{ (100.0f * ch), 0.0f, 0.0f };
+		vecCharVertices[3] = Vector{ (100.0f * ch) + 50.0f, 0.0f, 0.0f };
+
+		// Scale all our vertex positions.
+		for (int idx = 0; idx < 4; idx++)
+		{
+			vecCharVertices[idx] *= flTextScale;
+		}
+
+		// Vertex TexCoords.
+		vecCharTexCoords[0] = { pCurGlyph->sMax, pCurGlyph->tMin };
+		vecCharTexCoords[1] = { pCurGlyph->sMin, pCurGlyph->tMin };
+		vecCharTexCoords[2] = { pCurGlyph->sMin, pCurGlyph->tMax };
+		vecCharTexCoords[3] = { pCurGlyph->sMax, pCurGlyph->tMax };
+
+		// Add these to the geometry config.
+		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[0], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[0] });
+		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[1], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[1] });
+		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[2], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[2] });
+		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[3], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[3] });
+
+		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
+
+		// Fill up the index buffer as well.
+		for (int idx = 0; idx < 6; idx++)
+		{
+			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
+		}
+
+		// Advance the x-position over.
+		vecCurPos.x += pCurGlyph->flAdvance * flTextScale;
 
 		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
 		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character

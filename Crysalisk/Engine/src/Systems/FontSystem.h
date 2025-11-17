@@ -53,8 +53,11 @@ public:
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
 
+	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const = 0;
+
 	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSizet) = 0;
+	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) = 0;
 };
 
 // Global interface to the font system context.

@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Camera.h"
 
+#include "Core/Engine.h"
 #include "Core/Input.h"
 
 //-------------------------------------------------------------------------
@@ -22,11 +23,17 @@ void Camera_t::RecalculateCameraVectors()
 	front.z = M_SIN_F(M_DEG2RAD_F(Yaw)) * M_COS_F(M_DEG2RAD_F(Pitch));
 	vecFront = front.Normalize();
 
-	Vector3D newRight = Vector3D::CrossProduct(vecFront, vecWorldUp);
+	Vector3D newRight = Vector3D::Cross(vecFront, vecWorldUp);
 	vecRight = newRight.Normalize();
 
-	Vector3D newUp = Vector3D::CrossProduct(vecRight, vecFront);
+	Vector3D newUp = Vector3D::Cross(vecRight, vecFront);
 	vecUp = newUp.Normalize();
+
+	// Recalculate the aspect ratio in case the resolution changed.
+	// TODO: This should probably be triggered any time the screen size changes.
+	unsigned int iWindowWidth, iWindowHeight;
+	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
+	flAspectRatio = (iWindowWidth / (float)iWindowHeight);
 }
 
 //-------------------------------------------------------------------------
@@ -106,12 +113,12 @@ Frustum Camera_t::CreateFrustumFromCamera()
 	const float flHalfHSide = flHalfVSide * flAspectRatio;
 	Vector3D vecFrontFar = vecFront * flZFar;
 
-	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar + (vecUp * flHalfVSide), vecRight));
-	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecRight, vecFrontFar - (vecUp * flHalfVSide)));
-	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecUp, vecFrontFar + (vecRight * flHalfHSide)));
-	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::CrossProduct(vecFrontFar - (vecRight * flHalfHSide), vecUp));
-	outFrustum.m_Faces[TOP_FACE] = Plane::PlaneCreate((vecFront * flZNear) + vecPosition, vecFront);
-	outFrustum.m_Faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition + vecFrontFar, vecFront * -1.0f);
+	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition + (vecFront * flZNear), vecFront);
+	outFrustum.m_Faces[FAR_FACE] = Plane::PlaneCreate(vecPosition + (vecFront * flZFar), -vecFront);
+	outFrustum.m_Faces[RIGHT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross((vecFront * flZFar) - (vecRight * flHalfHSide), vecUp));
+	outFrustum.m_Faces[LEFT_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecUp, (vecFront * flZFar) + (vecRight * flHalfHSide)));
+	outFrustum.m_Faces[TOP_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross(vecRight, (vecFront * flZFar) - (vecUp * flHalfVSide)));
+	outFrustum.m_Faces[BOTTOM_FACE] = Plane::PlaneCreate(vecPosition, Vector3D::Cross((vecFront * flZFar) + (vecUp * flHalfVSide), vecRight));
 
 	return outFrustum;
 }

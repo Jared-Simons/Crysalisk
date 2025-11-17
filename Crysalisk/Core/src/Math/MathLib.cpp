@@ -7,11 +7,11 @@
 
 #include "MathLib.h"
 
-#include <cmath>
+#include <math.h>
 
 float M_SQRT_F(float x)
 {
-	return sqrt(x);
+	return sqrtf(x);
 }
 
 double M_SQRT(double x)
@@ -21,7 +21,7 @@ double M_SQRT(double x)
 
 float M_SIN_F(float x)
 {
-	return sin(x);
+	return sinf(x);
 }
 
 double M_SIN(double x)
@@ -31,7 +31,7 @@ double M_SIN(double x)
 
 float M_COS_F(float x)
 {
-	return cos(x);
+	return cosf(x);
 }
 
 double M_COS(double x)
@@ -41,12 +41,22 @@ double M_COS(double x)
 
 float M_TAN_F(float x)
 {
-	return tan(x);
+	return tanf(x);
 }
 
 double M_TAN(double x)
 {
 	return tan(x);
+}
+
+float M_ATAN2_F(float x, float y)
+{
+	return atan2f(x, y);
+}
+
+double M_ATAN2(double x, double y)
+{
+	return atan2(x, y);
 }
 
 float M_RAD2DEG_F(float angleInRadians)
@@ -76,5 +86,5 @@ float M_ABS_F(float x)
 
 double M_ABS(double x)
 {
-	return abs(x);
+	return fabsl(x);
 }

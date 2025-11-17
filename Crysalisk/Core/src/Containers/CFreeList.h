@@ -8,8 +8,6 @@
 
 #include "Core/Assertions.h"
 
-#include <new> // for placement new
-
 #ifdef _DEBUG
 // Enable this to test if the freelist is placing nodes in the appropriate order when freeing memory.
 #define DEBUG_FREELIST_MEMORY_ORDER 1
@@ -37,12 +35,20 @@ namespace Utl
 		}
 
 		void	SetNumBytesToTrack(size_t bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = bytesToTrack / (sizeof(void*) * sizeof(FreeListNode_t)); }
-		size_t	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes; }
+		size_t	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes * sizeof(FreeListNode_t); }
 		void	InitFreelist(void* pMemory)
 		{
 			CAssert(pMemory);
 
-			m_pNodeArray = new (pMemory) FreeListNode_t[m_iNumFreelistNodes];
+			m_pNodeArray = (FreeListNode_t*)pMemory;
+
+			// Invalidate all nodes.
+			for (int nodeIdx = 0; nodeIdx < m_iNumFreelistNodes; nodeIdx++)
+			{
+				m_pNodeArray[nodeIdx].Size = 0;
+				m_pNodeArray[nodeIdx].Offset = 0;
+				m_pNodeArray[nodeIdx].pNextNode = nullptr;
+			}
 
 			// Set the head node.
 			m_HeadNode = &m_pNodeArray[0];

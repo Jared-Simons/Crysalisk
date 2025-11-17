@@ -7,7 +7,7 @@
 #pragma once
 
 #include <Defines.h>
-#include "Math/VectorTypes.h"
+#include "Math/MathLib.h"
 
 namespace Utl
 {
@@ -55,7 +55,7 @@ namespace Utl
 	// Converts an ascii value to a floating-point value.
 	DLL_EXPORT float String_ATOF(const char* c);
 
-	// Converts an ascii string to a Vector3D.
+	// Converts an ascii string to a Vector3D_OLD.
 	// NOTE: This function does not return the Vector so that the function is compatible with C-linkage.
 	DLL_EXPORT void String_ToVector3(const char* c, Vector3D* pOutVec);
 

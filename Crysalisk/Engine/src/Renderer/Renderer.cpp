@@ -12,6 +12,7 @@
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
+#include "Renderer/DebugRenderer.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/Map.h"
@@ -132,7 +133,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
 
-		m_UIView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.9f };
+		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
 
 		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
 	}
@@ -144,6 +145,8 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
+
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
@@ -154,6 +157,15 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
 	{
 		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
+		return false;
+	}
+
+	// Setup the debug renderer.
+	DebugRendererConfig_t debugRendererConfig{};
+	debugRendererConfig.uMaxDebugGeometries = 64;
+	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
+	{
+		LOG_ERROR("Failed to initialize the debug renderer.");
 		return false;
 	}
 
@@ -177,6 +189,11 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+
+	// Shutdown the debug renderer.
+	g_pDebugRenderer->Shutdown();
+
+	m_RendererBackend->DestroyRenderBufferInternal(m_DebugRendererBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
@@ -196,7 +213,7 @@ void Renderer::Shutdown()
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pRenderData - Frame-specific data to be used in rendering ops.
-//		  pGeometries - An array of geometries to be rendered.
+//		  pCurrentMap - The current map to get rendering data from.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
 bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
@@ -231,29 +248,30 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Draw the frame!
-	if (!m_RendererBackend->StartFrame(pRenderData))
+	if (!m_RendererBackend->BeginFrame(pRenderData))
 	{
 		return false;
 	}
 
-	m_RendererBackend->StartRenderpass(m_SceneView);
+	m_RendererBackend->BeginRenderpass(m_SceneView);
 
 	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
 	// Flip the y-axis.
-	matProjection.data[5] *= -1;
+	matProjection.flData[5] *= -1;
 	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
-	Vector3D vecCameraPos = s_MainCamera.vecPosition;
-	Matrix4x4 model = Matrix4x4::Matrix4x4(1.0f);
+	Vector vecCameraPos = s_MainCamera.vecPosition;
+	Matrix4x4 model = Matrix4x4{ 1.0f };
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
+	// TODO: Figure out how to split out these matrices per model.
+	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
 	if (pCurrentMap.IsMapLoaded())
 	{
 		// Get the frustum from the camera.
 		Frustum frustum = s_MainCamera.CreateFrustumFromCamera();
-		
+
 		// TODO: Make this work with an allocator.
-		Utl::CVector<Matrix4x4>				TransformMatrices(32);
 		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
 		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
 		unsigned int						pCulledGeometries{ 0 };
@@ -265,12 +283,13 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			//model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
+			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pOpaqueGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+			DrawGeometry(*pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
@@ -279,12 +298,13 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			//model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
+			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
+			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
 			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pTransparentGeometries[idx], m_WorldVertexBuffer, m_WorldIndexBuffer);
+			DrawGeometry(*pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
@@ -292,16 +312,31 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->EndRenderpass();
 
+	g_pDebugRenderer->Update();
+
+	// Render our debug geometry.
+	DebugRendererFrameData_t debugFrameData{};
+	debugFrameData.matProjection = matProjection;
+	debugFrameData.matView = matView;
+	debugFrameData.vecCameraPosition = s_MainCamera.vecPosition;
+	debugFrameData.vecCameraForward = s_MainCamera.vecFront;
+	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
+	g_pDebugRenderer->Render(debugFrameData);
+
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
-		m_RendererBackend->StartRenderpass(m_UIView);
+		m_RendererBackend->BeginRenderpass(m_UIView);
 
 		// Render some test UI text.
-		Matrix4x4 UIProjection = Matrix4x4::Ortho(0.0f, (float)m_iWindowWidth, 0.0f, (float)m_iWindowHeight, 0.0f, 10000.0f);
+		/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
+		float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
+		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
+		// TODO: Orthographic projection is broken.
+		Matrix4x4 UIProjection{ 1.0f };
 		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		g_pShaderSystem->BindShader(hUIShader);
 		g_pShaderSystem->BindPerInstanceUniforms(1);
-		DrawGeometry(testText.m_Geometry, m_UIVertexBuffer, m_UIIndexBuffer);
+		DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
 	}
@@ -434,6 +469,72 @@ void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInst
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Creates/acquires the resources needed for a renderer view.
+// Input:	pViewConfig - The configuration for the new view.
+//			pOutView - The structure to store the newly created view.
+// Output:	Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
+bool Renderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
+{
+	return m_RendererBackend->CreateRendererViewInternal(pViewConfig, pOutView);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Destroys/releases the resources used for a renderer view.
+// Input:	pView - The view to be destroyed.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::DestroyRendererView(RendererView& pView)
+{
+	m_RendererBackend->DestroyRendererViewInternal(pView);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Begins a renderer view/renderpass.
+// Input:	pView - The view to start.
+// Output:	Returns true on successful start, otherwise false.
+//-------------------------------------------------------------------------
+bool Renderer::BeginRendererView(RendererView& pView)
+{
+	return m_RendererBackend->BeginRenderpass(pView);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Ends the current renderer view/renderpass.
+// Input:	none.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::EndRendererView()
+{
+	m_RendererBackend->EndRenderpass();
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Creates/acquires the resources needed for a renderbuffer
+// Input:	bufferSize - The total size of the buffer in bytes.
+//			bufferUsage - Describes what the buffer will be used for.
+//			bUseFreelist - Indicates if the buffer should use a freelist for memory tracking.
+//						   If this is false, then the buffer allocates/frees memory in a linear fashion.
+//			pszBufferName - The name of the buffer, optional and only for debugging purposes.
+//			pOutBuffer - Stores the newly created renderbuffer.
+// Output:	Returns true on successful creation, otherwise false.
+//-------------------------------------------------------------------------
+bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
+{
+	return m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Destroys/releases the resources used for a render buffer.
+// Input:	pBuffer - The buffer to be destroyed.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
+{
+	m_RendererBackend->DestroyRenderBufferInternal(pBuffer);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Sets a shader's uniform.
 // Input:	pShader - The shader who's uniform is to be set.
 //			pUniform - A pointer to the uniform to be set.
@@ -449,13 +550,15 @@ void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsi
 
 //-------------------------------------------------------------------------
 // Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pGeometryConfig - The specific geometry data.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			pGeometryConfig - The specific geometry data.
 //			pOutInstance - A structure that holds the instance of geometry after acquisition.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
+void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -468,7 +571,24 @@ void Renderer::AcquireGeometryResources(GeometryConfig_t& pGeometryConfig, Geome
 //-------------------------------------------------------------------------
 void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
 {
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig, pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Acquires the renderer-specific resources for rendering geometry.
+// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
+//			pIndexBuffer - The index buffer to be associated with this geometry.
+//			iVertexCount - The number of vertices to be uploaded.
+//			iVertexStride - The size (in bytes) of each vertex.
+//			pVertices - An array of vertices to be uploaded.
+//			iIndexCount - The number of indices to be uploaded.
+//			pIndices - An array of indices to be uploaded (assumed to be made of uint32_t's).
+//			pOutInstance - A structure that holds the instance of geometry after acquisition.
+// Output:	none.
+//-------------------------------------------------------------------------
+void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
 }
 
 //-------------------------------------------------------------------------
@@ -490,7 +610,7 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 //			pIndexBuffer - The index buffer to be associated with this geometry.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer)
+void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
 {
 	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
@@ -525,19 +645,41 @@ void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryCo
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Updates the vertex/index data associated with a piece of geometry.
+// Input:	pVertexBuffer - The vertex buffer associated with this geometry.
+//			pIndexBuffer - The index buffer associated with this geometry.
+//			pGeometry - The geometry instance to be updated.
+//			pNewGeometryConfig - The new geometry data to overwrite the existing data.
+// Output:	none.
+// 
+// TODO: Find a way to combine this and the above method.
+//-------------------------------------------------------------------------
+void Renderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+{
+	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: A temporary function to create geometry for testing.
 // Input:	none.
 // Output:	True on successful geometry creation, otherwise false.
+// TODO:	Find a better name/place for this function.
+//				This really is responsible for creating/initializing structures
+//				that need to be created post system-initialization.
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempTextObjects()
 {
-	// TEMP: Setup our test text.
 	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
-	// END TEMP
+
+	if (!g_pDebugRenderer->InitializeDebugShaders())
+	{
+		LOG_ERROR("Failed to initialize debug shaders!");
+		return false;
+	}
 
 	return true;
 }
