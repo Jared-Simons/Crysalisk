@@ -14,10 +14,6 @@
 #include "Systems/FontSystem.h"
 #include "Systems/ShaderSystem.h"
 
-// DEBUGLEFTOFF:
-// - We do not need all of the details of the GeometryInstance_t struct for rendering lines and whatnot.
-// - We should simplify this significantly.
-
 //-------------------------------------------------------------------------
 // Purpose: Defines different types of geometry that require different rendering behaviors.
 //-------------------------------------------------------------------------

@@ -225,57 +225,6 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
 				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
-			static bool bTest = false;
-
-			if (!bTest && iMesh == 1)
-			{
-				//g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				//g_pDebugRenderer->AddLine(vecCenter, vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
-				Vector vecBoxBounds[8]{ vecMaxExtents};
-				vecBoxBounds[0] = vecMinExtents;
-				vecBoxBounds[1] = vecMinExtents;
-				vecBoxBounds[1].z = vecMaxExtents.z;
-
-				vecBoxBounds[2] = vecMinExtents;
-				vecBoxBounds[2].x = vecMaxExtents.x;
-				vecBoxBounds[3].x = vecMaxExtents.x;
-				vecBoxBounds[3].z = vecMaxExtents.z;
-
-				vecBoxBounds[4] = vecMinExtents;
-				vecBoxBounds[4].y = vecMaxExtents.y;
-				vecBoxBounds[5] = vecMinExtents;
-				vecBoxBounds[5].y = vecMaxExtents.y;
-				vecBoxBounds[5].z = vecMaxExtents.z;
-
-				vecBoxBounds[6] = vecMinExtents;
-				vecBoxBounds[6].x = vecMaxExtents.x;
-				vecBoxBounds[6].y = vecMaxExtents.y;
-				vecBoxBounds[7].x = vecMaxExtents.x;
-				vecBoxBounds[7].y = vecMaxExtents.y;
-				vecBoxBounds[7].z = vecMaxExtents.z;
-
-				for (int i = 0; i < 8; i++)
-				{
-					g_pDebugRenderer->AddPoint(vecBoxBounds[i], 10.0f, Vector4D{0.0f, 0.0f, 1.0f, 1.0f}, -1.0f);
-				}
-				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[1], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[2], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[1], vecBoxBounds[3], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[2], vecBoxBounds[3], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-
-				g_pDebugRenderer->AddLine(vecBoxBounds[4], vecBoxBounds[5], Vector4D{1.0f, 0.0f, 0.0f, 1.0f}, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[4], vecBoxBounds[6], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[5], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[6], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-
-				g_pDebugRenderer->AddLine(vecBoxBounds[0], vecBoxBounds[4], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[1], vecBoxBounds[5], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[2], vecBoxBounds[6], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecBoxBounds[3], vecBoxBounds[7], Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-				
-				g_pDebugRenderer->AddPoint(vecCenter, 10.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				bTest = true;
-			}
 
 			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
 			{

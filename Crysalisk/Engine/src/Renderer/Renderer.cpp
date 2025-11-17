@@ -308,29 +308,6 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 			m_Metrics.NumDrawCalls++;
 		}
-
-		unsigned int iDebugGeoIndex = kInvalidID_U32;
-		static bool bDebugGeoLoaded = false;
-		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
-		{
-			if (pOpaqueGeometries[idx]->hMaterial == 28)
-			//if (pTransparentGeometries[idx]->hMaterial == 17)
-			//if (pOpaqueGeometries[idx]->m_MeshID == 1)
-			//if (pOpaqueGeometries[idx]->m_MeshID == 3)
-			{
-				iDebugGeoIndex = idx;
-				break;
-			}
-		}
-		if (pCurrentMap.IsMapLoaded() && !bDebugGeoLoaded)
-		{
-			if (iDebugGeoIndex != kInvalidID_U32)
-			{
-				Vector4D vecGreen{ 0.0f, 1.0f, 0.0f, 1.0f };
-				g_pDebugRenderer->AddBBox(*pOpaqueGeometries[iDebugGeoIndex], vecGreen, -1.0f);
-				bDebugGeoLoaded = true;
-			}
-		}
 	}
 
 	m_RendererBackend->EndRenderpass();
