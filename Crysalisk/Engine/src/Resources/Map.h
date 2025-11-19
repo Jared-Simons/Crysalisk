@@ -13,9 +13,11 @@
 // RAYTODO: Should this live somewhere else?
 struct Ray_t
 {
-	Vector vecStart{};
-	Vector vecDirection{};
-	Vector vecEnd{};
+	Vector	vecStart{};
+	Vector	vecDirection{};
+	Vector	vecEnd{};
+	bool	bDidHit{ false };
+	float	flDistance{ 0.0f };
 };
 
 class CMap

@@ -308,6 +308,20 @@ public:
 		}
 	}
 
+	// ----------------------
+	// Vector-Vector Division
+	// ----------------------
+	inline Vector3D Divide(const Vector3D& pOtherVector) const
+	{
+		Vector3D outVector{ *this };
+		for (int idx = 0; idx < 3; idx++)
+		{
+			outVector.flElements[idx] /= pOtherVector.flElements[idx];
+		}
+
+		return outVector;
+	}
+
 	// ----------------
 	// Vector Normalize
 	// ----------------
@@ -375,6 +389,7 @@ public:
 	inline Vector3D operator-() const { return Negate(); }
 	inline Vector3D operator+=(const Vector3D& pOtherVector) { *this = Add(pOtherVector); return *this; }
 	inline Vector3D operator-=(const Vector3D& pOtherVector) { *this = Subtract(pOtherVector); return *this; }
+	inline Vector3D operator/(const Vector3D& pOtherVector) const { return Divide(pOtherVector); }
 
 	inline bool operator==(const Vector3D& pOther) const
 	{

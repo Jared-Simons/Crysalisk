@@ -386,12 +386,21 @@ bool Event_MouseButtonReleased(EventData_t data)
 		ray.vecStart = s_MainCamera.vecPosition;
 		ray.vecDirection = vecRayDir;
 
-		// We can only actually cast the ray if the level is loaded:
+		// We can only actually cast the ray if the level is loaded.
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
 			s_Engine.GetCurrentMap().CastRayIntoScene(ray);
 
-			g_pDebugRenderer->AddLine(ray.vecStart, ray.vecEnd, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+			Vector4D rayColor{};
+			if (ray.bDidHit)
+			{
+				rayColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+			}
+			else
+			{
+				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+			}
+			//g_pDebugRenderer->AddLine(ray.vecStart, ray.vecEnd, rayColor, -1.0f);
 		}
 	}
 

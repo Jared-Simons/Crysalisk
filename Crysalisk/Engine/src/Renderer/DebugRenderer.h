@@ -48,6 +48,7 @@ public:
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;
+	virtual void	RemoveDebugGeometry(int debugGeoHandle) = 0;
 };
 
 // Interface to the debug renderer context.

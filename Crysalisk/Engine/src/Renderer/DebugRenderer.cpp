@@ -82,9 +82,9 @@ public:
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
+	virtual void	RemoveDebugGeometry(int debugGeoHandle) override;
 
 private:
-	void			RemoveDebugGeometry(int debugGeoHandle);
 	int				GetFirstFreeGeometryDataIndex() const;
 
 private:

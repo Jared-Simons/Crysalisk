@@ -218,7 +218,6 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
 			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
-			Vector3D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents;
 
 			Vector3D vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
@@ -254,9 +253,54 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 	}
 }
 
+static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
+
 void CMap::CastRayIntoScene(Ray_t& pRay) const
 {
+	pRay.bDidHit = false;
+	pRay.flDistance = 100000000000.0f; // RAYTODO: Some real limit here.
+
 	// Check every object and return the center position of the closest geometry to the ray's origin.
-	pRay.vecEnd = pRay.vecStart + (pRay.vecDirection * 100.0f);	// RAYTODO: An actual limit here would be good.
+	Mesh* pCurrentMesh = nullptr;
+	GeometryInstance_t* pCurrentSubmesh = nullptr;
+	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
+
+	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	{
+		pCurrentMesh = &m_Meshes[iMesh];
+		CAssert(pCurrentMesh);
+
+		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		{
+			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
+			CAssert(pCurrentSubmesh);
+
+			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
+			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			Vector3D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents;
+
+			if (iMesh == 1 && iSubMesh == 0)
+			{
+				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddPoint(vecCenter, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddPoint(vecMaxExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddPoint(vecMinExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(pCurrentSubmesh->vecMinExtents, pCurrentSubmesh->vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+			}
+		}
+	}
+
+	// Outline the geometry that we hit.
+	if (iHitMesh != kInvalidID_U32 && iHitSubmesh != kInvalidID_U32)
+	{
+		if (iCurrentRayDebugGeoID != kInvalidID_U32)
+			g_pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
+
+		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
+		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+	}
+	LOG_DEBUG("Selected geo distance: %.2f", pRay.flDistance);
+
+	pRay.vecEnd = pRay.vecStart + (pRay.vecDirection * pRay.flDistance);
 }
 
