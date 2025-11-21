@@ -400,7 +400,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 			{
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			//g_pDebugRenderer->AddLine(ray.vecStart, ray.vecEnd, rayColor, -1.0f);
+			g_pDebugRenderer->AddLine(ray.vecStart, ray.vecEnd, rayColor, 5.0f);
 		}
 	}
 

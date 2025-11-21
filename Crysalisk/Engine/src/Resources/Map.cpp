@@ -284,8 +284,12 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			float flTMin = 100000000000.0f;
 			float flTMax = -100000000000.0f;
 
+			// NOTE: Explicitly zero-ing out the w in the direction so it transforms properly.
+			Vector4D vecLocalDirection = pRay.vecDirection.ToVector4D();
+			vecLocalDirection.w = 0.0f;
+
 			localRay.vecStart = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecStart;
-			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecDirection).Negate();
+			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
 
 			Vector tMin = (vecMins - localRay.vecStart) / localRay.vecDirection;
 			Vector tMax = (vecMaxs - localRay.vecStart) / localRay.vecDirection;
@@ -298,7 +302,6 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 
 			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))
 			{
-				LOG_DEBUG("Found new closest point: %.2f", flTNearMax);
  				pRay.bDidHit = true;
 				pRay.flDistance = flTNearMax;
 				pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;
@@ -316,10 +319,11 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 
 		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
 		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
-		g_pDebugRenderer->AddLine(pRay.vecStart, pRay.vecEnd, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-		g_pDebugRenderer->AddPoint(pRay.vecStart + pRay.vecDirection * pRay.flDistance, 15.0f, Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 	}
-
-	LOG_WARN("Selected geo distance: %.2f", pRay.flDistance);
+	if (!pRay.bDidHit)
+	{
+		// If we did not hit, then invert the ray's distance so it is placed in front of the camera, not behind.
+		pRay.flDistance = -pRay.flDistance;
+	}
 }
 
