@@ -265,6 +265,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
+	Ray_t localRay{};
 	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
 	{
 		pCurrentMesh = &m_Meshes[iMesh];
@@ -275,17 +276,34 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);
 
-			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
-			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
-			Vector3D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents;
+			Vector vecCenter = pCurrentSubmesh->vecCenter;
+			Vector vecMins = pCurrentSubmesh->vecMinExtents;
+			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
 
-			if (iMesh == 1 && iSubMesh == 0)
+			// RAYTODO: Some actual limits here pls.
+			float flTMin = 100000000000.0f;
+			float flTMax = -100000000000.0f;
+
+			localRay.vecStart = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecStart;
+			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecDirection).Negate();
+
+			Vector tMin = (vecMins - localRay.vecStart) / localRay.vecDirection;
+			Vector tMax = (vecMaxs - localRay.vecStart) / localRay.vecDirection;
+
+			Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
+			Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
+
+			float flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+			float flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+
+			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))
 			{
-				g_pDebugRenderer->AddBBox(*pCurrentSubmesh, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddPoint(vecCenter, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddPoint(vecMaxExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddPoint(vecMinExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(vecMinExtents, vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				LOG_DEBUG("Found new closest point: %.2f", flTNearMax);
+ 				pRay.bDidHit = true;
+				pRay.flDistance = flTNearMax;
+				pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;
+				iHitMesh = iMesh;
+				iHitSubmesh = iSubMesh;
 			}
 		}
 	}
@@ -298,9 +316,10 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 
 		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
 		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+		g_pDebugRenderer->AddLine(pRay.vecStart, pRay.vecEnd, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+		g_pDebugRenderer->AddPoint(pRay.vecStart + pRay.vecDirection * pRay.flDistance, 15.0f, Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 	}
-	LOG_DEBUG("Selected geo distance: %.2f", pRay.flDistance);
 
-	pRay.vecEnd = pRay.vecStart + (pRay.vecDirection * pRay.flDistance);
+	LOG_WARN("Selected geo distance: %.2f", pRay.flDistance);
 }
 
