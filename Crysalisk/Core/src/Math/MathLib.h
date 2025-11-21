@@ -953,8 +953,8 @@ public:
 	// Operator overloads
 	// ------------------
 	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline Vector3D operator*(const Vector3D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
-	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector3D operator*(const Vector3D& pInVector) const { return (MultiplyByVector(pInVector.ToVector4D())).AsVector3D(); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }								// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
 

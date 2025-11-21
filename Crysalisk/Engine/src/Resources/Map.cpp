@@ -285,7 +285,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 				g_pDebugRenderer->AddPoint(vecCenter, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 				g_pDebugRenderer->AddPoint(vecMaxExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 				g_pDebugRenderer->AddPoint(vecMinExtents, 15.0f, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				g_pDebugRenderer->AddLine(pCurrentSubmesh->vecMinExtents, pCurrentSubmesh->vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
+				g_pDebugRenderer->AddLine(vecMinExtents, vecMaxExtents, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
 			}
 		}
 	}
