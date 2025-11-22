@@ -45,6 +45,7 @@ public:
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) = 0;
 	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, float flDuration) = 0;
+	virtual int		AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration) = 0;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;

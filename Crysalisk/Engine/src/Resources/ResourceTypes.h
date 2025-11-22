@@ -287,6 +287,10 @@ struct Mesh
 	uint32_t							m_MeshID{ kInvalidID_U32 };
 	// An array of submeshes that make up this mesh.
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
+	// The minimum extents of the mesh in local space.
+	Vector3D							vecMinExtents{};
+	// The maximum extents of the mesh in local space.
+	Vector3D							vecMaxExtents{};
 	// Origin of this mesh in world space.
 	Vector3D							m_vecAbsOrigin{};
 	// Transformation matrix for this mesh.
