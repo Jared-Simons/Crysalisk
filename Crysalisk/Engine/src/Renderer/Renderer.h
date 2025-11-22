@@ -115,6 +115,9 @@ public:
 
 	GeometryInstance_t	m_TestCube{};
 	Mesh				m_SponzaModel;
+
+	// A pointer to the window we're rendering to.
+	Platform::IPlatformWindow*	m_pMainWindow;
 };
 
 extern Renderer* g_pRenderer;

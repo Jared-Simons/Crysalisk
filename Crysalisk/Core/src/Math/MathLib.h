@@ -7,7 +7,6 @@
 #pragma once
 
 #include <Defines.h>
-#include "Core/Assertions.h"
 
 const double kPI = 3.14159265359;
 const float kPI_F = 3.14159265359f;
@@ -150,7 +149,6 @@ public:
 	{
 		Vector2D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -161,7 +159,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -329,7 +326,6 @@ public:
 	{
 		Vector3D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -340,7 +336,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -516,7 +511,6 @@ public:
 	{
 		Vector4D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -527,7 +521,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] /= flLength;

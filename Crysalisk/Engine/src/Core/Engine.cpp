@@ -17,7 +17,7 @@
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h"	// RAYTODO: TEMP
+#include "Renderer/DebugRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
@@ -372,8 +372,8 @@ bool Event_MouseButtonReleased(EventData_t data)
 
 		// Clip space -> Camera space:
 		Vector4D vecPosCamera{};
-		// RAYTODO: Don't hardcode these things.
-		Matrix4x4 matInverseProj = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)iWindowWidth / iWindowHeight, 0.1f, 10000.0f).Inverse();
+		// Get the inverse projection from our window's viewport.
+		Matrix4x4 matInverseProj = s_Engine.GetEngineWindow()->GetViewport().matProjection.Inverse();
 		vecPosCamera = matInverseProj * vecPosClip;
 		vecPosCamera.z = -1.0f;
 		vecPosCamera.w = 0.0f;

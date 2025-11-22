@@ -179,6 +179,9 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	m_iCurrentRendererFrame = 0;
 
+	// Store off a pointer to the window we're rendering to.
+	m_pMainWindow = pConfig.pMainWindow;
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -255,7 +258,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->BeginRenderpass(m_SceneView);
 
-	Matrix4x4 matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(75.0f), (float)m_iWindowWidth / m_iWindowHeight, 0.1f, 10000.0f);
+	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
 	matProjection.flData[5] *= -1;
 	Matrix4x4 matView = s_MainCamera.GetViewMatrix();

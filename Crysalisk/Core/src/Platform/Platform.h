@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Defines.h"
+#include "Math/MathLib.h"
 
 namespace Platform 
 {
@@ -36,6 +37,19 @@ namespace Platform
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
 	//-------------------------------------------------------------------------
+	// RAYTODO: Documentation.
+	//-------------------------------------------------------------------------
+	struct Viewport_t
+	{
+		int			X{};
+		int			Y{};
+		int			Width{};
+		int			Height{};
+		float		flFOVDegrees{};
+		Matrix4x4	matProjection{};
+	};
+
+	//-------------------------------------------------------------------------
 	// Interface for a platform-specific window.
 	//-------------------------------------------------------------------------
 	class IPlatformWindow
@@ -45,6 +59,8 @@ namespace Platform
 
 		virtual void	GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) = 0;
 		virtual void*	GetInternalHandle() = 0;
+
+		virtual Viewport_t GetViewport() = 0;
 
 		virtual void	SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) = 0;
 		virtual void	SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) = 0;
