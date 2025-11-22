@@ -260,12 +260,12 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 	pRay.bDidHit = false;
 	pRay.flDistance = 100000000000.0f; // RAYTODO: Some real limit here.
 
-	// Check every object and return the center position of the closest geometry to the ray's origin.
+	// Check every object and return the nearest intersection point of the first piece of geometry along the ray.
+	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
 	Mesh* pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
-	Ray_t localRay{};
 	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
 	{
 		pCurrentMesh = &m_Meshes[iMesh];
@@ -276,6 +276,18 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);
 
+			// We will perform the intersection test in the geometry's local space so that we can do this with an AABB test.
+			// Start by transforming the given ray into local space.
+
+			// NOTE: Explicitly zero-ing out the w in the direction so it transforms properly.
+			Vector4D vecLocalDirection = pRay.vecDirection.ToVector4D();
+			vecLocalDirection.w = 0.0f;
+
+			Ray_t localRay{};
+			localRay.vecStart = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecStart;
+			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
+
+			// These properties are already in local space.
 			Vector vecCenter = pCurrentSubmesh->vecCenter;
 			Vector vecMins = pCurrentSubmesh->vecMinExtents;
 			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
@@ -283,13 +295,6 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			// RAYTODO: Some actual limits here pls.
 			float flTMin = 100000000000.0f;
 			float flTMax = -100000000000.0f;
-
-			// NOTE: Explicitly zero-ing out the w in the direction so it transforms properly.
-			Vector4D vecLocalDirection = pRay.vecDirection.ToVector4D();
-			vecLocalDirection.w = 0.0f;
-
-			localRay.vecStart = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecStart;
-			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
 
 			Vector tMin = (vecMins - localRay.vecStart) / localRay.vecDirection;
 			Vector tMax = (vecMaxs - localRay.vecStart) / localRay.vecDirection;
@@ -300,8 +305,8 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			float flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
 			float flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
 
-			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))
-			{
+			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
+			{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
  				pRay.bDidHit = true;
 				pRay.flDistance = flTNearMax;
 				pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;

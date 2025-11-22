@@ -560,7 +560,7 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pI
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
 
 	// Bind the index buffer, if necessary
-	if (pGeometry.indexDataOffset != kInvalidID_U64)
+	if (pInternalIndexBuffer && pGeometry.indexDataOffset != kInvalidID_U64)
 	{
 		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
 	}

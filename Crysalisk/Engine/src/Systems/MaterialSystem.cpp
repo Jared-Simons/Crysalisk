@@ -486,6 +486,10 @@ void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.view, 0, 0, &pMatView);
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.viewPos, 0, 0, &pVecPosition);
 	g_pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.renderMode, 0, 0, &renderDebugMode);
+
+	// Clear out the currently bound material instance!
+	// This is necessary so that we properly re-bind material instances every frame.
+	m_hCurrentlyBoundMaterialInstance = kInvalidID_U32;
 }
 
 //-------------------------------------------------------------------------
