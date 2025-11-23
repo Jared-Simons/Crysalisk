@@ -33,9 +33,6 @@ static bool RendererEvent_KeyPressed(EventData_t data);
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
 
-// TEMP!
-Camera_t s_MainCamera;
-
 // TEMP Test font
 FontHandle_t	testFont;
 TextObject		testText;
@@ -169,7 +166,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	s_MainCamera.RecalculateCameraVectors();
+	m_Camera.RecalculateCameraVectors();
 
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
@@ -248,7 +245,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
+	m_Camera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Draw the frame!
 	if (!m_RendererBackend->BeginFrame(pRenderData))
@@ -261,8 +258,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
 	matProjection.flData[5] *= -1;
-	Matrix4x4 matView = s_MainCamera.GetViewMatrix();
-	Vector vecCameraPos = s_MainCamera.vecPosition;
+	Matrix4x4 matView = m_Camera.GetViewMatrix();
+	Vector vecCameraPos = m_Camera.vecPosition;
 	Matrix4x4 model = Matrix4x4{ 1.0f };
 
 	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
@@ -272,7 +269,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	if (pCurrentMap.IsMapLoaded())
 	{
 		// Get the frustum from the camera.
-		Frustum frustum = s_MainCamera.CreateFrustumFromCamera();
+		Frustum frustum = m_Camera.CreateFrustumFromCamera();
 
 		// TODO: Make this work with an allocator.
 		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
@@ -321,8 +318,8 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	DebugRendererFrameData_t debugFrameData{};
 	debugFrameData.matProjection = matProjection;
 	debugFrameData.matView = matView;
-	debugFrameData.vecCameraPosition = s_MainCamera.vecPosition;
-	debugFrameData.vecCameraForward = s_MainCamera.vecFront;
+	debugFrameData.vecCameraPosition = m_Camera.vecPosition;
+	debugFrameData.vecCameraForward = m_Camera.vecFront;
 	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
 	g_pDebugRenderer->Render(debugFrameData);
 
@@ -721,7 +718,7 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
 
 	// Make sure to resize the camera's aspect ratio as well.
-	s_MainCamera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
+	s_Renderer.m_Camera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;
@@ -737,7 +734,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	if (data.c[0] == 'P')
 	{
 		// Print the camera's position and angles.
-		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_MainCamera.vecPosition.x, s_MainCamera.vecPosition.y, s_MainCamera.vecPosition.z, s_MainCamera.Pitch, s_MainCamera.Yaw);
+		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_Renderer.m_Camera.vecPosition.x, s_Renderer.m_Camera.vecPosition.y, s_Renderer.m_Camera.vecPosition.z, s_Renderer.m_Camera.Pitch, s_Renderer.m_Camera.Yaw);
 	}
 
 	if (data.c[0] == 'Y')

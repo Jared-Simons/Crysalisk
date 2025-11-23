@@ -353,8 +353,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		// HACK: Get this from somewhere.
-		extern Camera_t s_MainCamera;
+		Camera_t mainCamera = g_pRenderer->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };
 		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
@@ -379,11 +378,11 @@ bool Event_MouseButtonReleased(EventData_t data)
 		vecPosCamera.w = 0.0f;
 
 		// Camera space -> World space:
-		Vector vecRayDir = (s_MainCamera.GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+		Vector vecRayDir = (mainCamera.GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
 		vecRayDir.NormalizeInPlace();
 
 		Ray_t ray{};
-		ray.vecStart = s_MainCamera.vecPosition;
+		ray.vecStart = mainCamera.vecPosition;
 		ray.vecDirection = vecRayDir;
 
 		// We can only actually cast the ray if the level is loaded.

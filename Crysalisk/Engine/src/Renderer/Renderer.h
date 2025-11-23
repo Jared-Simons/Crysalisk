@@ -10,6 +10,7 @@
 #include "Core/Clock.h"
 #include "Core/Logging.h"
 #include "Defines.h"
+#include "Renderer/Camera.h"
 #include "Resources/ResourceTypes.h"
 
 // Forward Declarations
@@ -78,6 +79,8 @@ public:
 	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig);
 	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance);
 
+	const Camera_t&	GetMainCamera() const { return m_Camera; }
+
 	// Temp geometry stuff
 	bool	CreateTempTextObjects();
 	void	DestroyTempGeometry();
@@ -98,6 +101,8 @@ private:
 	unsigned int	m_iWindowHeight{ 0 };
 
 public:
+	Camera_t			m_Camera{};
+
 	RendererView		m_SceneView{};
 	RendererView		m_UIView{};
 

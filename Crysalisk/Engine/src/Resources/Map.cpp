@@ -327,8 +327,8 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 	}
 	if (!pRay.bDidHit)
 	{
-		// If we did not hit, then invert the ray's distance so it is placed in front of the camera, not behind.
-		pRay.flDistance = -pRay.flDistance;
+		// Just cast the ray off to the limits of the space.
+		pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;
 	}
 }
 
