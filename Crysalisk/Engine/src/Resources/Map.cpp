@@ -218,7 +218,6 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
 			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
-			Vector3D vecMinExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMinExtents;
 
 			Vector3D vecHalfExtents = {
 				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
@@ -251,6 +250,84 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 				continue;
 			}
 		}
+	}
+}
+
+static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
+
+void CMap::CastRayIntoScene(Ray_t& pRay) const
+{
+	pRay.bDidHit = false;
+	pRay.flDistance = kFLT_MAX;
+
+	// Check every object and return the nearest intersection point of the first piece of geometry along the ray.
+	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
+	Mesh* pCurrentMesh = nullptr;
+	GeometryInstance_t* pCurrentSubmesh = nullptr;
+	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
+
+	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	{
+		pCurrentMesh = &m_Meshes[iMesh];
+		CAssert(pCurrentMesh);
+
+		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		{
+			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
+			CAssert(pCurrentSubmesh);
+
+			// We will perform the intersection test in the geometry's local space so that we can do this with an AABB test.
+			// Start by transforming the given ray into local space.
+
+			// NOTE: Explicitly zero-ing out the w in the direction so it transforms properly.
+			Vector4D vecLocalDirection = pRay.vecDirection.ToVector4D();
+			vecLocalDirection.w = 0.0f;
+
+			Ray_t localRay{};
+			localRay.vecOrigin = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecOrigin;
+			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
+
+			// These properties are already in local space.
+			Vector vecCenter = pCurrentSubmesh->vecCenter;
+			Vector vecMins = pCurrentSubmesh->vecMinExtents;
+			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
+
+			float flTMin = kFLT_MAX;
+			float flTMax = kFLT_MIN;
+
+			Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
+			Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
+
+			Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
+			Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
+
+			float flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+			float flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+
+			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
+			{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
+ 				pRay.bDidHit = true;
+				pRay.flDistance = flTNearMax;
+				pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
+				iHitMesh = iMesh;
+				iHitSubmesh = iSubMesh;
+			}
+		}
+	}
+
+	// Outline the geometry that we hit.
+	if (iHitMesh != kInvalidID_U32 && iHitSubmesh != kInvalidID_U32)
+	{
+		if (iCurrentRayDebugGeoID != kInvalidID_U32)
+			g_pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
+
+		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
+		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+	}
+	if (!pRay.bDidHit)
+	{
+		// Just cast the ray off to the limits of the space.
+		pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
 	}
 }
 

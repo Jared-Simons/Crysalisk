@@ -79,12 +79,13 @@ public:
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) override;
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
+	virtual int		AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
+	virtual void	RemoveDebugGeometry(int debugGeoHandle) override;
 
 private:
-	void			RemoveDebugGeometry(int debugGeoHandle);
 	int				GetFirstFreeGeometryDataIndex() const;
 
 private:
@@ -463,6 +464,85 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	// Store off the transform index.
 	//pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
+
+	return iDebugGeometryIndex;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
+//-------------------------------------------------------------------------
+int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration)
+{
+	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
+	pNewGeometry.color = color;
+	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
+	pNewGeometry.eType = DebugGeometryType::LINE;
+
+	if (flDuration < 0.0f)
+	{
+		// A negative duration means 'never remove this geometry'.
+		pNewGeometry.flTimeToRemove = -1.0f;
+	}
+
+	// Acquire new shader instance resources.
+	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
+
+	const int iNumVertices = 24;
+	Vector3D ptVertices[iNumVertices]{};
+
+	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
+	ptVertices[0] = vecMins;
+	ptVertices[1] = vecMins;
+	ptVertices[1].z = vecMaxs.z;
+
+	ptVertices[2] = vecMins;
+	ptVertices[2].x = vecMaxs.x;
+	ptVertices[3] = vecMins;
+	ptVertices[3].x = vecMaxs.x;
+	ptVertices[3].z = vecMaxs.z;
+
+	ptVertices[4] = vecMins;
+	ptVertices[5] = vecMins;
+	ptVertices[5].x = vecMaxs.x;
+
+	ptVertices[6] = vecMins;
+	ptVertices[6].z = vecMaxs.z;
+	ptVertices[7] = vecMins;
+	ptVertices[7].x = vecMaxs.x;
+	ptVertices[7].z = vecMaxs.z;
+
+	// Directly copy the verts and raise them all up to max Y to form the horizontal square along the top of the geometry.
+	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D) * 8);
+	for (int idx = 8; idx < 16; idx++)
+	{
+		ptVertices[idx].y = vecMaxs.y;
+	}
+
+	// Now for the four corners of the box.
+	ptVertices[16] = vecMins;
+	ptVertices[17] = vecMins;
+	ptVertices[17].y = vecMaxs.y;
+
+	ptVertices[18] = vecMins;
+	ptVertices[18].x = vecMaxs.x;
+	ptVertices[19] = vecMins;
+	ptVertices[19].x = vecMaxs.x;
+	ptVertices[19].y = vecMaxs.y;
+
+	ptVertices[20] = vecMins;
+	ptVertices[20].z = vecMaxs.z;
+	ptVertices[21] = vecMins;
+	ptVertices[21].z = vecMaxs.z;
+	ptVertices[21].y = vecMaxs.y;
+
+	ptVertices[22] = vecMaxs;
+	ptVertices[22].y = vecMins.y;
+	ptVertices[23] = vecMaxs;
+
+	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+
+	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 
 	return iDebugGeometryIndex;
 }

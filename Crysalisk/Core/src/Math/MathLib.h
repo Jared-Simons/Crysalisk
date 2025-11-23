@@ -7,7 +7,6 @@
 #pragma once
 
 #include <Defines.h>
-#include "Core/Assertions.h"
 
 const double kPI = 3.14159265359;
 const float kPI_F = 3.14159265359f;
@@ -150,7 +149,6 @@ public:
 	{
 		Vector2D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -161,7 +159,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -308,6 +305,20 @@ public:
 		}
 	}
 
+	// ----------------------
+	// Vector-Vector Division
+	// ----------------------
+	inline Vector3D Divide(const Vector3D& pOtherVector) const
+	{
+		Vector3D outVector{ *this };
+		for (int idx = 0; idx < 3; idx++)
+		{
+			outVector.flElements[idx] /= pOtherVector.flElements[idx];
+		}
+
+		return outVector;
+	}
+
 	// ----------------
 	// Vector Normalize
 	// ----------------
@@ -315,7 +326,6 @@ public:
 	{
 		Vector3D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -326,7 +336,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -375,6 +384,7 @@ public:
 	inline Vector3D operator-() const { return Negate(); }
 	inline Vector3D operator+=(const Vector3D& pOtherVector) { *this = Add(pOtherVector); return *this; }
 	inline Vector3D operator-=(const Vector3D& pOtherVector) { *this = Subtract(pOtherVector); return *this; }
+	inline Vector3D operator/(const Vector3D& pOtherVector) const { return Divide(pOtherVector); }
 
 	inline bool operator==(const Vector3D& pOther) const
 	{
@@ -501,7 +511,6 @@ public:
 	{
 		Vector4D outVector{ *this };
 		float flLength = outVector.Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -512,7 +521,6 @@ public:
 	inline void NormalizeInPlace()
 	{
 		float flLength = Length();
-		CASSERTMSG(flLength > 0.0001f, "Divide by 0 incoming!");
 		for (int idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -938,8 +946,8 @@ public:
 	// Operator overloads
 	// ------------------
 	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline Vector3D operator*(const Vector3D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
-	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector3D operator*(const Vector3D& pInVector) const { return (MultiplyByVector(pInVector.ToVector4D())).AsVector3D(); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
+	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }								// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
 

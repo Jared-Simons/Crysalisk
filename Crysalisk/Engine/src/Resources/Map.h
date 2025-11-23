@@ -10,6 +10,23 @@
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
+//-------------------------------------------------------------------------
+// Represents a ray which can collide with objects in a scene.
+//-------------------------------------------------------------------------
+struct Ray_t
+{
+	// The starting point of the ray.
+	Vector	vecOrigin{};
+	// The direction the ray travels.
+	Vector	vecDirection{};
+	// The endpoint of the ray.
+	Vector	vecEnd{};
+	// Indicates if the ray hit anything.
+	bool	bDidHit{ false };
+	// The distance the ray travelled from its origin along it's direction vector.
+	float	flDistance{ 0.0f };
+};
+
 class CMap
 {
 public:
@@ -21,6 +38,7 @@ public:
 
 	const char*									GetMapName() const { return m_pszMapName; }
 	void										GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
+	void										CastRayIntoScene(Ray_t& pRay) const;
 
 private:
 	char*								m_pszMapName{ nullptr };

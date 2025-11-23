@@ -21,7 +21,7 @@ geometry=static_mesh
 
 	# Transform
 	position="50 0 0"
-	rotation="0 90 0"
+	rotation="0 58 0"
 	scale="1 1 1"
 }
 

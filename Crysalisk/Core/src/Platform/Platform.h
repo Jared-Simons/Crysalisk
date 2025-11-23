@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Defines.h"
+#include "Math/MathLib.h"
 
 namespace Platform 
 {
@@ -32,8 +33,21 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	typedef void (*Platform_KeyboardEventCallback)(const int processedKeyInput, bool pressed);
 	typedef void (*Platform_MouseButtonEventCallback)(unsigned int mouseButtonFlags, bool bPressed);
-	typedef void (*Platform_MouseMoveEventCallback)(const float mouseXPos, const float mouseYPos);
+	typedef void (*Platform_MouseMoveEventCallback)(const int mouseXPos, const int mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
+
+	//-------------------------------------------------------------------------
+	// A viewport that can be associated with a window.
+	//-------------------------------------------------------------------------
+	struct Viewport_t
+	{
+		int			X{};
+		int			Y{};
+		int			Width{};
+		int			Height{};
+		float		flFOVDegrees{};
+		Matrix4x4	matProjection{};
+	};
 
 	//-------------------------------------------------------------------------
 	// Interface for a platform-specific window.
@@ -45,6 +59,8 @@ namespace Platform
 
 		virtual void	GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) = 0;
 		virtual void*	GetInternalHandle() = 0;
+
+		virtual Viewport_t GetViewport() = 0;
 
 		virtual void	SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) = 0;
 		virtual void	SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) = 0;

@@ -17,6 +17,7 @@
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
+#include "Renderer/DebugRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
@@ -54,6 +55,8 @@ public:
 
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const override { return m_pEngineWindow; }
 
+	const CMap&		GetCurrentMap() const { return m_CurrentMap; }
+
 private:
 	EngineConfig_t	m_engineConfig;
 
@@ -63,6 +66,7 @@ private:
 
 	// These need access to our members.
 	friend static bool Event_KeyReleased(EventData_t data);
+	friend static bool Event_MouseButtonReleased(EventData_t data);
 };
 
 // Engine context.
@@ -347,7 +351,58 @@ bool Event_MouseButtonPressed(EventData_t data)
 bool Event_MouseButtonReleased(EventData_t data)
 {
 	u32 mouseButtonFlags = *data.u16;
-	//LOG_DEBUG("%s Mouse Button Released", e_MouseButtonTable_Strings[mouseButtonFlags]);
+	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
+	{
+		Camera_t mainCamera = g_pRenderer->GetMainCamera();
+
+		int iMouseX{ 0 }, iMouseY{ 0 };
+		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
+		Vector4D vecPosClip{};
+
+		// First, get the mouse coordinates in viewport-space.
+		g_pInputSystem_Internal->GetCurrentMousePos(iMouseX, iMouseY);
+		s_Engine.GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
+
+		// Next, bring our coordinates to NDC.
+		vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
+		vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
+		vecPosClip.z = -1.0f;
+		vecPosClip.w = 1.0f;
+
+		// Clip space -> Camera space:
+		Vector4D vecPosCamera{};
+		// Get the inverse projection from our window's viewport.
+		Matrix4x4 matInverseProj = s_Engine.GetEngineWindow()->GetViewport().matProjection.Inverse();
+		vecPosCamera = matInverseProj * vecPosClip;
+		vecPosCamera.z = -1.0f;
+		vecPosCamera.w = 0.0f;
+
+		// Camera space -> World space:
+		Vector vecRayDir = (mainCamera.GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+		vecRayDir.NormalizeInPlace();
+
+		Ray_t ray{};
+		ray.vecOrigin = mainCamera.vecPosition;
+		ray.vecDirection = vecRayDir;
+
+		// We can only actually cast the ray if the level is loaded.
+		if (s_Engine.GetCurrentMap().IsMapLoaded())
+		{
+			s_Engine.GetCurrentMap().CastRayIntoScene(ray);
+
+			Vector4D rayColor{};
+			if (ray.bDidHit)
+			{
+				rayColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+			}
+			else
+			{
+				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+			}
+			g_pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+		}
+	}
+
 	return true;
 }
 

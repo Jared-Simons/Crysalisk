@@ -74,14 +74,17 @@ namespace Platform
 		inline WindowParams_t GetParams() const { return m_WindowParams; }
 		inline void SetInternalHandle(HWND hWnd) { m_HWND = hWnd; }
 
+		virtual Viewport_t GetViewport() override { return m_Viewport; }
+
 		inline virtual void SetKeyboardEventCallback(Platform_KeyboardEventCallback callback) override { m_KeyEventCallback = callback; }
 		inline virtual void SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) override { m_MouseButtonEventCallback = callback; }
 		inline virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) override { m_MouseMoveEventCallback = callback; }
 		inline virtual void SetWindowResizeCallback(Platform_WindowResizedCallback callback) override { m_WindowResizeEventCallback = callback; }
 
+		Viewport_t		m_Viewport;
 	private:
-		WindowParams_t m_WindowParams;
-		HWND m_HWND;
+		WindowParams_t	m_WindowParams;
+		HWND			m_HWND;
 
 		Platform_KeyboardEventCallback		m_KeyEventCallback;
 		Platform_MouseButtonEventCallback	m_MouseButtonEventCallback;
@@ -227,6 +230,14 @@ namespace Platform
 		newWindow->SetInternalHandle(hWndInit);
 		s_pMainWindow = newWindow; // FIXME: This shouldn't be here.
 
+		// Setup the window's viewport.
+		newWindow->m_Viewport.X = params.X;
+		newWindow->m_Viewport.Y = params.Y;
+		newWindow->m_Viewport.Width = params.Width;
+		newWindow->m_Viewport.Height = params.Height;
+		newWindow->m_Viewport.flFOVDegrees = 75.0f; // TODO: Default.
+		newWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(newWindow->m_Viewport.flFOVDegrees), ((float)newWindow->m_Viewport.Width / newWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+
 		LOG_INFO("Window created!");
 		return newWindow;
 	}
@@ -261,7 +272,14 @@ namespace Platform
 				UINT height = HIWORD(lParam);
 
 				if (s_pMainWindow)
+				{
 					s_pMainWindow->m_WindowResizeEventCallback(width, height);
+
+					// This only works because we currently only have one window.
+					s_pMainWindow->m_Viewport.Width = width;
+					s_pMainWindow->m_Viewport.Height = height;
+					s_pMainWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(s_pMainWindow->m_Viewport.flFOVDegrees), ((float)s_pMainWindow->m_Viewport.Width / s_pMainWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+				}
 			}
 			break;
 
@@ -487,8 +505,8 @@ namespace Platform
 
 	int ProcessWin32Input_MouseMove(LPARAM lParam)
 	{
-		float mouseXPos = 0;
-		float mouseYPos = 0;
+		int mouseXPos = 0;
+		int mouseYPos = 0;
 
 		if (lParam)
 		{

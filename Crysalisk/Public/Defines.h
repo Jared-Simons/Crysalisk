@@ -95,6 +95,10 @@ const unsigned short kInvalidID_U16 = 65535;
 const unsigned int kInvalidID_U32 = 4294967294;
 const unsigned long long kInvalidID_U64 = 18446744073709551614;
 
+// Limits
+const float kFLT_MAX = 3.402823466e+38f;
+const float kFLT_MIN = 1.175494351e-38f;
+
 // Utility Functions
 
 static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
