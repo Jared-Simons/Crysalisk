@@ -37,7 +37,7 @@ namespace Platform
 	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
 
 	//-------------------------------------------------------------------------
-	// RAYTODO: Documentation.
+	// A viewport that can be associated with a window.
 	//-------------------------------------------------------------------------
 	struct Viewport_t
 	{

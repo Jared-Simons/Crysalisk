@@ -258,7 +258,7 @@ static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
 void CMap::CastRayIntoScene(Ray_t& pRay) const
 {
 	pRay.bDidHit = false;
-	pRay.flDistance = 100000000000.0f; // RAYTODO: Some real limit here.
+	pRay.flDistance = kFLT_MAX;
 
 	// Check every object and return the nearest intersection point of the first piece of geometry along the ray.
 	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
@@ -284,7 +284,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			vecLocalDirection.w = 0.0f;
 
 			Ray_t localRay{};
-			localRay.vecStart = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecStart;
+			localRay.vecOrigin = pCurrentSubmesh->matLocalToWorldTransform.Inverse() * pRay.vecOrigin;
 			localRay.vecDirection = (pCurrentSubmesh->matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
 
 			// These properties are already in local space.
@@ -292,12 +292,11 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			Vector vecMins = pCurrentSubmesh->vecMinExtents;
 			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
 
-			// RAYTODO: Some actual limits here pls.
-			float flTMin = 100000000000.0f;
-			float flTMax = -100000000000.0f;
+			float flTMin = kFLT_MAX;
+			float flTMax = kFLT_MIN;
 
-			Vector tMin = (vecMins - localRay.vecStart) / localRay.vecDirection;
-			Vector tMax = (vecMaxs - localRay.vecStart) / localRay.vecDirection;
+			Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
+			Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
 
 			Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
 			Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
@@ -309,7 +308,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 			{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
  				pRay.bDidHit = true;
 				pRay.flDistance = flTNearMax;
-				pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;
+				pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
 				iHitMesh = iMesh;
 				iHitSubmesh = iSubMesh;
 			}
@@ -328,7 +327,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 	if (!pRay.bDidHit)
 	{
 		// Just cast the ray off to the limits of the space.
-		pRay.vecEnd = pRay.vecStart + pRay.vecDirection * pRay.flDistance;
+		pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
 	}
 }
 

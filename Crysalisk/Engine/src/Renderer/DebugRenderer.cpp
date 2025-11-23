@@ -469,7 +469,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 }
 
 //-------------------------------------------------------------------------
-// Purpose: RAYTODO: Clean this up!
+// Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
 int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration)
 {
@@ -488,60 +488,57 @@ int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, floa
 	// Acquire new shader instance resources.
 	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
 
-	Vector3D& vecLocalMins = vecMins;
-	Vector3D& vecLocalMaxs = vecMaxs;
-
 	const int iNumVertices = 24;
 	Vector3D ptVertices[iNumVertices]{};
 
 	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
-	ptVertices[0] = vecLocalMins;
-	ptVertices[1] = vecLocalMins;
-	ptVertices[1].z = vecLocalMaxs.z;
+	ptVertices[0] = vecMins;
+	ptVertices[1] = vecMins;
+	ptVertices[1].z = vecMaxs.z;
 
-	ptVertices[2] = vecLocalMins;
-	ptVertices[2].x = vecLocalMaxs.x;
-	ptVertices[3] = vecLocalMins;
-	ptVertices[3].x = vecLocalMaxs.x;
-	ptVertices[3].z = vecLocalMaxs.z;
+	ptVertices[2] = vecMins;
+	ptVertices[2].x = vecMaxs.x;
+	ptVertices[3] = vecMins;
+	ptVertices[3].x = vecMaxs.x;
+	ptVertices[3].z = vecMaxs.z;
 
-	ptVertices[4] = vecLocalMins;
-	ptVertices[5] = vecLocalMins;
-	ptVertices[5].x = vecLocalMaxs.x;
+	ptVertices[4] = vecMins;
+	ptVertices[5] = vecMins;
+	ptVertices[5].x = vecMaxs.x;
 
-	ptVertices[6] = vecLocalMins;
-	ptVertices[6].z = vecLocalMaxs.z;
-	ptVertices[7] = vecLocalMins;
-	ptVertices[7].x = vecLocalMaxs.x;
-	ptVertices[7].z = vecLocalMaxs.z;
+	ptVertices[6] = vecMins;
+	ptVertices[6].z = vecMaxs.z;
+	ptVertices[7] = vecMins;
+	ptVertices[7].x = vecMaxs.x;
+	ptVertices[7].z = vecMaxs.z;
 
 	// Directly copy the verts and raise them all up to max Y to form the horizontal square along the top of the geometry.
 	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D) * 8);
 	for (int idx = 8; idx < 16; idx++)
 	{
-		ptVertices[idx].y = vecLocalMaxs.y;
+		ptVertices[idx].y = vecMaxs.y;
 	}
 
 	// Now for the four corners of the box.
-	ptVertices[16] = vecLocalMins;
-	ptVertices[17] = vecLocalMins;
-	ptVertices[17].y = vecLocalMaxs.y;
+	ptVertices[16] = vecMins;
+	ptVertices[17] = vecMins;
+	ptVertices[17].y = vecMaxs.y;
 
-	ptVertices[18] = vecLocalMins;
-	ptVertices[18].x = vecLocalMaxs.x;
-	ptVertices[19] = vecLocalMins;
-	ptVertices[19].x = vecLocalMaxs.x;
-	ptVertices[19].y = vecLocalMaxs.y;
+	ptVertices[18] = vecMins;
+	ptVertices[18].x = vecMaxs.x;
+	ptVertices[19] = vecMins;
+	ptVertices[19].x = vecMaxs.x;
+	ptVertices[19].y = vecMaxs.y;
 
-	ptVertices[20] = vecLocalMins;
-	ptVertices[20].z = vecLocalMaxs.z;
-	ptVertices[21] = vecLocalMins;
-	ptVertices[21].z = vecLocalMaxs.z;
-	ptVertices[21].y = vecLocalMaxs.y;
+	ptVertices[20] = vecMins;
+	ptVertices[20].z = vecMaxs.z;
+	ptVertices[21] = vecMins;
+	ptVertices[21].z = vecMaxs.z;
+	ptVertices[21].y = vecMaxs.y;
 
-	ptVertices[22] = vecLocalMaxs;
-	ptVertices[22].y = vecLocalMins.y;
-	ptVertices[23] = vecLocalMaxs;
+	ptVertices[22] = vecMaxs;
+	ptVertices[22].y = vecMins.y;
+	ptVertices[23] = vecMaxs;
 
 	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 

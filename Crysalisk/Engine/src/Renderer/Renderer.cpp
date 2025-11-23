@@ -142,8 +142,6 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Geometry_Buffer", m_DebugRendererBuffer);
-
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
@@ -193,7 +191,6 @@ void Renderer::Shutdown()
 	// Shutdown the debug renderer.
 	g_pDebugRenderer->Shutdown();
 
-	m_RendererBackend->DestroyRenderBufferInternal(m_DebugRendererBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
@@ -205,9 +202,6 @@ void Renderer::Shutdown()
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
-
-	// Release any heap allocations
-	m_SponzaModel.m_Geometries.Clear();
 }
 
 //-------------------------------------------------------------------------
@@ -691,10 +685,7 @@ bool Renderer::CreateTempTextObjects()
 //-------------------------------------------------------------------------
 void Renderer::DestroyTempGeometry()
 {
-	for (int idx = 0; idx < m_SponzaModel.m_Geometries.Count(); idx++)
-	{
-		m_RendererBackend->ReleaseGeometryResources(m_WorldVertexBuffer, m_WorldIndexBuffer, m_SponzaModel.m_Geometries[idx]);
-	}
+	// TODO: Remove me!
 }
 
 //-------------------------------------------------------------------------

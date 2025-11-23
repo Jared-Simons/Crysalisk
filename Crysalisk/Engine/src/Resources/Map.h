@@ -10,13 +10,20 @@
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
-// RAYTODO: Should this live somewhere else?
+//-------------------------------------------------------------------------
+// Represents a ray which can collide with objects in a scene.
+//-------------------------------------------------------------------------
 struct Ray_t
 {
-	Vector	vecStart{};
+	// The starting point of the ray.
+	Vector	vecOrigin{};
+	// The direction the ray travels.
 	Vector	vecDirection{};
+	// The endpoint of the ray.
 	Vector	vecEnd{};
+	// Indicates if the ray hit anything.
 	bool	bDidHit{ false };
+	// The distance the ray travelled from its origin along it's direction vector.
 	float	flDistance{ 0.0f };
 };
 

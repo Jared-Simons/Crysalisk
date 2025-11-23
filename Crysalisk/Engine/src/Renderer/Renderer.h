@@ -112,14 +112,8 @@ public:
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
 
-	// NOTE: Does not have an index buffer.
-	RenderBuffer		m_DebugRendererBuffer{};
-
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
-
-	GeometryInstance_t	m_TestCube{};
-	Mesh				m_SponzaModel;
 
 	// A pointer to the window we're rendering to.
 	Platform::IPlatformWindow*	m_pMainWindow;
