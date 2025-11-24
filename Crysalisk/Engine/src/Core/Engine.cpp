@@ -24,6 +24,7 @@
 #include "Resources/Map.h"
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
+#include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
@@ -72,6 +73,28 @@ private:
 // Engine context.
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
+
+// THREADTODO: Thread test.
+static int s_iCounter{ 0 };
+static int ThreadTestFunc(void* pParams)
+{
+	LOG_DEBUG("Running thread test!");
+	for (int i = 0; i < 200; i++)
+	{
+		s_iCounter += 1;
+	}
+	return 0;
+}
+
+static int ThreadTestFunc2(void* pParams)
+{
+	LOG_DEBUG("Running thread test!");
+	for (int i = 0; i < 200; i++)
+	{
+		s_iCounter -= 2;
+	}
+	return 0;
+}
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
@@ -175,6 +198,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Job system.
+	JobSystemConfig_t jobSysConfig{};
+	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// -1 to account for the main thread.
+	if (!g_pJobSystem->Initialize(jobSysConfig))
+	{
+		LOG_FATAL("Failed to initialize job system! Application cannot continue.");
+		return false;
+	}
+
 	// Texture manager.
 	TextureSystemConfig_t textureSysConfig{};
 	textureSysConfig.MaxTextures = 4999;
@@ -220,8 +252,14 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
 
+	// THREADTODO: Thread test
+	Platform::ISystemThread* pTestThread1 = Platform::CreateSystemThread(ThreadTestFunc, nullptr);
+	Platform::ISystemThread* pTestThread2 = Platform::CreateSystemThread(ThreadTestFunc2, nullptr);
+
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
+
+	LOG_DEBUG("%d", s_iCounter);
 
 	return true;
 }
@@ -269,6 +307,8 @@ void CEngine::Shutdown()
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
 	g_pTextureSystem_Internal->Shutdown();
+
+	g_pJobSystem->Shutdown();
 
 	g_pRenderer->Shutdown();
 

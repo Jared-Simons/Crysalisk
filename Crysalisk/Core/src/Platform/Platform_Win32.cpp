@@ -522,6 +522,48 @@ namespace Platform
 		return true;
 	}
 
+	//-------------------------------------------------------------------------
+	// Threads
+	//-------------------------------------------------------------------------
+	int GetCurrentThreadID()
+	{
+		return GetCurrentThreadId();
+	}
+
+	size_t GetNumberOfSystemProcessors()
+	{
+		SYSTEM_INFO sysInfo{};
+		GetSystemInfo(&sysInfo);
+		return sysInfo.dwNumberOfProcessors;
+	}
+
+	class CWin32SysThread : public ISystemThread
+	{
+	private:
+		HANDLE	m_hThread{ 0 };
+
+		// This needs access to our members.
+		friend ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams);
+	};
+
+	ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams)
+	{
+		if (!pEntryPoint)
+		{
+			// THREADTODO: Logging.
+			return nullptr;
+		}
+
+		// THREADTODO: Just heap allocating for now...
+		CWin32SysThread* pThread = new CWin32SysThread;
+
+		CAssert(pThread);
+
+		pThread->m_hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)pEntryPoint, pParams, 0, NULL);
+
+		return pThread;
+	}
+
 	// These are just here for reference until we have customizable logging channels (they will probably then be moved elsewhere)
 	/*
 	#define BLACK			0
