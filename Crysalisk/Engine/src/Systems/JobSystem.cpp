@@ -10,17 +10,25 @@
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 
+struct CWorkerThread
+{
+	Platform::ISystemThread*	m_pThread{};
+	JobDeclaration_t			m_CurrentWorkData{};
+};
+
 class CJobSystem : public IJobSystem
 {
 public:
 	virtual bool	Initialize(JobSystemConfig_t& pConfig) override;
 	virtual void	Shutdown() override;
 
+	virtual bool	AddJob(JobDeclaration_t& pJobInfo) override;
+
 private:
 	JobSystemConfig_t			m_Config{};
 	bool						m_bJobSystemActive{ false };
 
-	Utl::CVector<Platform::ISystemThread*> m_pThreads;
+	Utl::CVector<CWorkerThread>	m_pWorkerThreads{};
 
 	friend static int JobThread_Main(void* pParams);
 };
@@ -54,12 +62,12 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 		LOG_FATAL("One core detected, at least 2 cores are required. Job system initialization failed.");
 		return false;
 	}
-	m_pThreads.Resize(pConfig.iNumJobThreads);
+	m_pWorkerThreads.Resize(pConfig.iNumJobThreads);
 
 	for (int iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
 	{
-		m_pThreads[iThread] = Platform::CreateSystemThread(JobThread_Main, nullptr);
-		m_pThreads[iThread]->m_iThreadID = iThread;
+		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, nullptr);
+		m_pWorkerThreads[iThread].m_pThread->m_iThreadID = iThread;
 	}
 	
 	return true;
@@ -74,6 +82,14 @@ void CJobSystem::Shutdown()
 	m_bJobSystemActive = false;
 
 	// THREADTODO: Should this be released through the platform layer as well?
-	m_pThreads.~CVector();
+	m_pWorkerThreads.~CVector();
+}
+
+//-------------------------------------------------------------------------
+// THREADTODO: Documentation.
+//-------------------------------------------------------------------------
+bool CJobSystem::AddJob(JobDeclaration_t& pJobInfo)
+{
+	return true;
 }
 

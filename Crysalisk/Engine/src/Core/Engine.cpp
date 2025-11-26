@@ -74,28 +74,6 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
-// THREADTODO: Thread test.
-static int s_iCounter{ 0 };
-static int ThreadTestFunc(void* pParams)
-{
-	LOG_DEBUG("Running thread test!");
-	for (int i = 0; i < 200; i++)
-	{
-		s_iCounter += 1;
-	}
-	return 0;
-}
-
-static int ThreadTestFunc2(void* pParams)
-{
-	LOG_DEBUG("Running thread test!");
-	for (int i = 0; i < 200; i++)
-	{
-		s_iCounter -= 2;
-	}
-	return 0;
-}
-
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
 // Input:	engineConfig - A configuration passed in by the calling application.
@@ -252,14 +230,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
 
-	// THREADTODO: Thread test
-	Platform::ISystemThread* pTestThread1 = Platform::CreateSystemThread(ThreadTestFunc, nullptr);
-	Platform::ISystemThread* pTestThread2 = Platform::CreateSystemThread(ThreadTestFunc2, nullptr);
-
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
-
-	LOG_DEBUG("%d", s_iCounter);
 
 	return true;
 }
