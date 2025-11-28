@@ -12,6 +12,7 @@ project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/MemOverride.cpp
+	${CORE_ROOT}/Containers/CDeque.h
 	${CORE_ROOT}/Containers/CFreeList.h
 	${CORE_ROOT}/Containers/CHashMap.h
 	${CORE_ROOT}/Containers/CVector.h
