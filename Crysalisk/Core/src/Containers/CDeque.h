@@ -11,21 +11,17 @@
 
 namespace Utl
 {
-	const int kDequeDefaultCapacity = 10;
-
 	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
 	class CDeque
 	{
 	public:
 		//--------------------------------------------------
-		// Default constructs a queue (defaults to 10 elements).
+		// Default constructs an empty deque.
 		//--------------------------------------------------
 		CDeque()
 		{
-			// Allocate new memory and place the objects in there.
-			void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(kDequeDefaultCapacity * sizeof(T)));
-			m_pData = new (pNewMemory) T[kDequeDefaultCapacity];
-			m_iElementCapacity = kDequeDefaultCapacity;
+			m_pData = nullptr;
+			m_iElementCapacity = 0;
 		}
 
 		//--------------------------------------------------
@@ -113,6 +109,35 @@ namespace Utl
 		}
 
 		//--------------------------------------------------
+		// Resizes the queue.
+		//--------------------------------------------------
+		void Resize(size_t iNewCapacity)
+		{
+			T* pOldBlock = nullptr;
+			if (m_pData)
+			{
+				pOldBlock = m_pData;
+			}
+
+			// Allocate a new block.
+			void* pNewMemory = m_Allocator.Allocate(iNewCapacity * sizeof(T));
+			m_pData = new (pNewMemory) T[iNewCapacity];
+
+			// Copy over the existing data.
+			if (pOldBlock)
+			{
+				Platform::MemoryCopy(m_pData, pOldBlock, m_iElementCapacity * sizeof(T));
+			}
+
+			// Free the old block.
+			if (pOldBlock)
+			{
+				m_Allocator.Free(pOldBlock);
+			}
+			m_iElementCapacity = iNewCapacity;
+		}
+
+		//--------------------------------------------------
 		// Element indexing.
 		//--------------------------------------------------
 		inline T& ElementAt(size_t iIndex) const
@@ -133,8 +158,8 @@ namespace Utl
 		//--------------------------------------------------
 		void PushBack(const T& pElement)
 		{
-			m_pData[m_iTailElement] = pElement;
 			m_iTailElement = (m_iTailElement + 1) % m_iElementCapacity;
+			m_pData[m_iTailElement] = pElement;
 			m_iElementCount++;
 		}
 
@@ -143,7 +168,6 @@ namespace Utl
 		//--------------------------------------------------
 		T PopBack()
 		{
-			// TODO: This is borked.
 			T elementToReturn = m_pData[m_iTailElement];
 
 			// Zero out the popped element.
@@ -155,16 +179,32 @@ namespace Utl
 			return elementToReturn;
 		}
 
+		//--------------------------------------------------
+		// Removes (and returns) the element at the front of the queue.
+		//--------------------------------------------------
+		T PopFront()
+		{
+			T elementToReturn = m_pData[m_iHeadElement];
+
+			// Zero out the popped element.
+			Platform::MemorySet(&m_pData[m_iHeadElement], 0, sizeof(T));
+
+			m_iHeadElement = (m_iHeadElement + 1) % m_iElementCapacity;
+			m_iElementCount--;
+
+			return elementToReturn;
+		}
+
 		size_t	Count() const { return m_iElementCount; }
 		size_t	Capacity() const { return m_iElementCapacity; }
 
 	private:
 		size_t						m_iElementCount{ 0 };
 		size_t						m_iElementCapacity{ 0 };
-		size_t						m_iHeadElement{ 0 };
-		size_t						m_iTailElement{ 0 };
+		int32_t						m_iHeadElement{ 0 };
+		int32_t						m_iTailElement{ -1 };
 
-		// NOTE: Not using a CVector because we do not want this be automatically resize.
+		// NOTE: Not using a CVector because we do not want this to automatically resize.
 		Allocator					m_Allocator{};
 		T*							m_pData{ nullptr };
 	};
