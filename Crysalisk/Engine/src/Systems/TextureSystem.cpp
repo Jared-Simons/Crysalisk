@@ -11,6 +11,7 @@
 #include <Memory/MemoryManager.h>
 #include "Renderer/Renderer.h"
 #include <Resources/Loaders/ImageLoader.h>
+#include "Systems/JobSystem.h"
 
 //-------------------------------------------------------------------------
 // Texture System Implementation.

@@ -105,11 +105,26 @@ namespace Utl
 			if (m_pData && m_iElementCapacity > 0)
 			{
 				m_Allocator.Free(m_pData);
+				m_pData = nullptr;
+				m_iElementCapacity = 0;
 			}
 		}
 
 		//--------------------------------------------------
-		// Resizes the queue.
+		// Clears and releases memory owned by this deque.
+		//--------------------------------------------------
+		void Clear()
+		{
+			if (m_pData && m_iElementCapacity > 0)
+			{
+				m_Allocator.Free(m_pData);
+				m_pData = nullptr;
+				m_iElementCapacity = 0;
+			}
+		}
+
+		//--------------------------------------------------
+		// Resizes the deque.
 		//--------------------------------------------------
 		void Resize(size_t iNewCapacity)
 		{
@@ -193,6 +208,15 @@ namespace Utl
 			m_iElementCount--;
 
 			return elementToReturn;
+		}
+
+		//--------------------------------------------------
+		// Returns a point to the front element (without removing it).
+		//--------------------------------------------------
+		const T* PeekFront() const
+		{
+			T* pElementToReturn = &m_pData[m_iHeadElement];
+			return pElementToReturn;
 		}
 
 		size_t	Count() const { return m_iElementCount; }

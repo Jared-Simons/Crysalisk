@@ -559,7 +559,7 @@ namespace Platform
 
 		CAssert(pThread);
 
-		pThread->m_hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)pEntryPoint, pParams, 0, NULL);
+		pThread->m_hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)pEntryPoint, (LPVOID)pParams, 0, NULL);
 
 		return pThread;
 	}

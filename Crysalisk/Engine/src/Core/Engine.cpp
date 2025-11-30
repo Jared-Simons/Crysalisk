@@ -74,6 +74,13 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
+static int JobSystemTest(void* pParams)
+{
+	LOG_DEBUG("Running async test");
+
+	return 0;
+}
+
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
 // Input:	engineConfig - A configuration passed in by the calling application.
@@ -178,7 +185,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Job system.
 	JobSystemConfig_t jobSysConfig{};
-	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// -1 to account for the main thread.
+	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
+
+	// NOTE: Currently, we will just use one thread for resource loading.
+	for (int iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
+	{
+		jobSysConfig.iWorkerThreadTypes[iThread] = WORKER_THREAD_TYPE_GENERAL;
+	}
+	jobSysConfig.iWorkerThreadTypes[0] = WORKER_THREAD_TYPE_DISK_LOADING;
+
 	if (!g_pJobSystem->Initialize(jobSysConfig))
 	{
 		LOG_FATAL("Failed to initialize job system! Application cannot continue.");
@@ -233,6 +248,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
 
+	// THREADTODO: Job Test
+	{
+		JobDeclaration_t testJob{};
+		testJob.ePriority = eJobPriority::NORMAL;
+		testJob.pfnEntryPoint = JobSystemTest;
+		testJob.pParams = nullptr;
+		g_pJobSystem->SubmitJob(testJob);
+	}
+
 	return true;
 }
 
@@ -251,6 +275,9 @@ bool CEngine::Run()
 		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled) 
 		{
 			g_pInputSystem_Internal->Update();
+
+			// Handle jobs.
+			g_pJobSystem->Update();
 
 			RenderPacket_t frameRenderData{};
 
