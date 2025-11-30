@@ -13,6 +13,7 @@
 
 struct CWorkerThread
 {
+	uint8_t						m_iThreadIdx{ 0 };
 	Platform::ISystemThread*	m_pThread{};
 	uint32_t					m_iThreadType{ WORKER_THREAD_TYPE_GENERAL };
 	JobDeclaration_t			m_CurrentWorkData{};
@@ -46,13 +47,12 @@ IJobSystem* g_pJobSystem = &s_JobSystem;
 
 static int JobThread_Main(void* pParams)
 {
-	// THREADTODO: This is broken. Figure this out.
 	size_t iThreadIdx = *(size_t*)pParams;
 	int iThreadID = Platform::GetCurrentThreadID();
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
 	while (s_JobSystem.m_bJobSystemActive)
 	{
-		if (s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)
+		if (s_JobSystem.m_pWorkerThreads.Capacity() && s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)
 		{
 			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
 		}
@@ -86,9 +86,11 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 
 	for (size_t iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
 	{
-		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, reinterpret_cast<void*>(&iThread));
+		// THREADTODO: Do we need m_pThread->m_iThreadID?
+		//m_pWorkerThreads[iThread].m_pThread->m_iThreadID = iThread;
+		m_pWorkerThreads[iThread].m_iThreadIdx = iThread;
+		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, &m_pWorkerThreads[iThread].m_iThreadIdx);
 		m_pWorkerThreads[iThread].m_iThreadType = pConfig.iWorkerThreadTypes[iThread];
-		m_pWorkerThreads[iThread].m_pThread->m_iThreadID = iThread;
 	}
 	
 	return true;
