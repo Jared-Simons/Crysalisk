@@ -97,6 +97,17 @@ namespace Platform
 	typedef int (*PFN_Thread_Entry_Point)(void* pParams);
 
 	CORE_API ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams);
+	CORE_API void			DestroySystemThread(ISystemThread* pThread);
+
+	class ISystemMutex
+	{
+	public:
+		virtual bool Lock() const = 0;
+		virtual void Unlock() const = 0;
+	};
+
+	CORE_API ISystemMutex*	CreateSystemMutex();
+	CORE_API void			DestroySystemMutex(ISystemMutex* pMutex);
 
 	CORE_API bool	DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable);
 

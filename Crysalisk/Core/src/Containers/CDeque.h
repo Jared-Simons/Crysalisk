@@ -170,12 +170,14 @@ namespace Utl
 
 		//--------------------------------------------------
 		// Adds an element to the end of the deque.
+		// Returns the index of the new element.
 		//--------------------------------------------------
-		void PushBack(const T& pElement)
+		int PushBack(const T& pElement)
 		{
 			m_iTailElement = (m_iTailElement + 1) % m_iElementCapacity;
-			m_pData[m_iTailElement] = pElement;
+			Platform::MemoryCopy(&m_pData[m_iTailElement], &pElement, sizeof(T));
 			m_iElementCount++;
+			return m_iTailElement;
 		}
 
 		//--------------------------------------------------

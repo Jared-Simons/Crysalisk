@@ -15,6 +15,21 @@
 
 namespace ImageLoader
 {
+	// THREADTODO: Clean this up once it's working.
+	int LoadImage_Threaded(void* pParams)
+	{
+		if (!pParams)
+		{
+			LOG_ERROR("LoadImage_Threaded was provided with no parameters. Image load failed.");
+			return -1;
+		}
+
+		ImageLoaderParams_t* pTypedParams = reinterpret_cast<ImageLoaderParams_t*>(pParams);
+		LOG_DEBUG("Attempting to load image '%s'.", pTypedParams->pszImageName);
+
+		return 0;
+	}
+
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load an existing image asset from disk.

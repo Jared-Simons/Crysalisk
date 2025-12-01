@@ -16,7 +16,23 @@ struct CWorkerThread
 	uint8_t						m_iThreadIdx{ 0 };
 	Platform::ISystemThread*	m_pThread{};
 	uint32_t					m_iThreadType{ WORKER_THREAD_TYPE_GENERAL };
+	Platform::ISystemMutex*		m_pWorkDataMutex{ nullptr };
 	JobDeclaration_t			m_CurrentWorkData{};
+
+	~CWorkerThread()
+	{
+		if (m_pThread)
+		{
+			Platform::DestroySystemThread(m_pThread);
+			m_pThread = nullptr;
+		}
+
+		if (m_pWorkDataMutex)
+		{
+			Platform::DestroySystemMutex(m_pWorkDataMutex);
+			m_pWorkDataMutex = nullptr;
+		}
+	}
 };
 
 class CJobSystem : public IJobSystem
@@ -47,7 +63,7 @@ IJobSystem* g_pJobSystem = &s_JobSystem;
 
 static int JobThread_Main(void* pParams)
 {
-	size_t iThreadIdx = *(size_t*)pParams;
+	uint8_t iThreadIdx = *(uint8_t*)pParams;
 	int iThreadID = Platform::GetCurrentThreadID();
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
 	while (s_JobSystem.m_bJobSystemActive)
@@ -55,6 +71,9 @@ static int JobThread_Main(void* pParams)
 		if (s_JobSystem.m_pWorkerThreads.Capacity() && s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)
 		{
 			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
+			(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pParams);
+			// Clear the job data, so that we don't run it again.
+			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.ResetEntry();
 		}
 	}
 
@@ -84,12 +103,13 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 	m_pWorkerThreads.Resize(pConfig.iNumJobThreads);
 	m_pWorkerThreads.SetCount(pConfig.iNumJobThreads);
 
-	for (size_t iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
+	for (uint8_t iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
 	{
 		// THREADTODO: Do we need m_pThread->m_iThreadID?
 		//m_pWorkerThreads[iThread].m_pThread->m_iThreadID = iThread;
 		m_pWorkerThreads[iThread].m_iThreadIdx = iThread;
 		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, &m_pWorkerThreads[iThread].m_iThreadIdx);
+		m_pWorkerThreads[iThread].m_pWorkDataMutex = Platform::CreateSystemMutex();
 		m_pWorkerThreads[iThread].m_iThreadType = pConfig.iWorkerThreadTypes[iThread];
 	}
 	
@@ -104,6 +124,7 @@ void CJobSystem::Shutdown()
 	// This will kill all job threads.
 	m_bJobSystemActive = false;
 
+	// THREADTODO: Make this threadsafe.
 	m_pWorkerThreads.Clear();
 	m_LowPriorityJobs.Clear();
 	m_NormalPriorityJobs.Clear();
@@ -117,6 +138,7 @@ void CJobSystem::Update()
 {
 	// Process job queues and assign to worker threads.
 
+	// THREADTODO: D.R.Y.
 	// First, process high priority jobs.
 	for (int iJob = 0; iJob < m_HighPriorityJobs.Count(); iJob++)
 	{
@@ -136,7 +158,9 @@ void CJobSystem::Update()
 				else
 				{
 					// This thread can support the job. Set it up.
+					pThread->m_pWorkDataMutex->Lock();
 					pThread->m_CurrentWorkData = job;
+					pThread->m_pWorkDataMutex->Unlock();
 				}
 			}
 		}
@@ -161,8 +185,38 @@ void CJobSystem::Update()
 				else
 				{
 					// This thread can support the job. Set it up.
-					pThread->m_CurrentWorkData = job;
 					LOG_DEBUG("Placing job");
+					pThread->m_pWorkDataMutex->Lock();
+					pThread->m_CurrentWorkData = job;
+					pThread->m_pWorkDataMutex->Unlock();
+					break;
+				}
+			}
+		}
+	}
+
+	// Finally, low priority jobs.
+	for (int iJob = 0; iJob < m_LowPriorityJobs.Count(); iJob++)
+	{
+		if (m_LowPriorityJobs.PeekFront()->pfnEntryPoint)
+		{
+			JobDeclaration_t job = m_LowPriorityJobs.PopFront();
+			CWorkerThread* pThread = &m_pWorkerThreads[0];
+			// There's a job here, try to find a worker thread and assign it.
+			for (int iThread = 0; iThread < m_Config.iNumJobThreads; iThread++)
+			{
+				pThread = &m_pWorkerThreads[iThread];
+				if (pThread->m_iThreadType != job.iJobType || pThread->m_CurrentWorkData.pfnEntryPoint)
+				{
+					// Either the current thread does not support the current job, or it is in use.
+					continue;
+				}
+				else
+				{
+					// This thread can support the job. Set it up.
+					pThread->m_pWorkDataMutex->Lock();
+					pThread->m_CurrentWorkData = job;
+					pThread->m_pWorkDataMutex->Unlock();
 					break;
 				}
 			}
@@ -182,16 +236,22 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 		return false;
 	}
 
+	// Take a copy of the job info.
+	JobDeclaration_t jobCopy = pJobInfo;
+	Platform::MemoryCopy(&jobCopy.pParams, pJobInfo.pParams, pJobInfo.iParamSize);
+
+	// THREADTODO: we need to figure out how to get strings across threads.
 	switch (pJobInfo.ePriority)
 	{
+		int newJob;
 	case eJobPriority::LOW:
-		m_LowPriorityJobs.PushBack(pJobInfo);
+		newJob = m_LowPriorityJobs.PushBack(jobCopy);
 		break;
 	case eJobPriority::NORMAL:
-		m_NormalPriorityJobs.PushBack(pJobInfo);
+		newJob = m_NormalPriorityJobs.PushBack(jobCopy);
 		break;
 	case eJobPriority::HIGH:
-		m_HighPriorityJobs.PushBack(pJobInfo);
+		newJob = m_HighPriorityJobs.PushBack(jobCopy);
 		break;
 	}
 

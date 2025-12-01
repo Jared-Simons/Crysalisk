@@ -544,6 +544,7 @@ namespace Platform
 
 		// This needs access to our members.
 		friend ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams);
+		friend void DestroySystemThread(ISystemThread* pThread);
 	};
 
 	ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams)
@@ -562,6 +563,76 @@ namespace Platform
 		pThread->m_hThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)pEntryPoint, (LPVOID)pParams, 0, NULL);
 
 		return pThread;
+	}
+
+	void DestroySystemThread(ISystemThread* pThread)
+	{
+		if (pThread)
+		{
+			CWin32SysThread* pInternalThread = reinterpret_cast<CWin32SysThread*>(pThread);
+			if (pInternalThread)
+			{
+				CloseHandle(pInternalThread->m_hThread);
+				delete pThread;
+				pThread = nullptr;
+			}
+		}
+	}
+
+	class CWin32SysMutex : public ISystemMutex
+	{
+	public:
+		virtual bool Lock() const override
+		{
+			//LOG_VERBOSE("Attempting to lock mutex");
+			DWORD waitResult = WaitForSingleObject(m_hMutex, INFINITE);
+			if (waitResult == WAIT_TIMEOUT)
+			{
+				//LOG_ERROR("Failed to obtain mutex lock!");
+				return false;
+			}
+			//LOG_VERBOSE("Mutex lock obtained!");
+
+			return true;
+		}
+
+		virtual void Unlock() const override
+		{
+			//LOG_VERBOSE("Attempting to unlock mutex");
+			ReleaseMutex(m_hMutex);
+		}
+
+	private:
+		HANDLE	m_hMutex{ 0 };
+
+		// These needs access to our members.
+		friend ISystemMutex* CreateSystemMutex();
+		friend void DestroySystemMutex(ISystemMutex* pMutex);
+	};
+
+	ISystemMutex* CreateSystemMutex()
+	{
+		// THREADTODO: Just heap allocating for now...
+		CWin32SysMutex* pMutex = new CWin32SysMutex;
+		CAssert(pMutex);
+
+		pMutex->m_hMutex = CreateMutex(NULL, FALSE, NULL);
+
+		return pMutex;
+	}
+
+	void DestroySystemMutex(ISystemMutex* pMutex)
+	{
+		if (pMutex)
+		{
+			CWin32SysMutex* pInternalMutex = reinterpret_cast<CWin32SysMutex*>(pMutex);
+			if (pInternalMutex)
+			{
+				CloseHandle(pInternalMutex->m_hMutex);
+				delete pMutex;
+				pMutex = nullptr;
+			}
+		}
 	}
 
 	// These are just here for reference until we have customizable logging channels (they will probably then be moved elsewhere)

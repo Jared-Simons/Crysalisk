@@ -26,9 +26,18 @@ enum eWorkerThreadType
 struct JobDeclaration_t
 {
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
-	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	void*				pParams{ nullptr };
+	size_t				iParamSize{ 0 };
+	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
+
+	void ResetEntry()
+	{
+		pfnEntryPoint = nullptr;
+		iJobType = WORKER_THREAD_TYPE_GENERAL;
+		pParams = nullptr;
+		ePriority = eJobPriority::NORMAL;
+	}
 };
 
 struct JobSystemConfig_t

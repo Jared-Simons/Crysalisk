@@ -121,6 +121,28 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 
 	LOG_INFO("Texture system initialized! (Max textures: %d)", config.MaxTextures);
 
+	// THREADTODO: TEST!!
+	{
+		ImageLoader::ImageResource_t	 textureResource{};
+		ImageLoader::ImageLoaderParams_t textureParams{};
+
+		textureParams.pszImageName = Utl::StringDuplicate("TestDevTexture.png");
+		textureParams.pOutResource = &textureResource;
+
+		JobDeclaration_t textureLoadJob{};
+		textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
+		textureLoadJob.pParams = &textureParams;
+		textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
+		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
+		textureLoadJob.ePriority = eJobPriority::NORMAL;
+
+		g_pJobSystem->SubmitJob(textureLoadJob);
+
+		// The job system takes a copy of the resource params, so it's okay to clean up the original copy here.
+		//Utl::StringFree((char*)textureParams.pszImageName);
+	}
+	// END TEST!!
+
 	return true;
 }
 
