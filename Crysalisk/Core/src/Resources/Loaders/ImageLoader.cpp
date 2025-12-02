@@ -9,6 +9,7 @@
 #include "Containers/CVector.h"
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Strings/String_Utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "Vendor/stb_image.h"
@@ -27,10 +28,29 @@ namespace ImageLoader
 		ImageLoaderParams_t* pTypedParams = reinterpret_cast<ImageLoaderParams_t*>(pParams);
 		LOG_DEBUG("Attempting to load image '%s'.", pTypedParams->pszImageName);
 
-		return 0;
+		if (!LoadImage(pTypedParams->pszImageName, *pTypedParams->pOutResource))
+		{
+			return 0;
+		}
+
+		LOG_DEBUG("Memory usage post job: %f", g_pMemoryManager->GetPercentAllocated());
+
+		// Free resources allocated for the job.
+		/*
+		Utl::StringFree((char*)pTypedParams->pszImageName);
+		pTypedParams->pszImageName = nullptr;
+		delete pTypedParams->pOutResource;
+		pTypedParams->pOutResource = nullptr;
+		delete pTypedParams;
+		pTypedParams = nullptr;
+
+		LOG_DEBUG("Memory usage post job resource-free: %f", g_pMemoryManager->GetPercentAllocated());*/
+
+		// Submit job results.
+
+		return 1;
 	}
 
-	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load an existing image asset from disk.
 	// 
@@ -41,7 +61,7 @@ namespace ImageLoader
 	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
 	{
 		const int kRequiredChannelCount = 4;
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load_thread(true);
 		if (!FileSystem::FileExists(pszImagePath))
 		{
 			LOG_ERROR("Image '%s' could not be found. Image load failed.", pszImagePath);

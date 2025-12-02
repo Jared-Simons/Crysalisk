@@ -9,6 +9,7 @@
 #include <Defines.h>
 
 typedef int (*PFN_Job_Entry_Point)(void* pParams);
+typedef int (*PFN_On_Job_Success)();
 
 enum class eJobPriority
 {
@@ -27,6 +28,7 @@ struct JobDeclaration_t
 {
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
 	void*				pParams{ nullptr };
+	PFN_On_Job_Success	pfnOnJobSuccess{ nullptr };
 	size_t				iParamSize{ 0 };
 	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
@@ -54,6 +56,7 @@ public:
 	virtual void	Update() = 0;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) = 0;
+	virtual void	SubmitJobResults(uintptr_t pJobResults) = 0;
 };
 
 extern IJobSystem* g_pJobSystem;

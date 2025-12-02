@@ -43,6 +43,7 @@ public:
 	virtual void	Update() override;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) override;
+	virtual void	SubmitJobResults(uintptr_t pResults) override;
 
 private:
 	JobSystemConfig_t				m_Config{};
@@ -53,6 +54,9 @@ private:
 	Utl::CDeque<JobDeclaration_t>	m_LowPriorityJobs{};
 	Utl::CDeque<JobDeclaration_t>	m_NormalPriorityJobs{};
 	Utl::CDeque<JobDeclaration_t>	m_HighPriorityJobs{};
+
+	Platform::ISystemMutex*			m_pJobResultMutex{ nullptr };
+	Utl::CVector<uintptr_t>			m_JobResults{};
 
 	friend static int JobThread_Main(void* pParams);
 };
@@ -70,10 +74,13 @@ static int JobThread_Main(void* pParams)
 	{
 		if (s_JobSystem.m_pWorkerThreads.Capacity() && s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)
 		{
+			// Make sure we get a lock on our resources before executing the job.
+			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Lock();
 			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
 			(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pParams);
 			// Clear the job data, so that we don't run it again.
 			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.ResetEntry();
+			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Unlock();
 		}
 	}
 
@@ -112,6 +119,10 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 		m_pWorkerThreads[iThread].m_pWorkDataMutex = Platform::CreateSystemMutex();
 		m_pWorkerThreads[iThread].m_iThreadType = pConfig.iWorkerThreadTypes[iThread];
 	}
+
+	// Set up job result data.
+	m_pJobResultMutex = Platform::CreateSystemMutex();
+	m_JobResults.Resize(50);
 	
 	return true;
 }
@@ -123,6 +134,10 @@ void CJobSystem::Shutdown()
 {
 	// This will kill all job threads.
 	m_bJobSystemActive = false;
+
+	m_JobResults.Clear();
+	Platform::DestroySystemMutex(m_pJobResultMutex);
+	m_pJobResultMutex = nullptr;
 
 	// THREADTODO: Make this threadsafe.
 	m_pWorkerThreads.Clear();
@@ -256,5 +271,13 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 	}
 
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// THREADTODO: Documentation.
+//-------------------------------------------------------------------------
+void CJobSystem::SubmitJobResults(uintptr_t pJobResults)
+{
+	LOG_DEBUG("Submitting job results");
 }
 

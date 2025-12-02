@@ -163,6 +163,11 @@ namespace Utl
 		//--------------------------------------------------
 		// Same as above, allows for indexing like an array.
 		//--------------------------------------------------
+		inline T& operator[](size_t index)
+		{
+			return ElementAt(index);
+		}
+
 		inline const T& operator[](size_t index) const
 		{
 			return ElementAt(index);

@@ -103,6 +103,14 @@ static CTextureSystem s_TextureSystem;
 ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 
 //-------------------------------------------------------------------------
+// THREADTODO: Documentation
+//-------------------------------------------------------------------------
+static int OnTextureLoadJob_Success()
+{
+	return 1;
+}
+
+//-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
 bool CTextureSystem::Initialize(TextureSystemConfig_t config)
@@ -122,24 +130,33 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 	LOG_INFO("Texture system initialized! (Max textures: %d)", config.MaxTextures);
 
 	// THREADTODO: TEST!!
+	// THREADTODO: We probably should be pooling these, instead of heap alloc-ing them.
 	{
-		ImageLoader::ImageResource_t	 textureResource{};
-		ImageLoader::ImageLoaderParams_t textureParams{};
+		//ImageLoader::ImageResource_t	 textureResource{};
+		//ImageLoader::ImageLoaderParams_t textureParams{};
 
-		textureParams.pszImageName = Utl::StringDuplicate("TestDevTexture.png");
-		textureParams.pOutResource = &textureResource;
+		LOG_DEBUG("Memory usage pre-job: %f", g_pMemoryManager->GetPercentAllocated());
+
+		ImageLoader::ImageResource_t*		pTextureResource = new ImageLoader::ImageResource_t;
+		ImageLoader::ImageLoaderParams_t*	pTextureParams = new ImageLoader::ImageLoaderParams_t;
+
+		pTextureParams->pszImageName = Utl::StringDuplicate("Assets/Textures/TestDevTexture.png");
+		pTextureParams->pOutResource = pTextureResource;
 
 		JobDeclaration_t textureLoadJob{};
 		textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
-		textureLoadJob.pParams = &textureParams;
+		textureLoadJob.pParams = &pTextureParams;
+		textureLoadJob.pfnOnJobSuccess = OnTextureLoadJob_Success;
 		textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
 		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		textureLoadJob.ePriority = eJobPriority::NORMAL;
 
 		g_pJobSystem->SubmitJob(textureLoadJob);
 
+		LOG_DEBUG("Memory usage post job-submit: %f", g_pMemoryManager->GetPercentAllocated());
+
 		// The job system takes a copy of the resource params, so it's okay to clean up the original copy here.
-		//Utl::StringFree((char*)textureParams.pszImageName);
+		//Utl::StringFree((char*)pTextureParams->pszImageName);
 	}
 	// END TEST!!
 
