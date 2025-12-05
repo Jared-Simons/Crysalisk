@@ -74,7 +74,7 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
-static int JobSystemTest(void* pParams)
+static int JobSystemTest(void* pParams, void** pJobResults)
 {
 	LOG_DEBUG("Running async test");
 

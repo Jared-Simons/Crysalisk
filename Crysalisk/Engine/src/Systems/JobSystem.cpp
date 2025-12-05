@@ -43,7 +43,7 @@ public:
 	virtual void	Update() override;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) override;
-	virtual void	SubmitJobResults(uintptr_t pResults) override;
+	virtual void	SubmitJobResults(size_t iResultSize, void* pResults) override;
 
 private:
 	JobSystemConfig_t				m_Config{};
@@ -56,7 +56,7 @@ private:
 	Utl::CDeque<JobDeclaration_t>	m_HighPriorityJobs{};
 
 	Platform::ISystemMutex*			m_pJobResultMutex{ nullptr };
-	Utl::CVector<uintptr_t>			m_JobResults{};
+	Utl::CVector<void*>				m_JobResults{};	// THREADTODO: void* or uintptr_t?
 
 	friend static int JobThread_Main(void* pParams);
 };
@@ -65,6 +65,7 @@ private:
 static CJobSystem s_JobSystem;
 IJobSystem* g_pJobSystem = &s_JobSystem;
 
+// THREADTODO: Clean this up!
 static int JobThread_Main(void* pParams)
 {
 	uint8_t iThreadIdx = *(uint8_t*)pParams;
@@ -77,7 +78,11 @@ static int JobThread_Main(void* pParams)
 			// Make sure we get a lock on our resources before executing the job.
 			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Lock();
 			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
-			(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pParams);
+			(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pParams, &s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults.pUserData);
+
+			// THREADTODO: Check to make sure the result pointers are not null.
+			s_JobSystem.SubmitJobResults(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults.iUserDataSize, &s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults);
+
 			// Clear the job data, so that we don't run it again.
 			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.ResetEntry();
 			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Unlock();
@@ -237,6 +242,24 @@ void CJobSystem::Update()
 			}
 		}
 	}
+
+	// After kicking off jobs, check for finished jobs.
+	m_pJobResultMutex->Lock();
+	for (int iJob = 0; iJob < m_JobResults.Count(); iJob++)
+	{
+		if (m_JobResults[iJob])
+		{
+			// Execute the callback.
+			// THREADTODO: Success/Fail options?
+			JobResults_t* pTypedResults = reinterpret_cast<JobResults_t*>(m_JobResults[iJob]);
+			pTypedResults->pfnOnJobCompleted_Success_Callback(*pTypedResults);
+
+			// Once the job is finished. Kill the results and reset the entry.
+			g_pMemoryManager->Free(m_JobResults[iJob]);
+			m_JobResults[iJob] = nullptr;
+		}
+	}
+	m_pJobResultMutex->Unlock();
 }
 
 //-------------------------------------------------------------------------
@@ -253,7 +276,12 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 
 	// Take a copy of the job info.
 	JobDeclaration_t jobCopy = pJobInfo;
-	Platform::MemoryCopy(&jobCopy.pParams, pJobInfo.pParams, pJobInfo.iParamSize);
+	// THREADTODO: Free this!
+	if (pJobInfo.iParamSize > 0 && pJobInfo.pParams)
+	{
+		jobCopy.pParams = g_pMemoryManager->Allocate(pJobInfo.iParamSize);
+		Platform::MemoryCopy(jobCopy.pParams, pJobInfo.pParams, pJobInfo.iParamSize);
+	}
 
 	// THREADTODO: we need to figure out how to get strings across threads.
 	switch (pJobInfo.ePriority)
@@ -276,8 +304,24 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 //-------------------------------------------------------------------------
 // THREADTODO: Documentation.
 //-------------------------------------------------------------------------
-void CJobSystem::SubmitJobResults(uintptr_t pJobResults)
+void CJobSystem::SubmitJobResults(size_t iResultSize, void* pJobResults)
 {
-	LOG_DEBUG("Submitting job results");
+	if (iResultSize > 0 && pJobResults)
+	{
+		LOG_DEBUG("Submitting job results");
+
+		// Allocate new memory for the results.
+		// THREADTODO: We should probably be pooling these.
+		//void* pResultCopy = g_pMemoryManager->Allocate(iResultSize);
+		JobResults_t pResultCopy = *(JobResults_t*)pJobResults;
+
+		// Copy the results over.
+		//Platform::MemoryCopy(pResultCopy, pJobResults, iResultSize);
+
+		// Get a lock on our result mutex and assign the pointer.
+		m_pJobResultMutex->Lock();
+		m_JobResults.PushBack(&pResultCopy);
+		m_pJobResultMutex->Unlock();
+	}
 }
 

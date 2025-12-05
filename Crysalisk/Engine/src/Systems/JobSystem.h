@@ -8,8 +8,8 @@
 
 #include <Defines.h>
 
-typedef int (*PFN_Job_Entry_Point)(void* pParams);
-typedef int (*PFN_On_Job_Success)();
+typedef int (*PFN_Job_Entry_Point)(void* pParams, void** pJobResults);
+typedef int (*PFN_On_Job_Success)(struct JobResults_t& pResults);
 
 enum class eJobPriority
 {
@@ -24,11 +24,20 @@ enum eWorkerThreadType
 	WORKER_THREAD_TYPE_DISK_LOADING = 0x2
 };
 
+// THREADTODO: Should this be exposed?
+struct JobResults_t
+{
+	PFN_On_Job_Success	pfnOnJobCompleted_Success_Callback{ nullptr };
+
+	size_t				iUserDataSize{ 0 };
+	void* pUserData{ nullptr };
+};
+
 struct JobDeclaration_t
 {
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
 	void*				pParams{ nullptr };
-	PFN_On_Job_Success	pfnOnJobSuccess{ nullptr };
+	JobResults_t		pJobResults{ nullptr };
 	size_t				iParamSize{ 0 };
 	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
@@ -56,7 +65,7 @@ public:
 	virtual void	Update() = 0;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) = 0;
-	virtual void	SubmitJobResults(uintptr_t pJobResults) = 0;
+	virtual void	SubmitJobResults(size_t iResultSize, void* pJobResults) = 0;
 };
 
 extern IJobSystem* g_pJobSystem;

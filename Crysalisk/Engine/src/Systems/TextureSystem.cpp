@@ -105,8 +105,15 @@ ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 //-------------------------------------------------------------------------
 // THREADTODO: Documentation
 //-------------------------------------------------------------------------
-static int OnTextureLoadJob_Success()
+static int OnTextureLoadJob_Success(JobResults_t& pResults)
 {
+	LOG_DEBUG("Running OnTextureLoadJob_Success()!");
+
+	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
+	LOG_DEBUG("We have image '%s'!", pTypedResults->pszImageName);
+
+	g_pTextureSystem_Internal->AcquireTextureFromResource(*pTypedResults->pOutResource, pTypedResults->pszImageName, true);
+
 	return 1;
 }
 
@@ -145,9 +152,12 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 
 		JobDeclaration_t textureLoadJob{};
 		textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
-		textureLoadJob.pParams = &pTextureParams;
-		textureLoadJob.pfnOnJobSuccess = OnTextureLoadJob_Success;
+		textureLoadJob.pParams = pTextureParams;
+		textureLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnTextureLoadJob_Success;
 		textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
+		// The results are the same struct as the params.
+		// THREADTODO: This feels wrong to assign here. Should be when we set the results?
+		textureLoadJob.pJobResults.iUserDataSize = sizeof(ImageLoader::ImageLoaderParams_t);
 		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		textureLoadJob.ePriority = eJobPriority::NORMAL;
 

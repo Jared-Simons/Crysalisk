@@ -17,7 +17,7 @@
 namespace ImageLoader
 {
 	// THREADTODO: Clean this up once it's working.
-	int LoadImage_Threaded(void* pParams)
+	int LoadImage_Threaded(void* pParams, void** pJobResults)
 	{
 		if (!pParams)
 		{
@@ -46,7 +46,8 @@ namespace ImageLoader
 
 		LOG_DEBUG("Memory usage post job resource-free: %f", g_pMemoryManager->GetPercentAllocated());*/
 
-		// Submit job results.
+		// Job results for this job are the same as the params.
+		*pJobResults = pParams;
 
 		return 1;
 	}
