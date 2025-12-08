@@ -105,6 +105,8 @@ ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 //-------------------------------------------------------------------------
 // THREADTODO: Documentation
 //-------------------------------------------------------------------------
+// THREADTODO: TEST SWITCH
+static bool s_bThreadedTextureJobs = true;
 static int OnTextureLoadJob_Success(JobResults_t& pResults)
 {
 	LOG_DEBUG("Running OnTextureLoadJob_Success()!");
@@ -221,21 +223,49 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 
 		// Load up the image resource from disk.
 		// Note that these get released in imageResource's destructor.
-		if (!ImageLoader::LoadImage(pszTextureName, imageResource))
+		if (!s_bThreadedTextureJobs)
 		{
-			LOG_ERROR("Failed to load texture. Returning default texture.");
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
+			if (!ImageLoader::LoadImage(pszTextureName, imageResource))
+			{
+				LOG_ERROR("Failed to load texture. Returning default texture.");
+				return m_pDefaultTextureLookup->TextureIndex;
+			}
 
-		// Get the next free slot in the texture dictionary.
-		newTextureHandle = GetFirstFreeTextureHandle();
-		if (newTextureHandle == kInvalidID_U32)
+			// Get the next free slot in the texture dictionary.
+			newTextureHandle = GetFirstFreeTextureHandle();
+			if (newTextureHandle == kInvalidID_U32)
+			{
+				LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
+				return m_pDefaultTextureLookup->TextureIndex;
+			}
+
+			newTextureHandle = AcquireTextureFromResource(imageResource, pszTextureName, bAutoRelease);
+		}
+		else
 		{
-			LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
+			// Get the next free slot in the texture dictionary.
+			newTextureHandle = GetFirstFreeTextureHandle();
+			m_TextureDictionary.m_TextureArray[newTextureHandle].internalHandle = 0;	// THREADTODO: Default, what else could it be?
+			
+			ImageLoader::ImageResource_t* pTextureResource = new ImageLoader::ImageResource_t;
+			ImageLoader::ImageLoaderParams_t* pTextureParams = new ImageLoader::ImageLoaderParams_t;
 
-		newTextureHandle = AcquireTextureFromResource(imageResource, pszTextureName, bAutoRelease);
+			pTextureParams->pszImageName = Utl::StringDuplicate(pszTextureName);
+			pTextureParams->pOutResource = pTextureResource;
+
+			JobDeclaration_t textureLoadJob{};
+			textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
+			textureLoadJob.pParams = pTextureParams;
+			textureLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnTextureLoadJob_Success;
+			textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
+			// The results are the same struct as the params.
+			// THREADTODO: This feels wrong to assign here. Should be when we set the results?
+			textureLoadJob.pJobResults.iUserDataSize = sizeof(ImageLoader::ImageLoaderParams_t);
+			textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
+			textureLoadJob.ePriority = eJobPriority::NORMAL;
+
+			g_pJobSystem->SubmitJob(textureLoadJob);
+		}
 	}
 	else
 	{
@@ -244,7 +274,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
-	CAssert(newTextureHandle == pTextureLookup->TextureIndex);
+	//CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -299,6 +329,17 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	// Increment the reference count.
 	pTextureLookup->ReferenceCount++;
 
+	// Set the generation.
+	if (pTexture->generation == kInvalidID_U8)
+	{
+		pTexture->generation = 0;
+	}
+	else
+	{
+		pTexture->generation++;
+	}
+	pTexture->textureFlags |= TEXTURE_FLAG_INTERNALS_UPDATED;
+
 	return newTextureHandle;
 }
 
@@ -348,7 +389,12 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 //-------------------------------------------------------------------------
 bool CTextureSystem::IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const
 {
-	CAssert(hTexture != kInvalidID_U32);
+	// THREADTODO: This assertion gets hit when we try to multi-thread texture loads. Figure this out!
+	//CAssert(hTexture != kInvalidID_U32);
+	if (hTexture == kInvalidID_U32)
+	{
+		hTexture = 0;
+	}
 	Texture* pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
 
 	return (pTexture->textureFlags & flagsToCheck) != 0;

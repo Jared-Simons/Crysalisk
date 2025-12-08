@@ -456,6 +456,13 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
 		return;
 
+	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	{
+		LOG_WARN("Need to update texture bindings!");
+		return;
+	}
+
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
 

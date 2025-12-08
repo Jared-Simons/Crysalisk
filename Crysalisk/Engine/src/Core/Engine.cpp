@@ -74,13 +74,6 @@ private:
 static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
-static int JobSystemTest(void* pParams, void** pJobResults)
-{
-	LOG_DEBUG("Running async test");
-
-	return 0;
-}
-
 //-------------------------------------------------------------------------
 // Purpose: Initialize the engine and it's required subsystems.
 // Input:	engineConfig - A configuration passed in by the calling application.
@@ -248,15 +241,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
 
-	// THREADTODO: Job Test
-	{
-		JobDeclaration_t testJob{};
-		testJob.ePriority = eJobPriority::NORMAL;
-		testJob.pfnEntryPoint = JobSystemTest;
-		testJob.pParams = nullptr;
-		g_pJobSystem->SubmitJob(testJob);
-	}
-
 	return true;
 }
 
@@ -282,7 +266,7 @@ bool CEngine::Run()
 			RenderPacket_t frameRenderData{};
 
 			// Get our renderable geometry from the map.
-			g_pRenderer->Update(frameRenderData, m_CurrentMap);
+			//g_pRenderer->Update(frameRenderData, m_CurrentMap);
 		}
 	}
 

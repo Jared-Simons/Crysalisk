@@ -71,21 +71,23 @@ static int JobThread_Main(void* pParams)
 	uint8_t iThreadIdx = *(uint8_t*)pParams;
 	int iThreadID = Platform::GetCurrentThreadID();
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
+	CWorkerThread& pThisThread = s_JobSystem.m_pWorkerThreads[iThreadIdx];
+
 	while (s_JobSystem.m_bJobSystemActive)
 	{
-		if (s_JobSystem.m_pWorkerThreads.Capacity() && s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)
+		if (s_JobSystem.m_pWorkerThreads.Capacity() && pThisThread.m_CurrentWorkData.pfnEntryPoint)
 		{
 			// Make sure we get a lock on our resources before executing the job.
-			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Lock();
+			pThisThread.m_pWorkDataMutex->Lock();
 			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
-			(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pfnEntryPoint)(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pParams, &s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults.pUserData);
+			(pThisThread.m_CurrentWorkData.pfnEntryPoint)(pThisThread.m_CurrentWorkData.pParams, &pThisThread.m_CurrentWorkData.pJobResults.pUserData);
 
 			// THREADTODO: Check to make sure the result pointers are not null.
-			s_JobSystem.SubmitJobResults(s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults.iUserDataSize, &s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.pJobResults);
+			s_JobSystem.SubmitJobResults(pThisThread.m_CurrentWorkData.pJobResults.iUserDataSize, &pThisThread.m_CurrentWorkData.pJobResults);
 
 			// Clear the job data, so that we don't run it again.
-			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_CurrentWorkData.ResetEntry();
-			s_JobSystem.m_pWorkerThreads[iThreadIdx].m_pWorkDataMutex->Unlock();
+			pThisThread.m_CurrentWorkData.ResetEntry();
+			pThisThread.m_pWorkDataMutex->Unlock();
 		}
 	}
 
@@ -255,7 +257,8 @@ void CJobSystem::Update()
 			pTypedResults->pfnOnJobCompleted_Success_Callback(*pTypedResults);
 
 			// Once the job is finished. Kill the results and reset the entry.
-			g_pMemoryManager->Free(m_JobResults[iJob]);
+			// THREADOTODO: Figure out how to free this.
+			//g_pMemoryManager->Free(m_JobResults[iJob]);
 			m_JobResults[iJob] = nullptr;
 		}
 	}

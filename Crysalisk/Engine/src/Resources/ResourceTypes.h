@@ -26,6 +26,8 @@ enum TextureFlags_t
 	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01,
 	// Is this texture transparent in any way?
 	TEXTURE_FLAG_IS_TRANSPARENT = 0x02,
+	// Has the texture been updated?
+	TEXTURE_FLAG_INTERNALS_UPDATED = 0x4,
 };
 
 // Different 'known' texture types.
@@ -52,6 +54,8 @@ struct Texture
 	int32_t			numChannels;
 	// The name of this texture.
 	char*			pszTextureName{ nullptr };
+	// Indicates the amount of changes made to the texture.
+	uint8_t			generation{ kInvalidID_U8 };
 	// Texture flags.
 	TextureFlags	textureFlags{ 0 };
 	// The internal handle for the texture.
