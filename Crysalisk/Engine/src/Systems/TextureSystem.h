@@ -43,6 +43,9 @@ public:
 	virtual TextureHandle_t		GetDefaultWhiteTexture() = 0;
 	virtual TextureHandle_t		GetDefaultSpecularTexture() = 0;
 	virtual TextureHandle_t		GetDefaultNormalTexture() = 0;
+
+	virtual void				SetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) = 0;
+	virtual void				UnsetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) = 0;
 };
 
 DLL_EXPORT ITextureSystem* g_pTextureSystem_Internal;

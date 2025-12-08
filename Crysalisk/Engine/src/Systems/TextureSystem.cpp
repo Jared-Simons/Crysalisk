@@ -53,6 +53,9 @@ public:
 	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultNormalTexture() override { return m_pDefaultNormalTexture->TextureIndex; }
 
+	virtual void				SetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) { m_TextureDictionary.m_TextureArray[hTexture].textureFlags |= iFlags; }
+	virtual void				UnsetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) override { m_TextureDictionary.m_TextureArray[hTexture].textureFlags &= ~iFlags; }
+
 private:
 	// Returns the first available handle in the texture dictionary.
 	TextureHandle_t				GetFirstFreeTextureHandle() const;
@@ -246,6 +249,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 			// Get the next free slot in the texture dictionary.
 			newTextureHandle = GetFirstFreeTextureHandle();
 			m_TextureDictionary.m_TextureArray[newTextureHandle].internalHandle = 0;	// THREADTODO: Default, what else could it be?
+			pTextureLookup->TextureIndex = newTextureHandle;
 			
 			ImageLoader::ImageResource_t* pTextureResource = new ImageLoader::ImageResource_t;
 			ImageLoader::ImageLoaderParams_t* pTextureParams = new ImageLoader::ImageLoaderParams_t;
@@ -291,12 +295,12 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	TextureLookup*					pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
 	Texture*						pTexture = nullptr;
 
-	// Get the next free slot in the texture dictionary.
-	TextureHandle_t newTextureHandle = GetFirstFreeTextureHandle();
+	TextureHandle_t newTextureHandle = pTextureLookup->TextureIndex;
+	// THREADTODO: If we're loading directly from a resource (without ever going though the main AcquireTexture() function, then our texture handle won't be set.
+	// This probably isn't the best way to set that.
 	if (newTextureHandle == kInvalidID_U32)
 	{
-		LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
-		return m_pDefaultTextureLookup->TextureIndex;
+		newTextureHandle = GetFirstFreeTextureHandle();
 	}
 
 	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];

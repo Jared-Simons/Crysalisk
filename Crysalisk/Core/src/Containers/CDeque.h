@@ -226,6 +226,8 @@ namespace Utl
 			return pElementToReturn;
 		}
 
+		int		HeadIndex() const { return m_iHeadElement; }
+
 		size_t	Count() const { return m_iElementCount; }
 		size_t	Capacity() const { return m_iElementCapacity; }
 

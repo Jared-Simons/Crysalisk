@@ -178,7 +178,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Job system.
 	JobSystemConfig_t jobSysConfig{};
-	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
+	// THREADTODO: How many threads should we be using?
+	jobSysConfig.iNumJobThreads = (Platform::GetNumberOfSystemProcessors() - 4) - 1;	// - 1 to account for the main thread.
 
 	// NOTE: Currently, we will just use one thread for resource loading.
 	for (int iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
@@ -266,7 +267,7 @@ bool CEngine::Run()
 			RenderPacket_t frameRenderData{};
 
 			// Get our renderable geometry from the map.
-			//g_pRenderer->Update(frameRenderData, m_CurrentMap);
+			g_pRenderer->Update(frameRenderData, m_CurrentMap);
 		}
 	}
 

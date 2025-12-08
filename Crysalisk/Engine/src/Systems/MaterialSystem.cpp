@@ -332,7 +332,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		}
 
 		// Bind the texture maps to the shader instance.
-		for (int texIdx = 0; texIdx < 3; texIdx++)
+		// THREADTODO: Remove this?
+		/*for (int texIdx = 0; texIdx < 3; texIdx++)
 		{
 			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
 			int iTextureArrayIndex = texIdx;
@@ -343,7 +344,12 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			{
 				pMaterial->m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(textureHandles[texIdx], TEXTURE_FLAG_IS_TRANSPARENT);
 			}
-		}
+		}*/
+
+		// Bind the default textures for now, the actual textures will get bound after they finish loading.
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial->m_iInternalHandle, &hDefaultDiffuse);
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial->m_iInternalHandle, &hDefaultSpecular);
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial->m_iInternalHandle, &hDefaultNormal);
 
 		// Save off the texture handles.
 		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
@@ -457,10 +463,36 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 		return;
 
 	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	// Check textures to see if they need to be re-bound.
+	// THREADTODO: Make this into a macro?
+	// Diffuse
 	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
 	{
-		LOG_WARN("Need to update texture bindings!");
-		return;
+		g_pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial.m_iInternalHandle, &pMaterial.m_hDiffuseTextureHandle);
+
+		// Use the diffuse map to determine material transparency.
+		pMaterial.m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+
+		// Remove the updated flag.
+		g_pTextureSystem_Internal->UnsetTextureFlags(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED);
+	}
+
+	// Specular
+	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hSpecularTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	{
+		g_pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial.m_iInternalHandle, &pMaterial.m_hSpecularTextureHandle);
+
+		// Remove the updated flag.
+		g_pTextureSystem_Internal->UnsetTextureFlags(pMaterial.m_hSpecularTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED);
+	}
+
+	// Normal
+	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hNormalTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	{
+		g_pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial.m_iInternalHandle, &pMaterial.m_hNormalTextureHandle);
+
+		// Remove the updated flag.
+		g_pTextureSystem_Internal->UnsetTextureFlags(pMaterial.m_hNormalTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED);
 	}
 
 	// Bind the appropriate shader.

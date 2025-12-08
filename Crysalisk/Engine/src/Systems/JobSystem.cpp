@@ -56,7 +56,7 @@ private:
 	Utl::CDeque<JobDeclaration_t>	m_HighPriorityJobs{};
 
 	Platform::ISystemMutex*			m_pJobResultMutex{ nullptr };
-	Utl::CVector<void*>				m_JobResults{};	// THREADTODO: void* or uintptr_t?
+	Utl::CVector<JobResults_t>		m_JobResults{};	// THREADTODO: void* or uintptr_t?
 
 	friend static int JobThread_Main(void* pParams);
 };
@@ -79,7 +79,6 @@ static int JobThread_Main(void* pParams)
 		{
 			// Make sure we get a lock on our resources before executing the job.
 			pThisThread.m_pWorkDataMutex->Lock();
-			LOG_WARN("JOB TO BE PROCESSED: %d", iThreadIdx);
 			(pThisThread.m_CurrentWorkData.pfnEntryPoint)(pThisThread.m_CurrentWorkData.pParams, &pThisThread.m_CurrentWorkData.pJobResults.pUserData);
 
 			// THREADTODO: Check to make sure the result pointers are not null.
@@ -105,7 +104,7 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 
 	// Reasonable defaults.
 	m_LowPriorityJobs.Resize(50);
-	m_NormalPriorityJobs.Resize(50);
+	m_NormalPriorityJobs.Resize(80);	// THREADTODO: Real defaults.
 	m_HighPriorityJobs.Resize(50);
 
 	// Make sure we have at least one additional thread (aside from the main thread) to do work on.
@@ -119,8 +118,6 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 
 	for (uint8_t iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
 	{
-		// THREADTODO: Do we need m_pThread->m_iThreadID?
-		//m_pWorkerThreads[iThread].m_pThread->m_iThreadID = iThread;
 		m_pWorkerThreads[iThread].m_iThreadIdx = iThread;
 		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, &m_pWorkerThreads[iThread].m_iThreadIdx);
 		m_pWorkerThreads[iThread].m_pWorkDataMutex = Platform::CreateSystemMutex();
@@ -162,7 +159,8 @@ void CJobSystem::Update()
 
 	// THREADTODO: D.R.Y.
 	// First, process high priority jobs.
-	for (int iJob = 0; iJob < m_HighPriorityJobs.Count(); iJob++)
+	int iHighJobHead = m_HighPriorityJobs.HeadIndex();
+	for (int iJob = iHighJobHead; iJob < (m_HighPriorityJobs.Count() + iHighJobHead); iJob++)
 	{
 		if (m_HighPriorityJobs.PeekFront()->pfnEntryPoint)
 		{
@@ -189,28 +187,31 @@ void CJobSystem::Update()
 	}
 
 	// Next, the normal priority jobs.
-	for (int iJob = 0; iJob < m_NormalPriorityJobs.Count(); iJob++)
+	int iNormalJobHead = m_NormalPriorityJobs.HeadIndex();
+	for (int iJob = iNormalJobHead; iJob < (m_NormalPriorityJobs.Count() + iNormalJobHead); iJob++)
 	{
 		if (m_NormalPriorityJobs.PeekFront()->pfnEntryPoint)
 		{
-			JobDeclaration_t job = m_NormalPriorityJobs.PopFront();
 			CWorkerThread* pThread = &m_pWorkerThreads[0];
 			// There's a job here, try to find a worker thread and assign it.
 			for (int iThread = 0; iThread < m_Config.iNumJobThreads; iThread++)
 			{
 				pThread = &m_pWorkerThreads[iThread];
-				if (pThread->m_iThreadType != job.iJobType || pThread->m_CurrentWorkData.pfnEntryPoint)
+				if (pThread->m_iThreadType != m_NormalPriorityJobs[iJob].iJobType || pThread->m_CurrentWorkData.pfnEntryPoint)
 				{
 					// Either the current thread does not support the current job, or it is in use.
 					continue;
 				}
 				else
 				{
+					JobDeclaration_t job = m_NormalPriorityJobs.PopFront();
+
 					// This thread can support the job. Set it up.
-					LOG_DEBUG("Placing job");
 					pThread->m_pWorkDataMutex->Lock();
 					pThread->m_CurrentWorkData = job;
 					pThread->m_pWorkDataMutex->Unlock();
+
+					LOG_WARN("Jobs remaining: %d", m_NormalPriorityJobs.Count());
 					break;
 				}
 			}
@@ -218,7 +219,8 @@ void CJobSystem::Update()
 	}
 
 	// Finally, low priority jobs.
-	for (int iJob = 0; iJob < m_LowPriorityJobs.Count(); iJob++)
+	int iLowJobHead = m_LowPriorityJobs.HeadIndex();
+	for (int iJob = iLowJobHead; iJob < (m_LowPriorityJobs.Count() + iLowJobHead); iJob++)
 	{
 		if (m_LowPriorityJobs.PeekFront()->pfnEntryPoint)
 		{
@@ -249,17 +251,19 @@ void CJobSystem::Update()
 	m_pJobResultMutex->Lock();
 	for (int iJob = 0; iJob < m_JobResults.Count(); iJob++)
 	{
-		if (m_JobResults[iJob])
+		if (m_JobResults[iJob].pfnOnJobCompleted_Success_Callback)
 		{
 			// Execute the callback.
 			// THREADTODO: Success/Fail options?
-			JobResults_t* pTypedResults = reinterpret_cast<JobResults_t*>(m_JobResults[iJob]);
+			JobResults_t* pTypedResults = &m_JobResults[iJob];
 			pTypedResults->pfnOnJobCompleted_Success_Callback(*pTypedResults);
 
 			// Once the job is finished. Kill the results and reset the entry.
 			// THREADOTODO: Figure out how to free this.
 			//g_pMemoryManager->Free(m_JobResults[iJob]);
-			m_JobResults[iJob] = nullptr;
+			m_JobResults[iJob].pfnOnJobCompleted_Success_Callback = nullptr;
+			m_JobResults[iJob].iUserDataSize = 0;
+			m_JobResults[iJob].pUserData = nullptr;
 		}
 	}
 	m_pJobResultMutex->Unlock();
@@ -270,6 +274,7 @@ void CJobSystem::Update()
 //-------------------------------------------------------------------------
 bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 {
+	CAssert(m_NormalPriorityJobs.Count() + 1 < m_NormalPriorityJobs.Capacity());
 	// THREADTODO: What to do if there's no more space in the job queues?
 	if (!pJobInfo.pfnEntryPoint)
 	{
@@ -286,7 +291,6 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 		Platform::MemoryCopy(jobCopy.pParams, pJobInfo.pParams, pJobInfo.iParamSize);
 	}
 
-	// THREADTODO: we need to figure out how to get strings across threads.
 	switch (pJobInfo.ePriority)
 	{
 		int newJob;

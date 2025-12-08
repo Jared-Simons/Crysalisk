@@ -37,7 +37,7 @@ struct JobDeclaration_t
 {
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
 	void*				pParams{ nullptr };
-	JobResults_t		pJobResults{ nullptr };
+	JobResults_t		pJobResults{};
 	size_t				iParamSize{ 0 };
 	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
@@ -45,8 +45,12 @@ struct JobDeclaration_t
 	void ResetEntry()
 	{
 		pfnEntryPoint = nullptr;
-		iJobType = WORKER_THREAD_TYPE_GENERAL;
 		pParams = nullptr;
+		pJobResults.iUserDataSize = 0;
+		pJobResults.pUserData = nullptr;
+		pJobResults.pfnOnJobCompleted_Success_Callback = nullptr;
+		iParamSize = 0;
+		iJobType = WORKER_THREAD_TYPE_GENERAL;
 		ePriority = eJobPriority::NORMAL;
 	}
 };
