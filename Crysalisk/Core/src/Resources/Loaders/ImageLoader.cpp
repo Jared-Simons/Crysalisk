@@ -22,29 +22,15 @@ namespace ImageLoader
 		if (!pParams)
 		{
 			LOG_ERROR("LoadImage_Threaded was provided with no parameters. Image load failed.");
-			return -1;
+			return 0;
 		}
 
 		ImageLoaderParams_t* pTypedParams = reinterpret_cast<ImageLoaderParams_t*>(pParams);
-		LOG_DEBUG("Attempting to load image '%s'.", pTypedParams->pszImageName);
 
 		if (!LoadImage(pTypedParams->pszImageName, *pTypedParams->pOutResource))
 		{
 			return 0;
 		}
-
-		LOG_DEBUG("Memory usage post job: %f", g_pMemoryManager->GetPercentAllocated());
-
-		// Free resources allocated for the job.
-		/*
-		Utl::StringFree((char*)pTypedParams->pszImageName);
-		pTypedParams->pszImageName = nullptr;
-		delete pTypedParams->pOutResource;
-		pTypedParams->pOutResource = nullptr;
-		delete pTypedParams;
-		pTypedParams = nullptr;
-
-		LOG_DEBUG("Memory usage post job resource-free: %f", g_pMemoryManager->GetPercentAllocated());*/
 
 		// Job results for this job are the same as the params.
 		*pJobResults = pParams;
@@ -136,6 +122,7 @@ namespace ImageLoader
 		if (pResource.pPixelData)
 		{
 			stbi_image_free(pResource.pPixelData);
+			pResource.pPixelData = nullptr;
 		}
 	}
 }

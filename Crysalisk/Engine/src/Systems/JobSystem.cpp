@@ -257,8 +257,7 @@ void CJobSystem::Update()
 			pTypedResults->pfnOnJobCompleted_Success_Callback(*pTypedResults);
 
 			// Once the job is finished. Kill the results and reset the entry.
-			// THREADOTODO: Figure out how to free this.
-			//g_pMemoryManager->Free(m_JobResults[iJob]);
+			// Note the the job is responsible for freeing pUserData.
 			m_JobResults[iJob].pfnOnJobCompleted_Success_Callback = nullptr;
 			m_JobResults[iJob].iUserDataSize = 0;
 			m_JobResults[iJob].pUserData = nullptr;
@@ -280,26 +279,17 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 		return false;
 	}
 
-	// Take a copy of the job info.
-	JobDeclaration_t jobCopy = pJobInfo;
-	// THREADTODO: Free this!
-	if (pJobInfo.iParamSize > 0 && pJobInfo.pParams)
-	{
-		jobCopy.pParams = g_pMemoryManager->Allocate(pJobInfo.iParamSize);
-		Platform::MemoryCopy(jobCopy.pParams, pJobInfo.pParams, pJobInfo.iParamSize);
-	}
-
 	switch (pJobInfo.ePriority)
 	{
 		int newJob;
 	case eJobPriority::LOW:
-		newJob = m_LowPriorityJobs.PushBack(jobCopy);
+		newJob = m_LowPriorityJobs.PushBack(pJobInfo);
 		break;
 	case eJobPriority::NORMAL:
-		newJob = m_NormalPriorityJobs.PushBack(jobCopy);
+		newJob = m_NormalPriorityJobs.PushBack(pJobInfo);
 		break;
 	case eJobPriority::HIGH:
-		newJob = m_HighPriorityJobs.PushBack(jobCopy);
+		newJob = m_HighPriorityJobs.PushBack(pJobInfo);
 		break;
 	}
 
@@ -313,8 +303,6 @@ void CJobSystem::SubmitJobResults(size_t iResultSize, void* pJobResults)
 {
 	if (iResultSize > 0 && pJobResults)
 	{
-		LOG_DEBUG("Submitting job results");
-
 		// Allocate new memory for the results.
 		// THREADTODO: We should probably be pooling these.
 		//void* pResultCopy = g_pMemoryManager->Allocate(iResultSize);

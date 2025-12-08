@@ -347,10 +347,13 @@ bool Event_KeyReleased(EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
+		Clock mapLoadTimer{};
+		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())
 		{
 			LoadMap("TestMap", s_Engine.m_CurrentMap);
 			LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
+			LOG_WARN("Map load took %.5f", mapLoadTimer.GetElapsedTime());
 		}
 	}
 	else if (keycode == 'U')

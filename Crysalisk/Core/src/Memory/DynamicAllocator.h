@@ -25,6 +25,7 @@ namespace Utl
 	public:
 		// Constructor.
 		DynamicAllocator();
+		~DynamicAllocator();
 
 		// Initialize internal state for the allocator. This MUST be called before this allocator can do any allocations.
 		// NOTE: 'pMemoryBlock' is to be allocated and freed by client code.
@@ -49,5 +50,7 @@ namespace Utl
 		void*		m_pMemoryBlock;
 		// The freelist this allocator is using to track allocations.
 		CFreeList	m_FreeList;
+		// The mutex for handling multi-threaded allocations.
+		class Platform::ISystemMutex*	m_pMutex{ nullptr };
 	};
 }

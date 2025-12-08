@@ -112,12 +112,18 @@ ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 static bool s_bThreadedTextureJobs = true;
 static int OnTextureLoadJob_Success(JobResults_t& pResults)
 {
-	LOG_DEBUG("Running OnTextureLoadJob_Success()!");
-
 	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
-	LOG_DEBUG("We have image '%s'!", pTypedResults->pszImageName);
 
 	g_pTextureSystem_Internal->AcquireTextureFromResource(*pTypedResults->pOutResource, pTypedResults->pszImageName, true);
+
+	// Release all the resources allocated for this job.
+	/*delete pTypedResults->pOutResource;
+	pTypedResults->pOutResource = nullptr;
+	CAssert(pTypedResults->pszImageName != nullptr);
+	Utl::StringFree((char*)pTypedResults->pszImageName);
+	pTypedResults->pszImageName = nullptr;
+	delete pTypedResults;
+	pTypedResults = nullptr;*/
 
 	return 1;
 }
@@ -131,7 +137,7 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 	m_TextureDictionary.m_TextureHashmap.Resize(m_Config.MaxTextures);
 
 	// Allocate memory for our texture array.
-	m_TextureDictionary.m_TextureArray = (Texture*)new Texture[m_Config.MaxTextures];
+	m_TextureDictionary.m_TextureArray = new Texture[m_Config.MaxTextures];
 
 	if (!CreateDefaultTextures())
 	{
