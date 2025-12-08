@@ -210,8 +210,6 @@ void CJobSystem::Update()
 					pThread->m_pWorkDataMutex->Lock();
 					pThread->m_CurrentWorkData = job;
 					pThread->m_pWorkDataMutex->Unlock();
-
-					LOG_WARN("Jobs remaining: %d", m_NormalPriorityJobs.Count());
 					break;
 				}
 			}

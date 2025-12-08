@@ -141,40 +141,6 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 
 	LOG_INFO("Texture system initialized! (Max textures: %d)", config.MaxTextures);
 
-	// THREADTODO: TEST!!
-	// THREADTODO: We probably should be pooling these, instead of heap alloc-ing them.
-	{
-		//ImageLoader::ImageResource_t	 textureResource{};
-		//ImageLoader::ImageLoaderParams_t textureParams{};
-
-		LOG_DEBUG("Memory usage pre-job: %f", g_pMemoryManager->GetPercentAllocated());
-
-		ImageLoader::ImageResource_t*		pTextureResource = new ImageLoader::ImageResource_t;
-		ImageLoader::ImageLoaderParams_t*	pTextureParams = new ImageLoader::ImageLoaderParams_t;
-
-		pTextureParams->pszImageName = Utl::StringDuplicate("Assets/Textures/TestDevTexture.png");
-		pTextureParams->pOutResource = pTextureResource;
-
-		JobDeclaration_t textureLoadJob{};
-		textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
-		textureLoadJob.pParams = pTextureParams;
-		textureLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnTextureLoadJob_Success;
-		textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
-		// The results are the same struct as the params.
-		// THREADTODO: This feels wrong to assign here. Should be when we set the results?
-		textureLoadJob.pJobResults.iUserDataSize = sizeof(ImageLoader::ImageLoaderParams_t);
-		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
-		textureLoadJob.ePriority = eJobPriority::NORMAL;
-
-		g_pJobSystem->SubmitJob(textureLoadJob);
-
-		LOG_DEBUG("Memory usage post job-submit: %f", g_pMemoryManager->GetPercentAllocated());
-
-		// The job system takes a copy of the resource params, so it's okay to clean up the original copy here.
-		//Utl::StringFree((char*)pTextureParams->pszImageName);
-	}
-	// END TEST!!
-
 	return true;
 }
 
@@ -312,7 +278,6 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 
 	// Finally, use the loaded resource to set up our texture entry.
 	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
-	CAssert(pTexture);
 
 	pTexture->width = pResource.Width;
 	pTexture->height = pResource.Height;
@@ -358,6 +323,14 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	
 	Texture*		pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
 	TextureLookup*	pLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
+
+	if (pLookup->TextureIndex == kInvalidID_U32)
+	{
+		// This texture was possibly already cleaned up.
+		// TODO: This should not be happening if reference-counting logic is correct, no?
+		return;
+	}
+
 	CAssert(hTexture == pLookup->TextureIndex);	// These need to line up...
 
 	// Do absolutely nothing with default textures.
