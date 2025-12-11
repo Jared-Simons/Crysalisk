@@ -23,6 +23,28 @@ namespace MeshLoader
 	static void DeduplicateGeometry(MeshResource_t::GeometryObject_t* pGeometryConfig);
 	static void GenerateTangentData(MeshResource_t::GeometryObject_t* pConfig);
 
+	// THREADTODO: Clean this up once it's working.
+	int LoadMesh_Threaded(void* pParams, void** pJobResults)
+	{
+		if (!pParams)
+		{
+			LOG_ERROR("LoadMesh_Threaded was provided with no parameters. Mesh load failed.");
+			return 0;
+		}
+
+		MeshLoaderParams_t* pTypedParams = reinterpret_cast<MeshLoaderParams_t*>(pParams);
+
+		if (!LoadMeshResource(pTypedParams->pszMeshPath, *pTypedParams->pOutResource))
+		{
+			return 0;
+		}
+
+		// Job results for this job are the same as the params.
+		*pJobResults = pParams;
+
+		return 1;
+	}
+
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load an existing mesh asset from disk.

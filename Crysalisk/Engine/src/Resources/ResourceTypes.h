@@ -284,6 +284,9 @@ struct GeometryInstance_t
 	Vector3D			vecMaxExtents{};
 };
 
+// A unique identifier for a mesh.
+using MeshHandle_t = uint32_t;
+
 // Represents a mesh/model, made up of numerous submeshes.
 struct Mesh
 {

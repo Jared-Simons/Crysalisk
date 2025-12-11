@@ -26,6 +26,7 @@
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/MeshSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
@@ -222,6 +223,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Mesh system.
+	MeshSystemConfig_t meshSysConfig{};
+	meshSysConfig.MaxMeshes = 249;
+	if (!g_pMeshSystem->Initialize(meshSysConfig))
+	{
+		LOG_ERROR("Failed to initialize mesh system! Application cannot continue.");
+		return false;
+	}
+
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
@@ -238,6 +248,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
+
+	// MESHSYSTEMTODO: Mesh test.
+	g_pMeshSystem->AcquireMesh("sponza", false);
 
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
@@ -288,6 +301,7 @@ void CEngine::Shutdown()
 		m_CurrentMap.UnloadMap();
 
 	g_pFontSystem->Shutdown();
+	g_pMeshSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
 	g_pTextureSystem_Internal->Shutdown();
