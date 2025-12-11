@@ -50,7 +50,5 @@ namespace Utl
 		void*		m_pMemoryBlock;
 		// The freelist this allocator is using to track allocations.
 		CFreeList	m_FreeList;
-		// The mutex for handling multi-threaded allocations.
-		class Platform::ISystemMutex*	m_pMutex{ nullptr };
 	};
 }

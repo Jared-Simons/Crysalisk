@@ -85,12 +85,12 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 
 	// Setup our internal memory allocator.
 	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
-	m_bInitialized = true;
 
 	s_pMemoryManager.m_MemoryConfig = config;
 
 	m_pAllocMutex = Platform::CreateSystemMutex();
 
+	m_bInitialized = true;
 	return true;
 }
 
@@ -121,17 +121,25 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
 	CAssert(sizeInBytes > 0);
 
-	if (m_pAllocMutex)
-		m_pAllocMutex->Lock();
+	if (!m_bInitialized)
+	{
+		// THREADTODO: Is this fine?
+		m_iNumBytesAllocated += sizeInBytes;
+		return Platform::MemoryAllocate(sizeInBytes);
+	}
 
-	void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
-	m_iNumBytesAllocated += sizeInBytes;
-	memset(pMemBlock, 0, sizeInBytes);
+	if (m_pAllocMutex->Lock())
+	{
+		void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
+		m_iNumBytesAllocated += sizeInBytes;
+		memset(pMemBlock, 0, sizeInBytes);
+		if (m_bInitialized)
+			m_pAllocMutex->Unlock();
+		return pMemBlock;
+	}
 
-	if (m_pAllocMutex)
-		m_pAllocMutex->Unlock();
-
-	return pMemBlock;
+	LOG_ERROR("Memory Manager failed to get mutex lock for memory allocation. Returning nullptr.");
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------

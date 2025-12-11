@@ -20,8 +20,6 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	DynamicAllocator::~DynamicAllocator()
 	{
-		Platform::DestroySystemMutex(m_pMutex);
-		m_pMutex = nullptr;
 	}
 
 	//-------------------------------------------------------------------------
@@ -50,8 +48,6 @@ namespace Utl
 			m_pMemoryBlock = reinterpret_cast<uint8_t*>(m_pMemoryBlock) + freelistArraySize;
 			m_FreeList.SetNumBytesToTrack(sizeInBytes - freelistArraySize);
 		}
-
-		m_pMutex = Platform::CreateSystemMutex();
 	}
 
 	//-------------------------------------------------------------------------
@@ -79,17 +75,11 @@ namespace Utl
 		CAssert(size > 0);
 		void* pNewBlock = nullptr;
 
-		if (m_pMutex)
-			m_pMutex->Lock();
-
 		size_t offset = m_FreeList.Allocate(size + kAllocHeaderSize);
 		AllocHeader_t* newHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(m_pMemoryBlock) + offset);
 		newHeader->Offset = offset;
 		newHeader->Size = size;
-		pNewBlock = reinterpret_cast<uint8_t*>(newHeader) + kAllocHeaderSize;;
-
-		if (m_pMutex)
-			m_pMutex->Unlock();
+		pNewBlock = reinterpret_cast<uint8_t*>(newHeader) + kAllocHeaderSize;
 
 		return pNewBlock;
 	}
@@ -103,18 +93,12 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	int DynamicAllocator::Free(void* pMemoryBlock)
 	{
-		CAssert(pMemoryBlock != nullptr);;
-
-		if (m_pMutex)
-			m_pMutex->Lock();
+		CAssert(pMemoryBlock != nullptr);
 
 		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(pMemoryBlock) - kAllocHeaderSize);
 
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);;
-
-		if (m_pMutex)
-			m_pMutex->Unlock();
 
 		return (int)pHeader->Size;
 	}
