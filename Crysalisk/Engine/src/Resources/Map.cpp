@@ -182,11 +182,12 @@ void CMap::UnloadMap()
 		m_pszMapName = nullptr;
 	}
 
-	// Release all material references.
+	// Release all mesh/material references.
 	for (int iMeshIdx = 0; iMeshIdx < m_Meshes.Count(); iMeshIdx++)
 	{
 		for (int iSubmeshIdx = 0; iSubmeshIdx < m_Meshes[iMeshIdx].m_Geometries.Count(); iSubmeshIdx++)
 		{
+			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx]);
 			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial, false);
 		}
 	}
