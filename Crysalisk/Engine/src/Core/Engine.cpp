@@ -294,6 +294,10 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	// Wait for threads to be finished.
+	// TODO: Need some way to not shutdown until all resources are available (to be destroyed).
+	g_pJobSystem->WaitForWorkerThreadsToFinish();
+
 	if (m_CurrentMap.IsMapLoaded())
 		m_CurrentMap.UnloadMap();
 

@@ -58,24 +58,22 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 		pOutMap.m_pszMapName = Utl::StringDuplicate(pNewMapResource.pszMapName);
 	}
 
-	if (pNewMapResource.MeshResources_NEW.Count() > 0)
+	if (pNewMapResource.MeshResources.Count() > 0)
 	{
 		LOG_INFO("Acquiring map mesh resources.");
 
-		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources_NEW.Count());
-		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources_NEW.Count());
+		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources.Count());
 
-		for (int iMesh = 0; iMesh < pNewMapResource.MeshResources_NEW.Count(); iMesh++)
+		for (int iMesh = 0; iMesh < pNewMapResource.MeshResources.Count(); iMesh++)
 		{
-			MapLoader::MapResource_t::MeshDeclaration_t& pCurMeshDec = pNewMapResource.MeshResources_NEW[iMesh];
-			LOG_INFO("%s", pCurMeshDec.pszModelName);
+			MapLoader::MapResource_t::MeshDeclaration_t& pCurMeshDec = pNewMapResource.MeshResources[iMesh];
 
-			// MESHSYSTEMTODO: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
+			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
 			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
-			// This feels very hacky, but maybe it will have more use later down the road?
 			pOutMap.m_hMeshes[iMesh].hMesh = g_pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
 			pOutMap.m_hMeshes[iMesh].pMesh = g_pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 		}
+		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources.Count());
 	}
 	else
 	{
@@ -116,7 +114,7 @@ void CMap::UnloadMap()
 	// Release all mesh/material references.
 	for (int iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
-		g_pMeshSystem->ReleaseMesh(m_hMeshes[iMeshIdx].hMesh);
+		g_pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
 	m_hMeshes.Clear();

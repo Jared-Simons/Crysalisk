@@ -328,6 +328,14 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	CAssert(hTexture != kInvalidID_U32);
 	
 	Texture*		pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
+
+	if (pTexture->pszTextureName == nullptr)
+	{
+		// It's possible this texture was either already freed, or the load was aborted before the resources we're acquired.
+		// Just early out.
+		return;
+	}
+
 	TextureLookup*	pLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
 
 	if (pLookup->TextureIndex == kInvalidID_U32)

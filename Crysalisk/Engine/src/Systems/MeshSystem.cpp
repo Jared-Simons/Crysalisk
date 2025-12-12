@@ -13,7 +13,7 @@
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Mesh System Implementation.
 //-------------------------------------------------------------------------
 class CMeshSystem : public IMeshSystem
 {
@@ -25,10 +25,12 @@ public:
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) override;
 
-	virtual void			ReleaseMesh(MeshHandle_t hMesh) override;
+	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) override;
 
 private:
 	MeshHandle_t			GetFirstFreeMeshHandle() const;
+
+	void					ClearMeshDictionaryEntry(const char* pszMeshPath);
 
 private:
 	MeshSystemConfig_t	m_Config{};
@@ -50,9 +52,13 @@ private:
 	MeshDictionary_t	m_MeshDictionary{};
 };
 
+// Mesh System Context
 static CMeshSystem s_MeshSystem;
 IMeshSystem* g_pMeshSystem = &s_MeshSystem;
 
+//-------------------------------------------------------------------------
+// Purpose: Invoked upon successful completion of an async mesh-loading job.
+//-------------------------------------------------------------------------
 static int OnMeshLoadJob_Success(JobResults_t& pResults)
 {
 	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
@@ -76,7 +82,7 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Initialize.
 //-------------------------------------------------------------------------
 bool CMeshSystem::Initialize(const MeshSystemConfig_t& pConfig)
 {
@@ -96,7 +102,7 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pConfig)
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Shutdown.
 //-------------------------------------------------------------------------
 void CMeshSystem::Shutdown()
 {
@@ -108,7 +114,13 @@ void CMeshSystem::Shutdown()
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Attempts to acquire the resources for a mesh.
+// Input:	pszMeshName - The name of the mesh to load.
+//			vecPos - The position in worldspace to place this mesh.
+//			vecEulerAngles - The angles to rotate this mesh.
+//			vecScale - The scale factor for this mesh.
+//			bAutoRelease - If true, the mesh will release when it's reference count reaches 0.
+// Output:	Returns a handle to the mesh.
 //-------------------------------------------------------------------------
 MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease)
 {
@@ -137,12 +149,14 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 		newMeshHandle = GetFirstFreeMeshHandle();
 		if (newMeshHandle == kInvalidID_U32)
 		{
-			// MESHSYSTEMTODO: Logging?
+			LOG_ERROR("AcquireMeshInstance() could not acquire a new mesh slot. Increase mesh system config to allow for more. Returning null handle.");
 			return kInvalidID_U32;
 		}
 
 		pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
 		pMesh->m_MeshID = newMeshHandle;
+
+		pMesh->m_pszMeshPath = Utl::StringDuplicate(szFormattedPath);
 
 		pMesh->m_vecPosition = vecPos;
 		pMesh->m_vecAngles = vecEulerAngles;
@@ -175,7 +189,11 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Creates a usable mesh given a loaded resource.
+// Input:	pResource - The mesh's resource data loaded from disk.
+//			pszMeshName - The name of the mesh being loaded.
+//			bAutoRelease - If true, the mesh will release when it's reference count reaches 0.
+// Output:	Returns a handle to the mesh.
 //-------------------------------------------------------------------------
 MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease)
 {
@@ -186,6 +204,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 	MeshHandle_t	meshHandle = pMeshLookup->MeshHandle;
 	pMesh = &m_MeshDictionary.m_MeshArray[meshHandle];
+	CAssert(pMesh);
 
 	// Set the transformation matrix.
 	pMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
@@ -199,7 +218,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 	MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
 	// Acquire renderer resources and upload to the GPU.
-	// MESHSYSTEMTODO: Only accounts for one mesh.
+	// 
+	// TODO: Only accounts for one mesh.
+	// Reformat the mesh file eventally to make this cleaner.
 	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pGroups.Capacity(); iSubmesh++)
 	{
 		pCurSubmesh = &pResource.pObjects[0].pGroups[iSubmesh];
@@ -232,37 +253,72 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		}
 	}
 
+	// Increment the reference count.
+	pMeshLookup->iReferenceCount++;
+	pMeshLookup->bAutoRelease = bAutoRelease;
+
 	return meshHandle;
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Returns usable internal data for a mesh, given it's handle.
+// 
+// NOTE:	This is needed because some systems need read-access to mesh internals
+//			and it is more convenient to give them that access instead of making them go through here.
+//			(Think of the map needing mesh extents for frustum-culling, for example).
+// NOTE 2:	This DOES NOT increment the mesh's reference count.
+// 
+// Input:	hMesh - The mesh to return the internal data for.
+// Output:	Returns a pointer to the mesh's internal data.
 //-------------------------------------------------------------------------
 Mesh* CMeshSystem::AcquireMeshDataByHandle(MeshHandle_t hMesh)
 {
 	CAssert(hMesh != kInvalidID_U32);
 
+	if (m_MeshDictionary.m_MeshArray[hMesh].m_MeshID == kInvalidID_U32)
+	{
+		LOG_ERROR("Mesh with handle '%d' does not exist. Returning nullptr.", hMesh);
+		return nullptr;
+	}
+
 	return &m_MeshDictionary.m_MeshArray[hMesh];
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Releases a reference to a mesh, decrementing it's reference count.
+// 
+// Input:	hMesh - The mesh to release an instance from.
+// Output:	none.
 //-------------------------------------------------------------------------
-void CMeshSystem::ReleaseMesh(MeshHandle_t hMesh)
+void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 {
 	CAssert(hMesh != kInvalidID_U32);
 
-	Mesh*	pMesh = &m_MeshDictionary.m_MeshArray[hMesh];
+	Mesh*		pMesh = &m_MeshDictionary.m_MeshArray[hMesh];
+	MeshLookup* pLookup = &m_MeshDictionary.m_MeshHashmap[pMesh->m_pszMeshPath];
 
-	for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
+	// Decrement the reference count.
+	pLookup->iReferenceCount--;
+	CAssert(pLookup->iReferenceCount >= 0);
+
+	if (pLookup->iReferenceCount == 0 && pLookup->bAutoRelease)
 	{
-		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
-		g_pMaterialSystemInternal->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
+		// Time to release the mesh.
+		LOG_VERBOSE("Releasing mesh '%s'.", pMesh->m_pszMeshPath);
+		
+		for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
+		{
+			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
+			g_pMaterialSystemInternal->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
+		}
+		ClearMeshDictionaryEntry(pMesh->m_pszMeshPath);
 	}
 }
 
 //-------------------------------------------------------------------------
-// Purpose: MESHSYSTEMTODO: Documentation.
+// Purpose: Find the first available handle in the mesh dictionary.
+// Input:	none.
+// Output:	Returns the first available mesh handle.
 //-------------------------------------------------------------------------
 MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 {
@@ -276,7 +332,6 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 	{
 		if (s_MeshSystem.m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
 		{
-			// MESHSYSTEMTODO: Should this be something other than the meshID?
 			// Found a free slot, return!
 			return meshIdx;
 		}
@@ -284,6 +339,34 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 
 	LOG_WARN("Failed to find free mesh slot in the mesh array, returning null handle.");
 	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Clears a given mesh dictionary entry.
+// Input:	pszMeshPath - The path of the mesh whose entry to vacate.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CMeshSystem::ClearMeshDictionaryEntry(const char* pszMeshPath)
+{
+	CAssert(pszMeshPath);
+
+	MeshLookup* pLookup = &m_MeshDictionary.m_MeshHashmap[pszMeshPath];
+	Mesh*		pMesh = &m_MeshDictionary.m_MeshArray[pLookup->MeshHandle];
+
+	CAssert(pLookup && pMesh);
+
+	pMesh->m_Geometries.Clear();
+	pMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
+	pMesh->m_MeshID = kInvalidID_U32;
+	pMesh->m_vecAngles = pMesh->m_vecPosition = pMesh->m_vecScale = Vector3D{ 0.0f, 0.0f, 0.0f };
+	pMesh->vecMaxExtents = pMesh->vecMinExtents = Vector3D{ 0.0f, 0.0f, 0.0f };
+	
+	Utl::StringFree(pMesh->m_pszMeshPath);
+	pMesh->m_pszMeshPath = nullptr;
+
+	pLookup->bAutoRelease = false;
+	pLookup->iReferenceCount = 0;
+	pLookup->MeshHandle = kInvalidID_U32;
 }
 
 

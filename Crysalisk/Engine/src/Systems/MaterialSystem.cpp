@@ -463,6 +463,11 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 		return;
 
 	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+
+	// If the instance is invalid, then we can't draw!
+	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
+		return;
+
 	// Check textures to see if they need to be re-bound.
 	// THREADTODO: Make this into a macro?
 	// Diffuse
