@@ -460,17 +460,17 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
 		return;
 
-	// Check textures to see if they need to be re-bound.
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hDiffuseTextureHandle, 0);		// Diffuse
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hSpecularTextureHandle, 1);		// Specular
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hNormalTextureHandle, 2);			// Normal
-
 	// If the texture resources were updated, we need to re-check transparency.
 	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
 	{
 		// Use the diffuse map to determine material transparency.
 		pMaterial.m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
 	}
+
+	// Check textures to see if they need to be re-bound.
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hDiffuseTextureHandle, 0);		// Diffuse
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hSpecularTextureHandle, 1);		// Specular
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hNormalTextureHandle, 2);			// Normal
 
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);

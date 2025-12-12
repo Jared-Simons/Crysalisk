@@ -159,7 +159,8 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
 			if (bIsInCameraFrustum)
 			{
-				if (!pCurrentSubmesh->bIsTransparent)
+				// TODO: is there a good way to cache this state off instead of querying it everytime?
+				if (!g_pMaterialSystemInternal->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
 				{
 					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
 					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
