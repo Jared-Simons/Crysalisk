@@ -26,6 +26,7 @@
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/MeshSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
@@ -222,6 +223,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Mesh system.
+	MeshSystemConfig_t meshSysConfig{};
+	meshSysConfig.MaxMeshes = 249;
+	if (!g_pMeshSystem->Initialize(meshSysConfig))
+	{
+		LOG_ERROR("Failed to initialize mesh system! Application cannot continue.");
+		return false;
+	}
+
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
@@ -284,10 +294,15 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	// Wait for threads to be finished.
+	// TODO: Need some way to not shutdown until all resources are available (to be destroyed).
+	g_pJobSystem->WaitForWorkerThreadsToFinish();
+
 	if (m_CurrentMap.IsMapLoaded())
 		m_CurrentMap.UnloadMap();
 
 	g_pFontSystem->Shutdown();
+	g_pMeshSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
 	g_pTextureSystem_Internal->Shutdown();

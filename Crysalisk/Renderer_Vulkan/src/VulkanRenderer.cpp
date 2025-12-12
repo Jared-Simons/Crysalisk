@@ -839,7 +839,7 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 	vkDeviceWaitIdle(m_Device.m_Device);
 
 	VulkanImage* pImageInternal = &m_pInternalTextureData[pTexture->internalHandle].m_Image;
-	CAssert(pImageInternal);
+	CAssert(pImageInternal && pImageInternal->m_Image);
 
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);

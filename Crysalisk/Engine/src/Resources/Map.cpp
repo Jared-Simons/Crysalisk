@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
 #include "Systems/MaterialSystem.h"
+#include "Systems/MeshSystem.h"
 #include "Renderer/DebugRenderer.h"
 
 bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
@@ -61,90 +62,18 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 	{
 		LOG_INFO("Acquiring map mesh resources.");
 
-		size_t iMeshCount = pNewMapResource.MeshResources.Count();
-		pOutMap.m_Meshes.Resize(iMeshCount);
+		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources.Count());
 
-		MeshLoader::MeshResource_t*						pCurObject = nullptr;
-		MeshLoader::MeshResource_t::GeometryGroup_t*	pCurMesh = nullptr;
-		MeshLoader::MeshResource_t::GeometryObject_t*	pCurSubMesh = nullptr;
-
-		for (int objIdx = 0; objIdx < iMeshCount; objIdx++)
+		for (int iMesh = 0; iMesh < pNewMapResource.MeshResources.Count(); iMesh++)
 		{
-			pCurObject = &pNewMapResource.MeshResources[objIdx];
-			CAssert(pCurObject != nullptr);
+			MapLoader::MapResource_t::MeshDeclaration_t& pCurMeshDec = pNewMapResource.MeshResources[iMesh];
 
-			for (int meshIdx = 0; meshIdx < pCurObject->pObjects.Count(); meshIdx++)
-			{
-				// Add a new mesh entry to the map.
-				pOutMap.m_Meshes.PushBack(Mesh{});
-				Mesh* pCurOutMesh = &pOutMap.m_Meshes.Back();
-				pCurOutMesh->m_MeshID = (uint32_t)pOutMap.m_Meshes.Count();
-
-				// Set the transformation matrix.
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecScale);
-
-				Quaternion quatAngles = QuaternionFromEulerAngles(pCurObject->vecEulerAngles);
-				Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
-				pCurOutMesh->m_matLocalToWorldTransform = pCurOutMesh->m_matLocalToWorldTransform * matAngles;
-
-				pCurOutMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pCurOutMesh->m_matLocalToWorldTransform, pCurObject->vecPosition);
-
-				pCurMesh = &pCurObject->pObjects[meshIdx];
-				CAssert(pCurMesh != nullptr);
-
-				// TODO: Make this count, not capacity.
-				for (int subMeshIdx = 0; subMeshIdx < pCurMesh->pGroups.Capacity(); subMeshIdx++)
-				{
-					GeometryConfig_t newConfig{};
-					newConfig.Vertices = pCurMesh->pGroups[subMeshIdx].Vertices;
-					newConfig.Indices = pCurMesh->pGroups[subMeshIdx].Indices;
-					if (pCurMesh->pGroups[subMeshIdx].pszDebugName)
-						newConfig.pszDebugName = Utl::StringDuplicate(pCurMesh->pGroups[subMeshIdx].pszDebugName);
-
-					if (newConfig.Vertices.Count() > 0)
-					{
-						LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pCurMesh->pGroups[subMeshIdx].pszDebugName);
-
-						pOutMap.m_Meshes.Back().m_Geometries.PushBack(GeometryInstance_t{});
-						GeometryInstance_t& newGeometry = pOutMap.m_Meshes.Back().m_Geometries.Back();
-
-						// Set up extent data.
-						{
-							// TODO: Use some actual limits for these values.
-							Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
-							Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
-							
-							for (int vertIdx = 0; vertIdx < newConfig.Vertices.Count(); vertIdx++)
-							{
-								vecMinAABB.x = FloatMin(vecMinAABB.x, newConfig.Vertices[vertIdx].Pos.x);
-								vecMinAABB.y = FloatMin(vecMinAABB.y, newConfig.Vertices[vertIdx].Pos.y);
-								vecMinAABB.z = FloatMin(vecMinAABB.z, newConfig.Vertices[vertIdx].Pos.z);
-
-								vecMaxAABB.x = FloatMax(vecMaxAABB.x, newConfig.Vertices[vertIdx].Pos.x);
-								vecMaxAABB.y = FloatMax(vecMaxAABB.y, newConfig.Vertices[vertIdx].Pos.y);
-								vecMaxAABB.z = FloatMax(vecMaxAABB.z, newConfig.Vertices[vertIdx].Pos.z);
-							}
-
-							newGeometry.vecMinExtents = vecMinAABB;
-							newGeometry.vecMaxExtents = vecMaxAABB;
-							newGeometry.vecCenter = (newGeometry.vecMinExtents + newGeometry.vecMaxExtents) * 0.5f;
-						}
-
-						g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, newGeometry);
-
-						// Acquire material resources.
-						if (pCurMesh->pGroups[subMeshIdx].pszMaterialName != nullptr)
-						{
-							newGeometry.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurMesh->pGroups[subMeshIdx].pszMaterialName);
-
-							// Set transparency state.
-							newGeometry.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(newGeometry.hMaterial);
-						}
-					}
-				}
-			}
+			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
+			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
+			pOutMap.m_hMeshes[iMesh].hMesh = g_pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
+			pOutMap.m_hMeshes[iMesh].pMesh = g_pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 		}
+		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources.Count());
 	}
 	else
 	{
@@ -183,30 +112,26 @@ void CMap::UnloadMap()
 	}
 
 	// Release all mesh/material references.
-	for (int iMeshIdx = 0; iMeshIdx < m_Meshes.Count(); iMeshIdx++)
+	for (int iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
-		for (int iSubmeshIdx = 0; iSubmeshIdx < m_Meshes[iMeshIdx].m_Geometries.Count(); iSubmeshIdx++)
-		{
-			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx]);
-			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial, false);
-		}
+		g_pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
-	m_Meshes.Clear();
+	m_hMeshes.Clear();
 }
 
 void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
 {
-	Mesh*				pCurrentMesh = nullptr;
+	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 
-	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
- 		pCurrentMesh = &m_Meshes[iMesh];
+ 		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
 
 		// Split out transform matrices.
-		pTransformationMatrices.PushBack(m_Meshes[iMesh].m_matLocalToWorldTransform);
+		pTransformationMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
@@ -263,13 +188,13 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 
 	// Check every object and return the nearest intersection point of the first piece of geometry along the ray.
 	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
-	Mesh* pCurrentMesh = nullptr;
+	const Mesh* pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
-	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
-		pCurrentMesh = &m_Meshes[iMesh];
+		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
@@ -322,7 +247,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 		if (iCurrentRayDebugGeoID != kInvalidID_U32)
 			g_pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
 
-		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
+		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
 		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 	}
 	if (!pRay.bDidHit)

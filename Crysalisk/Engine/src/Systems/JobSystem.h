@@ -70,6 +70,10 @@ public:
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) = 0;
 	virtual void	SubmitJobResults(size_t iResultSize, void* pJobResults) = 0;
+
+	// This will force the calling thread to wait for all registered threads to finish
+	// any work they may be doing.
+	virtual void	WaitForWorkerThreadsToFinish() const = 0;
 };
 
 extern IJobSystem* g_pJobSystem;

@@ -45,6 +45,8 @@ public:
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) override;
 	virtual void	SubmitJobResults(size_t iResultSize, void* pResults) override;
 
+	virtual void	WaitForWorkerThreadsToFinish() const override;
+
 private:
 	JobSystemConfig_t				m_Config{};
 	bool							m_bJobSystemActive{ false };
@@ -315,6 +317,29 @@ void CJobSystem::SubmitJobResults(size_t iResultSize, void* pJobResults)
 		m_pJobResultMutex->Lock();
 		m_JobResults.PushBack(&pResultCopy);
 		m_pJobResultMutex->Unlock();
+	}
+}
+
+//-------------------------------------------------------------------------
+// THREADTODO: Documentation.
+//-------------------------------------------------------------------------
+void CJobSystem::WaitForWorkerThreadsToFinish() const
+{
+	bool bWorkDone = false;
+
+	while (!bWorkDone)
+	{
+		bWorkDone = true;
+
+		for (int iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
+		{
+			CWorkerThread& pThread = m_pWorkerThreads[iThread];
+			if (pThread.m_CurrentWorkData.pfnEntryPoint != nullptr) // There's some work happening here!
+			{
+				bWorkDone = false;
+				break;
+			}
+		}
 	}
 }
 
