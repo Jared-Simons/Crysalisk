@@ -132,6 +132,11 @@ static int JobThread_Main(void* pParams)
 			pThisThread.m_CurrentWorkData.ResetEntry();
 			pThisThread.m_pWorkDataMutex->Unlock();
 		}
+		else
+		{
+			// Sleep if we have nothing to do.
+			Platform::ThreadSleep(100.0);
+		}
 	}
 
 	s_JobSystem.m_pJobSystemStateMutex->Unlock();

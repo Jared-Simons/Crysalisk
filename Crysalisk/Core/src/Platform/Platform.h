@@ -121,6 +121,7 @@ namespace Platform
 	CORE_API void	LogMessage(int level, const char* message);
 
 	CORE_API double	GetAbsoluteTime();
+	CORE_API void	ThreadSleep(double msToSleep);
 
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
