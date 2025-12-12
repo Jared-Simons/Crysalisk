@@ -58,6 +58,7 @@ public:
 	virtual void	SubmitJobResults(size_t iResultSize, JobResults_t* pResults);
 
 	virtual void	WaitForWorkerThreadsToFinish() const override;
+	virtual void	WaitForWorkerThreadsToShutdown();
 
 private:
 	void			ProcessJobQueue(Utl::CDeque<JobDeclaration_t>& pJobQueue);
@@ -65,6 +66,7 @@ private:
 
 private:
 	JobSystemConfig_t				m_Config{};
+	Platform::ISystemMutex*			m_pJobSystemStateMutex{ nullptr };
 	bool							m_bJobSystemActive{ false };
 
 	Utl::CVector<CWorkerThread>		m_pWorkerThreads{};
@@ -99,8 +101,11 @@ static int JobThread_Main(void* pParams)
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
 	CWorkerThread& pThisThread = s_JobSystem.m_pWorkerThreads[iThreadIdx];
 
+	// We need to lock this so we can see when the application is shutting down.
+	s_JobSystem.m_pJobSystemStateMutex->Lock();
 	while (s_JobSystem.m_bJobSystemActive)
 	{
+		s_JobSystem.m_pJobSystemStateMutex->Unlock();
 		if (pThisThread.m_CurrentWorkData.pfnEntryPoint)
 		{
 			JobDeclaration_t& pWorkData = pThisThread.m_CurrentWorkData;
@@ -129,7 +134,9 @@ static int JobThread_Main(void* pParams)
 		}
 	}
 
+	s_JobSystem.m_pJobSystemStateMutex->Unlock();
 	LOG_WARN("Killing job thread %d", iThreadID);
+	pThisThread.m_iThreadIdx = kInvalidID_U8;	// NOTE: This will tell the main thread this we're exiting. NOTE: There's probably a better way to do this.
 	return 0;
 }
 
@@ -140,6 +147,7 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 {
 	m_Config = pConfig;
 	m_bJobSystemActive = true;
+	m_pJobSystemStateMutex = Platform::CreateSystemMutex();
 
 	// Reasonable defaults.
 	m_LowPriorityJobs.Resize(80);
@@ -176,11 +184,19 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 void CJobSystem::Shutdown()
 {
 	// This will kill all job threads.
+	// We need to lock this so other threads see the change.
+	m_pJobSystemStateMutex->Lock();
 	m_bJobSystemActive = false;
+	m_pJobSystemStateMutex->Unlock();
 
 	m_JobResults.Clear();
 	Platform::DestroySystemMutex(m_pJobResultMutex);
 	m_pJobResultMutex = nullptr;
+
+	WaitForWorkerThreadsToShutdown();
+
+	Platform::DestroySystemMutex(m_pJobSystemStateMutex);
+	m_pJobSystemStateMutex = nullptr;
 
 	m_pWorkerThreads.Clear();
 	m_LowPriorityJobs.Clear();
@@ -311,6 +327,33 @@ void CJobSystem::WaitForWorkerThreadsToFinish() const
 			if (pThread.m_CurrentWorkData.pJobResults.pUserData != nullptr) // The job might be done but the results still need to be processed!
 			{
 				bWorkDone = false;
+				break;
+			}
+		}
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: This will force the calling thread to wait for all 
+//			registered threads to exit.
+// Input:	none.
+// Output:	none.
+//-------------------------------------------------------------------------
+void CJobSystem::WaitForWorkerThreadsToShutdown()
+{
+	bool bThreadsClosed = false;
+
+	while (!bThreadsClosed)
+	{
+		bThreadsClosed = true;
+
+		for (int iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
+		{
+			CWorkerThread& pThread = m_pWorkerThreads[iThread];
+			if (pThread.m_iThreadIdx != kInvalidID_U8)
+			{
+				// This thread is still going, wait.
+				bThreadsClosed = false;
 				break;
 			}
 		}
