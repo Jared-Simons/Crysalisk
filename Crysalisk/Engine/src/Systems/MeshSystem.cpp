@@ -7,6 +7,7 @@
 #include "MeshSystem.h"
 
 #include <Containers/CHashMap.h>
+#include "Renderer/Renderer.h"
 #include "Systems/JobSystem.h"
 #include <Strings/String_Utils.h>
 
@@ -20,6 +21,12 @@ public:
 	virtual void			Shutdown() override;
 
 	virtual MeshHandle_t	AcquireMesh(const char* pszMeshName, bool bAutoRelease) override;
+	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
+
+	virtual void			ReleaseMesh(MeshHandle_t hMesh) override;
+
+private:
+	MeshHandle_t			GetFirstFreeMeshHandle() const;
 
 private:
 	MeshSystemConfig_t	m_Config{};
@@ -51,24 +58,8 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 	MeshLoader::MeshResource_t::GeometryGroup_t*	pMesh = &pTypedResults->pOutResource->pObjects[0];
 	MeshLoader::MeshResource_t::GeometryObject_t*	pSubmesh = nullptr;
 
-	for (int iSubMeshIdx = 0; iSubMeshIdx < pMesh->pGroups.Capacity(); iSubMeshIdx++)
-	{
-		pSubmesh = &pMesh->pGroups[iSubMeshIdx];
-		CAssert(pSubmesh != nullptr);
-
-		GeometryConfig_t newConfig{};
-		newConfig.Vertices = pSubmesh->Vertices;
-		newConfig.Indices = pSubmesh->Indices;
-		if (pSubmesh->pszDebugName)
-			newConfig.pszDebugName = Utl::StringDuplicate(pSubmesh->pszDebugName);
-
-		if (newConfig.Vertices.Count() > 0)
-		{
-			LOG_VERBOSE("Acquiring geometry resources for sub-mesh '%s'.", pSubmesh->pszDebugName);
-
-			// Leftoff, write this data to the new mesh entry.
-		}
-	}
+	// This will handle mesh registration and GPU upload.
+	s_MeshSystem.AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
 
 	// Release all the resources allocated for this job.
 	delete pTypedResults->pOutResource;
@@ -125,12 +116,30 @@ MeshHandle_t CMeshSystem::AcquireMesh(const char* pszMeshName, bool bAutoRelease
 		return kInvalidID_U32;
 	}
 
+	MeshHandle_t	newMeshHandle = kInvalidID_U32;
+	MeshLookup*		pMeshLookup = nullptr;
+	Mesh*			pMesh = nullptr;
+
 	MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
 	MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
 
 	// Format the string with the path to the model directory.
 	char szFormattedPath[512]{};
 	Utl::StringFormat_V("Assets/Models/%s\0", szFormattedPath, pszMeshName);
+
+	pMeshLookup = m_MeshDictionary.m_MeshHashmap.Insert(szFormattedPath);
+
+	newMeshHandle = GetFirstFreeMeshHandle();
+	if (newMeshHandle == kInvalidID_U32)
+	{
+		// MESHSYSTEMTODO: Logging?
+		return kInvalidID_U32;
+	}
+
+	pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
+	pMesh->m_MeshID = newMeshHandle;
+
+	pMeshLookup->MeshHandle = newMeshHandle;
 
 	pMeshParams->pszMeshPath = Utl::StringDuplicate(szFormattedPath);
 	pMeshParams->pOutResource = pMeshResource;
@@ -146,7 +155,83 @@ MeshHandle_t CMeshSystem::AcquireMesh(const char* pszMeshName, bool bAutoRelease
 
 	g_pJobSystem->SubmitJob(meshLoadJob);
 
-	return 0;
+	return newMeshHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: MESHSYSTEMTODO: Documentation.
+//-------------------------------------------------------------------------
+MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease)
+{
+	MeshLookup*		pMeshLookup = &m_MeshDictionary.m_MeshHashmap[pszMeshName];
+	Mesh*			pMesh = nullptr;
+	
+	CAssert(pMeshLookup->MeshHandle != kInvalidID_U32);
+
+	MeshHandle_t	meshHandle = pMeshLookup->MeshHandle;
+	pMesh = &m_MeshDictionary.m_MeshArray[meshHandle];
+
+	MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
+	// Acquire renderer resources and upload to the GPU.
+	// MESHSYSTEMTODO: Only accounts for one mesh.
+	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pGroups.Capacity(); iSubmesh++)
+	{
+		pCurSubmesh = &pResource.pObjects[0].pGroups[iSubmesh];
+		CAssert(pCurSubmesh);
+
+		LOG_DEBUG("Acquiring mesh resources for: %s", pCurSubmesh->pszDebugName);
+
+		GeometryConfig_t newConfig{};
+		newConfig.Vertices = pCurSubmesh->Vertices;
+		newConfig.Indices = pCurSubmesh->Indices;
+		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
+		g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, pMesh->m_Geometries.Back());
+	}
+
+	return meshHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: MESHSYSTEMTODO: Documentation.
+//-------------------------------------------------------------------------
+void CMeshSystem::ReleaseMesh(MeshHandle_t hMesh)
+{
+	CAssert(hMesh != kInvalidID_U32);
+
+	LOG_WARN("CMeshSystem::ReleaseMesh()");
+	Mesh*	pMesh = &m_MeshDictionary.m_MeshArray[hMesh];
+
+	for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
+	{
+		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
+	}
+
+	LOG_WARN("Done releasing mesh");
+}
+
+//-------------------------------------------------------------------------
+// Purpose: MESHSYSTEMTODO: Documentation.
+//-------------------------------------------------------------------------
+MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
+{
+	if (!s_MeshSystem.m_MeshDictionary.m_MeshArray)
+	{
+		LOG_ERROR("Attempting to acquire a mesh prior to mesh system initialization, mesh acquisition failed.");
+		return kInvalidID_U32;
+	}
+
+	for (int meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
+	{
+		if (s_MeshSystem.m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
+		{
+			// MESHSYSTEMTODO: Should this be something other than the meshID?
+			// Found a free slot, return!
+			return meshIdx;
+		}
+	}
+
+	LOG_WARN("Failed to find free mesh slot in the mesh array, returning null handle.");
+	return kInvalidID_U32;
 }
 
 

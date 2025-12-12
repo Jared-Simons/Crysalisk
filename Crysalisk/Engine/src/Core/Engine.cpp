@@ -361,6 +361,9 @@ bool Event_KeyReleased(EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
+		// MESHSYSTEMTODO: Mesh test.
+		g_pMeshSystem->ReleaseMesh(0);
+
 		Clock mapLoadTimer{};
 		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())

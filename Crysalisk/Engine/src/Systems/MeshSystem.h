@@ -23,6 +23,9 @@ public:
 	virtual void			Shutdown() = 0;
 
 	virtual MeshHandle_t	AcquireMesh(const char* pszMeshName, bool bAutoRelease) = 0;
+	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) = 0;
+
+	virtual void			ReleaseMesh(MeshHandle_t hMesh) = 0;
 };
 
 extern IMeshSystem* g_pMeshSystem;
