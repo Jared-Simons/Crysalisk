@@ -35,8 +35,12 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Systems/FontSystem.cpp
 	${ENGINE_ROOT}/Systems/FontSystem.h
 	${ENGINE_ROOT}/Systems/IGame.h
+	${ENGINE_ROOT}/Systems/JobSystem.cpp
+	${ENGINE_ROOT}/Systems/JobSystem.h
 	${ENGINE_ROOT}/Systems/MaterialSystem.cpp
 	${ENGINE_ROOT}/Systems/MaterialSystem.h
+	${ENGINE_ROOT}/Systems/MeshSystem.cpp
+	${ENGINE_ROOT}/Systems/MeshSystem.h
 	${ENGINE_ROOT}/Systems/ShaderSystem.cpp
 	${ENGINE_ROOT}/Systems/ShaderSystem.h
 	${ENGINE_ROOT}/Systems/TextureSystem.cpp

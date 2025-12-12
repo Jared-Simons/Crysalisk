@@ -24,7 +24,9 @@
 #include "Resources/Map.h"
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
+#include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/MeshSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
@@ -87,7 +89,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(100);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(200);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -175,6 +177,23 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Job system.
+	JobSystemConfig_t jobSysConfig{};
+	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
+
+	// NOTE: Currently, we will just use one thread for resource loading.
+	for (int iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
+	{
+		jobSysConfig.iWorkerThreadTypes[iThread] = WORKER_THREAD_TYPE_GENERAL;
+	}
+	jobSysConfig.iWorkerThreadTypes[0] = WORKER_THREAD_TYPE_DISK_LOADING;
+
+	if (!g_pJobSystem->Initialize(jobSysConfig))
+	{
+		LOG_FATAL("Failed to initialize job system! Application cannot continue.");
+		return false;
+	}
+
 	// Texture manager.
 	TextureSystemConfig_t textureSysConfig{};
 	textureSysConfig.MaxTextures = 4999;
@@ -200,6 +219,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	if (!g_pMaterialSystemInternal->Initialize(materialSysConfig))
 	{
 		LOG_ERROR("Failed to initialize material system! Application cannot continue.");
+		return false;
+	}
+
+	// Mesh system.
+	MeshSystemConfig_t meshSysConfig{};
+	meshSysConfig.MaxMeshes = 249;
+	if (!g_pMeshSystem->Initialize(meshSysConfig))
+	{
+		LOG_ERROR("Failed to initialize mesh system! Application cannot continue.");
 		return false;
 	}
 
@@ -242,6 +270,9 @@ bool CEngine::Run()
 		{
 			g_pInputSystem_Internal->Update();
 
+			// Handle jobs.
+			g_pJobSystem->Update();
+
 			RenderPacket_t frameRenderData{};
 
 			// Get our renderable geometry from the map.
@@ -262,13 +293,19 @@ void CEngine::Shutdown()
 {
 	LOG_INFO("EngineShutdown() called!");
 
+	// Wait for threads to be finished.
+	g_pJobSystem->WaitForWorkerThreadsToFinish();
+
 	if (m_CurrentMap.IsMapLoaded())
 		m_CurrentMap.UnloadMap();
 
 	g_pFontSystem->Shutdown();
+	g_pMeshSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
 	g_pShaderSystem->Shutdown();
 	g_pTextureSystem_Internal->Shutdown();
+
+	g_pJobSystem->Shutdown();
 
 	g_pRenderer->Shutdown();
 
@@ -323,10 +360,13 @@ bool Event_KeyReleased(EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
+		Clock mapLoadTimer{};
+		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())
 		{
 			LoadMap("TestMap", s_Engine.m_CurrentMap);
 			LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
+			LOG_WARN("Map load took %.5f", mapLoadTimer.GetElapsedTime());
 		}
 	}
 	else if (keycode == 'U')

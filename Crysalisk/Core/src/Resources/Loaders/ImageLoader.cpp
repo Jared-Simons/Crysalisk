@@ -9,13 +9,42 @@
 #include "Containers/CVector.h"
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Strings/String_Utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "Vendor/stb_image.h"
 
 namespace ImageLoader
 {
-	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// Purpose: The entrypoint for ImageLoader jobs.
+	// 
+	// Input:	pParams - An opaque pointer to be cast to an ImageLoaderParams_t struct.
+	//			pJobResults - An opaque pointer that will hold the results of this job. 
+	//				(In this case, the results are held in the same struct as the params).
+	// Output:	int - 0 indicates the job failed, 1 indicates the job completed successfully.
+	//-------------------------------------------------------------------------
+	int LoadImage_Threaded(void* pParams, void** pJobResults)
+	{
+		if (!pParams)
+		{
+			LOG_ERROR("LoadImage_Threaded was provided with no parameters. Image load failed.");
+			return 0;
+		}
+
+		// Job results for this job are the same as the params.
+		*pJobResults = pParams;
+
+		ImageLoaderParams_t* pTypedParams = reinterpret_cast<ImageLoaderParams_t*>(pParams);
+
+		if (!LoadImage(pTypedParams->pszImageName, *pTypedParams->pOutResource))
+		{
+			return 0;
+		}
+
+		return 1;
+	}
+
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load an existing image asset from disk.
 	// 
@@ -26,7 +55,7 @@ namespace ImageLoader
 	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
 	{
 		const int kRequiredChannelCount = 4;
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load_thread(true);
 		if (!FileSystem::FileExists(pszImagePath))
 		{
 			LOG_ERROR("Image '%s' could not be found. Image load failed.", pszImagePath);
@@ -100,6 +129,7 @@ namespace ImageLoader
 		if (pResource.pPixelData)
 		{
 			stbi_image_free(pResource.pPixelData);
+			pResource.pPixelData = nullptr;
 		}
 	}
 }

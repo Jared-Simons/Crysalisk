@@ -11,6 +11,7 @@
 #include <Memory/MemoryManager.h>
 #include "Renderer/Renderer.h"
 #include <Resources/Loaders/ImageLoader.h>
+#include "Systems/JobSystem.h"
 
 //-------------------------------------------------------------------------
 // Texture System Implementation.
@@ -51,6 +52,9 @@ public:
 	virtual TextureHandle_t		GetDefaultWhiteTexture() override { return m_pWhiteTextureLookup->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultSpecularTexture() override { return m_pDefaultSpecularTexture->TextureIndex; }
 	virtual TextureHandle_t		GetDefaultNormalTexture() override { return m_pDefaultNormalTexture->TextureIndex; }
+
+	virtual void				SetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) { m_TextureDictionary.m_TextureArray[hTexture].textureFlags |= iFlags; }
+	virtual void				UnsetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) override { m_TextureDictionary.m_TextureArray[hTexture].textureFlags &= ~iFlags; }
 
 private:
 	// Returns the first available handle in the texture dictionary.
@@ -102,6 +106,53 @@ static CTextureSystem s_TextureSystem;
 ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
 
 //-------------------------------------------------------------------------
+// Purpose: Invoked upon successful completion of an async texture-loading job.
+//-------------------------------------------------------------------------
+static int OnTextureLoadJob_Success(JobResults_t& pResults)
+{
+	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
+
+	g_pTextureSystem_Internal->AcquireTextureFromResource(*pTypedResults->pOutResource, pTypedResults->pszImageName, true);
+
+	// Release all the resources allocated for this job.
+	delete pTypedResults->pOutResource;
+	pTypedResults->pOutResource = nullptr;
+	CAssert(pTypedResults->pszImageName != nullptr);
+	Utl::StringFree((char*)pTypedResults->pszImageName);
+	pTypedResults->pszImageName = nullptr;
+	delete pTypedResults;
+	pTypedResults = nullptr;
+
+	return 1;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Invoked upon texture loading job failed.
+//-------------------------------------------------------------------------
+static int OnTextureLoadJob_Fail(JobResults_t& pResults)
+{
+	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
+
+	if (!pTypedResults)
+	{
+		return 0;
+	}
+
+	LOG_ERROR("Failed to load texture '%s'.", pTypedResults->pszImageName);
+
+	// Release all the resources allocated for this job.
+	delete pTypedResults->pOutResource;
+	pTypedResults->pOutResource = nullptr;
+	CAssert(pTypedResults->pszImageName != nullptr);
+	Utl::StringFree((char*)pTypedResults->pszImageName);
+	pTypedResults->pszImageName = nullptr;
+	delete pTypedResults;
+	pTypedResults = nullptr;
+
+	return 1;
+}
+
+//-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
 bool CTextureSystem::Initialize(TextureSystemConfig_t config)
@@ -110,7 +161,7 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 	m_TextureDictionary.m_TextureHashmap.Resize(m_Config.MaxTextures);
 
 	// Allocate memory for our texture array.
-	m_TextureDictionary.m_TextureArray = (Texture*)new Texture[m_Config.MaxTextures];
+	m_TextureDictionary.m_TextureArray = new Texture[m_Config.MaxTextures];
 
 	if (!CreateDefaultTextures())
 	{
@@ -169,23 +220,32 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 	{
 		// Texture data does not exist yet, get that going.
 
-		// Load up the image resource from disk.
-		// Note that these get released in imageResource's destructor.
-		if (!ImageLoader::LoadImage(pszTextureName, imageResource))
-		{
-			LOG_ERROR("Failed to load texture. Returning default texture.");
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
-
+		// Load up the image resource from disk.		
 		// Get the next free slot in the texture dictionary.
 		newTextureHandle = GetFirstFreeTextureHandle();
-		if (newTextureHandle == kInvalidID_U32)
-		{
-			LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
-			return m_pDefaultTextureLookup->TextureIndex;
-		}
+		m_TextureDictionary.m_TextureArray[newTextureHandle].internalHandle = 0;	// Zero this out for now, so that this slot is not reselcted when another texture loads.
+		pTextureLookup->TextureIndex = newTextureHandle;
+			
+		ImageLoader::ImageResource_t* pTextureResource = new ImageLoader::ImageResource_t;
+		ImageLoader::ImageLoaderParams_t* pTextureParams = new ImageLoader::ImageLoaderParams_t;
 
-		newTextureHandle = AcquireTextureFromResource(imageResource, pszTextureName, bAutoRelease);
+		pTextureParams->pszImageName = Utl::StringDuplicate(pszTextureName);
+		pTextureParams->pOutResource = pTextureResource;
+
+		JobDeclaration_t textureLoadJob{};
+		textureLoadJob.pfnEntryPoint = ImageLoader::LoadImage_Threaded;
+		textureLoadJob.pParams = pTextureParams;
+		textureLoadJob.iParamSize = sizeof(ImageLoader::ImageLoaderParams_t);
+		textureLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnTextureLoadJob_Success;
+		textureLoadJob.pJobResults.pfnOnJobCompleted_Failed_Callback = OnTextureLoadJob_Fail;
+		// The results are the same struct as the params.
+		// The pUserData pointer gets set when we finish the job.
+		textureLoadJob.pJobResults.iUserDataSize = sizeof(ImageLoader::ImageLoaderParams_t);
+		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
+		textureLoadJob.ePriority = eJobPriority::NORMAL;
+
+		g_pJobSystem->SubmitJob(textureLoadJob);
+		
 	}
 	else
 	{
@@ -194,7 +254,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
-	CAssert(newTextureHandle == pTextureLookup->TextureIndex);
+	//CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -211,12 +271,13 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	TextureLookup*					pTextureLookup = &m_TextureDictionary.m_TextureHashmap[pszTextureName];
 	Texture*						pTexture = nullptr;
 
-	// Get the next free slot in the texture dictionary.
-	TextureHandle_t newTextureHandle = GetFirstFreeTextureHandle();
+	TextureHandle_t newTextureHandle = pTextureLookup->TextureIndex;
+	// NOTE: If we're loading directly from a resource (without ever going though the main AcquireTexture() function, then our texture handle won't be set.
+	// Otherwise, textures should come through AcquireTexture() first.
+	// TODO: This probably isn't the best way to handle that.
 	if (newTextureHandle == kInvalidID_U32)
 	{
-		LOG_ERROR("AcquireTexture() could not acquire a new texture slot. Increase texture system config to allow for more.");
-		return m_pDefaultTextureLookup->TextureIndex;
+		newTextureHandle = GetFirstFreeTextureHandle();
 	}
 
 	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
@@ -228,7 +289,6 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 
 	// Finally, use the loaded resource to set up our texture entry.
 	pTexture = &m_TextureDictionary.m_TextureArray[newTextureHandle];
-	CAssert(pTexture);
 
 	pTexture->width = pResource.Width;
 	pTexture->height = pResource.Height;
@@ -249,6 +309,17 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	// Increment the reference count.
 	pTextureLookup->ReferenceCount++;
 
+	// Set the generation.
+	if (pTexture->generation == kInvalidID_U8)
+	{
+		pTexture->generation = 0;
+	}
+	else
+	{
+		pTexture->generation++;
+	}
+	pTexture->textureFlags |= TEXTURE_FLAG_INTERNALS_UPDATED;
+
 	return newTextureHandle;
 }
 
@@ -262,7 +333,23 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	CAssert(hTexture != kInvalidID_U32);
 	
 	Texture*		pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
+
+	if (pTexture->pszTextureName == nullptr)
+	{
+		// It's possible this texture was either already freed, or the load was aborted before the resources we're acquired.
+		// Just early out.
+		return;
+	}
+
 	TextureLookup*	pLookup = &m_TextureDictionary.m_TextureHashmap[pTexture->pszTextureName];
+
+	if (pLookup->TextureIndex == kInvalidID_U32)
+	{
+		// This texture was possibly already cleaned up.
+		// TODO: This should not be happening if reference-counting logic is correct, no?
+		return;
+	}
+
 	CAssert(hTexture == pLookup->TextureIndex);	// These need to line up...
 
 	// Do absolutely nothing with default textures.
@@ -298,7 +385,10 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 //-------------------------------------------------------------------------
 bool CTextureSystem::IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const
 {
-	CAssert(hTexture != kInvalidID_U32);
+	if (hTexture == kInvalidID_U32)
+	{
+		hTexture = 0;
+	}
 	Texture* pTexture = &m_TextureDictionary.m_TextureArray[hTexture];
 
 	return (pTexture->textureFlags & flagsToCheck) != 0;
@@ -325,6 +415,10 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 {
 	// Default textures do not go through this pipe.
 	if (pTexture.textureFlags & TEXTURE_FLAG_DEFAULT_TEXTURE)
+		return;
+
+	// Check if there is anything to release.
+	if (pTexture.generation == kInvalidID_U8)
 		return;
 
 	g_pRenderer->ReleaseTextureResources(&pTexture);
@@ -398,6 +492,9 @@ void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 	pTexture->textureFlags = 0;
 	if (pTexture->pszTextureName)
 		Utl::StringFree(pTexture->pszTextureName);
+	pTexture->pszTextureName = nullptr;
+
+	pTexture->internalHandle = kInvalidID_U32;
 
 	if (pTexture->internalHandle != kInvalidID_U32)
 	{

@@ -839,7 +839,7 @@ void CVulkanRenderer::ReleaseTextureResources(Texture* pTexture)
 	vkDeviceWaitIdle(m_Device.m_Device);
 
 	VulkanImage* pImageInternal = &m_pInternalTextureData[pTexture->internalHandle].m_Image;
-	CAssert(pImageInternal);
+	CAssert(pImageInternal && pImageInternal->m_Image);
 
 	// Destroy the image data.
 	VulkanImage::DestroyImage(s_VulkanContext, *pImageInternal);
@@ -1678,12 +1678,18 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	else
 	{
 		// The opaque data is just a handle to the specific texture data.
-		int imageIndex = *(int*)pData;
+		unsigned int imageIndex = *(int*)pData;
 
 		// Point the appropriate descriptor to the texture's image data.
 		for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 		{
 			VkDescriptorImageInfo imageInfo{};
+			if (imageIndex == kInvalidID_U32)
+			{
+				// If the texture doesn't exist yet, just use the default texture.
+				imageIndex = 0;
+			}
+
 			//imageInfo.sampler = pInternalShader->m_InstanceSamplers[iUniformArrayIndex];
 			imageInfo.sampler = pInternalShader->m_ImageSamplers[1];	// Just using the first sampler for now.
 			imageInfo.imageView = m_pInternalTextureData[imageIndex].m_Image.m_View;

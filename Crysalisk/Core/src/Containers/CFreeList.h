@@ -214,7 +214,6 @@ namespace Utl
 				pPreviousNode->Offset + pPreviousNode->Size == pCurrentNode->Offset)
 			{
 				//LOG_INFO("NEED TO COMPACT!");
-				//CAssert(pPreviousNode->Offset != 2209954);
 				pPreviousNode->Size += pCurrentNode->Size;
 				pPreviousNode->pNextNode = pCurrentNode->pNextNode;
 				ReleaseNodeBackToFreelist(pCurrentNode);

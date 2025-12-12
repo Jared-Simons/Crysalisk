@@ -13,7 +13,13 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	DynamicAllocator::DynamicAllocator()
 	{
-		
+	}
+
+	//-------------------------------------------------------------------------
+	// Purpose: Destructor.
+	//-------------------------------------------------------------------------
+	DynamicAllocator::~DynamicAllocator()
+	{
 	}
 
 	//-------------------------------------------------------------------------
@@ -29,7 +35,7 @@ namespace Utl
 	void DynamicAllocator::InitAllocatorInternals(size_t sizeInBytes, void* pMemoryBlock, bool bStoreFreelistInMemoryBlock = true)
 	{
 		CAssert(sizeInBytes > 0 && pMemoryBlock != nullptr);
-		CASSERTMSG(bStoreFreelistInMemoryBlock == true, "DynamicAllocators currently need to store the freelist in the provided memory block!");
+		CASSERTMSG(bStoreFreelistInMemoryBlock == true, "DynamicAllocators currently need to store the freelist in the provided memory block!")
 		m_SizeInBytes = sizeInBytes;
 		m_pMemoryBlock = pMemoryBlock;
 		m_FreeList.SetNumBytesToTrack(sizeInBytes);
@@ -92,7 +98,7 @@ namespace Utl
 		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(pMemoryBlock) - kAllocHeaderSize);
 
 		// Mark the memory as being free in the freelist.
-		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);
+		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);;
 
 		return (int)pHeader->Size;
 	}

@@ -39,6 +39,9 @@ private:
 	// A freelist allocator used to track allocations.
 	Utl::DynamicAllocator				m_MemoryAllocator;
 
+	// Allows for multiple threads to make allocations.
+	Platform::ISystemMutex*				m_pAllocMutex{ nullptr };
+
 	// The memory block that allocations are made from. Managed externally.
 	void*								m_pEngineMemory;
 };
@@ -82,10 +85,12 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 
 	// Setup our internal memory allocator.
 	m_MemoryAllocator.InitAllocatorInternals(config.totalMemoryBudget, pMemBlock, true);
-	m_bInitialized = true;
 
 	s_pMemoryManager.m_MemoryConfig = config;
 
+	m_pAllocMutex = Platform::CreateSystemMutex();
+
+	m_bInitialized = true;
 	return true;
 }
 
@@ -98,6 +103,9 @@ bool CMemoryManager::Initialize(ApplicationMemoryConfiguration_t config, void* p
 void CMemoryManager::Shutdown()
 {
 	m_bInitialized = false;
+	
+	Platform::DestroySystemMutex(m_pAllocMutex);
+	
 	// Return our memory to the OS.
 	Platform::MemoryFree(m_pEngineMemory);
 }
@@ -113,11 +121,25 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 {
 	CAssert(sizeInBytes > 0);
 
-	void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
-	m_iNumBytesAllocated += sizeInBytes;
-	memset(pMemBlock, 0, sizeInBytes);
+	if (!m_bInitialized)
+	{
+		// NOTE: No mutex here because it isn't available until the memory system has been initialized.
+		m_iNumBytesAllocated += sizeInBytes;
+		return Platform::MemoryAllocate(sizeInBytes);
+	}
 
-	return pMemBlock;
+	if (m_pAllocMutex->Lock())
+	{
+		void* pMemBlock = m_MemoryAllocator.Allocate(sizeInBytes);
+		m_iNumBytesAllocated += sizeInBytes;
+		memset(pMemBlock, 0, sizeInBytes);
+		if (m_bInitialized)
+			m_pAllocMutex->Unlock();
+		return pMemBlock;
+	}
+
+	LOG_ERROR("Memory Manager failed to get mutex lock for memory allocation. Returning nullptr.");
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -129,15 +151,19 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 //-------------------------------------------------------------------------
 void CMemoryManager::Free(void* pMemBlock)
 {
+	m_pAllocMutex->Lock();
 	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
 	{
 		CAssert(pMemBlock != nullptr);
 		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
 		m_iNumBytesAllocated -= bytesFreed;
+		m_pAllocMutex->Unlock();
 		return;
 	}
 
 	Platform::MemoryFree(pMemBlock);
+
+	m_pAllocMutex->Unlock();
 
 	// While this doesn't really matter as the OS will handle cleanup,
 	// if we're managing memory properly, we should never hit this.

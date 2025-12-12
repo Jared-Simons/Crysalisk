@@ -26,6 +26,8 @@ enum TextureFlags_t
 	TEXTURE_FLAG_DEFAULT_TEXTURE = 0x01,
 	// Is this texture transparent in any way?
 	TEXTURE_FLAG_IS_TRANSPARENT = 0x02,
+	// Has the texture been updated?
+	TEXTURE_FLAG_INTERNALS_UPDATED = 0x4,
 };
 
 // Different 'known' texture types.
@@ -52,6 +54,8 @@ struct Texture
 	int32_t			numChannels;
 	// The name of this texture.
 	char*			pszTextureName{ nullptr };
+	// Indicates the amount of changes made to the texture.
+	uint8_t			generation{ kInvalidID_U8 };
 	// Texture flags.
 	TextureFlags	textureFlags{ 0 };
 	// The internal handle for the texture.
@@ -280,19 +284,25 @@ struct GeometryInstance_t
 	Vector3D			vecMaxExtents{};
 };
 
+// A unique identifier for a mesh.
+using MeshHandle_t = uint32_t;
+
 // Represents a mesh/model, made up of numerous submeshes.
 struct Mesh
 {
 	// A unique identifier per mesh.
 	uint32_t							m_MeshID{ kInvalidID_U32 };
+	// The path of the mesh.
+	char*								m_pszMeshPath{ nullptr };
 	// An array of submeshes that make up this mesh.
 	Utl::CVector<GeometryInstance_t>	m_Geometries{};
 	// The minimum extents of the mesh in local space.
 	Vector3D							vecMinExtents{};
 	// The maximum extents of the mesh in local space.
-	Vector3D							vecMaxExtents{};
-	// Origin of this mesh in world space.
-	Vector3D							m_vecAbsOrigin{};
+	Vector3D							vecMaxExtents{};;
 	// Transformation matrix for this mesh.
+	Vector3D							m_vecPosition{};
+	Vector3D							m_vecAngles{};
+	Vector3D							m_vecScale{};
 	Matrix4x4							m_matLocalToWorldTransform{};
 };

@@ -22,6 +22,9 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	size_t StringLength(const char* pszString)
 	{
+		if (!pszString)
+			return 0;
+
 		return strlen(pszString);
 	}
 

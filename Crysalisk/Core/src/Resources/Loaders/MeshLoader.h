@@ -15,8 +15,16 @@
 
 namespace MeshLoader
 {
+	struct MeshLoaderParams_t
+	{
+		char*					pszMeshPath{ nullptr };
+		struct MeshResource_t*	pOutResource{ nullptr };
+	};
+
 	// Attempts to load an existing mesh asset from disk.
 	CORE_API bool LoadMeshResource(char* pszMeshFileName, struct MeshResource_t& pOutResource);
+
+	CORE_API int LoadMesh_Threaded(void* pParams, void** pJobResults);
 
 	// A mesh resource generated from a file on disk.
 	// Can be used by the engine at runtime for rendering.
@@ -35,6 +43,10 @@ namespace MeshLoader
 			Utl::CVector<uint32_t>	Indices{};
 			// The name of the material associated with this submesh.
 			char*					pszMaterialName{ nullptr };
+
+			Vector3D				vecMinExtents{};
+			Vector3D				vecMaxExtents{};
+			Vector3D				vecCenter{};
 
 			GeometryObject_t() {}
 			

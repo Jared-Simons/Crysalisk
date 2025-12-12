@@ -25,6 +25,7 @@ namespace Utl
 	public:
 		// Constructor.
 		DynamicAllocator();
+		~DynamicAllocator();
 
 		// Initialize internal state for the allocator. This MUST be called before this allocator can do any allocations.
 		// NOTE: 'pMemoryBlock' is to be allocated and freed by client code.

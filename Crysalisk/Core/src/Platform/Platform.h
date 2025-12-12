@@ -81,7 +81,35 @@ namespace Platform
 	CORE_API ISysModule*	LoadSysModule(const char* pModulePath);
 	CORE_API void			SetupExternalInterfaces();
 
-	CORE_API bool			DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable);
+	//-------------------------------------------------------------------------
+	// Threads
+	//-------------------------------------------------------------------------
+	CORE_API int		GetCurrentThreadID();
+	CORE_API size_t		GetNumberOfSystemProcessors();
+
+	class ISystemThread
+	{
+	public:
+		unsigned char m_iThreadID{ kInvalidID_U8 };
+	};
+
+	// Function pointer signature for thread entry points.
+	typedef int (*PFN_Thread_Entry_Point)(void* pParams);
+
+	CORE_API ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams);
+	CORE_API void			DestroySystemThread(ISystemThread* pThread);
+
+	class ISystemMutex
+	{
+	public:
+		virtual bool Lock() const = 0;
+		virtual void Unlock() const = 0;
+	};
+
+	CORE_API ISystemMutex*	CreateSystemMutex();
+	CORE_API void			DestroySystemMutex(ISystemMutex* pMutex);
+
+	CORE_API bool	DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable);
 
 	CORE_API bool	InitializePlatformLayer();
 	CORE_API void	ShutdownPlatformLayer();

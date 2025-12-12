@@ -23,7 +23,35 @@ namespace MeshLoader
 	static void DeduplicateGeometry(MeshResource_t::GeometryObject_t* pGeometryConfig);
 	static void GenerateTangentData(MeshResource_t::GeometryObject_t* pConfig);
 
-	// @Multithreading: This function is a prime candidate for threading.
+	//-------------------------------------------------------------------------
+	// Purpose: The entrypoint for MeshLoader jobs.
+	// 
+	// Input:	pParams - An opaque pointer to be cast to an MeshLoaderParams_t struct.
+	//			pJobResults - An opaque pointer that will hold the results of this job. 
+	//				(In this case, the results are held in the same struct as the params).
+	// Output:	int - 0 indicates the job failed, 1 indicates the job completed successfully.
+	//-------------------------------------------------------------------------
+	int LoadMesh_Threaded(void* pParams, void** pJobResults)
+	{
+		if (!pParams)
+		{
+			LOG_ERROR("LoadMesh_Threaded was provided with no parameters. Mesh load failed.");
+			return 0;
+		}
+
+		// Job results for this job are the same as the params.
+		*pJobResults = pParams;
+
+		MeshLoaderParams_t* pTypedParams = reinterpret_cast<MeshLoaderParams_t*>(pParams);
+
+		if (!LoadMeshResource(pTypedParams->pszMeshPath, *pTypedParams->pOutResource))
+		{
+			return 0;
+		}
+
+		return 1;
+	}
+
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to load an existing mesh asset from disk.
 	// 
@@ -152,6 +180,34 @@ namespace MeshLoader
 
 			// Get to the next submesh.
 			currOffset += pCurrentMesh->iIndexCount * pCurrentMesh->iIndexStride;
+		}
+
+		// Compute bounds (TODO: Store this in the file directly?)
+		for (int iMesh = 0; iMesh < pOutResource.pObjects.Capacity(); iMesh++)
+		{
+			for (int iSubMesh = 0; iSubMesh < pOutResource.pObjects[iMesh].pGroups.Capacity(); iSubMesh++)
+			{
+				MeshResource_t::GeometryObject_t& pCurObject = pOutResource.pObjects[iMesh].pGroups[iSubMesh];
+
+				// TODO: Use some actual limits for these values.
+				Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
+				Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
+
+				for (int vertIdx = 0; vertIdx < pCurObject.Vertices.Count(); vertIdx++)
+				{
+					vecMinAABB.x = FloatMin(vecMinAABB.x, pCurObject.Vertices[vertIdx].Pos.x);
+					vecMinAABB.y = FloatMin(vecMinAABB.y, pCurObject.Vertices[vertIdx].Pos.y);
+					vecMinAABB.z = FloatMin(vecMinAABB.z, pCurObject.Vertices[vertIdx].Pos.z);
+
+					vecMaxAABB.x = FloatMax(vecMaxAABB.x, pCurObject.Vertices[vertIdx].Pos.x);
+					vecMaxAABB.y = FloatMax(vecMaxAABB.y, pCurObject.Vertices[vertIdx].Pos.y);
+					vecMaxAABB.z = FloatMax(vecMaxAABB.z, pCurObject.Vertices[vertIdx].Pos.z);
+				}
+
+				pCurObject.vecMinExtents = vecMinAABB;
+				pCurObject.vecMaxExtents = vecMaxAABB;
+				pCurObject.vecCenter = (vecMinAABB + vecMaxAABB) * 0.5f;
+			}
 		}
 
 		FileSystem::CloseFile(&hCModelFile);

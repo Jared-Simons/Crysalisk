@@ -152,7 +152,7 @@ namespace Utl
 		}
 
 		//--------------------------------------------------
-		// Copy assignment
+		// Copy assignment.
 		//--------------------------------------------------
 		CVector& operator=(const CVector& pOtherVector)
 		{

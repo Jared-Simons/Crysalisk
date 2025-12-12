@@ -331,19 +331,10 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			textureHandles[texIdx] = hTexture;
 		}
 
-		// Bind the texture maps to the shader instance.
-		for (int texIdx = 0; texIdx < 3; texIdx++)
-		{
-			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
-			int iTextureArrayIndex = texIdx;
-			g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pMaterial->m_iInternalHandle, &textureHandles[texIdx]);
-
-			// Use the diffuse map to determine material transparency.
-			if (texIdx < textureMapCount && pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
-			{
-				pMaterial->m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(textureHandles[texIdx], TEXTURE_FLAG_IS_TRANSPARENT);
-			}
-		}
+		// Bind the default textures for now, the actual textures will get bound after they finish loading.
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial->m_iInternalHandle, &hDefaultDiffuse);
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial->m_iInternalHandle, &hDefaultSpecular);
+		g_pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial->m_iInternalHandle, &hDefaultNormal);
 
 		// Save off the texture handles.
 		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
@@ -440,6 +431,14 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 	return pMaterial->m_bIsTransparent;
 }
 
+// Utility macro for making sure texture resources are up-to-date, and binding resources if needed.
+#define BIND_AND_APPLY_TEXTURE(pMaterial, hTexture, iTextureIndex)																									\
+	if (g_pTextureSystem_Internal->IsTextureFlagSet(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED))																		\
+	{																																								\
+		g_pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureIndex, pMaterial.m_iInternalHandle, &hTexture);	\
+		g_pTextureSystem_Internal->UnsetTextureFlags(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED);																		\
+	}
+
 //-------------------------------------------------------------------------
 // Purpose:	Binds a given material.
 // Input:	hMaterial - The material to be bound.
@@ -448,13 +447,30 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 //-------------------------------------------------------------------------
 void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 {
-	//CAssert(hMaterial != kInvalidID_U32);
 	if (hMaterial == kInvalidID_U32)
 		hMaterial = 0; // TODO: This is not elegant
 
 	// Don't do any extra work!
 	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
 		return;
+
+	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+
+	// If the instance is invalid, then we can't draw!
+	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
+		return;
+
+	// If the texture resources were updated, we need to re-check transparency.
+	if (g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	{
+		// Use the diffuse map to determine material transparency.
+		pMaterial.m_bIsTransparent = g_pTextureSystem_Internal->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+	}
+
+	// Check textures to see if they need to be re-bound.
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hDiffuseTextureHandle, 0);		// Diffuse
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hSpecularTextureHandle, 1);		// Specular
+	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hNormalTextureHandle, 2);			// Normal
 
 	// Bind the appropriate shader.
 	g_pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);

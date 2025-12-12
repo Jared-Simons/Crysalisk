@@ -10,8 +10,16 @@
 
 namespace ImageLoader
 {
+	struct ImageLoaderParams_t
+	{
+		const char*				pszImageName{ nullptr };
+		struct ImageResource_t* pOutResource{ nullptr };
+	};
+
 	// Attempts to load an existing image asset from disk.
 	CORE_API bool LoadImage(const char* pszImagePath, struct ImageResource_t& pOutResource);
+
+	CORE_API int LoadImage_Threaded(void* pParams, void** pJobResults);
 	
 	// Releases resources allocated during image resource acquisition.
 	CORE_API void ReleaseImageResource(struct ImageResource_t& pResource);
