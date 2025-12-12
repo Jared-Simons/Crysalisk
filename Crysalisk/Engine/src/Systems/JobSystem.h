@@ -8,59 +8,103 @@
 
 #include <Defines.h>
 
+// Signature for the entrypoint of a job.
 typedef int (*PFN_Job_Entry_Point)(void* pParams, void** pJobResults);
-typedef int (*PFN_On_Job_Success)(struct JobResults_t& pResults);
+// Signature for a successful/failed job callback.
+typedef int (*PFN_Job_Completed_Callback)(struct JobResults_t& pResults);
 
+//-------------------------------------------------------------------------
+// Job Priorities
+//-------------------------------------------------------------------------
 enum class eJobPriority
 {
-	LOW,
-	NORMAL,
+	// Highest priority jobs, executed as soon as possible.
 	HIGH,
+	// Normal priority jobs, executed as soon as high priority jobs are exhausted.
+	NORMAL,
+	// Low priority jobs, executed once all high and normal priority jobs are finished.
+	LOW,
 };
 
+//-------------------------------------------------------------------------
+// Worker Thread/Job Types
+//-------------------------------------------------------------------------
 enum eWorkerThreadType
 {
+	// General use thread.
 	WORKER_THREAD_TYPE_GENERAL = 0x1,
+	// Indicates that a thread is reserved for resource loading,
+	// or that a job will load resources off disk.
 	WORKER_THREAD_TYPE_DISK_LOADING = 0x2
 };
 
-// THREADTODO: Should this be exposed?
+//-------------------------------------------------------------------------
+// Job result data
+//-------------------------------------------------------------------------
 struct JobResults_t
 {
-	PFN_On_Job_Success	pfnOnJobCompleted_Success_Callback{ nullptr };
+	// The callback to be executed after successful completion of the job.
+	// Optional, although required if the job provides user data.
+	PFN_Job_Completed_Callback	pfnOnJobCompleted_Success_Callback{ nullptr };
 
-	size_t				iUserDataSize{ 0 };
-	void* pUserData{ nullptr };
+	// The callback to be executed after failure to complete the job.
+	// Optional, though required if the job provides user data.
+	PFN_Job_Completed_Callback	pfnOnJobCompleted_Failed_Callback{ nullptr };
+
+	// Indicates if the job was successfully completed.
+	bool	bWasJobSuccessful{ false };
+	// The size of the user data in bytes.
+	size_t	iUserDataSize{ 0 };
+	// An opaque to the job-specific data.
+	void*	pUserData{ nullptr };
 };
 
+//-------------------------------------------------------------------------
+// Job Declarations
+//-------------------------------------------------------------------------
 struct JobDeclaration_t
 {
+	// The entry point of the job. Required.
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
-	void*				pParams{ nullptr };
-	JobResults_t		pJobResults{};
+	// The size in bytes of the params passed in the pParams pointer.
 	size_t				iParamSize{ 0 };
+	// An opaque pointer to parameters to be passed to the job.
+	void*				pParams{ nullptr };
+	// Holds the job's results.
+	JobResults_t		pJobResults{};
+	// The type of job to be executed (corresponds to the eWorkerThreadType enum).
 	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
+	// The job's priority.
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
 
+	// Resets a job entry for use later.
 	void ResetEntry()
 	{
 		pfnEntryPoint = nullptr;
 		pParams = nullptr;
 		pJobResults.iUserDataSize = 0;
 		pJobResults.pUserData = nullptr;
+		pJobResults.bWasJobSuccessful = false;
 		pJobResults.pfnOnJobCompleted_Success_Callback = nullptr;
+		pJobResults.pfnOnJobCompleted_Failed_Callback = nullptr;
 		iParamSize = 0;
 		iJobType = WORKER_THREAD_TYPE_GENERAL;
 		ePriority = eJobPriority::NORMAL;
 	}
 };
 
+//-------------------------------------------------------------------------
+// Job System Configuration.
+//-------------------------------------------------------------------------
 struct JobSystemConfig_t
 {
 	size_t		iNumJobThreads{ 0 };
 	uint32_t	iWorkerThreadTypes[15];
 };
 
+//-------------------------------------------------------------------------
+// Job System Interface.
+//-------------------------------------------------------------------------
 class IJobSystem
 {
 public:
@@ -69,7 +113,6 @@ public:
 	virtual void	Update() = 0;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) = 0;
-	virtual void	SubmitJobResults(size_t iResultSize, void* pJobResults) = 0;
 
 	// This will force the calling thread to wait for all registered threads to finish
 	// any work they may be doing.

@@ -16,7 +16,14 @@
 
 namespace ImageLoader
 {
-	// THREADTODO: Clean this up once it's working.
+	//-------------------------------------------------------------------------
+	// Purpose: The entrypoint for ImageLoader jobs.
+	// 
+	// Input:	pParams - An opaque pointer to be cast to an ImageLoaderParams_t struct.
+	//			pJobResults - An opaque pointer that will hold the results of this job. 
+	//				(In this case, the results are held in the same struct as the params).
+	// Output:	int - 0 indicates the job failed, 1 indicates the job completed successfully.
+	//-------------------------------------------------------------------------
 	int LoadImage_Threaded(void* pParams, void** pJobResults)
 	{
 		if (!pParams)
@@ -25,15 +32,15 @@ namespace ImageLoader
 			return 0;
 		}
 
+		// Job results for this job are the same as the params.
+		*pJobResults = pParams;
+
 		ImageLoaderParams_t* pTypedParams = reinterpret_cast<ImageLoaderParams_t*>(pParams);
 
 		if (!LoadImage(pTypedParams->pszImageName, *pTypedParams->pOutResource))
 		{
 			return 0;
 		}
-
-		// Job results for this job are the same as the params.
-		*pJobResults = pParams;
 
 		return 1;
 	}

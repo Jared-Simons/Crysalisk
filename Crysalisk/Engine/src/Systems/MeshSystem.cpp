@@ -82,6 +82,32 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Invoked upon mesh loading job failed.
+//-------------------------------------------------------------------------
+static int OnMeshLoadJob_Fail(JobResults_t& pResults)
+{
+	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
+
+	if (!pTypedResults)
+	{
+		return 0;
+	}
+
+	LOG_ERROR("Failed to load mesh resource '%s'.", pTypedResults->pszMeshPath);
+
+	// Release all the resources allocated for this job.
+	delete pTypedResults->pOutResource;
+	pTypedResults->pOutResource = nullptr;
+	CAssert(pTypedResults->pszMeshPath != nullptr);
+	Utl::StringFree(pTypedResults->pszMeshPath);
+	pTypedResults->pszMeshPath = nullptr;
+	delete pTypedResults;
+	pTypedResults = nullptr;
+
+	return 1;
+}
+
+//-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
 bool CMeshSystem::Initialize(const MeshSystemConfig_t& pConfig)
@@ -172,6 +198,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 		meshLoadJob.pParams = pMeshParams;
 		meshLoadJob.iParamSize = sizeof(MeshLoader::MeshLoaderParams_t);
 		meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success;
+		meshLoadJob.pJobResults.pfnOnJobCompleted_Failed_Callback = OnMeshLoadJob_Fail;
 		meshLoadJob.pJobResults.iUserDataSize = sizeof(MeshLoader::MeshLoaderParams_t);
 		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		meshLoadJob.ePriority = eJobPriority::NORMAL;

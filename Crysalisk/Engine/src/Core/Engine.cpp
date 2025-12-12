@@ -179,8 +179,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Job system.
 	JobSystemConfig_t jobSysConfig{};
-	// THREADTODO: How many threads should we be using?
-	jobSysConfig.iNumJobThreads = (Platform::GetNumberOfSystemProcessors() - 4) - 1;	// - 1 to account for the main thread.
+	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
 
 	// NOTE: Currently, we will just use one thread for resource loading.
 	for (int iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
@@ -295,7 +294,6 @@ void CEngine::Shutdown()
 	LOG_INFO("EngineShutdown() called!");
 
 	// Wait for threads to be finished.
-	// TODO: Need some way to not shutdown until all resources are available (to be destroyed).
 	g_pJobSystem->WaitForWorkerThreadsToFinish();
 
 	if (m_CurrentMap.IsMapLoaded())

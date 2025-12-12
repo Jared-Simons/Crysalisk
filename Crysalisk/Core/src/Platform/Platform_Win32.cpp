@@ -551,11 +551,11 @@ namespace Platform
 	{
 		if (!pEntryPoint)
 		{
-			// THREADTODO: Logging.
+			LOG_ERROR("CreateSystemThread() was not provided with an entry point. Thread creation failed.");
 			return nullptr;
 		}
 
-		// THREADTODO: Just heap allocating for now...
+		// NOTE: Just heap allocating for now.
 		CWin32SysThread* pThread = new CWin32SysThread;
 
 		CAssert(pThread);
@@ -612,7 +612,7 @@ namespace Platform
 
 	ISystemMutex* CreateSystemMutex()
 	{
-		// THREADTODO: Just heap allocating for now...
+		// NOTE: Just heap allocating for now.
 		CWin32SysMutex* pMutex = new CWin32SysMutex;
 		CAssert(pMutex);
 

@@ -123,7 +123,7 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 
 	if (!m_bInitialized)
 	{
-		// THREADTODO: Is this fine?
+		// NOTE: No mutex here because it isn't available until the memory system has been initialized.
 		m_iNumBytesAllocated += sizeInBytes;
 		return Platform::MemoryAllocate(sizeInBytes);
 	}
