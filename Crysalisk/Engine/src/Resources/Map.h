@@ -43,7 +43,15 @@ public:
 private:
 	char*								m_pszMapName{ nullptr };
 
+	struct MapMesh_t
+	{
+		MeshHandle_t	hMesh{ kInvalidID_U32 };
+		const Mesh*		pMesh{ nullptr };
+	};
+
+	// MESHSYSTEMTODO: Kill this.
 	Utl::CVector<Mesh>					m_Meshes{};
+	Utl::CVector<MapMesh_t>				m_hMeshes{};
 
 	bool								m_bMapResourcesLoaded{ false };
 };

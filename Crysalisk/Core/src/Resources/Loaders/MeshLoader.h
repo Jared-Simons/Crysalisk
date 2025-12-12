@@ -44,6 +44,10 @@ namespace MeshLoader
 			// The name of the material associated with this submesh.
 			char*					pszMaterialName{ nullptr };
 
+			Vector3D				vecMinExtents{};
+			Vector3D				vecMaxExtents{};
+			Vector3D				vecCenter{};
+
 			GeometryObject_t() {}
 			
 			GeometryObject_t(const GeometryObject_t& pOther)

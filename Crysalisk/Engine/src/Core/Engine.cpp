@@ -249,9 +249,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
 
-	// MESHSYSTEMTODO: Mesh test.
-	g_pMeshSystem->AcquireMesh("sponza", false);
-
 	// Create temporary geometry.
 	g_pRenderer->CreateTempTextObjects();
 
@@ -361,9 +358,6 @@ bool Event_KeyReleased(EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
-		// MESHSYSTEMTODO: Mesh test.
-		g_pMeshSystem->ReleaseMesh(0);
-
 		Clock mapLoadTimer{};
 		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())

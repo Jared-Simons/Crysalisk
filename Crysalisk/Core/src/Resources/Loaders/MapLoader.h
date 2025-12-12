@@ -45,11 +45,23 @@ namespace MapLoader
 		};
 		enum class eLightType{ INVALID, DIRECTIONAL, POINT, SPOT };
 
+		// Mesh entity declarations.
+		struct MeshDeclaration_t
+		{
+			char*	pszEntityName{ nullptr };
+			char*	pszModelName{ nullptr };
+
+			Vector	vecPosition{};
+			Vector	vecAngles{};
+			Vector	vecScale{};
+		};
+
 		uint32_t	iMapVersion{ 0 };
 		char*		pszMapName{ nullptr };
 
 		// Static meshes.
 		Utl::CVector<MeshLoader::MeshResource_t>	MeshResources{};
+		Utl::CVector<MeshDeclaration_t>				MeshResources_NEW{};
 		LightResource_t								DirectionalLight{};
 		Utl::CVector<LightResource_t>				PointLights{};
 		LightResource_t								SpotLight{};

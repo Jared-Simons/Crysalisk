@@ -124,6 +124,8 @@ namespace MapLoader
 		// Add a new entry to the resource to write to.
 		pOutMapResource.MeshResources.PushBack(MeshLoader::MeshResource_t{});
 		MeshLoader::MeshResource_t& newMeshResource = pOutMapResource.MeshResources.Back();
+		pOutMapResource.MeshResources_NEW.PushBack(MapResource_t::MeshDeclaration_t{});
+		MapResource_t::MeshDeclaration_t& newMeshResource_NEW = pOutMapResource.MeshResources_NEW.Back();
 
 		// Read the next line from where the file left off.
 		FileSystem::ReadLine(szCurrentLine, kScratchStringBufferLength, &bytesRead, &hMapFile);
@@ -158,13 +160,20 @@ namespace MapLoader
 			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
 			szValue[bytesRead - 1] = '\0';
 
+			// MESHSYSTEMTODO: Kill old code eventually.
 			// Process mesh properties.
 			if (Utl::StringCompare(szKey, "name"))
 			{
-				// Note: Currently doing nothing with names.
+				newMeshResource_NEW.pszEntityName = Utl::StringDuplicate(szValue);
 			}
 			else if (Utl::StringCompare(szKey, "model_resource"))
 			{
+				// MESHSYSTEMTODO: New System
+				// Remove quotes.
+				size_t strLen = Utl::StringLength(szValue);
+				newMeshResource_NEW.pszModelName = Utl::StringDuplicate_N(&szValue[1], strLen - 2);
+				// END NEW SYSTEM
+
 				// Format the path and load up this model resource for use.
 				char* pszStrippedNamePointer = Utl::StringStrip(szValue, '\"');
 				char szFormattedModelPath[512];
@@ -182,6 +191,7 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "position"))
 			{
 				Utl::String_ToVector3(szValue, &newMeshResource.vecPosition);
+				Utl::String_ToVector3(szValue, &newMeshResource_NEW.vecPosition);
 			}
 			else if (Utl::StringCompare(szKey, "rotation"))
 			{
@@ -191,10 +201,15 @@ namespace MapLoader
 				newMeshResource.vecEulerAngles.x = vecTempAngles.y;
 				newMeshResource.vecEulerAngles.y = vecTempAngles.x;
 				newMeshResource.vecEulerAngles.z = vecTempAngles.z;
+
+				newMeshResource_NEW.vecAngles.x = vecTempAngles.y;
+				newMeshResource_NEW.vecAngles.y = vecTempAngles.x;
+				newMeshResource_NEW.vecAngles.z = vecTempAngles.z;
 			}
 			else if (Utl::StringCompare(szKey, "scale"))
 			{
 				Utl::String_ToVector3(szValue, &newMeshResource.vecScale);
+				Utl::String_ToVector3(szValue, &newMeshResource_NEW.vecScale);
 			}
 			else
 			{

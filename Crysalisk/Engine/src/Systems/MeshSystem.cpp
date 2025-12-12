@@ -9,6 +9,7 @@
 #include <Containers/CHashMap.h>
 #include "Renderer/Renderer.h"
 #include "Systems/JobSystem.h"
+#include "Systems/MaterialSystem.h"
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -20,8 +21,9 @@ public:
 	virtual bool			Initialize(const MeshSystemConfig_t& pConfig) override;
 	virtual void			Shutdown() override;
 
-	virtual MeshHandle_t	AcquireMesh(const char* pszMeshName, bool bAutoRelease) override;
+	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
+	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) override;
 
 	virtual void			ReleaseMesh(MeshHandle_t hMesh) override;
 
@@ -108,11 +110,11 @@ void CMeshSystem::Shutdown()
 //-------------------------------------------------------------------------
 // Purpose: MESHSYSTEMTODO: Documentation.
 //-------------------------------------------------------------------------
-MeshHandle_t CMeshSystem::AcquireMesh(const char* pszMeshName, bool bAutoRelease)
+MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease)
 {
 	if (!pszMeshName)
 	{
-		LOG_ERROR("CMeshSystem::AcquireMesh requires the name of a mesh to load. Nothing was done.");
+		LOG_ERROR("CMeshSystem::AcquireMeshInstance requires the name of a mesh to load. Nothing was done.");
 		return kInvalidID_U32;
 	}
 
@@ -129,31 +131,45 @@ MeshHandle_t CMeshSystem::AcquireMesh(const char* pszMeshName, bool bAutoRelease
 
 	pMeshLookup = m_MeshDictionary.m_MeshHashmap.Insert(szFormattedPath);
 
-	newMeshHandle = GetFirstFreeMeshHandle();
-	if (newMeshHandle == kInvalidID_U32)
+	if (pMeshLookup->MeshHandle == kInvalidID_U32)
 	{
-		// MESHSYSTEMTODO: Logging?
-		return kInvalidID_U32;
+		// The mesh hasn't been loaded yet. Load it up!
+		newMeshHandle = GetFirstFreeMeshHandle();
+		if (newMeshHandle == kInvalidID_U32)
+		{
+			// MESHSYSTEMTODO: Logging?
+			return kInvalidID_U32;
+		}
+
+		pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
+		pMesh->m_MeshID = newMeshHandle;
+
+		pMesh->m_vecPosition = vecPos;
+		pMesh->m_vecAngles = vecEulerAngles;
+		pMesh->m_vecScale = vecScale;
+
+		pMeshLookup->MeshHandle = newMeshHandle;
+
+		pMeshParams->pszMeshPath = Utl::StringDuplicate(szFormattedPath);
+		pMeshParams->pOutResource = pMeshResource;
+
+		JobDeclaration_t meshLoadJob{};
+		meshLoadJob.pfnEntryPoint = MeshLoader::LoadMesh_Threaded;
+		meshLoadJob.pParams = pMeshParams;
+		meshLoadJob.iParamSize = sizeof(MeshLoader::MeshLoaderParams_t);
+		meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success;
+		meshLoadJob.pJobResults.iUserDataSize = sizeof(MeshLoader::MeshLoaderParams_t);
+		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
+		meshLoadJob.ePriority = eJobPriority::NORMAL;
+
+		g_pJobSystem->SubmitJob(meshLoadJob);
 	}
-
-	pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
-	pMesh->m_MeshID = newMeshHandle;
-
-	pMeshLookup->MeshHandle = newMeshHandle;
-
-	pMeshParams->pszMeshPath = Utl::StringDuplicate(szFormattedPath);
-	pMeshParams->pOutResource = pMeshResource;
-
-	JobDeclaration_t meshLoadJob{};
-	meshLoadJob.pfnEntryPoint = MeshLoader::LoadMesh_Threaded;
-	meshLoadJob.pParams = pMeshParams;
-	meshLoadJob.iParamSize = sizeof(MeshLoader::MeshLoaderParams_t);
-	meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success;
-	meshLoadJob.pJobResults.iUserDataSize = sizeof(MeshLoader::MeshLoaderParams_t);
-	meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
-	meshLoadJob.ePriority = eJobPriority::NORMAL;
-
-	g_pJobSystem->SubmitJob(meshLoadJob);
+	else
+	{
+		// The mesh is already loaded. Increment the reference count and return the handle.
+		pMeshLookup->iReferenceCount++;
+		newMeshHandle = pMeshLookup->MeshHandle;
+	}
 
 	return newMeshHandle;
 }
@@ -186,9 +202,44 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		newConfig.Indices = pCurSubmesh->Indices;
 		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
 		g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, pMesh->m_Geometries.Back());
+
+		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
+
+		pNewSubmesh.vecMinExtents = pCurSubmesh->vecMinExtents;
+		pNewSubmesh.vecMaxExtents = pCurSubmesh->vecMaxExtents;
+		pNewSubmesh.vecCenter = pCurSubmesh->vecCenter;
+
+		// Set the transformation matrix.
+		pNewSubmesh.matLocalToWorldTransform = Matrix4x4{ 1.0f };
+		pNewSubmesh.matLocalToWorldTransform = Matrix4x4::Scale(pNewSubmesh.matLocalToWorldTransform, pMesh->m_vecScale);
+
+		Quaternion quatAngles = QuaternionFromEulerAngles(pMesh->m_vecAngles);
+		Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
+		pNewSubmesh.matLocalToWorldTransform = pNewSubmesh.matLocalToWorldTransform * matAngles;
+
+		pNewSubmesh.matLocalToWorldTransform = Matrix4x4::Translate(pNewSubmesh.matLocalToWorldTransform, pMesh->m_vecPosition);
+
+		// Acquire material resources.
+		if (pCurSubmesh->pszMaterialName != nullptr)
+		{
+			pNewSubmesh.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurSubmesh->pszMaterialName);
+
+			// Set transparency state.
+			pNewSubmesh.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(pNewSubmesh.hMaterial);
+		}
 	}
 
 	return meshHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: MESHSYSTEMTODO: Documentation.
+//-------------------------------------------------------------------------
+Mesh* CMeshSystem::AcquireMeshDataByHandle(MeshHandle_t hMesh)
+{
+	CAssert(hMesh != kInvalidID_U32);
+
+	return &m_MeshDictionary.m_MeshArray[0];
 }
 
 //-------------------------------------------------------------------------
