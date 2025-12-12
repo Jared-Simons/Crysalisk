@@ -297,6 +297,14 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 	Mesh*		pMesh = &m_MeshDictionary.m_MeshArray[hMesh];
 	MeshLookup* pLookup = &m_MeshDictionary.m_MeshHashmap[pMesh->m_pszMeshPath];
 
+	if (pMesh->m_Geometries.Count() < 1)
+	{
+		// It's possible that the application is trying to release this mesh before it has even loaded.
+		// (e.g. it's shutting down).
+		// Just abort here.
+		return;
+	}
+
 	// Decrement the reference count.
 	pLookup->iReferenceCount--;
 	CAssert(pLookup->iReferenceCount >= 0);

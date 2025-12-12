@@ -339,6 +339,12 @@ void CJobSystem::WaitForWorkerThreadsToFinish() const
 				bWorkDone = false;
 				break;
 			}
+
+			if (pThread.m_CurrentWorkData.pJobResults.pUserData != nullptr) // The job might be done but the results still need to be processed!
+			{
+				bWorkDone = false;
+				break;
+			}
 		}
 	}
 }

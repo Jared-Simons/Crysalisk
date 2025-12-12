@@ -414,6 +414,11 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.textureFlags & TEXTURE_FLAG_DEFAULT_TEXTURE)
 		return;
 
+	// Check if there is anything to release.
+	// TODO: This probably isn't the best variable to check? Maybe generation == kInvalidID_U32 instead?
+	if (pTexture.pszTextureName == nullptr)
+		return;
+
 	g_pRenderer->ReleaseTextureResources(&pTexture);
 	if (pTexture.pszTextureName)
 		Utl::StringFree(pTexture.pszTextureName);
@@ -485,6 +490,9 @@ void CTextureSystem::ClearTextureDictionaryEntry(const char* pszTextureName)
 	pTexture->textureFlags = 0;
 	if (pTexture->pszTextureName)
 		Utl::StringFree(pTexture->pszTextureName);
+	pTexture->pszTextureName = nullptr;
+
+	pTexture->internalHandle = kInvalidID_U32;
 
 	if (pTexture->internalHandle != kInvalidID_U32)
 	{
