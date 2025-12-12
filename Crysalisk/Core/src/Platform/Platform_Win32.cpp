@@ -719,6 +719,14 @@ namespace Platform
 	}
 
 	//-------------------------------------------------------------------------
+	// Forces the current thread to sleep for the provided milliseconds.
+	//-------------------------------------------------------------------------
+	void ThreadSleep(double msToSleep)
+	{
+		Sleep((DWORD)msToSleep);
+	}
+
+	//-------------------------------------------------------------------------
 	// Interface and factory methods for code modules (.dlls)
 	//-------------------------------------------------------------------------
 	typedef void (*PFN_ObtainInterfaces)(Utl::CVector<SystemInterface_t>& pOutInterfaces);
