@@ -65,8 +65,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources_NEW.Count());
 		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources_NEW.Count());
 
-		//for (int iMesh = 0; iMesh < pNewMapResource.MeshResources_NEW.Count(); iMesh++)
-		for (int iMesh = 0; iMesh < 1; iMesh++)
+		for (int iMesh = 0; iMesh < pNewMapResource.MeshResources_NEW.Count(); iMesh++)
 		{
 			MapLoader::MapResource_t::MeshDeclaration_t& pCurMeshDec = pNewMapResource.MeshResources_NEW[iMesh];
 			LOG_INFO("%s", pCurMeshDec.pszModelName);
@@ -115,16 +114,12 @@ void CMap::UnloadMap()
 	}
 
 	// Release all mesh/material references.
-	for (int iMeshIdx = 0; iMeshIdx < m_Meshes.Count(); iMeshIdx++)
+	for (int iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
-		for (int iSubmeshIdx = 0; iSubmeshIdx < m_Meshes[iMeshIdx].m_Geometries.Count(); iSubmeshIdx++)
-		{
-			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx]);
-			g_pMaterialSystemInternal->ReleaseMaterial(m_Meshes[iMeshIdx].m_Geometries[iSubmeshIdx].hMaterial, false);
-		}
+		g_pMeshSystem->ReleaseMesh(m_hMeshes[iMeshIdx].hMesh);
 	}
 
-	m_Meshes.Clear();
+	m_hMeshes.Clear();
 }
 
 void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
@@ -132,7 +127,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 
-	for (int iMesh = 0; iMesh < 1; iMesh++)
+	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
  		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
@@ -195,13 +190,13 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 
 	// Check every object and return the nearest intersection point of the first piece of geometry along the ray.
 	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
-	Mesh* pCurrentMesh = nullptr;
+	const Mesh* pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
-	for (int iMesh = 0; iMesh < m_Meshes.Count(); iMesh++)
+	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
-		pCurrentMesh = &m_Meshes[iMesh];
+		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
@@ -254,7 +249,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 		if (iCurrentRayDebugGeoID != kInvalidID_U32)
 			g_pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
 
-		GeometryInstance_t& pGeometry = m_Meshes[iHitMesh].m_Geometries[iHitSubmesh];
+		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
 		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 	}
 	if (!pRay.bDidHit)

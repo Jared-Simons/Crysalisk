@@ -49,8 +49,6 @@ private:
 		const Mesh*		pMesh{ nullptr };
 	};
 
-	// MESHSYSTEMTODO: Kill this.
-	Utl::CVector<Mesh>					m_Meshes{};
 	Utl::CVector<MapMesh_t>				m_hMeshes{};
 
 	bool								m_bMapResourcesLoaded{ false };

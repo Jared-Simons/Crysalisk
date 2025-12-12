@@ -187,6 +187,16 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	MeshHandle_t	meshHandle = pMeshLookup->MeshHandle;
 	pMesh = &m_MeshDictionary.m_MeshArray[meshHandle];
 
+	// Set the transformation matrix.
+	pMesh->m_matLocalToWorldTransform = Matrix4x4{ 1.0f };
+	pMesh->m_matLocalToWorldTransform = Matrix4x4::Scale(pMesh->m_matLocalToWorldTransform, pMesh->m_vecScale);
+
+	Quaternion quatAngles = QuaternionFromEulerAngles(pMesh->m_vecAngles);
+	Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
+	pMesh->m_matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform * matAngles;
+
+	pMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pMesh->m_matLocalToWorldTransform, pMesh->m_vecPosition);
+
 	MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
 	// Acquire renderer resources and upload to the GPU.
 	// MESHSYSTEMTODO: Only accounts for one mesh.
@@ -194,6 +204,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	{
 		pCurSubmesh = &pResource.pObjects[0].pGroups[iSubmesh];
 		CAssert(pCurSubmesh);
+
+		if (pCurSubmesh->Vertices.Count() < 1)
+			continue;	// Vertex data is required!
 
 		LOG_DEBUG("Acquiring mesh resources for: %s", pCurSubmesh->pszDebugName);
 
@@ -208,16 +221,6 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		pNewSubmesh.vecMinExtents = pCurSubmesh->vecMinExtents;
 		pNewSubmesh.vecMaxExtents = pCurSubmesh->vecMaxExtents;
 		pNewSubmesh.vecCenter = pCurSubmesh->vecCenter;
-
-		// Set the transformation matrix.
-		pNewSubmesh.matLocalToWorldTransform = Matrix4x4{ 1.0f };
-		pNewSubmesh.matLocalToWorldTransform = Matrix4x4::Scale(pNewSubmesh.matLocalToWorldTransform, pMesh->m_vecScale);
-
-		Quaternion quatAngles = QuaternionFromEulerAngles(pMesh->m_vecAngles);
-		Matrix4x4 matAngles = Matrix4x4::Mat4FromQuaternion(quatAngles);
-		pNewSubmesh.matLocalToWorldTransform = pNewSubmesh.matLocalToWorldTransform * matAngles;
-
-		pNewSubmesh.matLocalToWorldTransform = Matrix4x4::Translate(pNewSubmesh.matLocalToWorldTransform, pMesh->m_vecPosition);
 
 		// Acquire material resources.
 		if (pCurSubmesh->pszMaterialName != nullptr)
@@ -239,7 +242,7 @@ Mesh* CMeshSystem::AcquireMeshDataByHandle(MeshHandle_t hMesh)
 {
 	CAssert(hMesh != kInvalidID_U32);
 
-	return &m_MeshDictionary.m_MeshArray[0];
+	return &m_MeshDictionary.m_MeshArray[hMesh];
 }
 
 //-------------------------------------------------------------------------
@@ -249,15 +252,13 @@ void CMeshSystem::ReleaseMesh(MeshHandle_t hMesh)
 {
 	CAssert(hMesh != kInvalidID_U32);
 
-	LOG_WARN("CMeshSystem::ReleaseMesh()");
 	Mesh*	pMesh = &m_MeshDictionary.m_MeshArray[hMesh];
 
 	for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
 	{
 		g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
+		g_pMaterialSystemInternal->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
 	}
-
-	LOG_WARN("Done releasing mesh");
 }
 
 //-------------------------------------------------------------------------
