@@ -13,6 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 
 # Setup all the projects.
 include (Crysalisk/Core/Core.cmake)
+include (Crysalisk/Editor/Editor.cmake)
 include (Crysalisk/Engine/Engine.cmake)
 include (Crysalisk/Interfaces/Interfaces.cmake)
 include (Crysalisk/Renderer_Vulkan/Renderer_Vulkan.cmake)

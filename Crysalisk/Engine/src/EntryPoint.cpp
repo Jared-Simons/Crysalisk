@@ -8,6 +8,8 @@
 
 #include "Core/Engine.h"
 
+extern bool CreateApplication();
+
 //-------------------------------------------------------------------------
 // Purpose: The application entry point.
 //-------------------------------------------------------------------------
