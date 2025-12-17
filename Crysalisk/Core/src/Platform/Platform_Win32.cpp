@@ -785,7 +785,7 @@ namespace Platform
 		if (!pNewModule->m_Module)
 		{
 			// Try to append the .dll extension to the path and load again.
-			char formattedPath[512];
+			char formattedPath[10000];
 			Utl::StringFormat("%s.%s", pszModulePath, "dll", formattedPath);
 
 			pNewModule->m_Module = LoadLibraryA(formattedPath);
