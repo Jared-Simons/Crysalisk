@@ -41,7 +41,7 @@ endif()
 
 # Linker input.
 target_link_libraries(Editor PRIVATE Core)
-target_link_libraries(Editor PUBLIC Engine)
+target_link_libraries(Editor PRIVATE Engine)
 
 # Current Working Directory.
 set_property(TARGET Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

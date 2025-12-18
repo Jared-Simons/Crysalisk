@@ -59,10 +59,10 @@ static bool s_bDisplayProfilingText = false;
 // Input: pConfig - The configuration for both the frontend and backend.
 // Output: bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::Initialize(RendererConfig_t& pConfig)
+bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 {
 	// Load up the renderer backend module, and connect our interfaces.
-	Platform::ISysModule* pVulkanRendererDLL = pConfig.pRendererBackendDLL;
+	Platform::ISysModule* pVulkanRendererDLL = pAppConfig.pRendererBackendDLL;
 
 	PFN_GetRendererBackendState getRendererBackend = (PFN_GetRendererBackendState)pVulkanRendererDLL->GetFuncAddr("GetRendererBackendState");
 	if (!getRendererBackend)
@@ -76,7 +76,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	if (m_RendererBackend != nullptr)
 	{
-		if (!m_RendererBackend->RendererBackend_Initialize(pConfig))
+		if (!m_RendererBackend->RendererBackend_Initialize(pAppConfig))
 		{
 			return false;
 		}
@@ -146,7 +146,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 
 	// Grab window dimensions.
-	pConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
+	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
 	// Setup our internal framebuffers.
 	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
@@ -175,7 +175,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_iCurrentRendererFrame = 0;
 
 	// Store off a pointer to the window we're rendering to.
-	m_pMainWindow = pConfig.pMainWindow;
+	m_pMainWindow = pAppConfig.pMainWindow;
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
@@ -392,9 +392,9 @@ void Renderer::ReleaseTextureResources(Texture* pTexture)
 //			pConfig - Some shader configuration details.
 // Output:	bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
+bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pAppConfig)
 {
-	return m_RendererBackend->CreateShader(pShader, pConfig); 
+	return m_RendererBackend->CreateShader(pShader, pAppConfig); 
 }
 
 //-------------------------------------------------------------------------

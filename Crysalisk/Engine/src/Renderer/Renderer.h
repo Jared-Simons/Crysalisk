@@ -40,14 +40,14 @@ struct RendererConfig_t
 class Renderer
 {
 public:
-	bool			Initialize(RendererConfig_t& pConfig);
+	bool			Initialize(RendererConfig_t& pAppConfig);
 	void			Shutdown();
 	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);
 
-	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
+	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig);
 	void			DestroyShader(class Shader* pShader);
 
 	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName);

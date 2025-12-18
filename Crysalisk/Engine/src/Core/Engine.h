@@ -17,6 +17,9 @@ struct EngineConfig_t
 	// Set this to true to run the engine without rendering or platform faculties.
 	// This is useful for unit tests and dedicated servers that do not require input.
 	bool isHeadless = false;
+
+	// The application configuration for the app using the engine.
+	struct ApplicationConfig_t* pAppConfig{};
 };
 
 //-------------------------------------------------------------------------

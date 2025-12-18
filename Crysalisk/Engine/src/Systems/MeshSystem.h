@@ -26,7 +26,7 @@ class IMeshSystem
 {
 public:
 	// Initialize, shutdown
-	virtual bool			Initialize(const MeshSystemConfig_t& pConfig) = 0;
+	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
 
 	// Mesh acquisition.

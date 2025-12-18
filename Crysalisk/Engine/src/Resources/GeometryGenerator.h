@@ -19,5 +19,5 @@ public:
 	static GeometryConfig_t CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth);
 
 	// Given a geometry configuration, generates tangent data necessary for lighting calculations.
-	static void				GenerateTangentData(GeometryConfig_t& pConfig);
+	static void				GenerateTangentData(GeometryConfig_t& pAppConfig);
 };

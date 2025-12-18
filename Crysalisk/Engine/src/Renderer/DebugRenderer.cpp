@@ -69,7 +69,7 @@ struct DebugTextShaderUniformLocations
 class CDebugRenderer : public IDebugRenderer
 {
 public:
-	virtual bool	Initialize(DebugRendererConfig_t& pConfig) override;
+	virtual bool	Initialize(DebugRendererConfig_t& pAppConfig) override;
 	virtual bool	InitializeDebugShaders() override;
 	virtual void	Shutdown() override;
 
@@ -114,10 +114,10 @@ IDebugRenderer* g_pDebugRenderer = &s_DebugRenderer;
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
+bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 {
 	// Setup debug geometry array.
-	m_iNumGeometryInstances = pConfig.uMaxDebugGeometries;
+	m_iNumGeometryInstances = pAppConfig.uMaxDebugGeometries;
 	m_GeometryData = new DebugGeometry_t[m_iNumGeometryInstances]; 
 
 	// Setup the debug renderpass.

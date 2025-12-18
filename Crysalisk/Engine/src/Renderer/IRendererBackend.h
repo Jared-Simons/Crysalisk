@@ -19,7 +19,7 @@ class IRendererBackend
 {
 public:
 	// Initialization, shutdown
-	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pConfig) = 0;
+	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pAppConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
@@ -41,7 +41,7 @@ public:
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) = 0;
 
-	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) = 0;
+	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) = 0;
 	virtual void	DestroyShader(class Shader* pShader) = 0;
 
 	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) = 0;

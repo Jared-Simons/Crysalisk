@@ -35,7 +35,7 @@ struct DebugRendererConfig_t
 class IDebugRenderer
 {
 public:
-	virtual bool	Initialize(DebugRendererConfig_t& pConfig) = 0;
+	virtual bool	Initialize(DebugRendererConfig_t& pAppConfig) = 0;
 	virtual bool	InitializeDebugShaders() = 0;
 	virtual void	Shutdown() = 0;
 

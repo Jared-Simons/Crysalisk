@@ -50,7 +50,7 @@ struct CWorkerThread
 class CJobSystem : public IJobSystem
 {
 public:
-	virtual bool	Initialize(JobSystemConfig_t& pConfig) override;
+	virtual bool	Initialize(JobSystemConfig_t& pAppConfig) override;
 	virtual void	Shutdown() override;
 	virtual void	Update() override;
 
@@ -148,9 +148,9 @@ static int JobThread_Main(void* pParams)
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
+bool CJobSystem::Initialize(JobSystemConfig_t& pAppConfig)
 {
-	m_Config = pConfig;
+	m_Config = pAppConfig;
 	m_bJobSystemActive = true;
 	m_pJobSystemStateMutex = Platform::CreateSystemMutex();
 
@@ -160,20 +160,20 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pConfig)
 	m_HighPriorityJobs.Resize(80);
 
 	// Make sure we have at least one additional thread (aside from the main thread) to do work on.
-	if (pConfig.iNumJobThreads < 1)
+	if (pAppConfig.iNumJobThreads < 1)
 	{
 		LOG_FATAL("One core detected, at least 2 cores are required. Job system initialization failed.");
 		return false;
 	}
-	m_pWorkerThreads.Resize(pConfig.iNumJobThreads);
-	m_pWorkerThreads.SetCount(pConfig.iNumJobThreads);
+	m_pWorkerThreads.Resize(pAppConfig.iNumJobThreads);
+	m_pWorkerThreads.SetCount(pAppConfig.iNumJobThreads);
 
-	for (uint8_t iThread = 0; iThread < pConfig.iNumJobThreads; iThread++)
+	for (uint8_t iThread = 0; iThread < pAppConfig.iNumJobThreads; iThread++)
 	{
 		m_pWorkerThreads[iThread].m_iThreadIdx = iThread;
 		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, &m_pWorkerThreads[iThread].m_iThreadIdx);
 		m_pWorkerThreads[iThread].m_pWorkDataMutex = Platform::CreateSystemMutex();
-		m_pWorkerThreads[iThread].m_iThreadType = pConfig.iWorkerThreadTypes[iThread];
+		m_pWorkerThreads[iThread].m_iThreadType = pAppConfig.iWorkerThreadTypes[iThread];
 	}
 
 	// Set up job result data.

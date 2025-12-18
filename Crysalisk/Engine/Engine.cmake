@@ -11,6 +11,7 @@ set(ENGINE_ROOT Crysalisk/Engine/src/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_ENGINE_SRC_FILES
+	${ENGINE_ROOT}/Application.h
 	${ENGINE_ROOT}/EntryPoint.cpp
 	${ENGINE_ROOT}/MemOverride.cpp
 	${ENGINE_ROOT}/Core/Engine.cpp

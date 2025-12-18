@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Engine.h"
 
+#include "Application.h"
 #include <Containers/CHashMap.h>
 #include <Containers/CVector.h>
 #include <Core/Clock.h>
@@ -60,7 +61,8 @@ public:
 	const CMap&		GetCurrentMap() const { return m_CurrentMap; }
 
 private:
-	EngineConfig_t	m_engineConfig;
+	EngineConfig_t		m_engineConfig;
+	ICrysApplication*	m_pApplication{ nullptr };
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
 
@@ -240,6 +242,18 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Initialize the application.
+	CAssert(engineConfig.pAppConfig != nullptr);
+	ICrysApplication* pApplication = engineConfig.pAppConfig->pApplication;
+	if (!pApplication->Application_Init())
+	{
+		LOG_ERROR("Failed to initialize application!");
+		return false;
+	}
+
+	// Save a pointer to our app.
+	m_pApplication = pApplication;
+
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
 
@@ -270,6 +284,9 @@ bool CEngine::Run()
 		{
 			g_pInputSystem_Internal->Update();
 
+			// Update our app.
+			m_pApplication->Application_Run();
+
 			// Handle jobs.
 			g_pJobSystem->Update();
 
@@ -295,6 +312,9 @@ void CEngine::Shutdown()
 
 	// Wait for threads to be finished.
 	g_pJobSystem->WaitForWorkerThreadsToFinish();
+
+	// Shutdown our app.
+	m_pApplication->Application_Shutdown();
 
 	if (m_CurrentMap.IsMapLoaded())
 		m_CurrentMap.UnloadMap();

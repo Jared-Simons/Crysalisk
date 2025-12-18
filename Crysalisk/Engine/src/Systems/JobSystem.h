@@ -108,7 +108,7 @@ struct JobSystemConfig_t
 class IJobSystem
 {
 public:
-	virtual bool	Initialize(JobSystemConfig_t& pConfig) = 0;
+	virtual bool	Initialize(JobSystemConfig_t& pAppConfig) = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 

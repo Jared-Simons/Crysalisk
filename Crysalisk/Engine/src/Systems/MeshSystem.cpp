@@ -18,7 +18,7 @@
 class CMeshSystem : public IMeshSystem
 {
 public:
-	virtual bool			Initialize(const MeshSystemConfig_t& pConfig) override;
+	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) override;
 	virtual void			Shutdown() override;
 
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
@@ -110,15 +110,15 @@ static int OnMeshLoadJob_Fail(JobResults_t& pResults)
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CMeshSystem::Initialize(const MeshSystemConfig_t& pConfig)
+bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 {
-	if (pConfig.MaxMeshes < 1)
+	if (pAppConfig.MaxMeshes < 1)
 	{
 		LOG_ERROR("Mesh System REQUIRES Config.MeshMeshes > 0.");
 		return false;
 	}
 
-	m_Config = pConfig;
+	m_Config = pAppConfig;
 
 	m_MeshDictionary.m_MeshArray = new Mesh[m_Config.MaxMeshes];
 	m_MeshDictionary.m_MeshHashmap.Resize(m_Config.MaxMeshes);
