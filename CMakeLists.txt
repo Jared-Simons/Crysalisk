@@ -22,3 +22,6 @@ include (Crysalisk/Tools_LevelEditor/Tools_LevelEditor.cmake)
 include (Crysalisk/Testapp/Testapp.cmake)
 include (Crysalisk/Editor/Editor.cmake)
 include (Crysalisk/UnitTest/UnitTest.cmake)
+
+# Also get the AppFramework projects.
+add_subdirectory(Vulkan-App-Framework)

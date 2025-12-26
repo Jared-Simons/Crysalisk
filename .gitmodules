@@ -1,0 +1,3 @@
+[submodule "Vulkan-Application-Framework"]
+	path = Vulkan-App-Framework
+	url = https://github.com/Jared-Simons/Vulkan-App-Framework
