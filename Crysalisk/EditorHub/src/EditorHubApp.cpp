@@ -10,6 +10,9 @@
 #include <Platform/Platform.h>
 #include <Strings/String_Utils.h>
 
+// Framework includes.
+#include <UIContext.h>
+
 #include "ToolsTypes.h"
 
 class CEditorHubApp : public ICrysApplication
@@ -36,7 +39,15 @@ bool CEditorHubApp::Application_Init()
 	m_pTools.Resize(1);
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
-	LoadTool("Tools_LevelEditor");
+	//LoadTool("Tools_LevelEditor");
+
+	AppFramework::WindowParams_t windowParams{};
+	windowParams.pszWindowTitle = "Crysalisk Tools";
+
+	AppFramework::UI_App_Config_t appConfig{};
+	appConfig.pWindow = windowParams;
+
+	AppFramework::CreateUIContext(appConfig);
 
 	return true;
 }
@@ -55,6 +66,8 @@ bool CEditorHubApp::Application_Run()
 
 void CEditorHubApp::Application_Shutdown()
 {
+	// EDITORTODO: Shutdown UI Context.
+
 	m_pTools.Clear();
 }
 
