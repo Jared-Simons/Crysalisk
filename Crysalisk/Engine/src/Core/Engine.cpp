@@ -285,7 +285,11 @@ bool CEngine::Run()
 			g_pInputSystem_Internal->Update();
 
 			// Update our app.
-			m_pApplication->Application_Run();
+			if (!m_pApplication->Application_Run())
+			{
+				// Either the application failed, or it requested to shutdown.
+				return true;
+			}
 
 			// Handle jobs.
 			g_pJobSystem->Update();

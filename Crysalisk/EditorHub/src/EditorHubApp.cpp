@@ -54,6 +54,14 @@ bool CEditorHubApp::Application_Init()
 
 bool CEditorHubApp::Application_Run()
 {
+	if (!AppFramework::ShouldRunUIContext())
+	{
+		// TODO: This is just a quick, easy way to quit the engine.
+		return false;
+	}
+
+	AppFramework::RunUIContext();
+
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
 	for (int iTool = 0; iTool < m_pTools.Count(); iTool++)
@@ -66,7 +74,7 @@ bool CEditorHubApp::Application_Run()
 
 void CEditorHubApp::Application_Shutdown()
 {
-	// EDITORTODO: Shutdown UI Context.
+	AppFramework::ShutdownUIContext();
 
 	m_pTools.Clear();
 }
