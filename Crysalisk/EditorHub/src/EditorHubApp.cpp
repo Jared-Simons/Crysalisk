@@ -41,8 +41,12 @@ bool CEditorHubApp::Application_Init()
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
 
-	AppFramework::WindowParams_t windowParams{};
-	windowParams.pszWindowTitle = "Crysalisk Tools";
+	Platform::WindowParams_t windowParams{};
+	windowParams.pszName = "Crysalisk Tools";
+	windowParams.X = 100;
+	windowParams.Y = 100;
+	windowParams.Width = 1080;
+	windowParams.Height = 720;
 
 	AppFramework::UI_App_Config_t appConfig{};
 	appConfig.pWindow = windowParams;
