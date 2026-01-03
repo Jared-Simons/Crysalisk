@@ -11,6 +11,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 
+# We need the Crys-STD lib as well.
+add_subdirectory(Crysalisk-Stdlib/)
+
 # Setup all the projects.
 #include (Crysalisk/Core/Core.cmake)
 include (Crysalisk/Engine/Engine.cmake)
@@ -25,6 +28,3 @@ include (Crysalisk/UnitTest/UnitTest.cmake)
 
 # Also get the AppFramework projects.
 add_subdirectory(Vulkan-App-Framework)
-
-# We need the Crys-STD lib as well.
-add_subdirectory(Crysalisk-Stdlib/)

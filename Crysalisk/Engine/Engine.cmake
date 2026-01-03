@@ -57,7 +57,7 @@ add_library(Engine SHARED ${CRYSALISK_ENGINE_SRC_FILES})
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Engine PUBLIC ${ENGINE_ROOT})
-target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
+target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk-Stdlib/src/)
 target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public)
 
