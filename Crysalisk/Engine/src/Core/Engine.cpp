@@ -130,6 +130,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	windowParams.Height = 720;
 	m_pEngineWindow = Platform::CreatePlatformWindow(windowParams, true);
 	m_pEngineWindow->SetWindowResizeCallback(WindowResizeHandler);
+	m_pEngineWindow->SetWindowCloseCallback(WindowClosedHandler);
 
 	// Load up external libraries now, so they can get interfaces prior to initialization.
 	Platform::ISysModule* pRendererModule = Platform::LoadSysModule("Renderer_Vulkan.dll");
@@ -555,4 +556,13 @@ bool WindowResizeHandler(unsigned int width, unsigned int height)
 	g_pEngineEvents->EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
 
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// An callback the allows the window to fire engine-shutdown events.
+//-------------------------------------------------------------------------
+void WindowClosedHandler()
+{
+	// Fire an event to close the application.
+	g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
 }
