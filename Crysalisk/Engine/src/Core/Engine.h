@@ -47,3 +47,4 @@ public:
 extern IEngine* g_pEngine;
 
 ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
+void WindowClosedHandler();

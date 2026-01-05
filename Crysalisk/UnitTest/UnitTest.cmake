@@ -26,7 +26,7 @@ add_executable(UnitTest ${CRYSALISK_UNITTEST_SRC_FILES})
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(UnitTest PUBLIC ${UNITTEST_ROOT})
-target_include_directories(UnitTest PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
+target_include_directories(Engine PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk-Stdlib/src/)
 target_include_directories(UnitTest PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 target_include_directories(UnitTest PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public)
 

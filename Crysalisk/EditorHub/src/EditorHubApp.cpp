@@ -41,8 +41,12 @@ bool CEditorHubApp::Application_Init()
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
 
-	AppFramework::WindowParams_t windowParams{};
-	windowParams.pszWindowTitle = "Crysalisk Tools";
+	Platform::WindowParams_t windowParams{};
+	windowParams.pszName = "Crysalisk Tools";
+	windowParams.X = 100;
+	windowParams.Y = 100;
+	windowParams.Width = 1080;
+	windowParams.Height = 720;
 
 	AppFramework::UI_App_Config_t appConfig{};
 	appConfig.pWindow = windowParams;
@@ -54,6 +58,14 @@ bool CEditorHubApp::Application_Init()
 
 bool CEditorHubApp::Application_Run()
 {
+	if (!AppFramework::ShouldRunUIContext())
+	{
+		// TODO: This is just a quick, easy way to quit the engine.
+		return false;
+	}
+
+	AppFramework::RunUIContext();
+
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
 	for (int iTool = 0; iTool < m_pTools.Count(); iTool++)
@@ -66,7 +78,7 @@ bool CEditorHubApp::Application_Run()
 
 void CEditorHubApp::Application_Shutdown()
 {
-	// EDITORTODO: Shutdown UI Context.
+	AppFramework::ShutdownUIContext();
 
 	m_pTools.Clear();
 }
