@@ -769,6 +769,8 @@ namespace Platform
 		{
 			if (m_szModuleName)
 				Utl::StringFree(m_szModuleName);
+
+			m_szModuleName = nullptr;
 		}
 
 		virtual void* ConnectInterface(void* pInterfaceState) override

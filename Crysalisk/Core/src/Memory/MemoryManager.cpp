@@ -156,6 +156,13 @@ void CMemoryManager::Free(void* pMemBlock)
 	{
 		CAssert(pMemBlock != nullptr);
 		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+		if (bytesFreed < 1)
+		{
+			// We might need to free through the platform layer.
+			Platform::MemoryFree(pMemBlock);
+			return;
+		}
+
 		m_iNumBytesAllocated -= bytesFreed;
 		m_pAllocMutex->Unlock();
 		return;

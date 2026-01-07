@@ -4,9 +4,10 @@
 
 #include <Containers/CVector.h>
 #include <Platform/Platform.h>
-#include "Renderer/VulkanRenderer.h"
+#include "Renderer/IRendererBackend.h"
 
 // CONTROLTODO: TEST!
+#include "Renderer/VulkanRenderer.h"
 #include "Controls/BasePanel.h"
 #include "Math/MathLib.h"
 
@@ -38,6 +39,14 @@ namespace AppFramework
 		s_UIState.pActiveWindow = CreatePlatformWindow(pConfig.pWindow, true);
 		s_UIState.pActiveWindow->SetMouseMoveEventCallback(SetMousePosition);
 		s_UIState.pActiveWindow->SetMouseButtonEventCallback(SetLeftMousePressed);
+
+		// Load up the Vulkan renderer lib.
+		Platform::ISysModule* pVulkanRendererDLL = Platform::LoadSysModule("Renderer_Vulkan.dll");
+		if (!pVulkanRendererDLL)
+		{
+			Platform::DisplayMessageBox(s_UIState.pActiveWindow, "Failed to load the Vulkan Renderer DLL!", "Crysalisk Error!", false);
+			return false;
+		}
 
 		// Initialize the renderer.
 		s_UIState.g_pRenderer->Initialize(s_UIState.pActiveWindow->GetInternalHandle(), 800, 600);

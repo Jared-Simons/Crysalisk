@@ -14,6 +14,3 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${APPFRAMEWORK_ROOT}/bin)
 # Setup all the projects.
 include (AppFramework/AppFramework.cmake)
 include (Testapp/Testapp.cmake)
-
-# We need the Crys-STD lib as well.
-add_subdirectory(Crysalisk-Stdlib/)
