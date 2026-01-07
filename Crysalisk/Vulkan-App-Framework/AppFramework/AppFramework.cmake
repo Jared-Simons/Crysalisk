@@ -24,11 +24,6 @@ set(APPFRAMEWORK_SRC_FILES
 	${APPFRAMEWORK_ROOT}/Controls/Button.h
 	${APPFRAMEWORK_ROOT}/Renderer/IRendererBackend.h
 	${APPFRAMEWORK_ROOT}/Renderer/RendererTypes.h
-	${APPFRAMEWORK_ROOT}/Renderer/VulkanPlatform.h
-	${APPFRAMEWORK_ROOT}/Renderer/VulkanPlatform_Win32.cpp
-	${APPFRAMEWORK_ROOT}/Renderer/VulkanRenderer.cpp
-	${APPFRAMEWORK_ROOT}/Renderer/VulkanRenderer.h
-	${APPFRAMEWORK_ROOT}/Renderer/VulkanUtils.h
 )
 
 # Group source files

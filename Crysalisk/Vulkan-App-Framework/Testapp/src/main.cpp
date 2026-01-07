@@ -1,4 +1,3 @@
-#include <Renderer/VulkanRenderer.h>
 #include <Platform/Platform.h>
 
 #include <UIContext.h>
@@ -25,7 +24,6 @@ int main()
 		//Platform::ProcessPlatformMessageLoop();
 	}
 
-	g_pRenderer->Shutdown();
 	std::printf("Shutdown successful!\n");
 
 	return 0;

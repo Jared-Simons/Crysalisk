@@ -10,6 +10,7 @@
 
 #include "Math/MathLib.h"
 #include <Platform/Platform.h>
+#include "Renderer/IRendererBackend.h"
 
 namespace AppFramework
 {
@@ -21,7 +22,7 @@ namespace AppFramework
 		m_Height = in_Height;
 	}
 
-	bool BasePanel::Initialize()
+	bool BasePanel::Initialize(IRendererBackend* pRenderer)
 	{
 		// CONTROLTODO: Verify that the control has been properly setup.
 		GenerateGeometry();
@@ -47,7 +48,7 @@ namespace AppFramework
 
 	void BasePanel::Render()
 	{			
-		g_pRenderer->RenderGeometry(m_GeometryData, 0);
+		//g_pRenderer->RenderGeometry(m_GeometryData, 0);
 	}
 
 	void BasePanel::GenerateGeometry()
@@ -62,18 +63,18 @@ namespace AppFramework
 		vertices[4] = { (float)m_XPos, (float)m_YPos + m_Height };
 		vertices[5] = { (float)m_XPos + m_Width, (float)m_YPos + m_Height };
 
-		uint32_t screenWidth, screenHeight;
-		g_pRenderer->GetRenderSurfaceDimensions(screenWidth, screenHeight);
+		//uint32_t screenWidth, screenHeight;
+		//g_pRenderer->GetRenderSurfaceDimensions(screenWidth, screenHeight);
 
 		// Scale to screen dimensions and move to NDC.
-		for (int idx = 0; idx < 6; idx++)
+		/*for (int idx = 0; idx < 6; idx++)
 		{
 			vertices[idx].x = ((vertices[idx].x / screenWidth) * 2.0f) - 1.0f;
 			vertices[idx].y = ((vertices[idx].y / screenHeight) * 2.0f) - 1.0f;
-		}
+		}*/
 
 		// Acquire GPU resources.
-		m_GeometryData = g_pRenderer->AcquireGeometryResources(6, vertices.data());
+		//m_GeometryData = g_pRenderer->AcquireGeometryResources(6, vertices.data());
 	}
 
 } // namespace AppFramework

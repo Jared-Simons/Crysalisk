@@ -7,7 +7,6 @@
 #pragma once
 
 #include "pch.h"
-#include "Renderer/VulkanRenderer.h"
 
 namespace AppFramework
 {
@@ -16,7 +15,7 @@ namespace AppFramework
 	public:
 		BasePanel(uint16_t in_XPos, uint16_t in_YPos, uint16_t in_Width, uint16_t in_Height);
 
-		virtual bool	Initialize();
+		virtual bool	Initialize(class IRendererBackend* pRenderer);
 
 		virtual void	Render();
 
@@ -33,6 +32,6 @@ namespace AppFramework
 		uint16_t	m_Width{ 0 };
 		uint16_t	m_Height{ 0 };
 
-		GeometryInstanceData_t	m_GeometryData{};
+		//GeometryInstanceData_t	m_GeometryData{};
 	};
 } // namespace AppFramework

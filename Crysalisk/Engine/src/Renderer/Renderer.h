@@ -19,22 +19,6 @@ class Platform::IPlatformWindow;
 struct RenderPacket_t;
 
 //-------------------------------------------------------------------------
-// Renderer configuration, to be set by the application.
-//-------------------------------------------------------------------------
-struct RendererConfig_t
-{
-	// The application's name.
-	const char* szApplicationName;
-	// An opaque pointer to the window we'll be rendering to.
-	Platform::IPlatformWindow* pMainWindow;
-	// A pointer to the loaded backend module.
-	Platform::ISysModule* pRendererBackendDLL;
-
-	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
-	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
-};
-
-//-------------------------------------------------------------------------
 // The renderer frontend.
 //-------------------------------------------------------------------------
 class Renderer
