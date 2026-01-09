@@ -27,6 +27,8 @@ public:
 	bool			Initialize(RendererConfig_t& pAppConfig);
 	void			Shutdown();
 	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
+	
+	void			ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderViewConfigs);
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
 	void			ReleaseTextureResources(struct Texture* pTexture);
@@ -86,6 +88,8 @@ private:
 
 public:
 	Camera_t			m_Camera{};
+
+	Utl::CVector<RendererView>	m_RenderViews{};
 
 	RendererView		m_SceneView{};
 	RendererView		m_UIView{};

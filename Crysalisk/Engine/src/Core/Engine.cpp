@@ -180,6 +180,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Save off a pointer to the renderer library so apps can have it.
+	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
+
 	// Job system.
 	JobSystemConfig_t jobSysConfig{};
 	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
@@ -246,7 +249,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Initialize the application.
 	CAssert(engineConfig.pAppConfig != nullptr);
 	ICrysApplication* pApplication = engineConfig.pAppConfig->pApplication;
-	if (!pApplication->Application_Init())
+	if (!pApplication->Application_Init(engineConfig.pAppConfig))
 	{
 		LOG_ERROR("Failed to initialize application!");
 		return false;
@@ -254,6 +257,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Save a pointer to our app.
 	m_pApplication = pApplication;
+
+	// Setup application-specific renderer state.
+	g_pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -296,6 +302,9 @@ bool CEngine::Run()
 			g_pJobSystem->Update();
 
 			RenderPacket_t frameRenderData{};
+
+			// Get render data from the application.
+			m_pApplication->FramePrepare(&frameRenderData);
 
 			// Get our renderable geometry from the map.
 			g_pRenderer->Update(frameRenderData, m_CurrentMap);

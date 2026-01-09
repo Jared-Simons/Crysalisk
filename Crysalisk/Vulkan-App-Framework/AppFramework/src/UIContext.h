@@ -4,13 +4,14 @@
 
 namespace AppFramework
 {
-	struct UI_App_Config_t
+	struct UIAppConfig_t
 	{
 		// TODO: Multiple windows?
 		Platform::WindowParams_t	pWindow{};
+		Platform::ISysModule*		pRendererLibrary{ nullptr };
 	};
 
-	bool CreateUIContext(AppFramework::UI_App_Config_t& pConfig);
+	bool CreateUIContext(UIAppConfig_t& pConfig);
 	void ShutdownUIContext();
 	void RunUIContext();
 

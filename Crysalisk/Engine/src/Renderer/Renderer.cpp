@@ -87,8 +87,8 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 		return false;
 	}
 
-	// Set up our renderpasses
 	// 3D Scene View.
+	// TODO: FIGURE OUT HOW TO NOT NEED THIS ANYMORE!
 	{
 		RendererViewConfig_t sceneViewConfig{};
 		sceneViewConfig.m_pszViewName = "3D_Scene_View";
@@ -148,13 +148,6 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 	// Grab window dimensions.
 	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
-	// Setup our internal framebuffers.
-	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
-	{
-		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
-		return false;
-	}
-
 	// Setup the debug renderer.
 	DebugRendererConfig_t debugRendererConfig{};
 	debugRendererConfig.uMaxDebugGeometries = 64;
@@ -179,6 +172,26 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void Renderer::ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderViewConfigs)
+{
+	// Set up our renderpasses
+	m_RenderViews.Resize(pRenderViewConfigs.Count());
+	for (int iView = 0; iView < pRenderViewConfigs.Count(); iView++)
+	{
+		m_RendererBackend->CreateRendererViewInternal(pRenderViewConfigs[iView], m_RenderViews[iView]);
+	}
+
+	// Setup our internal framebuffers.
+	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))	// TODO: Don't hardcode this!
+	{
+		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
+		//return false;
+	}
 }
 
 //-------------------------------------------------------------------------

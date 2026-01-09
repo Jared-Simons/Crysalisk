@@ -18,9 +18,11 @@
 class CEditorHubApp : public ICrysApplication
 {
 public:
-	virtual bool Application_Init() override;
+	virtual bool Application_Init(ApplicationConfig_t* pAppConfig) override;
 	virtual bool Application_Run() override;
 	virtual void Application_Shutdown() override;
+	
+	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override {};
 
 private:
 	virtual bool LoadTool(const char* pszToolLibraryName);
@@ -33,7 +35,7 @@ CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
 
-bool CEditorHubApp::Application_Init()
+bool CEditorHubApp::Application_Init(ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Launching Crysalisk Tools");
 	m_pTools.Resize(1);
@@ -48,8 +50,9 @@ bool CEditorHubApp::Application_Init()
 	windowParams.Width = 1080;
 	windowParams.Height = 720;
 
-	AppFramework::UI_App_Config_t appConfig{};
+	AppFramework::UIAppConfig_t appConfig{};
 	appConfig.pWindow = windowParams;
+	appConfig.pRendererLibrary = pAppConfig->pRendererLibrary;
 
 	AppFramework::CreateUIContext(appConfig);
 

@@ -751,8 +751,11 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 	VK_CHECK(vkCreateRenderPass(m_Device.m_Device, &renderpassInfo, m_Allocator, &pInternalPass->m_Handle));
 
 	// Save off the name and create a debug label.
-	pOutView.m_pszViewName = Utl::StringDuplicate(pViewConfig.m_pszViewName);
-	VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pOutView.m_pszViewName, VK_OBJECT_TYPE_RENDER_PASS, pInternalPass->m_Handle);
+	if (pViewConfig.m_pszViewName)
+	{
+		pOutView.m_pszViewName = Utl::StringDuplicate(pViewConfig.m_pszViewName);
+		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pOutView.m_pszViewName, VK_OBJECT_TYPE_RENDER_PASS, pInternalPass->m_Handle);
+	}
 
 	return true;
 }

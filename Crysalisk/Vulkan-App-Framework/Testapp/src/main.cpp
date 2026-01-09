@@ -12,7 +12,7 @@ int main()
 	windowParams.Width = 1080;
 	windowParams.Height = 720;
 
-	AppFramework::UI_App_Config_t appConfig{};
+	AppFramework::UIAppConfig_t appConfig{};
 	appConfig.pWindow = windowParams;
 
 	AppFramework::CreateUIContext(appConfig);
