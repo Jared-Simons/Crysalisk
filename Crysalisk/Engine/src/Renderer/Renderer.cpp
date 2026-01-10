@@ -87,54 +87,6 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 		return false;
 	}
 
-	// 3D Scene View.
-	// TODO: FIGURE OUT HOW TO NOT NEED THIS ANYMORE!
-	{
-		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = "3D_Scene_View";
-
-		// This pass has 2 attachments: color and depth.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
-
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		// Add them to the config.
-		sceneViewConfig.attachmentConfigs.Resize(2);
-		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		m_SceneView.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
-
-		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
-	}
-
-	// UI View.
-	{
-		RendererViewConfig_t UIViewConfig{};
-		UIViewConfig.m_pszViewName = "UI_View";
-
-		// This pass has 1 attachment: color.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = false;
-
-		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
-
-		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
-	}
-
 	// Set up our renderbuffers
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer", m_WorldVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer", m_WorldIndexBuffer);
@@ -147,15 +99,6 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 
 	// Grab window dimensions.
 	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
-
-	// Setup the debug renderer.
-	DebugRendererConfig_t debugRendererConfig{};
-	debugRendererConfig.uMaxDebugGeometries = 64;
-	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
-	{
-		LOG_ERROR("Failed to initialize the debug renderer.");
-		return false;
-	}
 
 	m_Camera.RecalculateCameraVectors();
 
@@ -187,9 +130,22 @@ void Renderer::ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderV
 	}
 
 	// Setup our internal framebuffers.
-	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))	// TODO: Don't hardcode this!
+	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_RenderViews[0]))	// TODO: Don't hardcode this!
 	{
 		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
+		//return false;
+	}
+
+	// TODO: Don't hardcode these!
+	m_SceneView = &m_RenderViews[0];
+	m_UIView = &m_RenderViews[1];
+
+	// Setup the debug renderer.
+	DebugRendererConfig_t debugRendererConfig{};
+	debugRendererConfig.uMaxDebugGeometries = 64;
+	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
+	{
+		LOG_ERROR("Failed to initialize the debug renderer.");
 		//return false;
 	}
 }
@@ -209,8 +165,8 @@ void Renderer::Shutdown()
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
 
-	m_RendererBackend->DestroyRendererViewInternal(m_UIView);
-	m_RendererBackend->DestroyRendererViewInternal(m_SceneView);
+	m_RendererBackend->DestroyRendererViewInternal(*m_UIView);
+	m_RendererBackend->DestroyRendererViewInternal(*m_SceneView);
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
@@ -260,7 +216,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		return false;
 	}
 
-	m_RendererBackend->BeginRenderpass(m_SceneView);
+	m_RendererBackend->BeginRenderpass(*m_SceneView);
 
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
@@ -332,7 +288,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
-		m_RendererBackend->BeginRenderpass(m_UIView);
+		m_RendererBackend->BeginRenderpass(*m_UIView);
 
 		// Render some test UI text.
 		/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);

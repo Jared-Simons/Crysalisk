@@ -255,7 +255,17 @@ struct RendererViewConfig_t
 	// A list of attachments associated with this view.
 	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
 	// A color used for debugging tools. Otherwise does nothing.
-	Vector3D					m_debuggingColor{};
+	Vector3D										m_debuggingColor{};
+
+	// TODO: This needs to work!
+	~RendererViewConfig_t()
+	{
+		if (m_pszViewName)
+		{
+			/*Utl::StringFree(m_pszViewName);
+			m_pszViewName = nullptr;*/
+		}
+	}
 };
 
 //-------------------------------------------------------------------------

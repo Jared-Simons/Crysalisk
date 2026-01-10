@@ -166,6 +166,19 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
 
+	// Initialize the application.
+	// NOTE: The application provides details about engine configuration so this needs to happen prior to systems init.
+	CAssert(engineConfig.pAppConfig != nullptr);
+	ICrysApplication* pApplication = engineConfig.pAppConfig->pApplication;
+	if (!pApplication->Application_Init(engineConfig.pAppConfig))
+	{
+		LOG_ERROR("Failed to initialize application!");
+		return false;
+	}
+
+	// Save a pointer to our app.
+	m_pApplication = pApplication;
+
 	// Renderer.
 	RendererConfig_t rendererConfig{};
 	rendererConfig.szApplicationName = "Crysalisk Engine";
@@ -179,6 +192,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 		return false;
 	}
+
+	// Setup application-specific renderer state.
+	g_pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
 
 	// Save off a pointer to the renderer library so apps can have it.
 	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
@@ -245,21 +261,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		LOG_ERROR("Failed to initialize font system! Application cannot continue.");
 		return false;
 	}
-
-	// Initialize the application.
-	CAssert(engineConfig.pAppConfig != nullptr);
-	ICrysApplication* pApplication = engineConfig.pAppConfig->pApplication;
-	if (!pApplication->Application_Init(engineConfig.pAppConfig))
-	{
-		LOG_ERROR("Failed to initialize application!");
-		return false;
-	}
-
-	// Save a pointer to our app.
-	m_pApplication = pApplication;
-
-	// Setup application-specific renderer state.
-	g_pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();

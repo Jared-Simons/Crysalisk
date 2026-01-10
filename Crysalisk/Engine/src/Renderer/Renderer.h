@@ -91,8 +91,9 @@ public:
 
 	Utl::CVector<RendererView>	m_RenderViews{};
 
-	RendererView		m_SceneView{};
-	RendererView		m_UIView{};
+	// TODO: Remove or refactor these eventually.
+	RendererView*		m_SceneView{};
+	RendererView*		m_UIView{};
 
 	RenderBuffer		m_WorldVertexBuffer{};
 	RenderBuffer		m_WorldIndexBuffer{};

@@ -236,10 +236,10 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// TODO: Don't hardcode this.
-		newShaderConfig.m_pRendererView = g_pRenderer->m_SceneView;
+		newShaderConfig.m_pRendererView = *g_pRenderer->m_SceneView;
 		if (Utl::StringCompare(pszShaderName, "Core.UI"))
 		{
-			newShaderConfig.m_pRendererView = g_pRenderer->m_UIView;
+			newShaderConfig.m_pRendererView = *g_pRenderer->m_UIView;
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
