@@ -9,6 +9,12 @@
 #include <Core/Logging.h>
 #include <Renderer/RendererTypes.h>
 
+// Cryaslisk Engine entry point.
+extern "C"
+{
+	__declspec(dllimport) int Crysalisk_Main(ApplicationConfig_t& pAppConfig);
+}
+
 class CGameApp : public ICrysApplication
 {
 public:
@@ -26,12 +32,6 @@ private:
 };
 
 static CGameApp s_GameApp{};
-
-// Cryaslisk Engine entry point.
-extern "C"
-{
-	__declspec(dllimport) int Crysalisk_Main(ApplicationConfig_t& pAppConfig);
-}
 
 int main(int argc, char** argv)
 {
