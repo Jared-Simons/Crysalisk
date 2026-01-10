@@ -21,6 +21,8 @@ public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
 
+	virtual bool	RegisterWindow(Platform::IPlatformWindow& pWindow) override;
+
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
 
 	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) override;
@@ -124,5 +126,6 @@ extern IRendererBackend* g_pRendererBackend;
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();
+	bool RegisterWindowWithVulkan(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
 	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow);
 }

@@ -68,6 +68,9 @@ namespace Platform
 		virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) = 0;
 		virtual void	SetWindowResizeCallback(Platform_WindowResizedCallback callback) = 0;
 		virtual void	SetWindowCloseCallback(Platform_WindowCloseCallback callback) = 0;
+
+		// Renderer-specific state needed for window rendering.
+		void*			m_pRendererState{ nullptr };
 	};
 
 	//-------------------------------------------------------------------------

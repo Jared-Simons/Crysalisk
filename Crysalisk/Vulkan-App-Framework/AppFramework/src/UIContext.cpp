@@ -89,6 +89,11 @@ namespace AppFramework
 		}*/
 	}
 
+	Platform::IPlatformWindow* GetActiveWindow()
+	{
+		return s_UIState.pActiveWindow;
+	}
+
 	bool ShouldRunUIContext()
 	{
 		return !g_bQuitApplication;

@@ -137,8 +137,15 @@ void Renderer::ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderV
 	}
 
 	// TODO: Don't hardcode these!
-	m_SceneView = &m_RenderViews[0];
-	m_UIView = &m_RenderViews[1];
+	if (m_RenderViews.Capacity() == 2)
+	{
+		m_SceneView = &m_RenderViews[0];
+		m_UIView = &m_RenderViews[1];
+	}
+	else
+	{
+		//m_UIView = &m_RenderViews[0];
+	}
 
 	// Setup the debug renderer.
 	DebugRendererConfig_t debugRendererConfig{};
@@ -332,6 +339,14 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	m_iCurrentRendererFrame++;
 
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool Renderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
+{
+	return m_RendererBackend->RegisterWindow(pWindow);
 }
 
 //-------------------------------------------------------------------------

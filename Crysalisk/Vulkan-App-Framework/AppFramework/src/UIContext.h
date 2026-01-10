@@ -15,6 +15,8 @@ namespace AppFramework
 	void ShutdownUIContext();
 	void RunUIContext();
 
+	Platform::IPlatformWindow* GetActiveWindow();
+
 	// TODO: Make this more elegant.
 	bool ShouldRunUIContext();
 	void SetUIContextQuitting(bool bQuitting);

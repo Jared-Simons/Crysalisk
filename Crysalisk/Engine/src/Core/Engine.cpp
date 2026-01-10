@@ -261,6 +261,12 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Initialize the application.
 	m_pApplication->Initialize(engineConfig.pAppConfig);
 
+	// TODO: This is bad.
+	if (engineConfig.pAppConfig->pWindowToRegisterWithRenderer)
+	{
+		g_pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
+	}
+
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
 

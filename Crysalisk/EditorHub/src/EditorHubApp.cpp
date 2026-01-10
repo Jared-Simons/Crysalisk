@@ -70,6 +70,8 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 	AppFramework::CreateUIContext(appConfig);
 
+	pAppConfig->pWindowToRegisterWithRenderer = AppFramework::GetActiveWindow();
+
 	return true;
 }
 

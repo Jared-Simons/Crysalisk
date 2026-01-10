@@ -11,9 +11,29 @@
 
 namespace Platform {
 
+	struct VulkanWindowState_t
+	{
+		VkSurfaceKHR	m_WindowSurface{};
+	};
+
 	const char* GetVulkanPlatformExtension()
 	{
 		return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
+	}
+
+	// TODO: Combine this with the below method.
+	bool RegisterWindowWithVulkan(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow)
+	{
+		pWindow.m_pRendererState = new VulkanWindowState_t;
+
+		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
+		surfaceCreateInfo.hinstance = GetModuleHandleA(0);
+		surfaceCreateInfo.hwnd = static_cast<HWND>(pWindow.GetInternalHandle());
+
+		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, pRenderingContext.m_Allocator, &((VulkanWindowState_t*)pWindow.m_pRendererState)->m_WindowSurface));
+
+		LOG_DEBUG("Vulkan surface created");
+		return true;
 	}
 
 	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow)

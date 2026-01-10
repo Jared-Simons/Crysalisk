@@ -305,6 +305,17 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
+{
+	CAssert(pWindow.m_pRendererState == nullptr);
+	Platform::RegisterWindowWithVulkan((*this), pWindow);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Creates our internal swapchain framebuffers.
 //			This exists separately from the rest of our initialization process because
 //			framebuffer creation requires a renderpass created by the frontend, 
