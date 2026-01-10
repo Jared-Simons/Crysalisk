@@ -16,14 +16,20 @@ struct ApplicationConfig_t
 	// Renderer resources.
 	Platform::ISysModule*				pRendererLibrary{ nullptr };
 	Utl::CVector<RendererViewConfig_t>	renderViewConfigs{};
+
+	~ApplicationConfig_t()
+	{
+		renderViewConfigs.Clear();
+	}
 };
 
 class ICrysApplication
 {
 public:
-	virtual bool Application_Init(ApplicationConfig_t* pAppConfig) = 0;
-	virtual bool Application_Run() = 0;
-	virtual void Application_Shutdown() = 0;
+	virtual bool	PreInitialize(ApplicationConfig_t* pAppConfig) = 0;
+	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) = 0;
+	virtual bool	Run() = 0;
+	virtual void	Shutdown() = 0;
 
-	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
+	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 };

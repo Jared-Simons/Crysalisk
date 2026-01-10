@@ -160,6 +160,8 @@ void Renderer::Shutdown()
 	// Shutdown the debug renderer.
 	g_pDebugRenderer->Shutdown();
 
+	m_RenderViews.Clear();
+
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);

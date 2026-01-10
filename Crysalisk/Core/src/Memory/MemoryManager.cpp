@@ -50,6 +50,8 @@ private:
 static CMemoryManager s_pMemoryManager;
 IMemoryManager* g_pMemoryManager = &s_pMemoryManager;
 
+static const uint16_t kPlatformMemoryMarker = 5929U;
+
 //-------------------------------------------------------------------------
 // Purpose: A static method to 'stand up' the global instance of the memory system.
 //			Allocates the memory to be used with this system.
@@ -124,8 +126,13 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 	if (!m_bInitialized)
 	{
 		// NOTE: No mutex here because it isn't available until the memory system has been initialized.
-		m_iNumBytesAllocated += sizeInBytes;
-		return Platform::MemoryAllocate(sizeInBytes);
+		void* pMemBlock = Platform::MemoryAllocate(sizeInBytes + kAllocHeaderSize);
+
+		// Set the header of the block to a unique ID so we know how to free it properly.
+		uint16_t* pHeader = (uint16_t*)pMemBlock;
+		*pHeader = kPlatformMemoryMarker;
+
+		return (uint8_t*)pMemBlock + kAllocHeaderSize;
 	}
 
 	if (m_pAllocMutex->Lock())
@@ -158,8 +165,13 @@ void CMemoryManager::Free(void* pMemBlock)
 		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
 		if (bytesFreed < 1)
 		{
-			// We might need to free through the platform layer.
-			Platform::MemoryFree(pMemBlock);
+			// Check the header to see if we need to go through the platform layer.
+			if (*((uint16_t*)pMemBlock + kAllocHeaderSize) == kPlatformMemoryMarker)
+			{
+				Platform::MemoryFree(pMemBlock);
+				pMemBlock = nullptr;
+				return;
+			}
 			return;
 		}
 

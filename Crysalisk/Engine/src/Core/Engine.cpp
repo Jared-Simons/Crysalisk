@@ -114,6 +114,15 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Let the application set up some state.
+	if (!engineConfig.pAppConfig->pApplication)
+	{
+		LOG_FATAL("Engine was not provided with an application!");
+		return false;
+	}
+	m_pApplication = engineConfig.pAppConfig->pApplication;
+	m_pApplication->PreInitialize(engineConfig.pAppConfig);
+
 	// Platform layer.
 	if (!Platform::InitializePlatformLayer())
 	{
@@ -165,19 +174,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
 	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
-
-	// Initialize the application.
-	// NOTE: The application provides details about engine configuration so this needs to happen prior to systems init.
-	CAssert(engineConfig.pAppConfig != nullptr);
-	ICrysApplication* pApplication = engineConfig.pAppConfig->pApplication;
-	if (!pApplication->Application_Init(engineConfig.pAppConfig))
-	{
-		LOG_ERROR("Failed to initialize application!");
-		return false;
-	}
-
-	// Save a pointer to our app.
-	m_pApplication = pApplication;
 
 	// Renderer.
 	RendererConfig_t rendererConfig{};
@@ -262,6 +258,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Initialize the application.
+	m_pApplication->Initialize(engineConfig.pAppConfig);
+
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
 
@@ -293,7 +292,7 @@ bool CEngine::Run()
 			g_pInputSystem_Internal->Update();
 
 			// Update our app.
-			if (!m_pApplication->Application_Run())
+			if (!m_pApplication->Run())
 			{
 				// Either the application failed, or it requested to shutdown.
 				return true;
@@ -329,7 +328,7 @@ void CEngine::Shutdown()
 	g_pJobSystem->WaitForWorkerThreadsToFinish();
 
 	// Shutdown our app.
-	m_pApplication->Application_Shutdown();
+	m_pApplication->Shutdown();
 
 	if (m_CurrentMap.IsMapLoaded())
 		m_CurrentMap.UnloadMap();
