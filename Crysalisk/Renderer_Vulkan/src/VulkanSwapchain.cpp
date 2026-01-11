@@ -22,22 +22,22 @@ struct SwapchainSupportDetails
 //			pOutSwapchain - The structure that will hold the created swapchain.
 // Output:	bool - Returns true on successful swapchain creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pOutSwapchain)
+bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurfaceKHR pSurface, VulkanSwapchain& pOutSwapchain)
 {
 	// Query our device for swapchain support.
 	SwapchainSupportDetails swapchainSupport{};
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pRenderingContext.m_Surface, &swapchainSupport.SurfaceCapabilities);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &swapchainSupport.SurfaceCapabilities);
 
 	unsigned int numFormats{ 0 };
-	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pRenderingContext.m_Surface, &numFormats, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numFormats, nullptr);
 	swapchainSupport.Formats.Resize(numFormats);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pRenderingContext.m_Surface, &numFormats, swapchainSupport.Formats.Data());
+	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numFormats, swapchainSupport.Formats.Data());
 
 	unsigned int numPresentModes{ 0 };
-	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pRenderingContext.m_Surface, &numPresentModes, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numPresentModes, nullptr);
 	swapchainSupport.PresentModes.Resize(numPresentModes);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pRenderingContext.m_Surface, &numPresentModes, swapchainSupport.PresentModes.Data());
+	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numPresentModes, swapchainSupport.PresentModes.Data());
 
 	unsigned int imageCount = swapchainSupport.SurfaceCapabilities.minImageCount;
 	if (imageCount < pRenderingContext.m_MaxImagesInFlight && pRenderingContext.m_MaxImagesInFlight < swapchainSupport.SurfaceCapabilities.maxImageCount)
@@ -85,7 +85,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, Vulkan
 
 	swapchainCreateInfo.imageExtent = swapchainSupport.SurfaceCapabilities.currentExtent;
 	swapchainCreateInfo.imageArrayLayers = swapchainSupport.SurfaceCapabilities.maxImageArrayLayers;
-	swapchainCreateInfo.surface = pRenderingContext.m_Surface;
+	swapchainCreateInfo.surface = pSurface;
 	swapchainCreateInfo.minImageCount = imageCount;
 	swapchainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	swapchainCreateInfo.preTransform = swapchainSupport.SurfaceCapabilities.currentTransform;
@@ -161,6 +161,10 @@ void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, Vulka
 	}
 
 	vkDestroySwapchainKHR(pRenderingContext.m_Device.m_Device, pSwapchain.m_Handle, pRenderingContext.m_Allocator);
+
+	pSwapchain.m_Framebuffers.Clear();
+	pSwapchain.m_SwapchainImageViews.Clear();
+	pSwapchain.m_SwapchainImages.Clear();
 }
 
 //-------------------------------------------------------------------------
@@ -176,7 +180,7 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 	// TODO: Make this configurable.
 	for (unsigned int imageIdx = 0; imageIdx < pRenderingContext.m_MaxImagesInFlight; imageIdx++)
 	{
-		VkImageView attachmentViews[2] = { pRenderingContext.m_Swapchain.m_SwapchainImageViews[imageIdx], pRenderingContext.m_Swapchain.m_DepthImage.m_View };
+		VkImageView attachmentViews[2] = { pSwapchain.m_SwapchainImageViews[imageIdx], pSwapchain.m_DepthImage.m_View };
 
 		VkFramebufferCreateInfo framebufferInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		framebufferInfo.pNext = nullptr;
@@ -184,8 +188,8 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 		framebufferInfo.renderPass = pMainRenderpass->m_Handle;
 		framebufferInfo.attachmentCount = 2;
 		framebufferInfo.pAttachments = attachmentViews;
-		framebufferInfo.width = pRenderingContext.m_Swapchain.m_SwapchainExtent.width;
-		framebufferInfo.height = pRenderingContext.m_Swapchain.m_SwapchainExtent.height;
+		framebufferInfo.width = pSwapchain.m_SwapchainExtent.width;
+		framebufferInfo.height = pSwapchain.m_SwapchainExtent.height;
 		framebufferInfo.layers = 1;
 
 		VK_CHECK(vkCreateFramebuffer(pRenderingContext.m_Device.m_Device, &framebufferInfo, pRenderingContext.m_Allocator, &pSwapchain.m_Framebuffers[imageIdx]));
@@ -210,12 +214,13 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 //-------------------------------------------------------------------------
 void VulkanSwapchain::RecreateSwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
+	// TODO: Make this work with multiple windows.
 	LOG_DEBUG("Recreating swapchain");
 
 	vkDeviceWaitIdle(pRenderingContext.m_Device.m_Device);
 
 	DestroySwapchain(pRenderingContext, pSwapchain);
-	CreateSwapchain(pRenderingContext, pSwapchain);
+	CreateSwapchain(pRenderingContext, ((VulkanWindowState_t*)pRenderingContext.m_pMainWindow)->m_WindowSurface, pSwapchain);
 	CreateFramebuffers(pRenderingContext, pSwapchain, pSwapchain.m_pFramebufferPass);
 
 	pRenderingContext.m_bResizingFramebuffer = false;

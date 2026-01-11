@@ -347,6 +347,14 @@ void CEngine::Shutdown()
 
 	g_pJobSystem->Shutdown();
 
+	// Release extra window resources.
+	if (m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer)
+	{
+		g_pRenderer->ReleaseWindowResources(*m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
+		delete m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer;
+		m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer = nullptr;
+	}
+
 	g_pRenderer->Shutdown();
 
 	// Release our main window.

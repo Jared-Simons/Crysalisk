@@ -11,21 +11,14 @@
 
 namespace Platform {
 
-	struct VulkanWindowState_t
-	{
-		VkSurfaceKHR	m_WindowSurface{};
-	};
-
 	const char* GetVulkanPlatformExtension()
 	{
 		return VK_KHR_WIN32_SURFACE_EXTENSION_NAME;
 	}
 
 	// TODO: Combine this with the below method.
-	bool RegisterWindowWithVulkan(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow)
+	bool CreateVulkanWindowSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow)
 	{
-		pWindow.m_pRendererState = new VulkanWindowState_t;
-
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		surfaceCreateInfo.hinstance = GetModuleHandleA(0);
 		surfaceCreateInfo.hwnd = static_cast<HWND>(pWindow.GetInternalHandle());
@@ -36,19 +29,15 @@ namespace Platform {
 		return true;
 	}
 
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow)
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow)
 	{
-		if (!pMainWindow)
-		{
-			LOG_ERROR("Vulkan->CreateVulkanSurface REQUIRES a valid pMainWindow pointer! Surface creation failed.");
-			return false;
-		}
+		VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
 
 		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo{ VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR };
 		surfaceCreateInfo.hinstance = GetModuleHandleA(0);
-		surfaceCreateInfo.hwnd = static_cast<HWND>(pMainWindow);
+		surfaceCreateInfo.hwnd = static_cast<HWND>(pWindow.GetInternalHandle());
 
-		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, pRenderingContext.m_Allocator, &pRenderingContext.m_Surface));
+		VK_CHECK(vkCreateWin32SurfaceKHR(pRenderingContext.m_Instance, &surfaceCreateInfo, pRenderingContext.m_Allocator, &pWindowState->m_WindowSurface));
 		
 		LOG_DEBUG("Vulkan surface created");
 		return true;

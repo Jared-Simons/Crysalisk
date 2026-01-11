@@ -22,6 +22,7 @@ public:
 	virtual void	RendererBackend_Shutdown() override;
 
 	virtual bool	RegisterWindow(Platform::IPlatformWindow& pWindow) override;
+	virtual void	ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
 
@@ -74,14 +75,11 @@ public:
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger{ VK_NULL_HANDLE };
 
-	// Surface
-	VkSurfaceKHR	m_Surface{ VK_NULL_HANDLE };
-
 	// Device
 	VulkanDevice m_Device{};
 
-	// Swapchain
-	VulkanSwapchain m_Swapchain{};
+	// Main application window.
+	Platform::IPlatformWindow*	m_pMainWindow{ nullptr };
 
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };
@@ -126,6 +124,6 @@ extern IRendererBackend* g_pRendererBackend;
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();
-	bool RegisterWindowWithVulkan(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow);
+	bool CreateVulkanWindowSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
 }

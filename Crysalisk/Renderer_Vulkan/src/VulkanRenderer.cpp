@@ -183,8 +183,15 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	LOG_DEBUG("Vulkan debug messenger created");
 #endif
 
+	// Save a pointer to the main window.
+	m_pMainWindow = pConfig.pMainWindow;
+
 	// Surface
-	if (!Platform::CreateVulkanSurface(s_VulkanContext, pConfig.pMainWindow->GetInternalHandle()))
+	// NOTE: We need to stagger window resource creation for the main window, because device creation relies on the window surface.
+	// For subsequent windows, we can just create the surface and swapchain with RegisterWindow().
+	m_pMainWindow->m_pRendererState = new VulkanWindowState_t;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	if (!Platform::CreateVulkanSurface(s_VulkanContext, *pConfig.pMainWindow))
 	{
 		LOG_ERROR("Failed to create Vulkan surface. Renderer initialization failed!");
 		return false;
@@ -217,7 +224,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	}
 
 	// Swapchain
-	if (!VulkanSwapchain::CreateSwapchain(s_VulkanContext, m_Swapchain))
+	if (!VulkanSwapchain::CreateSwapchain(s_VulkanContext, pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
 	{
 		LOG_ERROR("Failed to initialize Vulkan Swapchain. Renderer initialization failed!");
 		return false;
@@ -273,7 +280,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroySemaphore(m_Device.m_Device, m_ImageAvailableSemaphore, m_Allocator);
 
 	// Swapchain
-	VulkanSwapchain::DestroySwapchain(s_VulkanContext, m_Swapchain);
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	VulkanSwapchain::DestroySwapchain(s_VulkanContext, pWindowState->m_Swapchain);
 
 	// Graphics Command Pool
 	vkDestroyCommandPool(m_Device.m_Device, m_GraphicsCommandPool, m_Allocator);
@@ -282,7 +290,8 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	VulkanDevice::DestroyDevice(s_VulkanContext, m_Device);
 
 	// Surface
-	vkDestroySurfaceKHR(m_Instance, m_Surface, m_Allocator);
+	vkDestroySurfaceKHR(m_Instance, pWindowState->m_WindowSurface, m_Allocator);
+	pWindowState->m_WindowSurface = VK_NULL_HANDLE;
 
 #ifdef _DEBUG
 	// Debug messenger
@@ -299,9 +308,6 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 
 	// Clear out any heap allocations!
 	m_GraphicsCommandBuffers.Clear();
-	m_Swapchain.m_Framebuffers.Clear();
-	m_Swapchain.m_SwapchainImageViews.Clear();
-	m_Swapchain.m_SwapchainImages.Clear();
 }
 
 //-------------------------------------------------------------------------
@@ -310,9 +316,38 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 bool CVulkanRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
 {
 	CAssert(pWindow.m_pRendererState == nullptr);
-	Platform::RegisterWindowWithVulkan((*this), pWindow);
+	pWindow.m_pRendererState = new VulkanWindowState_t;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
+
+	Platform::CreateVulkanWindowSurface((*this), pWindow);
+
+	if (!VulkanSwapchain::CreateSwapchain((*this), pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
+	{
+		LOG_ERROR("Failed to create swapchain for window.", pWindow);
+		// TODO: Release vulkan window resources.
+		return false;
+	}
 
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
+{
+	vkDeviceWaitIdle(m_Device.m_Device);
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
+
+	VulkanSwapchain::DestroySwapchain((*this), pWindowState->m_Swapchain);
+	if (pWindowState->m_WindowSurface)
+	{
+		vkDestroySurfaceKHR(m_Instance, pWindowState->m_WindowSurface, m_Allocator);
+		pWindowState->m_WindowSurface = VK_NULL_HANDLE;
+	}
+
+	delete pWindow.m_pRendererState;
+	pWindow.m_pRendererState = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -329,7 +364,7 @@ bool CVulkanRenderer::CreateSwapchainFramebuffers(RendererView& pMainView)
 	// Get the internal framebuffer.
 	VulkanRenderPass* pInternalRenderpass = reinterpret_cast<VulkanRenderPass*>(pMainView.m_pInternalData);
 
-	return VulkanSwapchain::CreateFramebuffers(s_VulkanContext, m_Swapchain, pInternalRenderpass);
+	return VulkanSwapchain::CreateFramebuffers(s_VulkanContext, ((VulkanWindowState_t*)m_pMainWindow->m_pRendererState)->m_Swapchain, pInternalRenderpass);
 }
 
 //-------------------------------------------------------------------------
@@ -350,7 +385,8 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 	//s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Acquire the next swapchain image.
-	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, pWindowState->m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
 
 	CAssert(!m_bCurrentlyRendering[m_ImageIndex]);
 	m_bCurrentlyRendering[m_ImageIndex] = true;
@@ -359,7 +395,7 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 	{
 		vkDeviceWaitIdle(m_Device.m_Device);
 		// We need to recreate our swapchain.
-		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
+		pWindowState->m_Swapchain.RecreateSwapchain(s_VulkanContext, pWindowState->m_Swapchain);
 
 		m_bWindowResized = false;
 		m_bCurrentlyRendering[m_ImageIndex] = false;
@@ -386,8 +422,8 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 	VkViewport viewport{};
 	viewport.x = 0;
 	viewport.y = 0;
-	viewport.width = static_cast<float>(m_Swapchain.m_SwapchainExtent.width);
-	viewport.height = static_cast<float>(m_Swapchain.m_SwapchainExtent.height);
+	viewport.width = static_cast<float>(pWindowState->m_Swapchain.m_SwapchainExtent.width);
+	viewport.height = static_cast<float>(pWindowState->m_Swapchain.m_SwapchainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -395,7 +431,7 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 	
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = m_Swapchain.m_SwapchainExtent;
+	scissor.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
 
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
@@ -419,6 +455,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
 
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
@@ -443,7 +480,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = &m_Swapchain.m_Handle;
+	presentInfo.pSwapchains = &pWindowState->m_Swapchain.m_Handle;
 	presentInfo.pImageIndices = &m_ImageIndex;
 	presentInfo.pResults = nullptr;
 	VkResult imagePresentResult = vkQueuePresentKHR(m_Device.m_PresentQueue, &presentInfo);
@@ -453,7 +490,7 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	{
 		vkDeviceWaitIdle(m_Device.m_Device);
 		// We need to recreate our swapchain.
-		m_Swapchain.RecreateSwapchain(s_VulkanContext, m_Swapchain);
+		pWindowState->m_Swapchain.RecreateSwapchain(s_VulkanContext, pWindowState->m_Swapchain);
 
 		m_bWindowResized = false;
 		m_bCurrentlyRendering[m_ImageIndex] = false;
@@ -479,11 +516,12 @@ bool CVulkanRenderer::BeginRenderpass(RendererView& pRendererView)
 	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pRendererView.m_pInternalData);
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
 
 	renderpassInfo.renderPass = pInternalPass->m_Handle;
-	renderpassInfo.framebuffer = m_Swapchain.m_Framebuffers[m_ImageIndex];
+	renderpassInfo.framebuffer = pWindowState->m_Swapchain.m_Framebuffers[m_ImageIndex];
 	renderpassInfo.renderArea.offset = { 0, 0 };
-	renderpassInfo.renderArea.extent = m_Swapchain.m_SwapchainExtent;
+	renderpassInfo.renderArea.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
 
 	VkClearValue clearColors[2]{};
 	clearColors[0].color = { 0.3f, 0.0f, 0.3f, 1.0f };
@@ -675,6 +713,7 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 	Utl::CVector<VkAttachmentReference>		depthAttachmentReferences{};
 	int										iColorAttachmentCount{ 0 };
 	int										iDepthAttachmentCount{ 0 };
+	VulkanWindowState_t*					pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
 
 	for (int attIdx = 0; attIdx < pViewConfig.attachmentConfigs.Count(); attIdx++)
 	{
@@ -692,7 +731,7 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 		switch (pCurrentAttachmentConfig.eAttachmentType)
 		{
 			case eRendererViewAttachmentType::COLOR:
-				newAttachment.format = m_Swapchain.m_SwapchainImageFormat;	// NOTE: Just using the swapchain image format for now.
+				newAttachment.format = pWindowState->m_Swapchain.m_SwapchainImageFormat;	// NOTE: Just using the swapchain image format for now.
 				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
@@ -704,7 +743,7 @@ bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConf
 				break;
 
 			case eRendererViewAttachmentType::DEPTH:
-				newAttachment.format = m_Swapchain.m_DepthImageFormat;	// Get the depth image format from the swapchain.
+				newAttachment.format = pWindowState->m_Swapchain.m_DepthImageFormat;	// Get the depth image format from the swapchain.
 				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
 				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -1030,17 +1069,18 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	dynamicStateInfo.pDynamicStates = dynamicStates;
 
 	// Viewport
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)m_Swapchain.m_SwapchainExtent.width;
-	viewport.height = (float)m_Swapchain.m_SwapchainExtent.height;
+	viewport.width = (float)pWindowState->m_Swapchain.m_SwapchainExtent.width;
+	viewport.height = (float)pWindowState->m_Swapchain.m_SwapchainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor{};
 	scissor.offset = { 0, 0 };
-	scissor.extent = m_Swapchain.m_SwapchainExtent;
+	scissor.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
 
 	VkPipelineViewportStateCreateInfo viewportState{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
 	viewportState.viewportCount = 1;

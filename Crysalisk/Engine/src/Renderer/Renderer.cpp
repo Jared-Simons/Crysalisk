@@ -350,6 +350,14 @@ bool Renderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void Renderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
+{
+	m_RendererBackend->ReleaseWindowResources(pWindow);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Acquires renderer-specific resources for a texture.
 // Input:	pTexture - The texture to get resources for.
 //			internalIndex - The internal handle for this texture.

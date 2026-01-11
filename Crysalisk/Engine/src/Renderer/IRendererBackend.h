@@ -23,6 +23,7 @@ public:
 	virtual void	RendererBackend_Shutdown() = 0;
 
 	virtual bool	RegisterWindow(Platform::IPlatformWindow& pWindow) = 0;
+	virtual void	ReleaseWindowResources(Platform::IPlatformWindow& pWindow) = 0;
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
 

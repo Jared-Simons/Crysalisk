@@ -29,6 +29,7 @@ public:
 	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
 
 	bool			RegisterWindow(Platform::IPlatformWindow& pWindow);
+	void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow);
 	
 	void			ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderViewConfigs);
 

@@ -68,7 +68,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 
 		// Check for present support as well
 		VkBool32 presentSupport = VK_FALSE;
-		vkGetPhysicalDeviceSurfaceSupportKHR(pOutDevice.m_PhysicalDevice, queueFamilyIndex, pRenderingContext.m_Surface, &presentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(pOutDevice.m_PhysicalDevice, queueFamilyIndex, ((VulkanWindowState_t*)pRenderingContext.m_pMainWindow->m_pRendererState)->m_WindowSurface, &presentSupport);
 
 		if (presentSupport && (pOutDevice.m_QueueFamilyIndices.PresentQueueFamilyIndex < 1))
 		{
