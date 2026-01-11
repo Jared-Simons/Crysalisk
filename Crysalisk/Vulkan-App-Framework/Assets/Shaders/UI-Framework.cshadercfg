@@ -1,0 +1,24 @@
+name="Core.UI"
+num_shader_stages=2
+
+stages
+{
+	"core.UI.vert.spv", "vertex"
+	"core.UI.frag.spv", "fragment"
+}
+
+topology_type="line_list" 
+enable_depth_testing="false"
+enable_blending="true"
+
+# Vertex attributes
+attributes
+{
+	"position", "vec2"
+}
+
+# Uniforms
+uniforms
+{
+	"hovered", 		"int", 		"draw" 
+}

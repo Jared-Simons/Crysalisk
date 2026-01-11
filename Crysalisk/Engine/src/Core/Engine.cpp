@@ -58,11 +58,15 @@ public:
 
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const override { return m_pEngineWindow; }
 
+	virtual const EngineSystems_t*		GetEngineSubsystems() const override { return &m_EngineSystems; }
+
 	const CMap&		GetCurrentMap() const { return m_CurrentMap; }
 
 private:
 	EngineConfig_t		m_engineConfig;
 	ICrysApplication*	m_pApplication{ nullptr };
+
+	EngineSystems_t		m_EngineSystems{};
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
 
@@ -191,6 +195,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Setup application-specific renderer state.
 	g_pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
+	m_EngineSystems.pRenderer = g_pRenderer;
 
 	// Save off a pointer to the renderer library so apps can have it.
 	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
@@ -230,6 +235,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		LOG_ERROR("Failed to initialize shader system! Application cannot continue.");
 		return false;
 	}
+	m_EngineSystems.pShaderSystem = g_pShaderSystem;
 
 	// Material system.
 	MaterialSystemConfig_t materialSysConfig{};
@@ -259,6 +265,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Initialize the application.
+	engineConfig.pAppConfig->pEngine = this;
 	m_pApplication->Initialize(engineConfig.pAppConfig);
 
 	// TODO: This is bad.

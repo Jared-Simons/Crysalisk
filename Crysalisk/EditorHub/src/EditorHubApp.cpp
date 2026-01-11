@@ -11,7 +11,7 @@
 #include <Strings/String_Utils.h>
 
 // Framework includes.
-#include <UIContext.h>
+#include <AppFramework.h>
 
 #include "ToolsTypes.h"
 
@@ -31,8 +31,9 @@ private:
 	virtual bool LoadTool(const char* pszToolLibraryName);
 
 private:
-	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
-	Utl::CVector<IToolApp*> m_pTools{};
+	ApplicationConfig_t*			m_pApplicationConfig{ nullptr };
+	AppFramework::IAppFramework*	m_pAppFramework{ nullptr };
+	Utl::CVector<IToolApp*>			m_pTools{};
 };
 
 CEditorHubApp s_EditorHubApp{};
@@ -49,42 +50,47 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	return true;
 }
 
+typedef void* (*PFN_GetAppFrameworkState)();
+
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Launching Crysalisk Tools");
 	m_pTools.Resize(1);
 
+	// Load the App Framework module.
+	Platform::ISysModule* pUIModule = Platform::LoadSysModule("AppFramework");
+	if (!pUIModule)
+	{
+		LOG_FATAL("Failed to load AppFramework.dll! Application cannot continue.");
+		return false;
+	}
+
+	PFN_GetAppFrameworkState pfnGetAppFramework = (PFN_GetAppFrameworkState)pUIModule->GetFuncAddr("GetAppFrameworkState");
+	if (!pfnGetAppFramework)
+	{
+		LOG_ERROR("Failed to get a pointer to the app framework state. Initialization failed.");
+		return false;
+	}
+	m_pAppFramework = (AppFramework::IAppFramework*)pfnGetAppFramework();
+	CAssert(m_pAppFramework != nullptr);
+
+	// Initialize the framework.
+	AppFramework::AppFrameworkConfig_t appConfig{};
+	appConfig.pEngine = pAppConfig->pEngine;
+	if (!m_pAppFramework->Initialize(appConfig))
+	{
+		LOG_ERROR("Failed to initialize app framework! Application cannot continue.");
+		return false;
+	}
+
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
-
-	Platform::WindowParams_t windowParams{};
-	windowParams.pszName = "Crysalisk Tools";
-	windowParams.X = 100;
-	windowParams.Y = 100;
-	windowParams.Width = 1080;
-	windowParams.Height = 720;
-
-	AppFramework::UIAppConfig_t appConfig{};
-	appConfig.pWindow = windowParams;
-	appConfig.pRendererLibrary = pAppConfig->pRendererLibrary;
-
-	AppFramework::CreateUIContext(appConfig);
-
-	pAppConfig->pWindowToRegisterWithRenderer = AppFramework::GetActiveWindow();
 
 	return true;
 }
 
 bool CEditorHubApp::Run()
 {
-	if (!AppFramework::ShouldRunUIContext())
-	{
-		// TODO: This is just a quick, easy way to quit the engine.
-		return false;
-	}
-
-	AppFramework::RunUIContext();
-
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
 	for (int iTool = 0; iTool < m_pTools.Count(); iTool++)
@@ -97,8 +103,6 @@ bool CEditorHubApp::Run()
 
 void CEditorHubApp::Shutdown()
 {
-	AppFramework::ShutdownUIContext();
-
 	// Clean up lingering memory.
 	m_pApplicationConfig->renderViewConfigs.Clear();
 

@@ -11,19 +11,8 @@ set(APPFRAMEWORK_ROOT AppFramework/src/)
 project(AppFramework VERSION 1.0)
 
 set(APPFRAMEWORK_SRC_FILES
-	${APPFRAMEWORK_ROOT}/pch.h
-	${APPFRAMEWORK_ROOT}/ControlFactory.cpp
-	${APPFRAMEWORK_ROOT}/ControlFactory.h
-	${APPFRAMEWORK_ROOT}/Test.cpp
-	${APPFRAMEWORK_ROOT}/Test.h
-	${APPFRAMEWORK_ROOT}/UIContext.cpp
-	${APPFRAMEWORK_ROOT}/UIContext.h
-	${APPFRAMEWORK_ROOT}/Controls/BasePanel.cpp
-	${APPFRAMEWORK_ROOT}/Controls/BasePanel.h
-	${APPFRAMEWORK_ROOT}/Controls/Button.cpp
-	${APPFRAMEWORK_ROOT}/Controls/Button.h
-	${APPFRAMEWORK_ROOT}/Renderer/IRendererBackend.h
-	${APPFRAMEWORK_ROOT}/Renderer/RendererTypes.h
+	${APPFRAMEWORK_ROOT}/AppFramework.cpp
+	${APPFRAMEWORK_ROOT}/AppFramework.h
 )
 
 # Group source files
@@ -35,8 +24,7 @@ add_library(AppFramework SHARED ${APPFRAMEWORK_SRC_FILES})
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(AppFramework PUBLIC ${APPFRAMEWORK_ROOT})
-target_include_directories(AppFramework PUBLIC ${APPFRAMEWORK_ROOT}../../Crysalisk-Stdlib/src)
-target_include_directories(AppFramework PUBLIC $ENV{VULKAN_SDK}/Include/)
+target_include_directories(AppFramework PUBLIC ${APPFRAMEWORK_ROOT}../Engine/src)
 
 # Force multi-byte character set.
 target_compile_definitions(AppFramework PRIVATE _MBCS)
@@ -52,6 +40,7 @@ endif()
 
 # Linker input.
 target_link_libraries(AppFramework PUBLIC Core)
+target_link_libraries(AppFramework PUBLIC Engine)
 
 # Linker input.
 

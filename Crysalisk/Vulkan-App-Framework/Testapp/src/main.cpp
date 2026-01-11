@@ -5,7 +5,7 @@
 
 int main()
 {
-	Platform::WindowParams_t windowParams{};
+/*	Platform::WindowParams_t windowParams{};
 	windowParams.pszName = "Example Application";
 	windowParams.X = 0;
 	windowParams.Y = 0;
@@ -24,7 +24,7 @@ int main()
 		//Platform::ProcessPlatformMessageLoop();
 	}
 
-	std::printf("Shutdown successful!\n");
+	std::printf("Shutdown successful!\n");*/
 
 	return 0;
 }

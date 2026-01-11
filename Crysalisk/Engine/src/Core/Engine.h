@@ -23,6 +23,15 @@ struct EngineConfig_t
 };
 
 //-------------------------------------------------------------------------
+// Interfaces of engine systems.
+//-------------------------------------------------------------------------
+struct EngineSystems_t
+{
+	class Renderer*			pRenderer{ nullptr };
+	class IShaderSystem*	pShaderSystem{ nullptr };
+};
+
+//-------------------------------------------------------------------------
 // Interface for the core engine.
 //-------------------------------------------------------------------------
 class IEngine
@@ -41,6 +50,9 @@ public:
 
 	// Gets a pointer to the engine's main window.
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const = 0;
+
+	// Gets a pointer to engine subsystems.
+	virtual const EngineSystems_t*		GetEngineSubsystems() const = 0;
 };
 
 // Global interface to the engine context.

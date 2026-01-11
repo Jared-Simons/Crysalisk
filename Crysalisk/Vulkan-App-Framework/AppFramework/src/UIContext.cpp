@@ -49,6 +49,10 @@ namespace AppFramework
 
 		s_UIState.rendererBackend = (IRendererBackend*)pfnGetRendererState();
 
+		// Setup UI shaders.
+		{
+		}
+
 		// CONTROLTODO: Test!
 		//s_UIState.m_Controls.PushBack(s_UIState.controlFactory.CreateControl(s_UIState.rendererBackend, CONTROL_TYPE_PANEL, 0, 0, 1080, 25));
 		//s_UIState.m_Controls.PushBack(s_UIState.controlFactory.CreateControl(s_UIState.rendererBackend, CONTROL_TYPE_BUTTON, 0, 100, 1080, 25));

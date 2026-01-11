@@ -11,7 +11,8 @@
 
 struct ApplicationConfig_t
 {
-	class ICrysApplication* pApplication{ nullptr };
+	class ICrysApplication*				pApplication{ nullptr };
+	class IEngine*						pEngine{ nullptr };
 
 	// Renderer resources.
 	Platform::ISysModule*				pRendererLibrary{ nullptr };
