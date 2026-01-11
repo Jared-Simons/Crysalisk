@@ -30,7 +30,7 @@ set(APPFRAMEWORK_SRC_FILES
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${APPFRAMEWORK_SRC_FILES})
 
 # Create AppFramework library.
-add_library(AppFramework ${APPFRAMEWORK_SRC_FILES})
+add_library(AppFramework SHARED ${APPFRAMEWORK_SRC_FILES})
 
 # Include directories
 # TODO: Get these directories from somewhere else.
@@ -49,10 +49,17 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 endif()
 
 # Linker directories
-target_link_directories(AppFramework PUBLIC $ENV{VULKAN_SDK}/Lib/)
 
 # Linker input.
 target_link_libraries(AppFramework PUBLIC Core)
 
 # Linker input.
-target_link_libraries(AppFramework PUBLIC Vulkan-1) # Vulkan symbol lib
+
+# Post-Build copy.
+add_custom_command(
+	TARGET AppFramework
+	POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+	${CMAKE_CURRENT_SOURCE_DIR}/bin
+	${CMAKE_CURRENT_SOURCE_DIR}/../bin
+)

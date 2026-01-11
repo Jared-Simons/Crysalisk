@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Defines.h>
 #include "Platform/Platform.h"
 
 namespace AppFramework
@@ -11,15 +12,15 @@ namespace AppFramework
 		Platform::ISysModule*		pRendererLibrary{ nullptr };
 	};
 
-	bool CreateUIContext(UIAppConfig_t& pConfig);
-	void ShutdownUIContext();
-	void RunUIContext();
+	DLL_EXPORT bool CreateUIContext(UIAppConfig_t& pConfig);
+	DLL_EXPORT void ShutdownUIContext();
+	DLL_EXPORT void RunUIContext();
 
-	Platform::IPlatformWindow* GetActiveWindow();
+	DLL_EXPORT Platform::IPlatformWindow* GetActiveWindow();
 
 	// TODO: Make this more elegant.
-	bool ShouldRunUIContext();
-	void SetUIContextQuitting(bool bQuitting);
+	DLL_EXPORT bool ShouldRunUIContext();
+	DLL_EXPORT void SetUIContextQuitting(bool bQuitting);
 	void SetMousePosition(int xPos, int yPos);
 	void GetMousePosition(int& pXPos, int& pYPos);
 	void SetLeftMousePressed(unsigned int mouseButtonFlags, bool bPressed);

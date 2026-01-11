@@ -293,6 +293,9 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 	vkDestroySurfaceKHR(m_Instance, pWindowState->m_WindowSurface, m_Allocator);
 	pWindowState->m_WindowSurface = VK_NULL_HANDLE;
 
+	delete m_pMainWindow->m_pRendererState;
+	m_pMainWindow->m_pRendererState = nullptr;
+
 #ifdef _DEBUG
 	// Debug messenger
 	PFN_vkDestroyDebugUtilsMessengerEXT destroyDebuggerFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -324,7 +327,7 @@ bool CVulkanRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
 	if (!VulkanSwapchain::CreateSwapchain((*this), pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
 	{
 		LOG_ERROR("Failed to create swapchain for window.", pWindow);
-		// TODO: Release vulkan window resources.
+		ReleaseWindowResources(pWindow);
 		return false;
 	}
 
