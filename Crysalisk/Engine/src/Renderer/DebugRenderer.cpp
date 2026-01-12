@@ -81,7 +81,7 @@ public:
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
 	virtual int		AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
-	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
+	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
 	virtual void	RemoveDebugGeometry(int debugGeoHandle) override;
 
@@ -110,8 +110,19 @@ private:
 	float			m_flRendererTime{ 0.0f };
 };
 
-CDebugRenderer s_DebugRenderer;
-IDebugRenderer* g_pDebugRenderer = &s_DebugRenderer;
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IDebugRenderer::AllocateDebugRendererState(IDebugRenderer** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold debug render system state was not provided! Debug render system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CDebugRenderer;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -632,7 +643,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 //-------------------------------------------------------------------------
 // Purpose: Adds a piece of text to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
+int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
 	// TODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
@@ -647,7 +658,7 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 		pNewGeometry.flTimeToRemove = -1.0f;
 	}
 
-	GeometryConfig_t textConfig = g_pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
+	GeometryConfig_t textConfig = pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
 
 	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
 
@@ -655,7 +666,7 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
 
 	// Apply the font atlas.
-	TextureHandle_t hTexture = g_pFontSystem->AcquireFontAtlasTexture(hFont);
+	TextureHandle_t hTexture = pFontSystem->AcquireFontAtlasTexture(hFont);
 	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
 
 	// Create a new transform matrix.

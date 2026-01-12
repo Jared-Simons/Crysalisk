@@ -29,6 +29,8 @@ struct MaterialSystemConfig_t
 class IMaterialSystem
 {
 public:
+	static void					AllocateMaterialSystemState(IMaterialSystem** ppSystemState);
+
 	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) = 0;
 	virtual void				Shutdown() = 0;
@@ -61,6 +63,3 @@ public:
 	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) = 0;
 	virtual void				ApplyLightData() = 0;
 };
-
-// Global interface to the material system context.
-DLL_EXPORT IMaterialSystem* g_pMaterialSystemInternal;

@@ -40,6 +40,8 @@ struct DebugRendererConfig_t
 class IDebugRenderer
 {
 public:
+	static void		AllocateDebugRendererState(IDebugRenderer** ppSystemState);
+
 	virtual bool	Initialize(DebugRendererConfig_t& pAppConfig) = 0;
 	virtual bool	InitializeDebugShaders() = 0;
 	virtual void	Shutdown() = 0;
@@ -52,10 +54,7 @@ public:
 	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, float flDuration) = 0;
 	virtual int		AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration) = 0;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
-	virtual int		AddText(Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
+	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;
 	virtual void	RemoveDebugGeometry(int debugGeoHandle) = 0;
 };
-
-// Interface to the debug renderer context.
-extern IDebugRenderer* g_pDebugRenderer;

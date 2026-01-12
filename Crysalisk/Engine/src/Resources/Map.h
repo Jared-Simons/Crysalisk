@@ -30,15 +30,15 @@ struct Ray_t
 class CMap
 {
 public:
-	static bool InitializeFromResource(struct MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap);
+	static bool InitializeFromResource(struct MapLoader::MapResource_t& pNewMapResource, class IMeshSystem* pMeshSystem, class IMaterialSystem* pMaterialSystem, CMap& pOutMap);
 
-	void	UnloadMap();
+	void	UnloadMap(class IMeshSystem* pMeshSystem);
 
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	void										GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
-	void										CastRayIntoScene(Ray_t& pRay) const;
+	void										GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
+	void										CastRayIntoScene(Ray_t& pRay, class IDebugRenderer* pDebugRenderer) const;
 
 private:
 	char*								m_pszMapName{ nullptr };
@@ -54,4 +54,4 @@ private:
 	bool								m_bMapResourcesLoaded{ false };
 };
 
-bool LoadMap(const char* pszMapName, CMap& pOutMapResource);
+bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource);

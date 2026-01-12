@@ -161,9 +161,19 @@ private:
 	} spotLight;
 };
 
-// Material System context.
-static CMaterialSystem s_MaterialSystem;
-IMaterialSystem* g_pMaterialSystemInternal = &s_MaterialSystem;
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IMaterialSystem::AllocateMaterialSystemState(IMaterialSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold material system state was not provided! Material system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CMaterialSystem;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.

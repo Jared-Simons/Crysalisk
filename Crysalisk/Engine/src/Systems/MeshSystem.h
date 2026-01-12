@@ -22,6 +22,8 @@ struct MeshSystemConfig_t
 	class Renderer* pRenderer{ nullptr };
 	// A pointer to the job system.
 	class IJobSystem* pJobSystem{ nullptr };
+	// A pointer to the material system.
+	class IMaterialSystem* pMaterialSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -30,6 +32,8 @@ struct MeshSystemConfig_t
 class IMeshSystem
 {
 public:
+	static void				AllocateMeshSystemState(IMeshSystem** ppSystemState);
+
 	// Initialize, shutdown
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
@@ -42,5 +46,3 @@ public:
 	// Mesh release.
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) = 0;
 };
-
-extern IMeshSystem* g_pMeshSystem;

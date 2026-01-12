@@ -45,7 +45,7 @@ const int kUIInputHeight = 480;
 // Input:	pszText - The new string to be rendered with this object.
 // Output:	none.
 //-------------------------------------------------------------------------
-void TextObject::SetText(class Renderer* pRenderer, const char* pszText)
+void TextObject::SetText(class Renderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
 {
 	// Can't render text without text to render!
 	if (!pszText || Utl::StringLength(pszText) < 1)
@@ -58,7 +58,7 @@ void TextObject::SetText(class Renderer* pRenderer, const char* pszText)
 	m_pszText = Utl::StringDuplicate(pszText);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
+	GeometryConfig2D_t newConfig = pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
 	
 	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
 	// Otherwise, just update the existing data.
@@ -121,16 +121,26 @@ private:
 	FontHandle_t	m_hDefaultFont{ kInvalidID_U32 };
 };
 
-// Font System context.
-static CFontSystem s_FontSystem;
-IFontSystem* g_pFontSystem = &s_FontSystem;
-
 // The internal font atlas data for a font.
 // Can be accessed through pFont->m_pInternalData.
 struct InternalFontAtlasData_t
 {
 	Utl::CVector<FontLoader::FontCharData_t>	glyphs{};
 };
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IFontSystem::AllocateFontSystemState(IFontSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold font system state was not provided! Font system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CFontSystem;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -160,7 +170,7 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	s_UIShaderLocations.model = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	// Load default font.
-	m_hDefaultFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;

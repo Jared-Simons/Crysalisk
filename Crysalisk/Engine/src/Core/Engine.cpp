@@ -255,7 +255,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	debugRendererConfig.uMaxDebugGeometries = 64;
 	debugRendererConfig.pRenderer = m_EngineSystems.pRenderer;
 	debugRendererConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
-	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
+	
+	IDebugRenderer::AllocateDebugRendererState(&m_EngineSystems.pDebugRenderer);
+	if (!m_EngineSystems.pDebugRenderer->Initialize(debugRendererConfig))
 	{
 		LOG_ERROR("Failed to initialize the debug renderer.");
 		return false;
@@ -266,36 +268,40 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	materialSysConfig.MaxMaterials = 2049;
 	materialSysConfig.pTextureSystem = m_EngineSystems.pTextureSystem;
 	materialSysConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
-	if (!g_pMaterialSystemInternal->Initialize(materialSysConfig))
+
+	IMaterialSystem::AllocateMaterialSystemState(&m_EngineSystems.pMaterialSystem);
+	if (!m_EngineSystems.pMaterialSystem->Initialize(materialSysConfig))
 	{
 		LOG_ERROR("Failed to initialize material system! Application cannot continue.");
 		return false;
 	}
-	m_EngineSystems.pMaterialSystem = g_pMaterialSystemInternal;
 
 	// Mesh system.
 	MeshSystemConfig_t meshSysConfig{};
 	meshSysConfig.MaxMeshes = 249;
 	meshSysConfig.pRenderer = m_EngineSystems.pRenderer;
 	meshSysConfig.pJobSystem = m_EngineSystems.pJobSystem;
-	if (!g_pMeshSystem->Initialize(meshSysConfig))
+	meshSysConfig.pMaterialSystem = m_EngineSystems.pMaterialSystem;
+
+	IMeshSystem::AllocateMeshSystemState(&m_EngineSystems.pMeshSystem);
+	if (!m_EngineSystems.pMeshSystem->Initialize(meshSysConfig))
 	{
 		LOG_ERROR("Failed to initialize mesh system! Application cannot continue.");
 		return false;
 	}
-	m_EngineSystems.pMeshSystem = g_pMeshSystem;
 
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
 	fontSysConfig.pTextureSystem = m_EngineSystems.pTextureSystem;
 	fontSysConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
-	if (!g_pFontSystem->Initialize(fontSysConfig))
+
+	IFontSystem::AllocateFontSystemState(&m_EngineSystems.pFontSystem);
+	if (!m_EngineSystems.pFontSystem->Initialize(fontSysConfig))
 	{
 		LOG_ERROR("Failed to initialize font system! Application cannot continue.");
 		return false;
 	}
-	m_EngineSystems.pFontSystem = g_pFontSystem;
 
 	// Initialize the application.
 	engineConfig.pAppConfig->pEngine = this;
@@ -377,11 +383,23 @@ void CEngine::Shutdown()
 	m_pApplication->Shutdown();
 
 	if (m_CurrentMap.IsMapLoaded())
-		m_CurrentMap.UnloadMap();
+		m_CurrentMap.UnloadMap(m_EngineSystems.pMeshSystem);
 
-	g_pFontSystem->Shutdown();
-	g_pMeshSystem->Shutdown();
-	g_pMaterialSystemInternal->Shutdown();
+	m_EngineSystems.pFontSystem->Shutdown();
+	delete m_EngineSystems.pFontSystem;
+	m_EngineSystems.pFontSystem = nullptr;
+
+	m_EngineSystems.pMeshSystem->Shutdown();
+	delete m_EngineSystems.pMeshSystem;
+	m_EngineSystems.pMeshSystem = nullptr;
+
+	m_EngineSystems.pMaterialSystem->Shutdown();
+	delete m_EngineSystems.pMaterialSystem;
+	m_EngineSystems.pMaterialSystem = nullptr;
+
+	m_EngineSystems.pDebugRenderer->Shutdown();
+	delete m_EngineSystems.pDebugRenderer;
+	m_EngineSystems.pDebugRenderer = nullptr;
 
 	m_EngineSystems.pShaderSystem->Shutdown();
 	delete m_EngineSystems.pShaderSystem;
@@ -472,7 +490,7 @@ bool Event_KeyReleased(EventData_t data)
 		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())
 		{
-			LoadMap("TestMap", s_Engine.m_CurrentMap);
+			LoadMap("TestMap", s_Engine.GetEngineSubsystems()->pMeshSystem, s_Engine.GetEngineSubsystems()->pMaterialSystem, s_Engine.m_CurrentMap);
 			LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
 			LOG_WARN("Map load took %.5f", mapLoadTimer.GetElapsedTime());
 		}
@@ -481,7 +499,7 @@ bool Event_KeyReleased(EventData_t data)
 	{
 		if (s_Engine.m_CurrentMap.IsMapLoaded())
 		{
-			s_Engine.m_CurrentMap.UnloadMap();
+			s_Engine.m_CurrentMap.UnloadMap(s_Engine.m_EngineSystems.pMeshSystem);
 			LOG_DEBUG("Memory usage post-map unload: %.10f", g_pMemoryManager->GetPercentAllocated());
 		}
 	}
@@ -536,7 +554,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 		// We can only actually cast the ray if the level is loaded.
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
-			s_Engine.GetCurrentMap().CastRayIntoScene(ray);
+			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineSubsystems()->pDebugRenderer);
 
 			Vector4D rayColor{};
 			if (ray.bDidHit)
@@ -547,7 +565,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 			{
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			g_pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			s_Engine.GetEngineSubsystems()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
 		}
 	}
 
@@ -603,14 +621,7 @@ static bool Event_WindowResizedUnpause(EventData_t data)
 void ReturnInterfacesToRegistry()
 {
 	LOG_DEBUG("Engine.dll passing interfaces down to Core.dll");
-
-	// This does nothing in the engine.dll
-	// TODO: How should the engine implicitly pass interfaces back to the core registry, just like any other dll?
-
-	Platform::SystemInterface_t materialSystem{};
-	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
-	materialSystem.szSystemName = Utl::StringDuplicate("material_system");
-	Platform::RegisterInterface(materialSystem);
+	LOG_WARN("REMOVE THIS FUNCTION!");
 }
 
 //-------------------------------------------------------------------------

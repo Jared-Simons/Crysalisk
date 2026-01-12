@@ -30,7 +30,7 @@ class TextObject
 {
 public:
 	// Sets the actual text to be rendered.
-	void				SetText(class Renderer* pRenderer, const char* pszText);
+	void				SetText(class Renderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText);
 
 public:
 	// The size of this text.
@@ -51,6 +51,8 @@ public:
 class IFontSystem
 {
 public:
+	static void					AllocateFontSystemState(IFontSystem** ppSystemState);
+
 	// Initialization, shutdown.
 	virtual bool				Initialize(FontSystemConfig_t config) = 0;
 	virtual void				Shutdown() = 0;
@@ -64,6 +66,3 @@ public:
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSizet) = 0;
 	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) = 0;
 };
-
-// Global interface to the font system context.
-DLL_EXPORT IFontSystem* g_pFontSystem;

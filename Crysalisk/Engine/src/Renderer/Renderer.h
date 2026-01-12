@@ -113,4 +113,6 @@ public:
 
 	// A pointer to the window we're rendering to.
 	Platform::IPlatformWindow*	m_pMainWindow;
+
+	class IDebugRenderer*	m_pDebugRenderer{ nullptr };
 };

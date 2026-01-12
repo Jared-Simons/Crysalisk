@@ -179,9 +179,6 @@ void Renderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
 
-	// Shutdown the debug renderer.
-	g_pDebugRenderer->Shutdown();
-
 	m_RenderViews.Clear();
 
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
@@ -243,6 +240,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->BeginRenderpass(*m_SceneView);
 	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem;
+	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineSubsystems()->pMaterialSystem;
 
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
@@ -251,7 +249,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Vector vecCameraPos = m_Camera.vecPosition;
 	Matrix4x4 model = Matrix4x4{ 1.0f };
 
-	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
+	pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
 	// TODO: Figure out how to split out these matrices per model.
 	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
@@ -266,7 +264,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		unsigned int						pCulledGeometries{ 0 };
 
 		// Get the renderables from the map.
-		pCurrentMap.GetRenderablesFromScene(frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
+		pCurrentMap.GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
 		m_Metrics.NumGeometriesFrustumCulled = pCulledGeometries;
 
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
@@ -274,10 +272,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			// Apply transformations.
 			//model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
 			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
+			pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
+			pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
 			DrawGeometry(*pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
@@ -289,10 +287,10 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			// Apply transformations.
 			//model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
 			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
+			pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
+			pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
 			DrawGeometry(*pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
@@ -301,7 +299,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 
 	m_RendererBackend->EndRenderpass();
 
-	g_pDebugRenderer->Update();
+	m_pDebugRenderer->Update();
 
 	// Render our debug geometry.
 	DebugRendererFrameData_t debugFrameData{};
@@ -310,7 +308,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	debugFrameData.vecCameraPosition = m_Camera.vecPosition;
 	debugFrameData.vecCameraForward = m_Camera.vecFront;
 	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
-	g_pDebugRenderer->Render(debugFrameData);
+	m_pDebugRenderer->Render(debugFrameData);
 
 	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
 	{
@@ -349,7 +347,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
 
 		// Set the string.
-		testText.SetText(this, szMetricsString);
+		testText.SetText(this, m_Config.pEngine->GetEngineSubsystems()->pFontSystem, szMetricsString);
 	}
 
 	// Increment the frame count.
@@ -675,12 +673,13 @@ void Renderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer
 bool Renderer::CreateTempTextObjects()
 {
 	hUIShader = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem->AcquireShader("Core.UI");
-	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	testFont = m_Config.pEngine->GetEngineSubsystems()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 
-	if (!g_pDebugRenderer->InitializeDebugShaders())
+	m_pDebugRenderer = m_Config.pEngine->GetEngineSubsystems()->pDebugRenderer;
+	if (!m_pDebugRenderer->InitializeDebugShaders())
 	{
 		LOG_ERROR("Failed to initialize debug shaders!");
 		return false;
