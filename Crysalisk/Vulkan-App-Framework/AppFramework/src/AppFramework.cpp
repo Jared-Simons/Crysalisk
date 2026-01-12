@@ -57,7 +57,9 @@ namespace AppFramework
 
 		// Initialize render state.
 		{
-			m_RenderState.m_hUIShader = m_pShaderSystem->AcquireShader("UI-Framework");
+			//m_RenderState.m_hUIShader = m_pShaderSystem->AcquireShader("UI-Framework");
+			// TODO: DO NOT HARDCODE THIS PATH!!!!!
+			m_RenderState.m_hUIShader = m_pShaderSystem->AcquireShader("../../Vulkan-App-Framework/Assets/Shaders/UI-Framework");
 		}
 
 		return true;

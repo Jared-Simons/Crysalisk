@@ -1265,13 +1265,16 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	if (pConfig.perInstanceUBOStride == 0)
 		bUseFreelist = false;	// We do not need a freelist if we're only tracking per-frame state.
 
-	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	if (iUBOSize > 0)
 	{
-		if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bUseFreelist, pInternalShader->m_UniformBuffers[idx]))
+		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
 		{
-			LOG_ERROR("Failed to create uniform buffer.");
-			// TODO: Make sure to release any allocated resoures!
-			return false;
+			if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bUseFreelist, pInternalShader->m_UniformBuffers[idx]))
+			{
+				LOG_ERROR("Failed to create uniform buffer.");
+				// TODO: Make sure to release any allocated resoures!
+				return false;
+			}
 		}
 	}
 
@@ -1316,7 +1319,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VkPushConstantRange pushConstants{};
 	pushConstants.size = pConfig.perDrawUBOStride;
 	pushConstants.offset = 0;
-	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT; // Currently only used in the vertex shader.
+	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // TODO: Make this configurable.
 
 	VkDescriptorSetLayout descriptorSetLayouts[2] = { pInternalShader->m_DescriptorSetLayouts[0].m_Layout, pInternalShader->m_DescriptorSetLayouts[1].m_Layout };
 
@@ -1395,21 +1398,24 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
 
 	// Bind the descriptor sets to our uniform buffer.
-	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	if (pConfig.perFrameUBOStride > 0)
 	{
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = pInternalShader->m_UniformBuffers[idx].m_Handle;
-		bufferInfo.offset = 0; // Per-frame is first!
-		bufferInfo.range = pConfig.perFrameUBOStride;
+		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		{
+			VkDescriptorBufferInfo bufferInfo{};
+			bufferInfo.buffer = pInternalShader->m_UniformBuffers[idx].m_Handle;
+			bufferInfo.offset = 0; // Per-frame is first!
+			bufferInfo.range = pConfig.perFrameUBOStride;
 
-		VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		descriptorWrite.dstSet = pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrite.pBufferInfo = &bufferInfo;
+			VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+			descriptorWrite.dstSet = pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx];
+			descriptorWrite.dstBinding = 0;
+			descriptorWrite.descriptorCount = 1;
+			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrite.pBufferInfo = &bufferInfo;
 
-		vkUpdateDescriptorSets(m_Device.m_Device, 1, &descriptorWrite, 0, nullptr);
+			vkUpdateDescriptorSets(m_Device.m_Device, 1, &descriptorWrite, 0, nullptr);
+		}
 	}
 
 	// We'll need then when setting up uniform descriptors.

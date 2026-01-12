@@ -830,22 +830,6 @@ namespace Platform
 			}
 		}
 
-		// Attempt to get the module's 'ObtainInterfaces' function to get shared interfaces
-		pNewModule->m_ObtainInterfacesFunc = (PFN_ObtainInterfaces)GetProcAddress(pNewModule->m_Module, "ObtainInterfaces");
-
-		if (!pNewModule->m_ObtainInterfacesFunc)
-		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ObtainInterfaces()' from library '%s.dll' the module may not work as intended!", pszModulePath);
-		}
-
-		// Attempt to get at the module's 'ConnectInterface' function to bridge the gap!
-		pNewModule->m_ConnectInterfaceFunc = (PFN_ConnectInterface)GetProcAddress(pNewModule->m_Module, "ConnectInterface");
-
-		if (!pNewModule->m_ConnectInterfaceFunc)
-		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pszModulePath);
-		}
-
 		pNewModule->m_szModuleName = Utl::StringDuplicate(pszModulePath);
 
 		// Register this module.
