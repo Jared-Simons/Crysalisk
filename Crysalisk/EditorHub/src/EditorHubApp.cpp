@@ -98,6 +98,8 @@ bool CEditorHubApp::Run()
 		m_pTools[iTool]->Tool_Run();
 	}
 
+	m_pAppFramework->Run();
+
 	return true;
 }
 
@@ -105,8 +107,9 @@ void CEditorHubApp::Shutdown()
 {
 	// Clean up lingering memory.
 	m_pApplicationConfig->renderViewConfigs.Clear();
-
 	m_pTools.Clear();
+
+	m_pAppFramework->Shutdown();
 }
 
 void CEditorHubApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)

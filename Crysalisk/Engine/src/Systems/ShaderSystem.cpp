@@ -246,10 +246,10 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// TODO: Don't hardcode this.
-		newShaderConfig.m_pRendererView = *m_Config.pRenderer->m_SceneView;
+		newShaderConfig.m_pRendererView = m_Config.pRenderer->GetSceneView();
 		if (Utl::StringCompare(pszShaderName, "Core.UI"))
 		{
-			newShaderConfig.m_pRendererView = *m_Config.pRenderer->m_UIView;
+			newShaderConfig.m_pRendererView = m_Config.pRenderer->GetUIView();
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
@@ -397,12 +397,12 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	// The renderer will do most of the work for us.
 	m_Config.pRenderer->BindShader(pShader);
 
-	if (pShader->m_iRendererFrame != m_Config.pRenderer->m_iCurrentRendererFrame)
+	if (pShader->m_iRendererFrame != m_Config.pRenderer->GetCurrentRenderFrame())
 	{
 		// If we have not been bound yet this frame, update our per-frame descriptors.
 		BindPerFrameUniforms();
 
-		pShader->m_iRendererFrame = m_Config.pRenderer->m_iCurrentRendererFrame;
+		pShader->m_iRendererFrame = m_Config.pRenderer->GetCurrentRenderFrame();
 	}
 }
 

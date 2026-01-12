@@ -30,7 +30,7 @@ class TextObject
 {
 public:
 	// Sets the actual text to be rendered.
-	void				SetText(class Renderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText);
+	void				SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText);
 
 public:
 	// The size of this text.

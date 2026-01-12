@@ -184,7 +184,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	rendererConfig.MaxTextures = 4999;
 	rendererConfig.MaxPipelines = 300;
 
-	Renderer::AllocateRenderSystemState(&m_EngineSystems.pRenderer);
+	IRenderer::AllocateRenderSystemState(&m_EngineSystems.pRenderer);
 	if (!m_EngineSystems.pRenderer->Initialize(rendererConfig))
 	{
 		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");

@@ -45,7 +45,7 @@ const int kUIInputHeight = 480;
 // Input:	pszText - The new string to be rendered with this object.
 // Output:	none.
 //-------------------------------------------------------------------------
-void TextObject::SetText(class Renderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
+void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
 {
 	// Can't render text without text to render!
 	if (!pszText || Utl::StringLength(pszText) < 1)
@@ -64,7 +64,7 @@ void TextObject::SetText(class Renderer* pRenderer, class IFontSystem* pFontSyst
 	// Otherwise, just update the existing data.
 	if (bCreateNewResources)
 	{
-		pRenderer->AcquireGeometryResources(pRenderer->m_UIVertexBuffer, pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
+		pRenderer->AcquireGeometryResources(pRenderer->GetUIVertexBuffer(), pRenderer->GetUIIndexBuffer(), newConfig, m_Geometry);
 	}
 	else
 	{

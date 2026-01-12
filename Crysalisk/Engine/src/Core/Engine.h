@@ -30,7 +30,7 @@ struct EngineSystems_t
 	class LogSystem*		pLogger{ nullptr };
 	class IEventSystem*		pEngineEventHandler{ nullptr };
 	class IInputSystem*		pInputSystem{ nullptr };
-	class Renderer*			pRenderer{ nullptr };
+	class IRenderer*			pRenderer{ nullptr };
 	class IDebugRenderer*	pDebugRenderer{ nullptr };
 	class IJobSystem*		pJobSystem{ nullptr };
 	class ITextureSystem*	pTextureSystem{ nullptr };

@@ -18,7 +18,7 @@ struct ShaderSystemConfig_t
 	size_t	MaxShaders{ 0 };
 
 	// A pointer to the render system.
-	class Renderer* pRenderer{ nullptr };
+	class IRenderer* pRenderer{ nullptr };
 };
 
 //-------------------------------------------------------------------------

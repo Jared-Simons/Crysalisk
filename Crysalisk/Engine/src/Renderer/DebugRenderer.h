@@ -29,7 +29,7 @@ struct DebugRendererConfig_t
 	unsigned int uMaxDebugGeometries{ 0 };
 
 	// A pointer to the render system.
-	class Renderer* pRenderer{ nullptr };
+	class IRenderer* pRenderer{ nullptr };
 	// A pointer to the shader system.
 	class IShaderSystem* pShaderSystem{ nullptr };
 };

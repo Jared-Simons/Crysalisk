@@ -19,7 +19,7 @@ struct MeshSystemConfig_t
 	size_t	MaxMeshes{ 0 };
 
 	// A pointer to the render system.
-	class Renderer* pRenderer{ nullptr };
+	class IRenderer* pRenderer{ nullptr };
 	// A pointer to the job system.
 	class IJobSystem* pJobSystem{ nullptr };
 	// A pointer to the material system.

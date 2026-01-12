@@ -31,12 +31,10 @@ target_compile_definitions(AppFramework PRIVATE _MBCS)
 
 # Compile defines
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-	target_compile_definitions(AppFramework PRIVATE PLAT_WINDOWS)
-	target_compile_definitions(AppFramework PRIVATE VK_USE_PLATFORM_WIN32_KHR)
-	target_compile_definitions(AppFramework PRIVATE VK_PROTOTYPES)	
 endif()
 
 # Linker directories
+target_link_directories(AppFramework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}../bin/)
 
 # Linker input.
 target_link_libraries(AppFramework PUBLIC Core)

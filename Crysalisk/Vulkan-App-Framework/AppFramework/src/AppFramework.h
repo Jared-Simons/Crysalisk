@@ -20,6 +20,8 @@ namespace AppFramework
 	{
 	public:
 		virtual bool	Initialize(AppFrameworkConfig_t& pConfig) = 0;
+		virtual bool	Run() = 0;
+		virtual void	Shutdown() = 0;
 	};
 
 	extern IAppFramework* g_pAppFramework;
