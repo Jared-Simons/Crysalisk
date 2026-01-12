@@ -41,47 +41,47 @@ void Camera_t::RecalculateCameraVectors()
 // Input:	deltaTime - The time elapsed since this function was last called.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Camera_t::UpdateCameraData(double deltaTime)
+void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime)
 {
 	float velocity = (float)(2.5f * deltaTime);
 	const float cameraSpeedMultiplier = 100.0;
 	const float cameraRotationSpeedMultipler = 50.0f;
 
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_W))
+	if (pInputSystem->IsKeyPressed(KEY_W))
 	{
 		vecPosition += (vecFront * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_S))
+	if (pInputSystem->IsKeyPressed(KEY_S))
 	{
 		vecPosition -= (vecFront * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_A))
+	if (pInputSystem->IsKeyPressed(KEY_A))
 	{
 		vecPosition -= (vecRight * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_D))
+	if (pInputSystem->IsKeyPressed(KEY_D))
 	{
 		vecPosition += (vecRight * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_SPACE))
+	if (pInputSystem->IsKeyPressed(KEY_SPACE))
 	{
 		vecPosition += (vecUp * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_CTRL))
+	if (pInputSystem->IsKeyPressed(KEY_CTRL))
 	{
 		vecPosition -= (vecUp * (velocity * cameraSpeedMultiplier));
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_RIGHT))
+	if (pInputSystem->IsKeyPressed(KEY_RIGHT))
 	{
 		Yaw += velocity * cameraRotationSpeedMultipler;
 		RecalculateCameraVectors();
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_LEFT))
+	if (pInputSystem->IsKeyPressed(KEY_LEFT))
 	{
 		Yaw -= velocity * cameraRotationSpeedMultipler;
 		RecalculateCameraVectors();
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_UP))
+	if (pInputSystem->IsKeyPressed(KEY_UP))
 	{
 		Pitch += velocity * cameraRotationSpeedMultipler;
 
@@ -90,7 +90,7 @@ void Camera_t::UpdateCameraData(double deltaTime)
 
 		RecalculateCameraVectors();
 	}
-	if (g_pInputSystem_Internal->IsKeyPressed(KEY_DOWN))
+	if (pInputSystem->IsKeyPressed(KEY_DOWN))
 	{
 		Pitch -= velocity * cameraRotationSpeedMultipler;
 

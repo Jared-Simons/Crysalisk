@@ -6,6 +6,7 @@
 //=============================================================================
 #include "VulkanRenderer.h"
 
+#include <Core/Engine.h>
 #include <Core/Event.h>
 #include <Core/Input.h>
 #include <Core/Logging.h>
@@ -59,12 +60,6 @@ DLL_EXPORT void ObtainInterfaces(Utl::CVector<Platform::SystemInterface_t>& pOut
 DLL_EXPORT void ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pInterfaceState)
 {
 	AssignInterfaces(pInterfaceState);
-
-	// Register for window resize event.
-	if (g_pEngineEvents)
-	{
-		g_pEngineEvents->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
-	}
 }
 
 //-------------------------------------------------------------------------
@@ -254,8 +249,15 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Save off our configuration.
 	m_RendererConfig = pConfig;
 
-	// Register for input events.
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+	if (pConfig.pEngine && pConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler)
+	{
+		// Register for window resize event.
+		IEventSystem* pEventHandler = pConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler;
+		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
+
+		// Register for input events.
+		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+	}
 
 	return true;
 }
@@ -1577,7 +1579,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 				descriptorWrites.PushBack(samplerDescriptorWrite);
 			}
 
-			TextureHandle_t	hDefaultWhiteTexture = g_pTextureSystem->GetDefaultWhiteTexture();
+			TextureHandle_t	hDefaultWhiteTexture = m_RendererConfig.pEngine->GetEngineSubsystems()->pTextureSystem->GetDefaultWhiteTexture();
 
 			// Setup image descriptors, and point them at the default texture for now.
 			for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)

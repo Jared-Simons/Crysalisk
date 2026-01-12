@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Renderer/Renderer.h"
 
+#include "Core/Engine.h"
 #include "Core/Event.h"
 #include "Core/Input.h"
 #include "Core/Logging.h"
@@ -21,10 +22,6 @@
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
-
-// Renderer frontend context.
-static Renderer s_Renderer;
-Renderer* g_pRenderer = &s_Renderer;
 
 // Event handlers.
 static bool RendererEvent_WindowResized(EventData_t data);
@@ -53,6 +50,26 @@ static const char* szRendererVisualizationModesLabels[9] =
 
 static bool s_bDisplayProfilingText = false;
 // END TEMP!
+
+// Internal pointer to the renderer system.
+// Needed for internal code.
+// TODO: maybe there's a better way to pass this around?
+static Renderer* s_RenderSystem{ nullptr };
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void Renderer::AllocateRenderSystemState(Renderer** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold render system state was not provided! Render system creation failed!");
+		return;
+	}
+
+	s_RenderSystem = new Renderer;
+	*ppSystemState = s_RenderSystem;
+}
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the Renderer frontend and backend.
@@ -94,8 +111,12 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
-	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler)
+	{
+		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler;
+		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
+		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+	}
 
 	// Grab window dimensions.
 	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
@@ -112,6 +133,9 @@ bool Renderer::Initialize(RendererConfig_t& pAppConfig)
 
 	// Store off a pointer to the window we're rendering to.
 	m_pMainWindow = pAppConfig.pMainWindow;
+
+	// Save off the config.
+	m_Config = pAppConfig;
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
@@ -146,15 +170,6 @@ void Renderer::ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderV
 	{
 		//m_UIView = &m_RenderViews[0];
 	}
-
-	// Setup the debug renderer.
-	DebugRendererConfig_t debugRendererConfig{};
-	debugRendererConfig.uMaxDebugGeometries = 64;
-	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
-	{
-		LOG_ERROR("Failed to initialize the debug renderer.");
-		//return false;
-	}
 }
 
 //-------------------------------------------------------------------------
@@ -180,6 +195,7 @@ void Renderer::Shutdown()
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
+	s_RenderSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -217,7 +233,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	m_Camera.UpdateCameraData(pRenderData.DeltaTime);
+	m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineSubsystems()->pInputSystem, pRenderData.DeltaTime);
 
 	// Draw the frame!
 	if (!m_RendererBackend->BeginFrame(pRenderData))
@@ -226,6 +242,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	}
 
 	m_RendererBackend->BeginRenderpass(*m_SceneView);
+	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem;
 
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
@@ -234,7 +251,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	Vector vecCameraPos = m_Camera.vecPosition;
 	Matrix4x4 model = Matrix4x4{ 1.0f };
 
-	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
+	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
 	// TODO: Figure out how to split out these matrices per model.
 	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
@@ -305,9 +322,9 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
 		// TODO: Orthographic projection is broken.
 		Matrix4x4 UIProjection{ 1.0f };
-		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-		g_pShaderSystem->BindShader(hUIShader);
-		g_pShaderSystem->BindPerInstanceUniforms(1);
+		pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
+		pShaderSystem->BindShader(hUIShader);
+		pShaderSystem->BindPerInstanceUniforms(1);
 		DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
 
 		m_RendererBackend->EndRenderpass();
@@ -317,7 +334,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	m_Metrics.CurrentFrameFPS++;
 
 	// Clear out bound shader state.
-	g_pShaderSystem->BindShader(kInvalidID_U32);
+	pShaderSystem->BindShader(kInvalidID_U32);
 
 	if (s_bDisplayProfilingText)
 	{
@@ -332,7 +349,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
 
 		// Set the string.
-		testText.SetText(szMetricsString);
+		testText.SetText(this, szMetricsString);
 	}
 
 	// Increment the frame count.
@@ -657,7 +674,7 @@ void Renderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer
 //-------------------------------------------------------------------------
 bool Renderer::CreateTempTextObjects()
 {
-	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
+	hUIShader = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem->AcquireShader("Core.UI");
 	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
@@ -692,18 +709,18 @@ static bool RendererEvent_WindowResized(EventData_t data)
 	// Handle minimized contexts.
 	if (data.u32[0] == 0 || data.u32[1] == 0)
 	{
-		s_Renderer.SetMinimized(true);
+		s_RenderSystem->SetMinimized(true);
 	}
 	else
 	{
-		s_Renderer.SetMinimized(false);
+		s_RenderSystem->SetMinimized(false);
 	}
 
 	// Cache off the new dimensions.
-	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
+	s_RenderSystem->SetWindowDimensions(data.u32[0], data.u32[1]);
 
 	// Make sure to resize the camera's aspect ratio as well.
-	s_Renderer.m_Camera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
+	s_RenderSystem->m_Camera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;
@@ -719,7 +736,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 	if (data.c[0] == 'P')
 	{
 		// Print the camera's position and angles.
-		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_Renderer.m_Camera.vecPosition.x, s_Renderer.m_Camera.vecPosition.y, s_Renderer.m_Camera.vecPosition.z, s_Renderer.m_Camera.Pitch, s_Renderer.m_Camera.Yaw);
+		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_RenderSystem->m_Camera.vecPosition.x, s_RenderSystem->m_Camera.vecPosition.y, s_RenderSystem->m_Camera.vecPosition.z, s_RenderSystem->m_Camera.Pitch, s_RenderSystem->m_Camera.Yaw);
 	}
 
 	if (data.c[0] == 'Y')
@@ -730,7 +747,7 @@ static bool RendererEvent_KeyPressed(EventData_t data)
 
 	if (data.c[0] >= 0 && data.c[0] <= 9)
 	{
-		g_pRenderer->m_iRendererDebugMode = data.c[0];
+		s_RenderSystem->m_iRendererDebugMode = data.c[0];
 	}
 
 	// Let other listeners handle this event.

@@ -16,6 +16,11 @@ struct FontSystemConfig_t
 {
 	// The maximum number of fonts that can be loaded at once.
 	size_t	MaxFonts{ 0 };
+	
+	// A pointer to the texture system.
+	class ITextureSystem* pTextureSystem{ nullptr };
+	// A pointer to the shader system.
+	class IShaderSystem* pShaderSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -25,7 +30,7 @@ class TextObject
 {
 public:
 	// Sets the actual text to be rendered.
-	void				SetText(const char* pszText);
+	void				SetText(class Renderer* pRenderer, const char* pszText);
 
 public:
 	// The size of this text.

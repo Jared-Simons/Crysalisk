@@ -20,7 +20,7 @@ public:
 	CInputSystem() : m_KeysState{ 0 }, m_PrevKeysState{ 0 }, m_KeyStateDirty{ true } {}
 
 	// Initialization, shutdown.
-	bool		Initialize(Platform::IPlatformWindow& pEngineWindow) override;
+	bool		Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSystem* pEngineEventHandler) override;
 	void		Shutdown() override;
 	void		Update() override;
 
@@ -45,19 +45,45 @@ private:
 
 	// Should the keys state be updated? (Was a key pressed this frame?)
 	bool		m_KeyStateDirty;
+
+	// Holds a pointer to the engine's event system.
+	IEventSystem*	m_pEventSystem{ nullptr };
 };
 
-// Input system context.
-static CInputSystem sInputSystem;
-IInputSystem* g_pInputSystem_Internal = &sInputSystem;
+// Internal pointer to input system.
+// Needed for API calls.
+// TODO: maybe there's a better way to pass this around?
+static CInputSystem* s_InputSystem{ nullptr };
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IInputSystem::AllocateInputSystemState(IInputSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold input system state was not provided! Input system creation failed!");
+		return;
+	}
+
+	s_InputSystem = new CInputSystem;
+	*ppSystemState = s_InputSystem;
+}
 
 //-------------------------------------------------------------------------
 // Purpose - Initializes the input system.
 // Input - none
 // Output - bool: Returns true on success; otherwise false.
 //-------------------------------------------------------------------------
-bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
+bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSystem* pEngineEventHandler)
 {
+	if (!pEngineEventHandler)
+	{
+		LOG_ERROR("Input system was not provided with an event handler. Input system initialize failed!");
+		return false;
+	}
+	m_pEventSystem = pEngineEventHandler;
+
 	// setup m_KeysState table
 	for (int i = 0; i < MAX_INPUT_KEYS; i++)
 	{
@@ -88,6 +114,7 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow)
 //-------------------------------------------------------------------------
 void CInputSystem::Shutdown()
 {
+	s_InputSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -121,12 +148,12 @@ void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
 		{
 			eventData.c[0] = processedKeyInput;
 			m_KeysState[processedKeyInput].m_bPressed = true;
-			g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
+			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_bPressed = false;
-			g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
+			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
 		}
 	}
 	else
@@ -153,7 +180,7 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
-		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
+		m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
 	}
 	else
 	{
@@ -163,7 +190,7 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
 
-		g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
+		m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
 	}
 }
 
@@ -177,7 +204,7 @@ void CInputSystem::ProcessMousePositionInput(const int mouseXPos, const int mous
 	eventData.i32[0] = mouseXPos;
 	eventData.i32[1] = mouseYPos;
 
-	g_pEngineEvents_Internal->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
+	m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
 	return;
 }
 
@@ -210,15 +237,15 @@ void CInputSystem::GetCurrentMousePos(int& iX, int& iY)
 //-----------------------------------------------------------------------------
 void API_ProcessKeyInput(int processedKeyInput, bool pressed) 
 { 
-	g_pInputSystem_Internal->ProcessKeyInput(processedKeyInput, pressed);
+	s_InputSystem->ProcessKeyInput(processedKeyInput, pressed);
 }
 
 void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed)
 {
-	g_pInputSystem_Internal->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
+	s_InputSystem->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
 }
 
 void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos)
 {
-	g_pInputSystem_Internal->ProcessMousePositionInput(mouseXPos, mouseYPos);
+	s_InputSystem->ProcessMousePositionInput(mouseXPos, mouseYPos);
 }

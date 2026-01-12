@@ -58,7 +58,7 @@ public:
 
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const override { return m_pEngineWindow; }
 
-	virtual const EngineSystems_t*		GetEngineSubsystems() const override { return &m_EngineSystems; }
+	virtual inline const EngineSystems_t*		GetEngineSubsystems() const override { return &m_EngineSystems; }
 
 	const CMap&		GetCurrentMap() const { return m_CurrentMap; }
 
@@ -104,7 +104,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Logger.
-	if (!g_pLog->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
+	m_EngineSystems.pLogger = new LogSystem;
+	g_pLog = m_EngineSystems.pLogger;	// We need this global var for our logging macros.
+	if (!m_EngineSystems.pLogger->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
@@ -112,7 +114,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Event System.
-	if (!g_pEngineEvents_Internal->Initialize())
+	IEventSystem::AllocateEventSystemState(&m_EngineSystems.pEngineEventHandler);
+	if (!m_EngineSystems.pEngineEventHandler->Initialize())
 	{
 		LOG_FATAL("Event system failed to initialize! Application cannot continue.");
 		return false;
@@ -165,40 +168,37 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	Platform::SetupExternalInterfaces();
 
 	// Input System.
-	if (!g_pInputSystem_Internal->Initialize(*m_pEngineWindow))
+	IInputSystem::AllocateInputSystemState(&m_EngineSystems.pInputSystem);
+	if (!m_EngineSystems.pInputSystem->Initialize(*m_pEngineWindow, m_EngineSystems.pEngineEventHandler))
 	{
 		LOG_FATAL("Input system failed to initialize! Application cannot continue.");
 		return false;
 	}
 
 	// Register for engine-level events.
-	g_pEngineEvents->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
-	g_pEngineEvents->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
+	IEventSystem* pEventHandler = m_EngineSystems.pEngineEventHandler;
+	pEventHandler->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
+	pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
+	pEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
+	pEventHandler->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
+	pEventHandler->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, Event_MouseButtonReleased);
+	pEventHandler->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, nullptr, Event_MouseMoved);
 
 	// Renderer.
 	RendererConfig_t rendererConfig{};
 	rendererConfig.szApplicationName = "Crysalisk Engine";
+	rendererConfig.pEngine = this;
 	rendererConfig.pMainWindow = m_pEngineWindow;
 	rendererConfig.pRendererBackendDLL = pRendererModule;
 	rendererConfig.MaxTextures = 4999;
 	rendererConfig.MaxPipelines = 300;
 
-	if (!g_pRenderer->Initialize(rendererConfig))
+	Renderer::AllocateRenderSystemState(&m_EngineSystems.pRenderer);
+	if (!m_EngineSystems.pRenderer->Initialize(rendererConfig))
 	{
 		LOG_FATAL("Renderer failed to initialize! Application cannot continue.");
 		return false;
 	}
-
-	// Setup application-specific renderer state.
-	g_pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
-	m_EngineSystems.pRenderer = g_pRenderer;
-
-	// Save off a pointer to the renderer library so apps can have it.
-	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
 
 	// Job system.
 	JobSystemConfig_t jobSysConfig{};
@@ -211,17 +211,28 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 	jobSysConfig.iWorkerThreadTypes[0] = WORKER_THREAD_TYPE_DISK_LOADING;
 
-	if (!g_pJobSystem->Initialize(jobSysConfig))
+	IJobSystem::AllocateJobSystemState(&m_EngineSystems.pJobSystem);
+	if (!m_EngineSystems.pJobSystem->Initialize(jobSysConfig))
 	{
 		LOG_FATAL("Failed to initialize job system! Application cannot continue.");
 		return false;
 	}
 
+	// Setup application-specific renderer state.
+	m_EngineSystems.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
+
+	// Save off a pointer to the renderer library so apps can have it.
+	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
+
 	// Texture manager.
 	TextureSystemConfig_t textureSysConfig{};
 	textureSysConfig.MaxTextures = 4999;
+	textureSysConfig.pRenderer = m_EngineSystems.pRenderer;
+	textureSysConfig.pJobSystem = m_EngineSystems.pJobSystem;
 	CAssert(rendererConfig.MaxTextures == textureSysConfig.MaxTextures);
-	if (!g_pTextureSystem_Internal->Initialize(textureSysConfig))
+
+	ITextureSystem::AllocateTextureSystemState(&m_EngineSystems.pTextureSystem);
+	if (!m_EngineSystems.pTextureSystem->Initialize(textureSysConfig))
 	{
 		LOG_ERROR("Failed to initialize texture system! Application cannot continue.");
 		return false;
@@ -230,39 +241,61 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Shader system.
 	ShaderSystemConfig_t shaderSysConfig{};
 	shaderSysConfig.MaxShaders = 197;
-	if (!g_pShaderSystem->Initialize(shaderSysConfig))
+	shaderSysConfig.pRenderer = m_EngineSystems.pRenderer;
+
+	IShaderSystem::AllocateShaderSystemState(&m_EngineSystems.pShaderSystem);
+	if (!m_EngineSystems.pShaderSystem->Initialize(shaderSysConfig))
 	{
 		LOG_ERROR("Failed to initialize shader system! Application cannot continue.");
 		return false;
 	}
-	m_EngineSystems.pShaderSystem = g_pShaderSystem;
+
+	// Debug renderer.
+	DebugRendererConfig_t debugRendererConfig{};
+	debugRendererConfig.uMaxDebugGeometries = 64;
+	debugRendererConfig.pRenderer = m_EngineSystems.pRenderer;
+	debugRendererConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
+	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
+	{
+		LOG_ERROR("Failed to initialize the debug renderer.");
+		return false;
+	}
 
 	// Material system.
 	MaterialSystemConfig_t materialSysConfig{};
 	materialSysConfig.MaxMaterials = 2049;
+	materialSysConfig.pTextureSystem = m_EngineSystems.pTextureSystem;
+	materialSysConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
 	if (!g_pMaterialSystemInternal->Initialize(materialSysConfig))
 	{
 		LOG_ERROR("Failed to initialize material system! Application cannot continue.");
 		return false;
 	}
+	m_EngineSystems.pMaterialSystem = g_pMaterialSystemInternal;
 
 	// Mesh system.
 	MeshSystemConfig_t meshSysConfig{};
 	meshSysConfig.MaxMeshes = 249;
+	meshSysConfig.pRenderer = m_EngineSystems.pRenderer;
+	meshSysConfig.pJobSystem = m_EngineSystems.pJobSystem;
 	if (!g_pMeshSystem->Initialize(meshSysConfig))
 	{
 		LOG_ERROR("Failed to initialize mesh system! Application cannot continue.");
 		return false;
 	}
+	m_EngineSystems.pMeshSystem = g_pMeshSystem;
 
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
+	fontSysConfig.pTextureSystem = m_EngineSystems.pTextureSystem;
+	fontSysConfig.pShaderSystem = m_EngineSystems.pShaderSystem;
 	if (!g_pFontSystem->Initialize(fontSysConfig))
 	{
 		LOG_ERROR("Failed to initialize font system! Application cannot continue.");
 		return false;
 	}
+	m_EngineSystems.pFontSystem = g_pFontSystem;
 
 	// Initialize the application.
 	engineConfig.pAppConfig->pEngine = this;
@@ -271,7 +304,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// TODO: This is bad.
 	if (engineConfig.pAppConfig->pWindowToRegisterWithRenderer)
 	{
-		g_pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
+		m_EngineSystems.pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
 	}
 
 	// Print memory state
@@ -283,7 +316,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Create temporary geometry.
-	g_pRenderer->CreateTempTextObjects();
+	m_EngineSystems.pRenderer->CreateTempTextObjects();
 
 	return true;
 }
@@ -302,7 +335,7 @@ bool CEngine::Run()
 		// and trying to run another frame may result in a fatal crash (the renderer attempting to render to a window that no longer exists, for example).
 		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled) 
 		{
-			g_pInputSystem_Internal->Update();
+			m_EngineSystems.pInputSystem->Update();
 
 			// Update our app.
 			if (!m_pApplication->Run())
@@ -312,7 +345,7 @@ bool CEngine::Run()
 			}
 
 			// Handle jobs.
-			g_pJobSystem->Update();
+			m_EngineSystems.pJobSystem->Update();
 
 			RenderPacket_t frameRenderData{};
 
@@ -320,7 +353,7 @@ bool CEngine::Run()
 			m_pApplication->FramePrepare(&frameRenderData);
 
 			// Get our renderable geometry from the map.
-			g_pRenderer->Update(frameRenderData, m_CurrentMap);
+			m_EngineSystems.pRenderer->Update(frameRenderData, m_CurrentMap);
 		}
 	}
 
@@ -338,7 +371,7 @@ void CEngine::Shutdown()
 	LOG_INFO("EngineShutdown() called!");
 
 	// Wait for threads to be finished.
-	g_pJobSystem->WaitForWorkerThreadsToFinish();
+	m_EngineSystems.pJobSystem->WaitForWorkerThreadsToFinish();
 
 	// Shutdown our app.
 	m_pApplication->Shutdown();
@@ -349,20 +382,30 @@ void CEngine::Shutdown()
 	g_pFontSystem->Shutdown();
 	g_pMeshSystem->Shutdown();
 	g_pMaterialSystemInternal->Shutdown();
-	g_pShaderSystem->Shutdown();
-	g_pTextureSystem_Internal->Shutdown();
 
-	g_pJobSystem->Shutdown();
+	m_EngineSystems.pShaderSystem->Shutdown();
+	delete m_EngineSystems.pShaderSystem;
+	m_EngineSystems.pShaderSystem = nullptr;
+
+	m_EngineSystems.pTextureSystem->Shutdown();
+	delete m_EngineSystems.pTextureSystem;
+	m_EngineSystems.pTextureSystem = nullptr;
+
+	m_EngineSystems.pJobSystem->Shutdown();
+	delete m_EngineSystems.pJobSystem;
+	m_EngineSystems.pJobSystem = nullptr;
 
 	// Release extra window resources.
 	if (m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer)
 	{
-		g_pRenderer->ReleaseWindowResources(*m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
+		m_EngineSystems.pRenderer->ReleaseWindowResources(*m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
 		delete m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer;
 		m_engineConfig.pAppConfig->pWindowToRegisterWithRenderer = nullptr;
 	}
 
-	g_pRenderer->Shutdown();
+	m_EngineSystems.pRenderer->Shutdown();
+	delete m_EngineSystems.pRenderer;
+	m_EngineSystems.pRenderer = nullptr;
 
 	// Release our main window.
 	if (m_pEngineWindow)
@@ -373,9 +416,19 @@ void CEngine::Shutdown()
 
 	Platform::CleanupInterfaceRegistry();
 	Platform::ShutdownPlatformLayer();
-	g_pInputSystem->Shutdown();
-	g_pEngineEvents->Shutdown();
-	g_pLog->Shutdown();
+
+	m_EngineSystems.pInputSystem->Shutdown();
+	delete m_EngineSystems.pInputSystem;
+	m_EngineSystems.pInputSystem = nullptr;
+
+	m_EngineSystems.pEngineEventHandler->Shutdown();
+	delete m_EngineSystems.pEngineEventHandler;
+	m_EngineSystems.pEngineEventHandler = nullptr;
+	
+	m_EngineSystems.pLogger->Shutdown();
+	delete m_EngineSystems.pLogger;
+	m_EngineSystems.pLogger = nullptr;
+
 	g_pMemoryManager->Shutdown();
 }
 
@@ -406,7 +459,7 @@ bool Event_KeyReleased(EventData_t data)
 	if (keycode == KEY_ESCAPE)
 	{
 		// Time to shutdown the application!
-		g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+		s_Engine.GetEngineSubsystems()->pEngineEventHandler->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
 	}
 
 	if (keycode == 'M')
@@ -448,14 +501,14 @@ bool Event_MouseButtonReleased(EventData_t data)
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		Camera_t mainCamera = g_pRenderer->GetMainCamera();
+		Camera_t mainCamera = s_Engine.m_EngineSystems.pRenderer->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };
 		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
 		Vector4D vecPosClip{};
 
 		// First, get the mouse coordinates in viewport-space.
-		g_pInputSystem_Internal->GetCurrentMousePos(iMouseX, iMouseY);
+		s_Engine.GetEngineSubsystems()->pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
 		s_Engine.GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
 
 		// Next, bring our coordinates to NDC.
@@ -554,21 +607,6 @@ void ReturnInterfacesToRegistry()
 	// This does nothing in the engine.dll
 	// TODO: How should the engine implicitly pass interfaces back to the core registry, just like any other dll?
 
-	Platform::SystemInterface_t eventSystem{};
-	eventSystem.pSystemAddr = reinterpret_cast<void*>(g_pEngineEvents_Internal);
-	eventSystem.szSystemName = Utl::StringDuplicate("engine_events");
-	Platform::RegisterInterface(eventSystem);
-
-	Platform::SystemInterface_t inputSystem{};
-	inputSystem.pSystemAddr = reinterpret_cast<void*>(g_pInputSystem_Internal);
-	inputSystem.szSystemName = Utl::StringDuplicate("input_system");
-	Platform::RegisterInterface(inputSystem);
-
-	Platform::SystemInterface_t textureSystem{};
-	textureSystem.pSystemAddr = reinterpret_cast<void*>(g_pTextureSystem_Internal);
-	textureSystem.szSystemName = Utl::StringDuplicate("texture_system");
-	Platform::RegisterInterface(textureSystem);
-
 	Platform::SystemInterface_t materialSystem{};
 	materialSystem.pSystemAddr = reinterpret_cast<void*>(g_pMaterialSystemInternal);
 	materialSystem.szSystemName = Utl::StringDuplicate("material_system");
@@ -583,7 +621,7 @@ bool WindowResizeHandler(unsigned int width, unsigned int height)
 	EventData_t data{};
 	data.u32[0] = width;
 	data.u32[1] = height;
-	g_pEngineEvents->EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
+	s_Engine.GetEngineSubsystems()->pEngineEventHandler->EventFire(eEventCategory::WINDOW_RESIZE, nullptr, data);
 
 	return true;
 }
@@ -594,5 +632,5 @@ bool WindowResizeHandler(unsigned int width, unsigned int height)
 void WindowClosedHandler()
 {
 	// Fire an event to close the application.
-	g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+	s_Engine.GetEngineSubsystems()->pEngineEventHandler->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
 }

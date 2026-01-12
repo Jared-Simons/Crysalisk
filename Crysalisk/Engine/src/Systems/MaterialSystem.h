@@ -17,6 +17,10 @@ struct MaterialSystemConfig_t
 {
 	// The maximum number of materials that can be loaded at once.
 	size_t	MaxMaterials{ 0 };
+	// A pointer to the texture system.
+	class ITextureSystem* pTextureSystem{ nullptr };
+	// A pointer to the shader system.
+	class IShaderSystem* pShaderSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------

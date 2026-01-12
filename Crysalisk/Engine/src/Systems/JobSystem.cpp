@@ -82,8 +82,7 @@ private:
 };
 
 // Job System context.
-static CJobSystem s_JobSystem;
-IJobSystem* g_pJobSystem = &s_JobSystem;
+static CJobSystem* s_JobSystem;
 
 //-------------------------------------------------------------------------
 // Purpose: The entrypoint for CWorkerThreads.
@@ -99,13 +98,13 @@ static int JobThread_Main(void* pParams)
 	int iThreadID = Platform::GetCurrentThreadID();
 
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
-	CWorkerThread& pThisThread = s_JobSystem.m_pWorkerThreads[iThreadIdx];
+	CWorkerThread& pThisThread = s_JobSystem->m_pWorkerThreads[iThreadIdx];
 
 	// We need to lock this so we can see when the application is shutting down.
-	s_JobSystem.m_pJobSystemStateMutex->Lock();
-	while (s_JobSystem.m_bJobSystemActive)
+	s_JobSystem->m_pJobSystemStateMutex->Lock();
+	while (s_JobSystem->m_bJobSystemActive)
 	{
-		s_JobSystem.m_pJobSystemStateMutex->Unlock();
+		s_JobSystem->m_pJobSystemStateMutex->Unlock();
 		if (pThisThread.m_CurrentWorkData.pfnEntryPoint)
 		{
 			JobDeclaration_t& pWorkData = pThisThread.m_CurrentWorkData;
@@ -126,7 +125,7 @@ static int JobThread_Main(void* pParams)
 				LOG_WARN("Job completed with result parameters, but callbacks were not provided to handle them.");
 			}
 
-			s_JobSystem.SubmitJobResults(pThisThread.m_CurrentWorkData.pJobResults.iUserDataSize, &pThisThread.m_CurrentWorkData.pJobResults);
+			s_JobSystem->SubmitJobResults(pThisThread.m_CurrentWorkData.pJobResults.iUserDataSize, &pThisThread.m_CurrentWorkData.pJobResults);
 
 			// Clear the job data, so that we don't run it again.
 			pThisThread.m_CurrentWorkData.ResetEntry();
@@ -139,10 +138,25 @@ static int JobThread_Main(void* pParams)
 		}
 	}
 
-	s_JobSystem.m_pJobSystemStateMutex->Unlock();
+	s_JobSystem->m_pJobSystemStateMutex->Unlock();
 	LOG_WARN("Killing job thread %d", iThreadID);
 	pThisThread.m_iThreadIdx = kInvalidID_U8;	// NOTE: This will tell the main thread this we're exiting. NOTE: There's probably a better way to do this.
 	return 0;
+}
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IJobSystem::AllocateJobSystemState(IJobSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold job system state was not provided! Job system creation failed!");
+		return;
+	}
+
+	s_JobSystem = new CJobSystem;
+	*ppSystemState = s_JobSystem;
 }
 
 //-------------------------------------------------------------------------
@@ -207,6 +221,8 @@ void CJobSystem::Shutdown()
 	m_LowPriorityJobs.Clear();
 	m_NormalPriorityJobs.Clear();
 	m_HighPriorityJobs.Clear();
+
+	s_JobSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------

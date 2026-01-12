@@ -77,6 +77,8 @@ struct Event
 class IEventSystem
 {
 public:
+	static void			AllocateEventSystemState(IEventSystem** ppSystemState);
+
 	// Initialization, shutdown.
 	virtual bool		Initialize() = 0;
 	virtual void		Shutdown() = 0;
@@ -85,9 +87,3 @@ public:
 	virtual bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
 	virtual void		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) = 0;
 };
-
-// A note on interfaces:
-// Any code that wants to access the engine's event system from within the engine.dll can include this file and use g_pEngineEvents_Internal.
-// Any code in another library must link with Interfaces.lib to get access to the engine's shared interfaces. Then include both Event.h AND Interfaces.h,
-// to get access to the g_pEngineEvents interface.
-ENGINE_API extern IEventSystem* g_pEngineEvents_Internal;

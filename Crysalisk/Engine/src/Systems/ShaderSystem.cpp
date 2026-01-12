@@ -79,10 +79,6 @@ private:
 	ShaderHandle_t		m_hCurrentlyBoundShader{ kInvalidID_U32 };
 };
 
-// Shader System context.
-static CShaderSystem s_ShaderSystem;
-IShaderSystem* g_pShaderSystem = &s_ShaderSystem;
-
 // Forward Declarations
 static eShaderStage				GetShaderStageFromString(const char* pszString);
 static eShaderTopologyType		GetTopologyTypeFromString(const char* pszString);
@@ -91,6 +87,20 @@ static ShaderUniformConfig_t	GetShaderAttributeFromString(const char* pszAttribu
 static inline uint32_t			GetAttributeStride(ShaderAttribute_t inAttribute);
 static uint32_t					GetExtraByteCountToEnsureAlignment(size_t currentOffset, ShaderAttribute_t typeToAlign);
 static void						AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderConfig);
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IShaderSystem::AllocateShaderSystemState(IShaderSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold input system state was not provided! Input system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CShaderSystem;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -124,7 +134,7 @@ void CShaderSystem::Shutdown()
 	{
 		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle != kInvalidID_U32)
 		{
-			g_pRenderer->DestroyShader(&m_ShaderDictionary.m_ShaderArray[idx]);
+			m_Config.pRenderer->DestroyShader(&m_ShaderDictionary.m_ShaderArray[idx]);
 			m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle = kInvalidID_U32;
 		}
 	}
@@ -236,10 +246,10 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// TODO: Don't hardcode this.
-		newShaderConfig.m_pRendererView = *g_pRenderer->m_SceneView;
+		newShaderConfig.m_pRendererView = *m_Config.pRenderer->m_SceneView;
 		if (Utl::StringCompare(pszShaderName, "Core.UI"))
 		{
-			newShaderConfig.m_pRendererView = *g_pRenderer->m_UIView;
+			newShaderConfig.m_pRendererView = *m_Config.pRenderer->m_UIView;
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.
@@ -299,7 +309,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		pLookup->ShaderIndex = newShaderHandle;
 
 		// Acquire internal resources for the shader.
-		if (!g_pRenderer->CreateShader(pShader, newShaderConfig))
+		if (!m_Config.pRenderer->CreateShader(pShader, newShaderConfig))
 		{
 			LOG_ERROR("Failed to create internal resources for shader '%s'. Returning null handle.", pszShaderName);
 			// TODO: Release created resources and reset state.
@@ -327,7 +337,7 @@ void CShaderSystem::ReleaseShader(ShaderHandle_t hShader)
 	if (pShader->m_pUniforms)
 		delete[] pShader->m_pUniforms;
 
-	g_pRenderer->DestroyShader(pShader);
+	m_Config.pRenderer->DestroyShader(pShader);
 	pShader->m_iInternalHandle = kInvalidID_U32;
 }
 
@@ -343,7 +353,7 @@ void CShaderSystem::AcquireShaderInstanceResources(ShaderHandle_t hShader, unsig
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
 
-	g_pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
+	m_Config.pRenderer->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
 }
 
 //-------------------------------------------------------------------------
@@ -357,7 +367,7 @@ void CShaderSystem::ReleaseShaderInstanceResources(ShaderHandle_t hShader, unsig
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32);
 
-	g_pRenderer->ReleaseShaderInstanceResources(pShader, pInstanceID);
+	m_Config.pRenderer->ReleaseShaderInstanceResources(pShader, pInstanceID);
 }
 
 //-------------------------------------------------------------------------
@@ -385,14 +395,14 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 
 	m_hCurrentlyBoundShader = hShader;
 	// The renderer will do most of the work for us.
-	g_pRenderer->BindShader(pShader);
+	m_Config.pRenderer->BindShader(pShader);
 
-	if (pShader->m_iRendererFrame != g_pRenderer->m_iCurrentRendererFrame)
+	if (pShader->m_iRendererFrame != m_Config.pRenderer->m_iCurrentRendererFrame)
 	{
 		// If we have not been bound yet this frame, update our per-frame descriptors.
 		BindPerFrameUniforms();
 
-		pShader->m_iRendererFrame = g_pRenderer->m_iCurrentRendererFrame;
+		pShader->m_iRendererFrame = m_Config.pRenderer->m_iCurrentRendererFrame;
 	}
 }
 
@@ -405,7 +415,7 @@ void CShaderSystem::BindPerFrameUniforms()
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
 	CAssert(pShader);
-	g_pRenderer->BindShaderPerFrameUniforms(pShader);
+	m_Config.pRenderer->BindShaderPerFrameUniforms(pShader);
 }
 
 //-------------------------------------------------------------------------
@@ -417,7 +427,7 @@ void CShaderSystem::BindPerInstanceUniforms(unsigned int hInstanceID)
 {
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[m_hCurrentlyBoundShader];
 	CAssert(pShader);
-	g_pRenderer->BindShaderPerInstanceUniforms(pShader, hInstanceID);
+	m_Config.pRenderer->BindShaderPerInstanceUniforms(pShader, hInstanceID);
 }
 
 //-------------------------------------------------------------------------
@@ -454,7 +464,7 @@ void CShaderSystem::SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLoc
 	Shader* pShader = &m_ShaderDictionary.m_ShaderArray[hShader];
 	ShaderUniform_t* pUniform = &pShader->m_pUniforms[uniformLocation];
 
-	g_pRenderer->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
+	m_Config.pRenderer->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
 
 //-------------------------------------------------------------------------

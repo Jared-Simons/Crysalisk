@@ -27,8 +27,16 @@ struct EngineConfig_t
 //-------------------------------------------------------------------------
 struct EngineSystems_t
 {
+	class LogSystem*		pLogger{ nullptr };
+	class IEventSystem*		pEngineEventHandler{ nullptr };
+	class IInputSystem*		pInputSystem{ nullptr };
 	class Renderer*			pRenderer{ nullptr };
+	class IJobSystem*		pJobSystem{ nullptr };
+	class ITextureSystem*	pTextureSystem{ nullptr };
 	class IShaderSystem*	pShaderSystem{ nullptr };
+	class IMaterialSystem*	pMaterialSystem{ nullptr };
+	class IMeshSystem*		pMeshSystem{ nullptr };
+	class IFontSystem*		pFontSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -52,7 +60,7 @@ public:
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const = 0;
 
 	// Gets a pointer to engine subsystems.
-	virtual const EngineSystems_t*		GetEngineSubsystems() const = 0;
+	virtual inline const EngineSystems_t*		GetEngineSubsystems() const = 0;
 };
 
 // Global interface to the engine context.

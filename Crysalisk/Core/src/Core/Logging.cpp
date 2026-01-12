@@ -12,8 +12,7 @@
 #include <stdio.h>
 
 // Logging System context.
-static LogSystem s_Log;
-LogSystem* g_pLog = &s_Log;
+LogSystem* g_pLog;
 
 int LogSystem::m_LogVerbosity = 6;
 

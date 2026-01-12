@@ -20,6 +20,8 @@ struct RendererConfig_t
 {
 	// The application's name.
 	const char* szApplicationName;
+	// A pointer to the main engine state.
+	class IEngine* pEngine;
 	// An opaque pointer to the window we'll be rendering to.
 	Platform::IPlatformWindow* pMainWindow;
 	// A pointer to the loaded backend module.

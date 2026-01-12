@@ -17,6 +17,11 @@ struct MeshSystemConfig_t
 {
 	// The max number of meshes that can be registered with the mesh system.
 	size_t	MaxMeshes{ 0 };
+
+	// A pointer to the render system.
+	class Renderer* pRenderer{ nullptr };
+	// A pointer to the job system.
+	class IJobSystem* pJobSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------

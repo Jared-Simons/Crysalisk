@@ -89,8 +89,10 @@ private:
 	int				GetFirstFreeGeometryDataIndex() const;
 
 private:
+	DebugRendererConfig_t		m_Config{};
+
 	// The debug renderer's renderpass.
-	RendererView	m_DebugView{};
+	RendererView				m_DebugView{};
 
 	RenderBuffer				m_DebugVertexBuffer{};
 	RenderBuffer				m_DebugIndexBuffer{};
@@ -116,6 +118,9 @@ IDebugRenderer* g_pDebugRenderer = &s_DebugRenderer;
 //-------------------------------------------------------------------------
 bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 {
+	// Save off config.
+	m_Config = pAppConfig;
+
 	// Setup debug geometry array.
 	m_iNumGeometryInstances = pAppConfig.uMaxDebugGeometries;
 	m_GeometryData = new DebugGeometry_t[m_iNumGeometryInstances]; 
@@ -141,19 +146,19 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 
 	m_DebugView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.7f };
 
-	if (!g_pRenderer->CreateRendererView(debugViewConfig, m_DebugView))
+	if (!m_Config.pRenderer->CreateRendererView(debugViewConfig, m_DebugView))
 	{
 		LOG_ERROR("Failed to create debug render view!");
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
+	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
 	{
 		LOG_ERROR("Failed to create debug vertex buffer!");
 		return false;
 	}
 
-	if (!g_pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
+	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
 	{
 		LOG_ERROR("Failed to create debug index buffer!");
 		return false;
@@ -167,20 +172,21 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 //-------------------------------------------------------------------------
 bool CDebugRenderer::InitializeDebugShaders()
 {
-	m_hDebugLineShader = g_pShaderSystem->AcquireShader("Debug.Line");
+	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
+	m_hDebugLineShader = pShaderSystem->AcquireShader("Debug.Line");
 
-	m_DebugLineShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "projection");
-	m_DebugLineShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "view");
-	m_DebugLineShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
-	m_DebugLineShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
+	m_DebugLineShaderUniforms.projection = pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "projection");
+	m_DebugLineShaderUniforms.view = pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "view");
+	m_DebugLineShaderUniforms.color = pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
+	m_DebugLineShaderUniforms.model = pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
 
-	m_hDebugTextShader = g_pShaderSystem->AcquireShader("Debug.Text");
+	m_hDebugTextShader = pShaderSystem->AcquireShader("Debug.Text");
 
-	m_DebugTextShaderUniforms.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "projection");
-	m_DebugTextShaderUniforms.view = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "view");
-	m_DebugTextShaderUniforms.color = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "color");
-	m_DebugTextShaderUniforms.fontAtlas = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "font_atlas");
-	m_DebugTextShaderUniforms.model = g_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "model");
+	m_DebugTextShaderUniforms.projection = pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "projection");
+	m_DebugTextShaderUniforms.view = pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "view");
+	m_DebugTextShaderUniforms.color = pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "color");
+	m_DebugTextShaderUniforms.fontAtlas = pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "font_atlas");
+	m_DebugTextShaderUniforms.model = pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "model");
 
 	return true;
 }
@@ -190,9 +196,9 @@ bool CDebugRenderer::InitializeDebugShaders()
 //-------------------------------------------------------------------------
 void CDebugRenderer::Shutdown()
 {
-	g_pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
-	g_pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
-	g_pRenderer->DestroyRendererView(m_DebugView);
+	m_Config.pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
+	m_Config.pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
+	m_Config.pRenderer->DestroyRendererView(m_DebugView);
 
 	// Release debug geometry data.
 	delete[] m_GeometryData;
@@ -228,16 +234,18 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 {
 	m_flRendererTime = pFrameData.flCurTime;
 
-	if (g_pRenderer->BeginRendererView(m_DebugView))
+	if (m_Config.pRenderer->BeginRendererView(m_DebugView))
 	{
-		// Apply per-frame shader uniforms.
-		g_pShaderSystem->BindShader(m_hDebugLineShader);
-		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		g_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
+		IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 
-		g_pShaderSystem->BindShader(m_hDebugTextShader);
-		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
+		// Apply per-frame shader uniforms.
+		pShaderSystem->BindShader(m_hDebugLineShader);
+		pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
+
+		pShaderSystem->BindShader(m_hDebugTextShader);
+		pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
+		pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
 
 		bool bLineShaderBound = false;
 		ShaderHandle_t hCurrentlyBoundShader = m_hDebugTextShader;
@@ -257,7 +265,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			{
 				if (bLineShaderBound)
 				{
-					g_pShaderSystem->BindShader(m_hDebugTextShader);
+					pShaderSystem->BindShader(m_hDebugTextShader);
 					hCurrentlyBoundShader = m_hDebugTextShader;
 					bLineShaderBound = false;
 				}
@@ -272,7 +280,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 			{
 				if (!bLineShaderBound)
 				{
-					g_pShaderSystem->BindShader(m_hDebugLineShader);
+					pShaderSystem->BindShader(m_hDebugLineShader);
 					hCurrentlyBoundShader = m_hDebugLineShader;
 					bLineShaderBound = true;
 				}
@@ -288,26 +296,26 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 
 			if (pCurGeo.eType == DebugGeometryType::TEXT)
 			{
-				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
 
-				g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
-				g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+				pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
+				m_Config.pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
 
 				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
 			}
 			else
 			{
-				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-				g_pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
+				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
 
-				g_pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
-				g_pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
+				pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
+				m_Config.pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
 
 			}
 		}
 
-		g_pRenderer->EndRendererView();
+		m_Config.pRenderer->EndRendererView();
 	}
 	else
 	{
@@ -334,7 +342,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 	}
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
 
 	// Create a 3D cross at the point that extends out from the origin by the given radius.
 	Vector ptVerts[4]{};
@@ -344,7 +352,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 
 	uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, 4, sizeof(Vector3D), ptVerts, 6, indices, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, 4, sizeof(Vector3D), ptVerts, 6, indices, pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this geometry will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -372,10 +380,10 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	}
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
 
 	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Just use an identity matrix for the transform (this shouldn't ever move around).
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -401,7 +409,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	}
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
 
 	Vector3D& vecLocalCenter = pGeometry.vecCenter;
 	Vector3D& vecLocalMins = pGeometry.vecMinExtents;
@@ -459,7 +467,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	ptVertices[22].y = vecLocalMins.y;
 	ptVertices[23] = vecLocalMaxs;
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Store off the transform index.
 	//pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
@@ -486,7 +494,7 @@ int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, floa
 	}
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
 
 	const int iNumVertices = 24;
 	Vector3D ptVertices[iNumVertices]{};
@@ -540,7 +548,7 @@ int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, floa
 	ptVertices[22].y = vecMins.y;
 	ptVertices[23] = vecMaxs;
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 
@@ -565,7 +573,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 
 	pNewGeometry.color = color;
 
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
 
 	const int iNumVertices = 72;
 	Vector3D ptVertices[iNumVertices]{};
@@ -611,7 +619,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 	indices[95] = indices[48];
 	indices[143] = indices[96];
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, iNumVertices, sizeof(Vector3D), ptVertices, iNumIndices, indices, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, iNumVertices, sizeof(Vector3D), ptVertices, iNumIndices, indices, pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this sphere will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -641,14 +649,14 @@ int CDebugRenderer::AddText(Vector& pOrigin, FontHandle_t hFont, const char* psz
 
 	GeometryConfig_t textConfig = g_pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
 
 	// Apply the font atlas.
 	TextureHandle_t hTexture = g_pFontSystem->AcquireFontAtlasTexture(hFont);
-	g_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
 
 	// Create a new transform matrix.
 	Matrix4x4 matTransform{ 1.0f };
@@ -676,7 +684,7 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	}
 
 	// Acquire new shader instance resources.
-	g_pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
 
 	const int iNumVertices = 24;
 	Vector3D ptVertices[iNumVertices]{};
@@ -733,7 +741,7 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	Matrix4x4 matTransform = Matrix4x4{ 1.0f };
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
 
-	g_pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	return iDebugGeometryIndex;
 }
@@ -748,8 +756,8 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
 
-	g_pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
-	g_pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
+	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
+	m_Config.pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
 
 	pGeoToRemove.iInstanceID = kInvalidID_U32;
 	pGeoToRemove.eType = DebugGeometryType::UNDEFINED;

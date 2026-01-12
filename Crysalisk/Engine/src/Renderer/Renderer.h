@@ -24,6 +24,9 @@ struct RenderPacket_t;
 class Renderer
 {
 public:
+	static void		AllocateRenderSystemState(Renderer** ppSystemState);
+
+	// Initialize, shutdown.
 	bool			Initialize(RendererConfig_t& pAppConfig);
 	void			Shutdown();
 	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
@@ -78,12 +81,13 @@ public:
 	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
 private:
-	IRendererBackend* m_RendererBackend{ nullptr };
-	bool	m_bMinimized{ false };
-	Clock	m_RendererClock{};
-	double	m_flLastFrameTime{};
+	RendererConfig_t	m_Config{};
+	IRendererBackend*	m_RendererBackend{ nullptr };
+	bool				m_bMinimized{ false };
+	Clock				m_RendererClock{};
+	double				m_flLastFrameTime{};
 
-	RenderMetrics_t	m_Metrics{};
+	RenderMetrics_t		m_Metrics{};
 
 	// The current dimensions of the surface we are presenting to (usually a window).
 	unsigned int	m_iWindowWidth{ 0 };
@@ -110,5 +114,3 @@ public:
 	// A pointer to the window we're rendering to.
 	Platform::IPlatformWindow*	m_pMainWindow;
 };
-
-extern Renderer* g_pRenderer;

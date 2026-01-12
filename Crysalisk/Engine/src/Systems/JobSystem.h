@@ -108,6 +108,8 @@ struct JobSystemConfig_t
 class IJobSystem
 {
 public:
+	static void		AllocateJobSystemState(IJobSystem** ppSystemState);
+
 	virtual bool	Initialize(JobSystemConfig_t& pAppConfig) = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
@@ -118,5 +120,3 @@ public:
 	// any work they may be doing.
 	virtual void	WaitForWorkerThreadsToFinish() const = 0;
 };
-
-extern IJobSystem* g_pJobSystem;

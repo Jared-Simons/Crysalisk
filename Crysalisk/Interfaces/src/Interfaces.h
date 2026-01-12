@@ -30,9 +30,7 @@
 #include <Strings/String_Utils.h>
 
 // Engine System Interfaces
-static class IEventSystem*		g_pEngineEvents{ nullptr };
 static class IInputSystem*		g_pInputSystem{ nullptr };
-static class ITextureSystem*	g_pTextureSystem{ nullptr };
 static class IMaterialSystem*	g_pMaterialSystem{ nullptr };
 
 //-------------------------------------------------------------------------
@@ -59,21 +57,9 @@ void AssignInterfaces(Utl::CVector<Platform::SystemInterface_t>& appInterfaces)
 {
 	for (int i = 0; i < appInterfaces.Count(); i++)
 	{
-		if (Utl::StringCompare(appInterfaces[i].szSystemName, "engine_events"))
-		{
-			g_pEngineEvents = (IEventSystem*)appInterfaces[i].pSystemAddr;
-			continue;
-		}
-
 		if (Utl::StringCompare(appInterfaces[i].szSystemName, "input_system"))
 		{
 			g_pInputSystem = (IInputSystem*)appInterfaces[i].pSystemAddr;
-			continue;
-		}
-
-		if (Utl::StringCompare(appInterfaces[i].szSystemName, "texture_system"))
-		{
-			g_pTextureSystem = (ITextureSystem*)appInterfaces[i].pSystemAddr;
 			continue;
 		}
 
