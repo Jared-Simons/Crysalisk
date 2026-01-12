@@ -11,7 +11,6 @@
 #include <Core/Input.h>
 #include <Core/Logging.h>
 #include <Defines.h>
-#include <Interfaces.h>
 #include <Math/MathLib.h>
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
@@ -40,27 +39,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 // Renderer event handlers.
 static bool RendererEvent_WindowResized(EventData_t data);
 static bool RendererEvent_KeyPressed(EventData_t data);
-
-//-------------------------------------------------------------------------
-// Purpose: Gets opaque pointers to interfaces that will be exposed to the rest of the engine.
-// Input:	pOutInterfaces - An array to add our interfaces to.
-// Output:	none.
-//-------------------------------------------------------------------------
-DLL_EXPORT void ObtainInterfaces(Utl::CVector<Platform::SystemInterface_t>& pOutInterfaces)
-{
-	// For this, right now we only care about the backend pointer.
-	pOutInterfaces.PushBack({ g_pRendererBackend, "Renderer_Backend" });
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Connect interfaces provided by other libraries and do any work to make sure they're present.
-// Input: pInterfaceState - An array of interfaces to be setup.
-// Output: none.
-//-------------------------------------------------------------------------
-DLL_EXPORT void ConnectInterface(Utl::CVector<Platform::SystemInterface_t>& pInterfaceState)
-{
-	AssignInterfaces(pInterfaceState);
-}
 
 //-------------------------------------------------------------------------
 // Purpose: Returns an opaque pointer to the renderer backend state.

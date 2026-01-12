@@ -13,7 +13,6 @@
 #include <Core/Event.h>
 #include <Core/Input.h>
 #include <Core/Logging.h>
-#include <Interfaces.h>
 #include <Memory/MemoryManager.h>
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
@@ -155,14 +154,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		LOG_FATAL("Failed to load Renderer_Vulkan.dll! Application cannot continue.");
 		return false;
 	}
-
-	// Get everyone's interfaces!
-	Platform::ObtainLibraryInterfaces();
-
-	// Make sure everyone gets their interfaces!
-	ReturnInterfacesToRegistry();
-	AssignInterfaces(Platform::GetRegisteredInterfaces());
-	Platform::ConnectLibraryInterfaces();
 
 	// The Core.dll gets it's interfaces separately because it is linked at link-time (TODO: Maybe this should work like every other lib?)
 	Platform::SetupExternalInterfaces();

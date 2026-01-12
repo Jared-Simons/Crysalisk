@@ -26,7 +26,6 @@ add_executable(Editor ${CRYSALISK_EDITOR_EXE_SRC_FILES})
 target_include_directories(Editor PUBLIC ${EDITOR_ROOT})
 target_include_directories(Editor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(Editor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
-target_include_directories(Editor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Editor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
 
 # Force multi-byte character set.
