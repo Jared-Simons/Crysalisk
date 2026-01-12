@@ -1,22 +1,26 @@
 #pragma once
 
+#include <Defines.h>
 #include "Platform/Platform.h"
 
 namespace AppFramework
 {
-	struct UI_App_Config_t
+	struct UIAppConfig_t
 	{
 		// TODO: Multiple windows?
 		Platform::WindowParams_t	pWindow{};
+		Platform::ISysModule*		pRendererLibrary{ nullptr };
 	};
 
-	bool CreateUIContext(AppFramework::UI_App_Config_t& pConfig);
-	void ShutdownUIContext();
-	void RunUIContext();
+	DLL_EXPORT bool CreateUIContext(UIAppConfig_t& pConfig);
+	DLL_EXPORT void ShutdownUIContext();
+	DLL_EXPORT void RunUIContext();
+
+	DLL_EXPORT Platform::IPlatformWindow* GetActiveWindow();
 
 	// TODO: Make this more elegant.
-	bool ShouldRunUIContext();
-	void SetUIContextQuitting(bool bQuitting);
+	DLL_EXPORT bool ShouldRunUIContext();
+	DLL_EXPORT void SetUIContextQuitting(bool bQuitting);
 	void SetMousePosition(int xPos, int yPos);
 	void GetMousePosition(int& pXPos, int& pYPos);
 	void SetLeftMousePressed(unsigned int mouseButtonFlags, bool bPressed);

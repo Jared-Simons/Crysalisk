@@ -13,6 +13,11 @@
 struct TextureSystemConfig_t
 {
 	size_t	MaxTextures{ 0 };
+
+	// A pointer to the render system.
+	class IRenderer* pRenderer{ nullptr };
+	// A pointer to the job system.
+	class IJobSystem* pJobSystem{ nullptr };
 };
 
 static const char* kszDefaultTextureName = "_DefaultDiffuse";
@@ -23,6 +28,8 @@ static const char* kszDefaultNormalTextureName = "_DefaultNormal";
 class ITextureSystem
 {
 public:
+	static void					AllocateTextureSystemState(ITextureSystem** ppSystemState);
+
 	virtual bool				Initialize(TextureSystemConfig_t config) = 0;
 	virtual void				Shutdown() = 0;
 
@@ -47,5 +54,3 @@ public:
 	virtual void				SetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) = 0;
 	virtual void				UnsetTextureFlags(const TextureHandle_t hTexture, const TextureFlags_t& iFlags) = 0;
 };
-
-DLL_EXPORT ITextureSystem* g_pTextureSystem_Internal;

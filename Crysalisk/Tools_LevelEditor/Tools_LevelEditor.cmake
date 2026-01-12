@@ -27,7 +27,6 @@ target_include_directories(Tools_LevelEditor PUBLIC ${LEVEL_EDITOR_ROOT})
 target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/EditorHub/src/)
-target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
 
 # Force multi-byte character set.

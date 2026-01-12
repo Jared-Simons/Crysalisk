@@ -14,6 +14,24 @@
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
+// Renderer configuration, to be set by the application.
+//-------------------------------------------------------------------------
+struct RendererConfig_t
+{
+	// The application's name.
+	const char* szApplicationName;
+	// A pointer to the main engine state.
+	class IEngine* pEngine;
+	// An opaque pointer to the window we'll be rendering to.
+	Platform::IPlatformWindow* pMainWindow;
+	// A pointer to the loaded backend module.
+	Platform::ISysModule* pRendererBackendDLL;
+
+	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
+	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
+};
+
+//-------------------------------------------------------------------------
 // Purpose: Frame-specific data to be used in rendering operations.
 //-------------------------------------------------------------------------
 struct RenderPacket_t
@@ -238,6 +256,18 @@ struct RendererViewConfig_t
 	char*											m_pszViewName{ nullptr };
 	// A list of attachments associated with this view.
 	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
+	// A color used for debugging tools. Otherwise does nothing.
+	Vector3D										m_debuggingColor{};
+
+	// TODO: This needs to work!
+	~RendererViewConfig_t()
+	{
+		if (m_pszViewName)
+		{
+			/*Utl::StringFree(m_pszViewName);
+			m_pszViewName = nullptr;*/
+		}
+	}
 };
 
 //-------------------------------------------------------------------------

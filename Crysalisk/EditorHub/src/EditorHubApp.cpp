@@ -11,61 +11,86 @@
 #include <Strings/String_Utils.h>
 
 // Framework includes.
-#include <UIContext.h>
+#include <AppFramework.h>
 
 #include "ToolsTypes.h"
 
 class CEditorHubApp : public ICrysApplication
 {
 public:
-	virtual bool Application_Init() override;
-	virtual bool Application_Run() override;
-	virtual void Application_Shutdown() override;
+	virtual bool PreInitialize(ApplicationConfig_t* pAppConfig);
+	virtual bool Initialize(ApplicationConfig_t* pAppConfig) override;
+	virtual bool Run() override;
+	virtual void Shutdown() override;
+	
+	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override {};
 
 private:
+	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
+
 	virtual bool LoadTool(const char* pszToolLibraryName);
 
 private:
-	Utl::CVector<IToolApp*> m_pTools{};
+	ApplicationConfig_t*			m_pApplicationConfig{ nullptr };
+	AppFramework::IAppFramework*	m_pAppFramework{ nullptr };
+	Utl::CVector<IToolApp*>			m_pTools{};
 };
 
 CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
 
-bool CEditorHubApp::Application_Init()
+bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
-	LOG_INFO("Launching Crysalisk Tools");
-	m_pTools.Resize(1);
+	m_pApplicationConfig = pAppConfig;
 
-	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
-	//LoadTool("Tools_LevelEditor");
-
-	Platform::WindowParams_t windowParams{};
-	windowParams.pszName = "Crysalisk Tools";
-	windowParams.X = 100;
-	windowParams.Y = 100;
-	windowParams.Width = 1080;
-	windowParams.Height = 720;
-
-	AppFramework::UI_App_Config_t appConfig{};
-	appConfig.pWindow = windowParams;
-
-	AppFramework::CreateUIContext(appConfig);
+	// Setup the render views.
+	ConfigureRenderViews(pAppConfig);
 
 	return true;
 }
 
-bool CEditorHubApp::Application_Run()
+typedef void* (*PFN_GetAppFrameworkState)();
+
+bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
-	if (!AppFramework::ShouldRunUIContext())
+	LOG_INFO("Launching Crysalisk Tools");
+	m_pTools.Resize(1);
+
+	// Load the App Framework module.
+	Platform::ISysModule* pUIModule = Platform::LoadSysModule("AppFramework");
+	if (!pUIModule)
 	{
-		// TODO: This is just a quick, easy way to quit the engine.
+		LOG_FATAL("Failed to load AppFramework.dll! Application cannot continue.");
 		return false;
 	}
 
-	AppFramework::RunUIContext();
+	PFN_GetAppFrameworkState pfnGetAppFramework = (PFN_GetAppFrameworkState)pUIModule->GetFuncAddr("GetAppFrameworkState");
+	if (!pfnGetAppFramework)
+	{
+		LOG_ERROR("Failed to get a pointer to the app framework state. Initialization failed.");
+		return false;
+	}
+	m_pAppFramework = (AppFramework::IAppFramework*)pfnGetAppFramework();
+	CAssert(m_pAppFramework != nullptr);
 
+	// Initialize the framework.
+	AppFramework::AppFrameworkConfig_t appConfig{};
+	appConfig.pEngine = pAppConfig->pEngine;
+	if (!m_pAppFramework->Initialize(appConfig))
+	{
+		LOG_ERROR("Failed to initialize app framework! Application cannot continue.");
+		return false;
+	}
+
+	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
+	//LoadTool("Tools_LevelEditor");
+
+	return true;
+}
+
+bool CEditorHubApp::Run()
+{
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
 	for (int iTool = 0; iTool < m_pTools.Count(); iTool++)
@@ -73,14 +98,68 @@ bool CEditorHubApp::Application_Run()
 		m_pTools[iTool]->Tool_Run();
 	}
 
+	m_pAppFramework->Run();
+
 	return true;
 }
 
-void CEditorHubApp::Application_Shutdown()
+void CEditorHubApp::Shutdown()
 {
-	AppFramework::ShutdownUIContext();
-
+	// Clean up lingering memory.
+	m_pApplicationConfig->renderViewConfigs.Clear();
 	m_pTools.Clear();
+
+	m_pAppFramework->Shutdown();
+}
+
+void CEditorHubApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
+{
+	pAppConfig->renderViewConfigs.Resize(2);
+
+	// 3D Scene View.
+	{
+		RendererViewConfig_t sceneViewConfig{};
+		sceneViewConfig.m_pszViewName = Utl::StringDuplicate("3D_Scene_View");
+
+		// This view has 2 attachments: color and depth.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
+
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		// Add them to the config.
+		sceneViewConfig.attachmentConfigs.Resize(2);
+		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		sceneViewConfig.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
+		pAppConfig->renderViewConfigs.PushBack(sceneViewConfig);
+	}
+
+	// UI View.
+	{
+		RendererViewConfig_t UIViewConfig{};
+		UIViewConfig.m_pszViewName = "UI_View";
+
+		// This pass has 1 attachment: color.
+		RendererViewAttachmentConfig_t colorAttachment{};
+		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+		colorAttachment.bShouldClear = false;
+
+		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
+		RendererViewAttachmentConfig_t depthAttachment{};
+		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+		depthAttachment.bShouldClear = true;
+
+		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
+		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
+
+		UIViewConfig.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
+		pAppConfig->renderViewConfigs.PushBack(UIViewConfig);
+	}
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)

@@ -7,6 +7,8 @@
 #pragma once
 #include "pch.h"
 
+#include "Renderer/IRendererBackend.h"
+
 namespace AppFramework
 {
 	class BasePanel;
@@ -23,7 +25,7 @@ namespace AppFramework
 	class ControlFactory
 	{
 	public:
-		BasePanel*	CreateControl(eControlType eType, uint16_t xPos, uint16_t yPos, uint16_t iWidth, uint16_t iHeight);
+		BasePanel*	CreateControl(class IRendererBackend* pRenderer, eControlType eType, uint16_t xPos, uint16_t yPos, uint16_t iWidth, uint16_t iHeight);
 		void		ReleaseControl(BasePanel* pControl);
 	};
 

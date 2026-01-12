@@ -173,7 +173,8 @@ namespace Utl
 				}
 				else if (pCurrentNode == nullptr)
 				{
-					LOG_ERROR("CFreeList::Free -> Unable to free memory block with offset %d and size %d, memory leak is likely.", offset, size);
+					// TODO: We need some way to return the condition that we should release through the platform layer instead of the freelist.
+					LOG_WARN("CFreeList::Free -> Unable to free memory block with offset %d and size %d, memory leak is likely.", offset, size);
 					return;
 				}
 				else if (pCurrentNode == nullptr && pPreviousNode->Offset + size < offset)

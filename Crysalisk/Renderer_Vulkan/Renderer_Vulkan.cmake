@@ -34,7 +34,6 @@ add_library(Renderer_Vulkan SHARED ${CRYSALISK_RENDERER_VULKAN_SRC_FILES})
 target_include_directories(Renderer_Vulkan PUBLIC ${RENDERER_VULKAN_ROOT})
 target_include_directories(Renderer_Vulkan PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(Renderer_Vulkan PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
-target_include_directories(Renderer_Vulkan PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(Renderer_Vulkan PUBLIC $ENV{VULKAN_SDK}/Include/)
 target_include_directories(Renderer_Vulkan PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public)
 
@@ -55,5 +54,4 @@ target_link_directories(Renderer_Vulkan PRIVATE $ENV{VULKAN_SDK}/Lib/)
 # Linker input.
 target_link_libraries(Renderer_Vulkan PRIVATE Core)
 target_link_libraries(Renderer_Vulkan PRIVATE Engine)
-target_link_libraries(Renderer_Vulkan PRIVATE Interfaces)
 target_link_libraries(Renderer_Vulkan PRIVATE Vulkan-1) # Vulkan symbol lib

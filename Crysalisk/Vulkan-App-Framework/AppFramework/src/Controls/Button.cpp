@@ -15,11 +15,6 @@ namespace AppFramework
 	{
 	}
 
-	bool Button::Initialize()
-	{
-		return BaseClass::Initialize();
-	}
-
 	void Button::Render()
 	{
 		int xPos, yPos;
@@ -28,10 +23,10 @@ namespace AppFramework
 		bool bHoveredOver = IsMouseOverlapping(xPos, yPos);
 
 		uint8_t iRenderFlags = 0;
-		if (bHoveredOver)
-			iRenderFlags = GEOMETRY_RENDER_FLAG_CONTROL_HOVERED_OVER;
+		/*if (bHoveredOver)
+			iRenderFlags = GEOMETRY_RENDER_FLAG_CONTROL_HOVERED_OVER;*/
 			
-		g_pRenderer->RenderGeometry(m_GeometryData, iRenderFlags);
+		//g_pRenderer->RenderGeometry(m_GeometryData, iRenderFlags);
 	}
 
 	void Button::OnPressed()

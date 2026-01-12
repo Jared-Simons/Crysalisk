@@ -6,15 +6,34 @@
 //=============================================================================
 #pragma once
 
+#include <Platform/Platform.h>
+#include <Renderer/RendererTypes.h>
+
 struct ApplicationConfig_t
 {
-	class ICrysApplication* pApplication{ nullptr };
+	class ICrysApplication*				pApplication{ nullptr };
+	class IEngine*						pEngine{ nullptr };
+
+	// Renderer resources.
+	Platform::ISysModule*				pRendererLibrary{ nullptr };
+	Utl::CVector<RendererViewConfig_t>	renderViewConfigs{};
+
+	// TODO: This shouldn't happen here.
+	Platform::IPlatformWindow*			pWindowToRegisterWithRenderer{ nullptr };
+
+	~ApplicationConfig_t()
+	{
+		renderViewConfigs.Clear();
+	}
 };
 
 class ICrysApplication
 {
 public:
-	virtual bool Application_Init() = 0;
-	virtual bool Application_Run() = 0;
-	virtual void Application_Shutdown() = 0;
+	virtual bool	PreInitialize(ApplicationConfig_t* pAppConfig) = 0;
+	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) = 0;
+	virtual bool	Run() = 0;
+	virtual void	Shutdown() = 0;
+
+	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 };

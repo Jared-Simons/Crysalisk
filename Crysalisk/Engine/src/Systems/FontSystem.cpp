@@ -45,7 +45,7 @@ const int kUIInputHeight = 480;
 // Input:	pszText - The new string to be rendered with this object.
 // Output:	none.
 //-------------------------------------------------------------------------
-void TextObject::SetText(const char* pszText)
+void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
 {
 	// Can't render text without text to render!
 	if (!pszText || Utl::StringLength(pszText) < 1)
@@ -58,17 +58,17 @@ void TextObject::SetText(const char* pszText)
 	m_pszText = Utl::StringDuplicate(pszText);
 
 	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
+	GeometryConfig2D_t newConfig = pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
 	
 	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
 	// Otherwise, just update the existing data.
 	if (bCreateNewResources)
 	{
-		g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
+		pRenderer->AcquireGeometryResources(pRenderer->GetUIVertexBuffer(), pRenderer->GetUIIndexBuffer(), newConfig, m_Geometry);
 	}
 	else
 	{
-		g_pRenderer->UpdateGeometryResources(m_Geometry, newConfig);
+		pRenderer->UpdateGeometryResources(m_Geometry, newConfig);
 	}
 }
 
@@ -121,16 +121,26 @@ private:
 	FontHandle_t	m_hDefaultFont{ kInvalidID_U32 };
 };
 
-// Font System context.
-static CFontSystem s_FontSystem;
-IFontSystem* g_pFontSystem = &s_FontSystem;
-
 // The internal font atlas data for a font.
 // Can be accessed through pFont->m_pInternalData.
 struct InternalFontAtlasData_t
 {
 	Utl::CVector<FontLoader::FontCharData_t>	glyphs{};
 };
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IFontSystem::AllocateFontSystemState(IFontSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold font system state was not provided! Font system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CFontSystem;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -144,7 +154,7 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	m_FontDictionary.m_FontArray = (Font*)new Font[config.MaxFonts];
 
 	// Set up our required shader resources.
-	m_hDefaultUIShader = g_pShaderSystem->AcquireShader("Core.UI");
+	m_hDefaultUIShader = config.pShaderSystem->AcquireShader("Core.UI");
 	
 	if (m_hDefaultUIShader == kInvalidID_U32)
 	{
@@ -153,14 +163,14 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	}
 
 	// Get all our shader uniform locations
-	s_UIShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
-	s_UIShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
-	s_UIShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
-	s_UIShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
-	s_UIShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
+	s_UIShaderLocations.projection = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
+	s_UIShaderLocations.view = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
+	s_UIShaderLocations.color = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
+	s_UIShaderLocations.texture_maps = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
+	s_UIShaderLocations.model = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	// Load default font.
-	m_hDefaultFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;
@@ -208,11 +218,11 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		pFont = &m_FontDictionary.m_FontArray[fontHandle];
 
 		// Load up the texture data.
-		TextureHandle_t hFontAtlas = g_pTextureSystem_Internal->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
+		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
 
 		// Get our shader instance data and bind the font atlas.
-		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
-		g_pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
+		m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
+		m_Config.pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
 		pFont->m_hFontTexture = hFontAtlas;
 
 		// Setup the font atlas.

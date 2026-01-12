@@ -17,6 +17,13 @@ struct MeshSystemConfig_t
 {
 	// The max number of meshes that can be registered with the mesh system.
 	size_t	MaxMeshes{ 0 };
+
+	// A pointer to the render system.
+	class IRenderer* pRenderer{ nullptr };
+	// A pointer to the job system.
+	class IJobSystem* pJobSystem{ nullptr };
+	// A pointer to the material system.
+	class IMaterialSystem* pMaterialSystem{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -25,6 +32,8 @@ struct MeshSystemConfig_t
 class IMeshSystem
 {
 public:
+	static void				AllocateMeshSystemState(IMeshSystem** ppSystemState);
+
 	// Initialize, shutdown
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
@@ -37,5 +46,3 @@ public:
 	// Mesh release.
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) = 0;
 };
-
-extern IMeshSystem* g_pMeshSystem;

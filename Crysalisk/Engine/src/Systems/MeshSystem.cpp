@@ -53,8 +53,7 @@ private:
 };
 
 // Mesh System Context
-static CMeshSystem s_MeshSystem;
-IMeshSystem* g_pMeshSystem = &s_MeshSystem;
+static CMeshSystem* s_MeshSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async mesh-loading job.
@@ -67,7 +66,7 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 	MeshLoader::MeshResource_t::GeometryObject_t*	pSubmesh = nullptr;
 
 	// This will handle mesh registration and GPU upload.
-	s_MeshSystem.AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
+	s_MeshSystem->AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
 
 	// Release all the resources allocated for this job.
 	delete pTypedResults->pOutResource;
@@ -108,6 +107,21 @@ static int OnMeshLoadJob_Fail(JobResults_t& pResults)
 }
 
 //-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IMeshSystem::AllocateMeshSystemState(IMeshSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold mesh system state was not provided! Mesh system creation failed!");
+		return;
+	}
+
+	s_MeshSystem = new CMeshSystem;
+	*ppSystemState = s_MeshSystem;
+}
+
+//-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
 bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
@@ -137,6 +151,8 @@ void CMeshSystem::Shutdown()
 		delete[] m_MeshDictionary.m_MeshArray;
 		m_MeshDictionary.m_MeshArray = nullptr;
 	}
+
+	s_MeshSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -203,7 +219,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		meshLoadJob.ePriority = eJobPriority::NORMAL;
 
-		g_pJobSystem->SubmitJob(meshLoadJob);
+		m_Config.pJobSystem->SubmitJob(meshLoadJob);
 	}
 	else
 	{
@@ -262,7 +278,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		newConfig.Vertices = pCurSubmesh->Vertices;
 		newConfig.Indices = pCurSubmesh->Indices;
 		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
-		g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, pMesh->m_Geometries.Back());
+		m_Config.pRenderer->AcquireGeometryResources(&m_Config.pRenderer->GetWorldVertexBuffer(), &m_Config.pRenderer->GetWorldIndexBuffer(), newConfig, pMesh->m_Geometries.Back());
 
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
@@ -273,10 +289,10 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		// Acquire material resources.
 		if (pCurSubmesh->pszMaterialName != nullptr)
 		{
-			pNewSubmesh.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurSubmesh->pszMaterialName);
+			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pCurSubmesh->pszMaterialName);
 
 			// Set transparency state.
-			pNewSubmesh.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(pNewSubmesh.hMaterial);
+			pNewSubmesh.bIsTransparent = m_Config.pMaterialSystem->IsMaterialTransparent(pNewSubmesh.hMaterial);
 		}
 	}
 
@@ -343,8 +359,8 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 		
 		for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
 		{
-			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
-			g_pMaterialSystemInternal->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
+			m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
+			m_Config.pMaterialSystem->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
 		}
 		ClearMeshDictionaryEntry(pMesh->m_pszMeshPath);
 	}
@@ -357,7 +373,7 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 //-------------------------------------------------------------------------
 MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 {
-	if (!s_MeshSystem.m_MeshDictionary.m_MeshArray)
+	if (!s_MeshSystem->m_MeshDictionary.m_MeshArray)
 	{
 		LOG_ERROR("Attempting to acquire a mesh prior to mesh system initialization, mesh acquisition failed.");
 		return kInvalidID_U32;
@@ -365,7 +381,7 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 
 	for (int meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
 	{
-		if (s_MeshSystem.m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
+		if (s_MeshSystem->m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
 		{
 			// Found a free slot, return!
 			return meshIdx;

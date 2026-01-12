@@ -1,3 +1,9 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 5/6/2024
+// 
+// Purpose: The interface for Event Systems.
+//=============================================================================
 #include "Event.h"
 
 #include <Core/Logging.h>
@@ -20,9 +26,19 @@ private:
 	int m_numRegisteredEvents[kNumEventCategories];
 };
 
-// Event system context.
-EventSystem s_EventSystem;
-IEventSystem* g_pEngineEvents_Internal = &s_EventSystem;
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IEventSystem::AllocateEventSystemState(IEventSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold event system state was not provided! Event system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new EventSystem;
+}
 
 //-------------------------------------------------------------------------
 // Purpose - Initializes the event system.

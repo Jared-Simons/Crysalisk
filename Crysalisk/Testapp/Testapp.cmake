@@ -12,6 +12,7 @@ project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_TESTAPP_SRC_FILES
 	${TESTAPP_ROOT}/Main.cpp
+	${TESTAPP_ROOT}/MemOverride.cpp
 )
 
 # Group source files

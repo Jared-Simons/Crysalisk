@@ -27,7 +27,6 @@ add_library(EditorHub SHARED ${CRYSALISK_EDITOR_HUB_SRC_FILES})
 target_include_directories(EditorHub PUBLIC ${EDITOR_HUB_ROOT})
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
-target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
 target_include_directories(EditorHub PRIVATE ${CRYSALISK_REPO_ROOT}/Vulkan-App-Framework/AppFramework/src/)
 

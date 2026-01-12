@@ -22,6 +22,9 @@ public:
 	virtual bool	RendererBackend_Initialize(struct RendererConfig_t& pAppConfig) = 0;
 	virtual void	RendererBackend_Shutdown() = 0;
 
+	virtual bool	RegisterWindow(Platform::IPlatformWindow& pWindow) = 0;
+	virtual void	ReleaseWindowResources(Platform::IPlatformWindow& pWindow) = 0;
+
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
 
 	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) = 0;

@@ -16,6 +16,9 @@ struct ShaderSystemConfig_t
 {
 	// The maximum number of shaders that can be loaded at once.
 	size_t	MaxShaders{ 0 };
+
+	// A pointer to the render system.
+	class IRenderer* pRenderer{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -24,6 +27,8 @@ struct ShaderSystemConfig_t
 class IShaderSystem
 {
 public:
+	static void				AllocateShaderSystemState(IShaderSystem** ppSystemState);
+
 	// Initialization, shutdown.
 	virtual bool			Initialize(ShaderSystemConfig_t config) = 0;
 	virtual void			Shutdown() = 0;
@@ -52,6 +57,3 @@ public:
 	// Sets a particular shader uniform.
 	virtual void			SetShaderUniform(ShaderHandle_t hShader, uint16_t uniformLocation, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) = 0;
 };
-
-// Global interface to the shader system context.
-DLL_EXPORT IShaderSystem* g_pShaderSystem;

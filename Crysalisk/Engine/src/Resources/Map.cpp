@@ -7,6 +7,7 @@
 #include "Map.h"
 
 #include <Core/Logging.h>
+#include "Core/Engine.h"
 #include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
@@ -14,7 +15,7 @@
 #include "Systems/MeshSystem.h"
 #include "Renderer/DebugRenderer.h"
 
-bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
+bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource)
 {
 	MapLoader::MapResource_t mapResource{};
 
@@ -40,7 +41,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	LOG_DEBUG("Memory usage post-map resource load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
 	// Use the loaded resource to acquire assets.
-	if (!CMap::InitializeFromResource(mapResource, pOutMapResource))
+	if (!CMap::InitializeFromResource(mapResource, pMeshSystem, pMaterialSystem, pOutMapResource))
 	{
 		LOG_ERROR("Failed to initialize map '%s'.", pszMapName);
 		return false;
@@ -51,7 +52,7 @@ bool LoadMap(const char* pszMapName, CMap& pOutMapResource)
 	return true;
 }
 
-bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMap& pOutMap)
+bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMap)
 {
 	if (pNewMapResource.pszMapName)
 	{
@@ -70,8 +71,8 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 
 			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
 			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
-			pOutMap.m_hMeshes[iMesh].hMesh = g_pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
-			pOutMap.m_hMeshes[iMesh].pMesh = g_pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
+			pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
+			pOutMap.m_hMeshes[iMesh].pMesh = pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 		}
 		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources.Count());
 	}
@@ -89,19 +90,19 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, CMa
 	MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
 	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
 
- 	g_pMaterialSystemInternal->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
-	g_pMaterialSystemInternal->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
-	g_pMaterialSystemInternal->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
-	g_pMaterialSystemInternal->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
-	g_pMaterialSystemInternal->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
-	g_pMaterialSystemInternal->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
-	g_pMaterialSystemInternal->ApplyLightData();
+ 	pMaterialSystem->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
+	pMaterialSystem->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
+	pMaterialSystem->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
+	pMaterialSystem->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
+	pMaterialSystem->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	pMaterialSystem->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
+	pMaterialSystem->ApplyLightData();
 
 	pOutMap.m_bMapResourcesLoaded = true;
 	return true;
 }
 
-void CMap::UnloadMap()
+void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 {
 	m_bMapResourcesLoaded = false;
 
@@ -114,13 +115,13 @@ void CMap::UnloadMap()
 	// Release all mesh/material references.
 	for (int iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
-		g_pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
+		pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
 {
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -160,7 +161,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 			if (bIsInCameraFrustum)
 			{
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
-				if (!g_pMaterialSystemInternal->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
+				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
 				{
 					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
 					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
@@ -182,7 +183,7 @@ void CMap::GetRenderablesFromScene(Frustum& pCameraFrustum, Utl::CVector<Matrix4
 
 static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
 
-void CMap::CastRayIntoScene(Ray_t& pRay) const
+void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 {
 	pRay.bDidHit = false;
 	pRay.flDistance = kFLT_MAX;
@@ -246,10 +247,10 @@ void CMap::CastRayIntoScene(Ray_t& pRay) const
 	if (iHitMesh != kInvalidID_U32 && iHitSubmesh != kInvalidID_U32)
 	{
 		if (iCurrentRayDebugGeoID != kInvalidID_U32)
-			g_pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
+			pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
 
 		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
-		iCurrentRayDebugGeoID = g_pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+		iCurrentRayDebugGeoID = pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 	}
 	if (!pRay.bDidHit)
 	{

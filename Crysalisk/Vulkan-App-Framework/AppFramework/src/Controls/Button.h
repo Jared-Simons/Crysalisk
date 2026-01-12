@@ -18,8 +18,6 @@ namespace AppFramework
 
 		Button(uint16_t in_XPos, uint16_t in_YPos, uint16_t in_Width, uint16_t in_Height);
 
-		virtual bool	Initialize() override;
-
 		virtual void	Render() override;
 
 		virtual void	OnPressed() override;
