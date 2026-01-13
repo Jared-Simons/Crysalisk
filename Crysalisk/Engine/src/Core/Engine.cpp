@@ -350,7 +350,7 @@ bool CEngine::Run()
 			m_pApplication->FramePrepare(&frameRenderData);
 
 			// Get our renderable geometry from the map.
-			m_EngineSystems.pRenderer->Update(frameRenderData, m_CurrentMap);
+			m_EngineSystems.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
 		}
 	}
 

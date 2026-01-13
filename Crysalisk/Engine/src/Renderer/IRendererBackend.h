@@ -27,8 +27,8 @@ public:
 
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) = 0;
 
-	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) = 0;
-	virtual void	EndFrame(struct RenderPacket_t& pRenderData) = 0;
+	virtual bool	BeginFrame(class Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) = 0;
+	virtual void	EndFrame(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) = 0;
 
 	virtual bool	BeginRenderpass(class RendererView& pRendererView) = 0;
 	virtual void	EndRenderpass() = 0;

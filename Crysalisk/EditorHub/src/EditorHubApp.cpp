@@ -8,6 +8,7 @@
 #include <Containers/CVector.h>
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
+#include <Renderer/Renderer.h>
 #include <Strings/String_Utils.h>
 
 // Framework includes.
@@ -99,6 +100,9 @@ bool CEditorHubApp::Run()
 	}
 
 	m_pAppFramework->Run();
+
+	RenderPacket_t packet{};
+	m_pApplicationConfig->pEngine->GetEngineSubsystems()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
 
 	return true;
 }

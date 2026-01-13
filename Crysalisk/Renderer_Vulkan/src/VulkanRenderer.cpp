@@ -352,10 +352,11 @@ bool CVulkanRenderer::CreateSwapchainFramebuffers(RendererView& pMainView)
 
 //-------------------------------------------------------------------------
 // Purpose: Begins a renderer frame.
-// Input:	pRenderData - Frame specific render data provided by the application.
+// Input:	pTargetWindow - The window to render the image to.
+//			pRenderData - Frame specific render data provided by the application.
 // Output:	bool - Returns true on successful start, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
+bool CVulkanRenderer::BeginFrame(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t& pRenderData)
 {
 	if (m_bResizingFramebuffer)
 	{
@@ -368,7 +369,8 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 	//s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
 
 	// Acquire the next swapchain image.
-	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	//VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pTargetWindow->m_pRendererState;
 	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, pWindowState->m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
 
 	CAssert(!m_bCurrentlyRendering[m_ImageIndex]);
@@ -425,10 +427,11 @@ bool CVulkanRenderer::BeginFrame(RenderPacket_t& pRenderData)
 
 //-------------------------------------------------------------------------
 // Purpose: Ends a renderer frame.
-// Input:	pRenderData - Frame specific render data provided by the application.
+// Input:	pTargetWindow - The window to render the scene to.
+//			pRenderData - Frame specific render data provided by the application.
 // Output:	bool - Returns true on successful end, otherwise false.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
+void CVulkanRenderer::EndFrame(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t& pRenderData)
 {
 	if (m_bResizingFramebuffer)
 	{
@@ -438,7 +441,8 @@ void CVulkanRenderer::EndFrame(RenderPacket_t& pRenderData)
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
 
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	//VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pTargetWindow->m_pRendererState;
 
 	// End and submit our command buffer.
 	VK_CHECK(vkEndCommandBuffer(commandBuffer));
@@ -1319,7 +1323,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VkPushConstantRange pushConstants{};
 	pushConstants.size = pConfig.perDrawUBOStride;
 	pushConstants.offset = 0;
-	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT; // TODO: Make this configurable.
+	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
 	VkDescriptorSetLayout descriptorSetLayouts[2] = { pInternalShader->m_DescriptorSetLayouts[0].m_Layout, pInternalShader->m_DescriptorSetLayouts[1].m_Layout };
 

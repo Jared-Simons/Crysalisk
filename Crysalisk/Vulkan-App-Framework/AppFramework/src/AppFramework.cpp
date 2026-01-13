@@ -20,6 +20,8 @@ namespace AppFramework
 		virtual bool	Run() override;
 		virtual void	Shutdown() override;
 
+		virtual Platform::IPlatformWindow*	GetActiveWindow() const override { return m_RenderState.m_pWindow; }
+
 	private:
 		// Pointers to engine subsystems we need.
 		IRenderer*		m_pRenderer{ nullptr };

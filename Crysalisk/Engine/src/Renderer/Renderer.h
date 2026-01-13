@@ -29,7 +29,7 @@ public:
 	// Initialize, shutdown.
 	virtual bool			Initialize(RendererConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
-	virtual bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap) = 0;
+	virtual bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) = 0;
 
 	virtual bool			RegisterWindow(Platform::IPlatformWindow& pWindow) = 0;
 	virtual void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) = 0;

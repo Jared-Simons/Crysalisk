@@ -60,7 +60,7 @@ public:
 	// Initialize, shutdown.
 	bool			Initialize(RendererConfig_t& pAppConfig) override;
 	void			Shutdown() override;
-	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap) override;
+	bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) override;
 
 	bool			RegisterWindow(Platform::IPlatformWindow& pWindow) override;
 	void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
@@ -305,11 +305,12 @@ void CRenderer::Shutdown()
 
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
-// Input: pRenderData - Frame-specific data to be used in rendering ops.
+// Input: pTargetWindow - The window to render to.
+//		  pRenderData - Frame-specific data to be used in rendering ops.
 //		  pCurrentMap - The current map to get rendering data from.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
-bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
+bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t& pRenderData, CMap* pCurrentMap)
 {
 	// If we are currently minimized, do not do anything!
 	if (m_bMinimized)
@@ -341,7 +342,7 @@ bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineSubsystems()->pInputSystem, pRenderData.DeltaTime);
 
 	// Draw the frame!
-	if (!m_RendererBackend->BeginFrame(pRenderData))
+	if (!m_RendererBackend->BeginFrame(pTargetWindow, pRenderData))
 	{
 		return false;
 	}
@@ -361,7 +362,7 @@ bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	// TODO: Figure out how to split out these matrices per model.
 	Utl::CVector<Matrix4x4>				TransformMatrices(32);
 
-	if (pCurrentMap.IsMapLoaded())
+	if (pCurrentMap && pCurrentMap->IsMapLoaded())
 	{
 		// Get the frustum from the camera.
 		Frustum frustum = m_Camera.CreateFrustumFromCamera();
@@ -372,7 +373,7 @@ bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		unsigned int						pCulledGeometries{ 0 };
 
 		// Get the renderables from the map.
-		pCurrentMap.GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
+		pCurrentMap->GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
 		m_Metrics.NumGeometriesFrustumCulled = pCulledGeometries;
 
 		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
@@ -436,7 +437,7 @@ bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 		m_RendererBackend->EndRenderpass();
 	}
 
-	m_RendererBackend->EndFrame(pRenderData);
+	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 	m_Metrics.CurrentFrameFPS++;
 
 	// Clear out bound shader state.
@@ -451,7 +452,7 @@ bool CRenderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
 			m_Metrics.NumDrawCalls,	m_Metrics.NumGeometriesFrustumCulled,
 			g_pMemoryManager->GetPercentAllocated(),
-			pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None",
+			(pCurrentMap && pCurrentMap->GetMapName() != nullptr) ? pCurrentMap->GetMapName() : "None",
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
 
 		// Set the string.
