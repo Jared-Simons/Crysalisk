@@ -219,9 +219,9 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler)
+	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
-		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler;
+		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
 		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
 	}
@@ -339,7 +339,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineSubsystems()->pInputSystem, pRenderData.DeltaTime);
+	m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineInterfaces()->pInputSystem, pRenderData.DeltaTime);
 
 	// Draw the frame!
 	if (!m_RendererBackend->BeginFrame(pTargetWindow, pRenderData))
@@ -348,8 +348,8 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	}
 
 	m_RendererBackend->BeginRenderpass(*m_SceneView);
-	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem;
-	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineSubsystems()->pMaterialSystem;
+	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	// Flip the y-axis.
@@ -456,7 +456,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
 
 		// Set the string.
-		testText.SetText(this, m_Config.pEngine->GetEngineSubsystems()->pFontSystem, szMetricsString);
+		testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, szMetricsString);
 	}
 
 	// Increment the frame count.
@@ -781,13 +781,13 @@ void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffe
 //-------------------------------------------------------------------------
 bool CRenderer::CreateTempTextObjects()
 {
-	hUIShader = m_Config.pEngine->GetEngineSubsystems()->pShaderSystem->AcquireShader("Core.UI");
-	testFont = m_Config.pEngine->GetEngineSubsystems()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	hUIShader = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem->AcquireShader("Core.UI");
+	testFont = m_Config.pEngine->GetEngineInterfaces()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 	testText.m_hFont = testFont;
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 
-	m_pDebugRenderer = m_Config.pEngine->GetEngineSubsystems()->pDebugRenderer;
+	m_pDebugRenderer = m_Config.pEngine->GetEngineInterfaces()->pDebugRenderer;
 	if (!m_pDebugRenderer->InitializeDebugShaders())
 	{
 		LOG_ERROR("Failed to initialize debug shaders!");

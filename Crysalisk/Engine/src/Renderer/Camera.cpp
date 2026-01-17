@@ -106,7 +106,7 @@ void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, double deltaTi
 // Input:	none.
 // Output:	A new frustum that contains the camera's viewing volume.
 //-------------------------------------------------------------------------
-Frustum Camera_t::CreateFrustumFromCamera()
+Frustum Camera_t::CreateFrustumFromCamera() const
 {
 	Frustum outFrustum{};
 	const float flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);

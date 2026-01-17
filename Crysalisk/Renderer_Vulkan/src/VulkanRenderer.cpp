@@ -227,10 +227,10 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 	// Save off our configuration.
 	m_RendererConfig = pConfig;
 
-	if (pConfig.pEngine && pConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler)
+	if (pConfig.pEngine && pConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
 		// Register for window resize event.
-		IEventSystem* pEventHandler = pConfig.pEngine->GetEngineSubsystems()->pEngineEventHandler;
+		IEventSystem* pEventHandler = pConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
 		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
 
 		// Register for input events.
@@ -1567,7 +1567,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 				descriptorWrites.PushBack(samplerDescriptorWrite);
 			}
 
-			TextureHandle_t	hDefaultWhiteTexture = m_RendererConfig.pEngine->GetEngineSubsystems()->pTextureSystem->GetDefaultWhiteTexture();
+			TextureHandle_t	hDefaultWhiteTexture = m_RendererConfig.pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
 
 			// Setup image descriptors, and point them at the default texture for now.
 			for (int imageIdx = 0; imageIdx < pShader->m_iPerInstanceTextureCount; imageIdx++)

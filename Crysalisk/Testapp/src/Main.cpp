@@ -7,6 +7,9 @@
 #include <Application.h>
 
 #include <Core/Logging.h>
+#include <Core/Engine.h>
+#include <Renderer/Camera.h>
+#include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 
 // Cryaslisk Engine entry point.
@@ -21,14 +24,16 @@ public:
 	virtual bool	PreInitialize(ApplicationConfig_t* pAppConfig) override;
 	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) override;
 	virtual bool	Run() override;
+	virtual bool	Render() override;
 	virtual void	Shutdown() override;
 
-	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override {};
+	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
 private:
 	void		ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
+	Camera_t				m_MainCamera{};
 };
 
 static CGameApp s_GameApp{};
@@ -62,6 +67,40 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 bool CGameApp::Run()
 {
+	return true;
+}
+
+void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
+{
+	// Get the frustum from the camera.
+
+	// TODO: Make this work with a frame allocator.
+
+}
+
+bool CGameApp::Render()
+{
+	/*
+	* RENDERER CONVERSION NOTES: 
+	* 
+	* - The engine should handle metrics, so those will be cleared/updated over there.			[ ]
+	* - The camera should be moved to the application.											[ ]
+	* - The render-views should be moved to the application.									[ ]
+	* - Scene data can probably remain engine-side.												[ ]
+	* 
+	* Code-flow:
+	* - Engine calls application's render method.												[X]
+	* - Application calls back into the engine to get a scene draw list.						[ ]
+	* - Application then calls into the engine to render scene geometry.						[ ]
+	* - The application should handle all app-configurable items								[ ]
+	*	- Such as windows and render-views.														
+	* - Metrics should be handled separately from this.											[ ]
+	*/
+
+	IRenderer* pRenderer = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer;
+	CAssert(pRenderer);
+	
+
 	return true;
 }
 

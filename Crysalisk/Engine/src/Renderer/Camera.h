@@ -46,5 +46,5 @@ struct Camera_t
 	void UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime);
 
 	// Creates and returns a frustum based on the camera's internal state.
-	Frustum CreateFrustumFromCamera();
+	Frustum CreateFrustumFromCamera() const;
 };

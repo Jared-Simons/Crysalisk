@@ -58,8 +58,8 @@ namespace AppFramework
 			return false;
 		}
 
-		m_pRenderer = pConfig.pEngine->GetEngineSubsystems()->pRenderer;
-		m_pShaderSystem = pConfig.pEngine->GetEngineSubsystems()->pShaderSystem;
+		m_pRenderer = pConfig.pEngine->GetEngineInterfaces()->pRenderer;
+		m_pShaderSystem = pConfig.pEngine->GetEngineInterfaces()->pShaderSystem;
 
 		// Initialize render state.
 		{

@@ -22,9 +22,9 @@ public:
 	virtual bool PreInitialize(ApplicationConfig_t* pAppConfig);
 	virtual bool Initialize(ApplicationConfig_t* pAppConfig) override;
 	virtual bool Run() override;
-	virtual void Shutdown() override;
-	
-	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override {};
+	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override;
+	virtual bool Render() override;
+	virtual void Shutdown() override;	
 
 private:
 	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
@@ -102,8 +102,17 @@ bool CEditorHubApp::Run()
 	m_pAppFramework->Run();
 
 	RenderPacket_t packet{};
-	m_pApplicationConfig->pEngine->GetEngineSubsystems()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
+	m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
 
+	return true;
+}
+
+void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
+{
+}
+
+bool CEditorHubApp::Render()
+{
 	return true;
 }
 
