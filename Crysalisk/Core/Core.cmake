@@ -39,6 +39,8 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Platform/InterfaceRegistry.h
 	${CORE_ROOT}/Platform/Platform.h
 	${CORE_ROOT}/Platform/Platform_Win32.cpp
+	${CORE_ROOT}/Renderer/Camera.cpp
+	${CORE_ROOT}/Renderer/Camera.h
 	${CORE_ROOT}/Resources/Loaders/FontLoader.cpp
 	${CORE_ROOT}/Resources/Loaders/FontLoader.h
 	${CORE_ROOT}/Resources/Loaders/ImageLoader.cpp
@@ -72,6 +74,7 @@ add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Core PUBLIC ${CORE_ROOT})
+target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 
 # Force multi-byte character set.
 target_compile_definitions(Core PRIVATE _MBCS)

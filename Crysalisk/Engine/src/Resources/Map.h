@@ -7,6 +7,8 @@
 #pragma once
 
 #include <Containers/CVector.h>
+#include <Defines.h>
+#include <Renderer/Camera.h>
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
@@ -27,7 +29,8 @@ struct Ray_t
 	float	flDistance{ 0.0f };
 };
 
-class CMap
+// TODO: How to better export classes?
+class ENGINE_API CMap
 {
 public:
 	static bool InitializeFromResource(struct MapLoader::MapResource_t& pNewMapResource, class IMeshSystem* pMeshSystem, class IMaterialSystem* pMaterialSystem, CMap& pOutMap);

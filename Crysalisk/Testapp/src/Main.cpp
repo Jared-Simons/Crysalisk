@@ -6,11 +6,14 @@
 //=============================================================================
 #include <Application.h>
 
-#include <Core/Logging.h>
 #include <Core/Engine.h>
+#include <Core/Event.h>
+#include <Core/Logging.h>
 #include <Renderer/Camera.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
+#include <Resources/Map.h>
+#include <Systems/MaterialSystem.h>
 
 // Cryaslisk Engine entry point.
 extern "C"
@@ -30,13 +33,15 @@ public:
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
 private:
-	void		ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
+	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
 	Camera_t				m_MainCamera{};
 };
 
 static CGameApp s_GameApp{};
+
+static bool Event_WindowResized(EventData_t data);
 
 int main(int argc, char** argv)
 {
@@ -62,7 +67,24 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_DEBUG("Initializing Testapp");
 
+	// Start listening for events.
+	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+
+	// Init camera data.
+	m_MainCamera.RecalculateCameraVectors();
+
 	return true;
+}
+
+void CGameApp::Shutdown()
+{
+	// Stop listening for events.
+	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+
+	// Clean up lingering memory.
+	m_pApplicationConfig->renderViewConfigs.Clear();
 }
 
 bool CGameApp::Run()
@@ -72,10 +94,27 @@ bool CGameApp::Run()
 
 void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
-	// Get the frustum from the camera.
+	IMaterialSystem*	pMaterialSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pMaterialSystem;
+	CMap*				pMap = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pCurrentScene;
 
-	// TODO: Make this work with a frame allocator.
+	m_MainCamera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 
+	if (pMap && pMap->IsMapLoaded())
+	{
+		// Get the frustum from the camera.
+		Frustum frustum = m_MainCamera.CreateFrustumFromCamera();
+
+		// TODO: Make this work with a frame allocator.
+		// TODO: Figure out how to split out these matrices per model.
+		Utl::CVector<Matrix4x4>				TransformMatrices(32);
+		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
+		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
+		unsigned int						iCulledGeometries{ 0 };
+
+		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &iCulledGeometries);
+		
+		LOG_DEBUG("STOP!");
+	}
 }
 
 bool CGameApp::Render()
@@ -102,12 +141,6 @@ bool CGameApp::Render()
 	
 
 	return true;
-}
-
-void CGameApp::Shutdown()
-{
-	// Clean up lingering memory.
-	m_pApplicationConfig->renderViewConfigs.Clear();
 }
 
 void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
@@ -158,4 +191,12 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 		UIViewConfig.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
 		pAppConfig->renderViewConfigs.PushBack(UIViewConfig);
 	}
+}
+
+static bool Event_WindowResized(EventData_t data)
+{
+	LOG_DEBUG("APP WINDOW RESIZED!");
+
+	// Allow other handlers to get this event.
+	return false;
 }

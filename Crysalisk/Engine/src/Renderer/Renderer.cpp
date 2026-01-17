@@ -229,7 +229,7 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	// Grab window dimensions.
 	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
-	m_Camera.RecalculateCameraVectors();
+	//m_Camera.RecalculateCameraVectors();
 
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
@@ -339,7 +339,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineInterfaces()->pInputSystem, pRenderData.DeltaTime);
+	/*m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineInterfaces()->pInputSystem, pRenderData.DeltaTime);
 
 	// Draw the frame!
 	if (!m_RendererBackend->BeginFrame(pTargetWindow, pRenderData))
@@ -428,7 +428,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 		float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
 		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
 		// TODO: Orthographic projection is broken.
-		Matrix4x4 UIProjection{ 1.0f };
+		/*Matrix4x4 UIProjection{1.0f};
 		pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 		pShaderSystem->BindShader(hUIShader);
 		pShaderSystem->BindPerInstanceUniforms(1);
@@ -457,7 +457,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 		// Set the string.
 		testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, szMetricsString);
-	}
+	}*/
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;

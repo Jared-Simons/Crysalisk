@@ -20,8 +20,6 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Core/Event.h
 	${ENGINE_ROOT}/Core/Input.cpp
 	${ENGINE_ROOT}/Core/Input.h
-	${ENGINE_ROOT}/Renderer/Camera.cpp
-	${ENGINE_ROOT}/Renderer/Camera.h
 	${ENGINE_ROOT}/Renderer/DebugRenderer.cpp
 	${ENGINE_ROOT}/Renderer/DebugRenderer.h
 	${ENGINE_ROOT}/Renderer/IRendererBackend.h

@@ -6,10 +6,10 @@
 //=============================================================================
 #include "DebugRenderer.h"
 
-#include "Camera.h"
 #include <Containers/CVector.h>
 #include <Math/MathLib.h>
 #include "Renderer.h"
+#include <Renderer/Camera.h>
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/ShaderSystem.h"
