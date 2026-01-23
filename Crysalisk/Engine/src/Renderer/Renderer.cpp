@@ -339,76 +339,66 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	/*m_Camera.UpdateCameraData(m_Config.pEngine->GetEngineInterfaces()->pInputSystem, pRenderData.DeltaTime);
+	// Start rendering!
+	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 
-	// Draw the frame!
-	if (!m_RendererBackend->BeginFrame(pTargetWindow, pRenderData))
-	{
-		return false;
-	}
-
+	// TODO: This pass should live in the application, me-thinks.
 	m_RendererBackend->BeginRenderpass(*m_SceneView);
-	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
-	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
-
-	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
-	// Flip the y-axis.
-	matProjection.flData[5] *= -1;
-	Matrix4x4 matView = m_Camera.GetViewMatrix();
-	Vector vecCameraPos = m_Camera.vecPosition;
-	Matrix4x4 model = Matrix4x4{ 1.0f };
-
-	pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
-	// TODO: Figure out how to split out these matrices per model.
-	Utl::CVector<Matrix4x4>				TransformMatrices(32);
-
-	if (pCurrentMap && pCurrentMap->IsMapLoaded())
 	{
-		// Get the frustum from the camera.
-		Frustum frustum = m_Camera.CreateFrustumFromCamera();
+		m_Metrics.NumGeometriesFrustumCulled = pRenderData.iCulledGeometries;
 
-		// TODO: Make this work with an allocator.
-		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
-		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
-		unsigned int						pCulledGeometries{ 0 };
+		IShaderSystem* pShaderSystem		= m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+		IMaterialSystem* pMaterialSystem	= m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
-		// Get the renderables from the map.
-		pCurrentMap->GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
-		m_Metrics.NumGeometriesFrustumCulled = pCulledGeometries;
+		Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
+		// Flip the y-axis.
+		matProjection.flData[5] *= -1.0f;
+		Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
+		Vector vecCameraPos = pRenderData.pCamera->vecPosition;
+		Matrix4x4 matModel = Matrix4x4{ 1.0f };
 
-		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+		// Set per-frame render data.
+		pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
+
+		// Render opaque geometries.
+		for (int idx = 0; idx < pRenderData.pOpaqueGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			//model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
-			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
+			pMaterialSystem->ApplyPerDrawRenderData(pRenderData.pOpaqueGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
+			pMaterialSystem->ApplyMaterialInstance(pRenderData.pOpaqueGeometries[idx]->hMaterial);
+			DrawGeometry(*pRenderData.pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
 
-		// Render the sorted transparent geometries.
-		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
+		// Render transparent geometries.
+		for (int idx = 0; idx < pRenderData.pTransparentGeometries.Count(); idx++)
 		{
 			// Apply transformations.
-			//model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
-			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
+			pMaterialSystem->ApplyPerDrawRenderData(pRenderData.pTransparentGeometries[idx]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
+			pMaterialSystem->ApplyMaterialInstance(pRenderData.pTransparentGeometries[idx]->hMaterial);
+			DrawGeometry(*pRenderData.pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
 
 			m_Metrics.NumDrawCalls++;
 		}
+
+		// Update debug geometries.
+		m_pDebugRenderer->Update();
 	}
 
 	m_RendererBackend->EndRenderpass();
 
-	m_pDebugRenderer->Update();
+	m_RendererBackend->BeginRenderpass(*m_UIView);
+
+	m_RendererBackend->EndRenderpass();
+
+	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
+
+	/*
 
 	// Render our debug geometry.
 	DebugRendererFrameData_t debugFrameData{};

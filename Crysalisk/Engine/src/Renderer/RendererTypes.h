@@ -38,6 +38,14 @@ struct RenderPacket_t
 {
 	// The time elapsed between frames.
 	double DeltaTime;
+
+	// TODO: These arrays should be a part of a 3D World Scene view.
+	Utl::CVector<Matrix4x4>						TransformMatrices{};
+	Utl::CVector<struct GeometryInstance_t*>	pOpaqueGeometries{};
+	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
+	unsigned int								iCulledGeometries{ 0 };
+
+	struct Camera_t*							pCamera{ nullptr };
 };
 
 //-------------------------------------------------------------------------

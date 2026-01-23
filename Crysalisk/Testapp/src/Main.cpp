@@ -98,6 +98,7 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 	CMap*				pMap = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pCurrentScene;
 
 	m_MainCamera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
+	pRenderPacket->pCamera = &m_MainCamera;
 
 	if (pMap && pMap->IsMapLoaded())
 	{
@@ -106,14 +107,10 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 
 		// TODO: Make this work with a frame allocator.
 		// TODO: Figure out how to split out these matrices per model.
-		Utl::CVector<Matrix4x4>				TransformMatrices(32);
-		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
-		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
-		unsigned int						iCulledGeometries{ 0 };
+		// TODO: Clear frame data.
+		pRenderPacket->iCulledGeometries = 0;
 
-		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &iCulledGeometries);
-		
-		LOG_DEBUG("STOP!");
+		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket->TransformMatrices, pRenderPacket->pOpaqueGeometries, pRenderPacket->pTransparentGeometries, &pRenderPacket->iCulledGeometries);
 	}
 }
 

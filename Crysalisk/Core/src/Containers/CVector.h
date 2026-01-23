@@ -270,7 +270,6 @@ namespace Utl
 
 		//--------------------------------------------------
 		// Clears the contents within the vector.
-		// The capacity of the vector remains unchanged.
 		//--------------------------------------------------
 		void Clear()
 		{
