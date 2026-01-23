@@ -288,8 +288,28 @@ public:
 	char* m_pszViewName{ nullptr };
 	// Indicates if the renderer view should clear it's render target before rendering.
 	bool	m_bShouldClear{ false };
-	// A pointer to the internal data of the buffer.
+	// A pointer to the internal data of the pass.
 	void*	m_pInternalData{ nullptr };
 	// A color used for debugging tools. Otherwise does nothing.
 	Vector3D m_debuggingColor{};
+};
+
+//-------------------------------------------------------------------------
+// Purpose: TODO Documentation!
+//-------------------------------------------------------------------------
+struct Renderpass
+{
+	void* pInternalData{ nullptr };
+};
+
+//-------------------------------------------------------------------------
+// Purpose: TODO Documentation!
+// TODO: Replace the above RendererView class with this!
+//-------------------------------------------------------------------------
+class IRenderView
+{
+public:
+	virtual bool	Initialize(class IRenderer* pRenderer) = 0;
+
+	virtual void	Render(RenderPacket_t* pRenderData) = 0;
 };

@@ -213,7 +213,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Setup application-specific renderer state.
-	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
+	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->pViews);
 
 	// Save off a pointer to the renderer library so apps can have it.
 	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;

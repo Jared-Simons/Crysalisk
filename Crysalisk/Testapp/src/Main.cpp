@@ -15,6 +15,9 @@
 #include <Resources/Map.h>
 #include <Systems/MaterialSystem.h>
 
+// Render views.
+#include <Renderer/Views/3D_Scene_View.h>
+
 // Cryaslisk Engine entry point.
 extern "C"
 {
@@ -59,6 +62,9 @@ bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 
 	// Setup the render views.
 	ConfigureRenderViews(pAppConfig);
+
+	// Setup our render-views.
+	pAppConfig->pViews.PushBack(RendererViewCreate_3DSceneView());
 
 	return true;
 }
@@ -136,7 +142,6 @@ bool CGameApp::Render()
 	IRenderer* pRenderer = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer;
 	CAssert(pRenderer);
 	
-
 	return true;
 }
 

@@ -18,6 +18,8 @@ struct ApplicationConfig_t
 	Platform::ISysModule*				pRendererLibrary{ nullptr };
 	Utl::CVector<RendererViewConfig_t>	renderViewConfigs{};
 
+	Utl::CVector<IRenderView*>			pViews{};
+
 	// TODO: This shouldn't happen here.
 	Platform::IPlatformWindow*			pWindowToRegisterWithRenderer{ nullptr };
 

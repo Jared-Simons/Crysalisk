@@ -65,7 +65,8 @@ public:
 	bool			RegisterWindow(Platform::IPlatformWindow& pWindow) override;
 	void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
 
-	void			ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderViewConfigs) override;
+	void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
+	void			RegisterRenderView(IRenderView* pView) override;
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
@@ -134,6 +135,9 @@ private:
 	// The current dimensions of the surface we are presenting to (usually a window).
 	unsigned int	m_iWindowWidth{ 0 };
 	unsigned int	m_iWindowHeight{ 0 };
+
+	// An array of registered render-views.
+	Utl::CVector<IRenderView*>	m_pRenderViews{};
 
 public:
 	Camera_t			m_Camera{};
@@ -229,8 +233,6 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	// Grab window dimensions.
 	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
-	//m_Camera.RecalculateCameraVectors();
-
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
 	m_Metrics.TimeSinceLastMetricsUpdate = m_RendererClock.GetElapsedTime();
@@ -252,31 +254,25 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation
 //-------------------------------------------------------------------------
-void CRenderer::ConfigureRenderViews(Utl::CVector<RendererViewConfig_t>& pRenderViewConfigs)
+void CRenderer::ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews)
 {
-	// Set up our renderpasses
-	m_RenderViews.Resize(pRenderViewConfigs.Count());
-	for (int iView = 0; iView < pRenderViewConfigs.Count(); iView++)
+	for (int iView = 0; iView < pRenderViews.Count(); iView++)
 	{
-		m_RendererBackend->CreateRendererViewInternal(pRenderViewConfigs[iView], m_RenderViews[iView]);
+		if (!pRenderViews[iView]->Initialize(this))
+		{
+			LOG_ERROR("Render view failed to initialize!");
+		}
 	}
+}
 
-	// Setup our internal framebuffers.
-	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_RenderViews[0]))	// TODO: Don't hardcode this!
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::RegisterRenderView(IRenderView* pView)
+{
+	if (pView)
 	{
-		LOG_ERROR("Failed to create swapchain framebuffers. IRenderer initialization failed!");
-		//return false;
-	}
-
-	// TODO: Don't hardcode these!
-	if (m_RenderViews.Capacity() == 2)
-	{
-		m_SceneView = &m_RenderViews[0];
-		m_UIView = &m_RenderViews[1];
-	}
-	else
-	{
-		//m_UIView = &m_RenderViews[0];
+		m_pRenderViews.PushBack(pView);
 	}
 }
 
@@ -340,6 +336,15 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
+
+	// View Test TEMP
+	{
+		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+		{
+			m_pRenderViews[iView]->Render(&pRenderData);
+		}
+	}
+	// End View Test TEMP
 
 	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
 	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
