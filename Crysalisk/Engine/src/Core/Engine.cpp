@@ -71,6 +71,9 @@ private:
 
 	CMap			m_CurrentMap{};
 
+	Clock			m_UpdateClock{};
+	double			m_LastUpdateTime{ 0.0f };
+
 	// These need access to our members.
 	friend static bool Event_KeyReleased(EventData_t data);
 	friend static bool Event_MouseButtonReleased(EventData_t data);
@@ -325,6 +328,8 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 //-------------------------------------------------------------------------
 bool CEngine::Run()
 {
+	m_UpdateClock.Start();
+
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
@@ -332,6 +337,11 @@ bool CEngine::Run()
 		// and trying to run another frame may result in a fatal crash (the renderer attempting to render to a window that no longer exists, for example).
 		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled)
 		{
+			// Calculate our update delta time.
+			double currentFrameTime = m_UpdateClock.GetElapsedTime();
+			double deltaTime = currentFrameTime - m_LastUpdateTime;
+			m_LastUpdateTime = currentFrameTime;
+
 			m_EngineInterfaces.pInputSystem->Update();
 
 			// Update our app.
@@ -345,6 +355,7 @@ bool CEngine::Run()
 			m_EngineInterfaces.pJobSystem->Update();
 
 			RenderPacket_t frameRenderData{};
+			frameRenderData.DeltaTime = deltaTime;
 
 			// Get render data from the application.
 			m_pApplication->FramePrepare(&frameRenderData);

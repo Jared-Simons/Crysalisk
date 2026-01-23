@@ -333,7 +333,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
-	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
 	m_flLastFrameTime = currentFrameTime;
 
 	// Save off the frametime.
@@ -342,18 +341,18 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 
+	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
+
+	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
+	Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
+
 	// TODO: This pass should live in the application, me-thinks.
 	m_RendererBackend->BeginRenderpass(*m_SceneView);
 	{
 		m_Metrics.NumGeometriesFrustumCulled = pRenderData.iCulledGeometries;
-
-		IShaderSystem* pShaderSystem		= m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
-		IMaterialSystem* pMaterialSystem	= m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
-
-		Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 		// Flip the y-axis.
 		matProjection.flData[5] *= -1.0f;
-		Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
 		Vector vecCameraPos = pRenderData.pCamera->vecPosition;
 		Matrix4x4 matModel = Matrix4x4{ 1.0f };
 
@@ -385,53 +384,43 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 			m_Metrics.NumDrawCalls++;
 		}
-
-		// Update debug geometries.
-		m_pDebugRenderer->Update();
 	}
 
 	m_RendererBackend->EndRenderpass();
+
+	// Update debug geometries.
+	m_pDebugRenderer->Update();
+
+	// Render debug geometry.
+	{
+		DebugRendererFrameData_t debugFrameData{};
+		debugFrameData.matProjection = matProjection;
+		debugFrameData.matView = matView;
+		debugFrameData.vecCameraPosition = m_Camera.vecPosition;
+		debugFrameData.vecCameraForward = m_Camera.vecFront;
+		debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
+		m_pDebugRenderer->Render(debugFrameData);
+	}
 
 	m_RendererBackend->BeginRenderpass(*m_UIView);
+	{
+		if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
+		{
+			// TODO: Orthographic projection is broken.
+			/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
+			float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
+			Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f); */
+			Matrix4x4 UIProjection{ 1.0f };
+			pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
+			pShaderSystem->BindShader(hUIShader);
+			pShaderSystem->BindPerInstanceUniforms(1);
+			DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
+		}
+	}
 
 	m_RendererBackend->EndRenderpass();
 
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
-
-	/*
-
-	// Render our debug geometry.
-	DebugRendererFrameData_t debugFrameData{};
-	debugFrameData.matProjection = matProjection;
-	debugFrameData.matView = matView;
-	debugFrameData.vecCameraPosition = m_Camera.vecPosition;
-	debugFrameData.vecCameraForward = m_Camera.vecFront;
-	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
-	m_pDebugRenderer->Render(debugFrameData);
-
-	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
-	{
-		m_RendererBackend->BeginRenderpass(*m_UIView);
-
-		// Render some test UI text.
-		/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
-		float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
-		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
-		// TODO: Orthographic projection is broken.
-		/*Matrix4x4 UIProjection{1.0f};
-		pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-		pShaderSystem->BindShader(hUIShader);
-		pShaderSystem->BindPerInstanceUniforms(1);
-		DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
-
-		m_RendererBackend->EndRenderpass();
-	}
-
-	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
-	m_Metrics.CurrentFrameFPS++;
-
-	// Clear out bound shader state.
-	pShaderSystem->BindShader(kInvalidID_U32);
 
 	if (s_bDisplayProfilingText)
 	{
@@ -440,14 +429,18 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
 			szMetricsString,
 			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
-			m_Metrics.NumDrawCalls,	m_Metrics.NumGeometriesFrustumCulled,
+			m_Metrics.NumDrawCalls, m_Metrics.NumGeometriesFrustumCulled,
 			g_pMemoryManager->GetPercentAllocated(),
 			(pCurrentMap && pCurrentMap->GetMapName() != nullptr) ? pCurrentMap->GetMapName() : "None",
 			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
 
 		// Set the string.
 		testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, szMetricsString);
-	}*/
+	}
+	
+	// Clear out bound shader state.
+	pShaderSystem->BindShader(kInvalidID_U32);
+	m_Metrics.CurrentFrameFPS++;
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
