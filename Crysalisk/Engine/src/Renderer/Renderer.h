@@ -36,6 +36,8 @@ public:
 	
 	virtual void			ConfigureRenderViews(Utl::CVector<class IRenderView*>& pRenderViews) = 0;
 	virtual void			RegisterRenderView(class IRenderView* pRenderView) = 0;
+	virtual bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) = 0;
+	virtual void			DestroyRenderpass(struct Renderpass* pRenderpass) = 0;
 
 	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void			ReleaseTextureResources(struct Texture* pTexture) = 0;

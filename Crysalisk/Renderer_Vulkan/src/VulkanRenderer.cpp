@@ -334,6 +334,138 @@ void CVulkanRenderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
+{
+	if (!pConfig || !pRenderpass)
+	{
+		LOG_ERROR("CVulkanRenderer::CreateRenderpass requires valid pointers to a config and a renderpass.");
+		return false;
+	}
+
+	VulkanSwapchain* pSwapchain = &((VulkanWindowState_t*)(m_pMainWindow->m_pRendererState))->m_Swapchain;
+
+	// Allocate memory for our internal data.
+	pRenderpass->pInternalData = new VulkanRenderPass;
+	VulkanRenderPass* pInternalRenderpass = (VulkanRenderPass*)pRenderpass->pInternalData;
+
+	// Setup attachments.
+	Utl::CVector<VkAttachmentDescription>	attachmentDescriptions(pConfig->attachmentConfigs.Count());
+	Utl::CVector<VkAttachmentReference>		colorAttachmentReferences{};
+	Utl::CVector<VkAttachmentReference>		depthAttachmentReferences{};
+	for (int iAttachment = 0; iAttachment < pConfig->attachmentConfigs.Count(); iAttachment++)
+	{
+		// TODO: This only grabs the swapchain images as attachments, we'll need new code to support view-specific render-targets.
+		RendererViewAttachmentConfig_t& pAttachment = pConfig->attachmentConfigs[iAttachment];
+		VkAttachmentDescription description{};
+
+		if (pAttachment.eAttachmentType == eRendererViewAttachmentType::COLOR)
+		{
+			description.format = pSwapchain->m_SwapchainImageFormat;
+
+			if ((pConfig->clearFlags & RENDERPASS_CLEAR_COLOR) != 0)
+			{
+				// We need to clear this target prior to rendering.
+				description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+				description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+			else
+			{
+				// Otherwise, just load as is.
+				description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+				description.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;	// Should we use this or COLOR_ATTACHMENT_OPTIMAL?
+			}
+
+			if (pConfig->bPresentsAfter)
+			{
+				description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			}
+			else
+			{
+				description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
+
+			// Setup an attachment reference.
+			VkAttachmentReference colorAttachmentReference{};
+			colorAttachmentReference.attachment = iAttachment;
+			colorAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			colorAttachmentReferences.PushBack(colorAttachmentReference);
+		}
+		else if (pAttachment.eAttachmentType == eRendererViewAttachmentType::DEPTH)
+		{
+			description.format = pSwapchain->m_DepthImageFormat;
+
+			if ((pConfig->clearFlags & RENDERPASS_CLEAR_DEPTH) != 0)
+			{
+				// We need to clear this target prior to rendering.
+				description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			}
+			else
+			{
+				// Otherwise, just load as is.
+				description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			}
+			
+			// Always load and transition depth attachments to DEPTH_STENCIL_OPTIMAL.
+			description.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			// Setup an attachment reference.
+			VkAttachmentReference depthAttachmentReference{};
+			depthAttachmentReference.attachment = iAttachment;
+			depthAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			depthAttachmentReferences.PushBack(depthAttachmentReference);
+		}
+
+		description.samples = VK_SAMPLE_COUNT_1_BIT;	// No multi-sampling for now.
+		description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		// NOTE: Not using stencil-buffers for now.
+		description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+		attachmentDescriptions.PushBack(description);
+	}
+
+	// Setup the subpass.
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.inputAttachmentCount = 0;
+	subpass.colorAttachmentCount = colorAttachmentReferences.Count();
+	subpass.pColorAttachments = colorAttachmentReferences.Data();
+	subpass.pDepthStencilAttachment = depthAttachmentReferences.Data();
+	subpass.preserveAttachmentCount = 0;
+
+	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	renderpassInfo.attachmentCount = attachmentDescriptions.Count();
+	renderpassInfo.pAttachments = attachmentDescriptions.Data();
+	renderpassInfo.subpassCount = 1;
+	renderpassInfo.pSubpasses = &subpass;
+
+	VK_CHECK(vkCreateRenderPass(m_Device.m_Device, &renderpassInfo, m_Allocator, &pInternalRenderpass->m_Handle));
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::DestroyRenderpass(Renderpass* pRenderpass)
+{
+	if (!pRenderpass)
+		return;
+
+	VulkanRenderPass* pInternalRenderpass = (VulkanRenderPass*)pRenderpass->pInternalData;
+	vkDestroyRenderPass(m_Device.m_Device, pInternalRenderpass->m_Handle, m_Allocator);
+	pInternalRenderpass->m_Handle = VK_NULL_HANDLE;
+
+	delete pInternalRenderpass;
+	pRenderpass->pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Creates our internal swapchain framebuffers.
 //			This exists separately from the rest of our initialization process because
 //			framebuffer creation requires a renderpass created by the frontend, 

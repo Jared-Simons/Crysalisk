@@ -252,6 +252,7 @@ struct RendererViewAttachmentConfig_t
 	// The type of attachment.
 	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
 	// Whether or not this attachment should be cleared prior to rendering.
+	// DEPRECATED!
 	bool						bShouldClear{ false };
 };
 
@@ -297,6 +298,27 @@ public:
 //-------------------------------------------------------------------------
 // Purpose: TODO Documentation!
 //-------------------------------------------------------------------------
+typedef unsigned char RenderpassClearFlags_t;
+
+enum eRenderpassClearFlags
+{
+	RENDERPASS_CLEAR_NONE = 0x00,
+	RENDERPASS_CLEAR_COLOR = 0x01,
+	RENDERPASS_CLEAR_DEPTH = 0x02,
+	RENDERPASS_CLEAR_STENCIL = 0x04,
+};
+
+struct RenderpassConfig_t
+{
+	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
+
+	RenderpassClearFlags_t							clearFlags{ 0 };
+	bool											bPresentsAfter{ false };
+};
+
+//-------------------------------------------------------------------------
+// Purpose: TODO Documentation!
+//-------------------------------------------------------------------------
 struct Renderpass
 {
 	void* pInternalData{ nullptr };
@@ -310,6 +332,7 @@ class IRenderView
 {
 public:
 	virtual bool	Initialize(class IRenderer* pRenderer) = 0;
+	virtual void	Shutdown(class IRenderer* pRenderer) = 0;
 
 	virtual void	Render(RenderPacket_t* pRenderData) = 0;
 };

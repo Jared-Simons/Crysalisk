@@ -29,6 +29,9 @@ public:
 	virtual bool	BeginFrame(class Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) override;
 	virtual void	EndFrame(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) override;
 
+	virtual bool	CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
+	virtual void	DestroyRenderpass(struct Renderpass* pRenderpass) override;
+
 	virtual bool	BeginRenderpass(RendererView& pRendererView) override;
 	virtual void	EndRenderpass() override;
 

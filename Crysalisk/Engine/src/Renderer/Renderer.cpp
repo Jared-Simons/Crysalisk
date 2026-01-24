@@ -67,6 +67,8 @@ public:
 
 	void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
 	void			RegisterRenderView(IRenderView* pView) override;
+	bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
+	void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
@@ -277,11 +279,33 @@ void CRenderer::RegisterRenderView(IRenderView* pView)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
+{
+	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::DestroyRenderpass(struct Renderpass* pRenderpass)
+{
+	m_RendererBackend->DestroyRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Shuts down the renderer system.
 //-------------------------------------------------------------------------
 void CRenderer::Shutdown()
 {
 	LOG_INFO("Shutting Down IRenderer");
+
+	// Release render-views.
+	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	{
+		m_pRenderViews[iView]->Shutdown(this);
+	}
 
 	m_RenderViews.Clear();
 

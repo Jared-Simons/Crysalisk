@@ -30,6 +30,9 @@ public:
 	virtual bool	BeginFrame(class Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) = 0;
 	virtual void	EndFrame(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) = 0;
 
+	virtual bool	CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) = 0;
+	virtual void	DestroyRenderpass(struct Renderpass* pRenderpass) = 0;
+
 	virtual bool	BeginRenderpass(class RendererView& pRendererView) = 0;
 	virtual void	EndRenderpass() = 0;
 
