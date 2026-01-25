@@ -55,6 +55,7 @@ public:
 
 	// Initialization, shutdown.
 	virtual bool				Initialize(FontSystemConfig_t config) = 0;
+	virtual void				PostInitialize() = 0;
 	virtual void				Shutdown() = 0;
 
 	// Acquires the resources for a given font.

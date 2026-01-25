@@ -46,6 +46,7 @@ class CMaterialSystem : public IMaterialSystem
 public:
 	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) override;
+	virtual void				PostInitialize() override;
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for the provided material.
@@ -186,6 +187,17 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// Allocate memory for our material array.
 	m_MaterialDictionary.m_MaterialArray = (Material*)new Material[m_Config.MaxMaterials];
 
+	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
+
+	return true;
+}
+
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CMaterialSystem::PostInitialize()
+{
 	// Setup shader locations.
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 	m_DefaultMaterialShader = pShaderSystem->AcquireShader("Core.Phong");
@@ -206,10 +218,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 
 	// Default material.
 	CreateDefaultMaterial();
-
-	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
-
-	return true;
 }
 
 //-------------------------------------------------------------------------

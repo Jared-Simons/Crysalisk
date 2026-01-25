@@ -132,6 +132,8 @@ struct ShaderConfig_t
 {
 	// The name of the shader.
 	const char*							pszShaderName{ nullptr };
+	// A pointer to the render view associated with this shader.
+	class IRenderView*					pRenderView{ nullptr };
 	// An array of shader module configs.
 	Utl::CVector<ShaderModuleConfig_t>	moduleConfigs{};
 	// The types of topology rendering this shader will support.

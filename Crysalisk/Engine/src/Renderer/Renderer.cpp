@@ -67,8 +67,10 @@ public:
 
 	void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
 	void			RegisterRenderView(IRenderView* pView) override;
+
 	bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
 	void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
+	IRenderView*	GetRenderView(const char* pszRenderpassName) override;
 
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
@@ -249,7 +251,7 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	// Save off the config.
 	m_Config = pAppConfig;
 
-	LOG_INFO("IRenderer Initialized!");
+	LOG_INFO("Renderer Initialized!");
 	return true;
 }
 
@@ -260,7 +262,7 @@ void CRenderer::ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews)
 {
 	for (int iView = 0; iView < pRenderViews.Count(); iView++)
 	{
-		if (!pRenderViews[iView]->Initialize(this))
+		if (!pRenderViews[iView]->Initialize(m_Config.pEngine->GetEngineInterfaces()))
 		{
 			LOG_ERROR("Render view failed to initialize!");
 		}
@@ -283,6 +285,7 @@ void CRenderer::RegisterRenderView(IRenderView* pView)
 //-------------------------------------------------------------------------
 bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
 {
+	pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
 	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
 }
 
@@ -291,7 +294,33 @@ bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Rend
 //-------------------------------------------------------------------------
 void CRenderer::DestroyRenderpass(struct Renderpass* pRenderpass)
 {
+	if (pRenderpass->pszName)
+	{
+		Utl::StringFree(pRenderpass->pszName);
+		pRenderpass->pszName = nullptr;
+	}
+
 	m_RendererBackend->DestroyRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+IRenderView* CRenderer::GetRenderView(const char* pszRenderViewName)
+{
+	CAssert(pszRenderViewName != nullptr);
+
+	for (int iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
+	{
+		if (Utl::StringCompareInsensitive(pszRenderViewName, m_pRenderViews[iPass]->GetViewName()))
+		{
+			return m_pRenderViews[iPass];
+		}
+	}
+
+	// TODO: nullptr?
+	LOG_ERROR("Failed to find renderpass named '%s'. Returning first pass.", pszRenderViewName);
+	return m_pRenderViews[0];
 }
 
 //-------------------------------------------------------------------------
@@ -358,19 +387,19 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
+	// View Test TEMP
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
-
-	// View Test TEMP
 	{
 		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
 			m_pRenderViews[iView]->Render(&pRenderData);
 		}
 	}
+	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 	// End View Test TEMP
 
-	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+	/*IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
 	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
@@ -415,8 +444,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 		}
 	}
 
-	m_RendererBackend->EndRenderpass();
+	m_RendererBackend->EndRenderpass();*/
 
+	/*
 	// Update debug geometries.
 	m_pDebugRenderer->Update();
 
@@ -434,12 +464,12 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_RendererBackend->BeginRenderpass(*m_UIView);
 	{
 		if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
-		{
+		{*/
 			// TODO: Orthographic projection is broken.
 			/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
 			float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
 			Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f); */
-			Matrix4x4 UIProjection{ 1.0f };
+			/*Matrix4x4 UIProjection{1.0f};
 			pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
 			pShaderSystem->BindShader(hUIShader);
 			pShaderSystem->BindPerInstanceUniforms(1);
@@ -465,10 +495,10 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 		// Set the string.
 		testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, szMetricsString);
-	}
+	}*/
 	
 	// Clear out bound shader state.
-	pShaderSystem->BindShader(kInvalidID_U32);
+	//pShaderSystem->BindShader(kInvalidID_U32);
 	m_Metrics.CurrentFrameFPS++;
 
 	// Increment the frame count.

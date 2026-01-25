@@ -1,5 +1,6 @@
 name="Core.Phong"
 num_shader_stages=2
+renderview="3D Scene View"
 
 stages
 {

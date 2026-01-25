@@ -79,6 +79,7 @@ class CFontSystem : public IFontSystem
 {
 	// Initialization, shutdown.
 	virtual bool				Initialize(FontSystemConfig_t config) override;
+	virtual void				PostInitialize() override;
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for a given font.
@@ -153,27 +154,32 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	// Allocate memory for our font array
 	m_FontDictionary.m_FontArray = (Font*)new Font[config.MaxFonts];
 
+	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CFontSystem::PostInitialize()
+{
 	// Set up our required shader resources.
-	m_hDefaultUIShader = config.pShaderSystem->AcquireShader("Core.UI");
-	
+	m_hDefaultUIShader = m_Config.pShaderSystem->AcquireShader("Core.UI");
+
 	if (m_hDefaultUIShader == kInvalidID_U32)
 	{
 		LOG_ERROR("Failed to acquire necessary shader resources for font rendering!");
-		return false;
 	}
 
 	// Get all our shader uniform locations
-	s_UIShaderLocations.projection = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
-	s_UIShaderLocations.view = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
-	s_UIShaderLocations.color = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
-	s_UIShaderLocations.texture_maps = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
-	s_UIShaderLocations.model = config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
+	s_UIShaderLocations.projection = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
+	s_UIShaderLocations.view = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
+	s_UIShaderLocations.color = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
+	s_UIShaderLocations.texture_maps = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
+	s_UIShaderLocations.model = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	// Load default font.
 	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-
-	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
-	return true;
 }
 
 //-------------------------------------------------------------------------

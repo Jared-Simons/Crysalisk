@@ -193,6 +193,10 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		newShaderConfig.bDepthTestingEnabled = newShaderResource.bDepthTestingEnabled;
 		newShaderConfig.bColorBlendingEnabled = newShaderResource.bColorBlendingEnabled;
 
+		// Get the shader's render view.
+		CAssert(newShaderResource.pszRenderViewName != nullptr);
+		newShaderConfig.pRenderView = m_Config.pRenderer->GetRenderView(newShaderResource.pszRenderViewName);
+
 		// Setup shader module configs from resource.
 		size_t shaderStageCount = newShaderResource.ShaderStages.Count();
 		newShaderConfig.moduleConfigs.Resize(shaderStageCount);
@@ -243,13 +247,6 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			// TODO: Handle this properly.
 			size_t test = newShaderConfig.perFrameUBOStride % 16;
 			newShaderConfig.perFrameUBOStride += (16 - (newShaderConfig.perFrameUBOStride % 16));
-		}
-
-		// TODO: Don't hardcode this.
-		newShaderConfig.m_pRendererView = m_Config.pRenderer->GetSceneView();
-		if (Utl::StringCompare(pszShaderName, "Core.UI"))
-		{
-			newShaderConfig.m_pRendererView = m_Config.pRenderer->GetUIView();
 		}
 
 		// If internal resource acquisition was successful, create a hashmap to store lookups for our uniforms.

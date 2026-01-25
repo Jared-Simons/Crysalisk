@@ -86,6 +86,13 @@ namespace ShaderLoader
 					pOutResource.pszShaderName = Utl::StringStrip(szValue, '\"');	// Strip the quotes out of the string.
 					continue;
 				}
+				else if (Utl::StringCompare(szKey, "renderview"))
+				{
+					// The name of the renderpass this shader is associated with.
+					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
+					pOutResource.pszRenderViewName = Utl::StringStrip(szValue, '\"');	// Strip the quotes out of the string.
+					continue;
+				}
 				else if (Utl::StringCompare(szKey, "num_shader_stages"))
 				{
 					// Number of stages this shader will have.

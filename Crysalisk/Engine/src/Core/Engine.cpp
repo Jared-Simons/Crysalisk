@@ -212,9 +212,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// Setup application-specific renderer state.
-	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->pViews);
-
 	// Save off a pointer to the renderer library so apps can have it.
 	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
 
@@ -297,6 +294,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Setup application-specific renderer state.
+	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->pViews);
+
 	// Initialize the application.
 	engineConfig.pAppConfig->pEngine = this;
 	m_pApplication->Initialize(engineConfig.pAppConfig);
@@ -306,6 +306,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	{
 		m_EngineInterfaces.pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
 	}
+
+	// Run Post-Engine initialize routines.
+	m_EngineInterfaces.pMaterialSystem->PostInitialize();
+	m_EngineInterfaces.pFontSystem->PostInitialize();
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -361,11 +365,11 @@ bool CEngine::Run()
 			m_pApplication->FramePrepare(&frameRenderData);
 
 			// Run the app's render routine.
-			if (!m_pApplication->Render())
+			/*if (!m_pApplication->Render())
 			{
 				// App failed to render.
 				return false;
-			}
+			}*/
 
 			// Get our renderable geometry from the map.
 			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);

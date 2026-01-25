@@ -310,6 +310,7 @@ enum eRenderpassClearFlags
 
 struct RenderpassConfig_t
 {
+	char*											pszName{ nullptr };
 	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
 
 	RenderpassClearFlags_t							clearFlags{ 0 };
@@ -321,6 +322,7 @@ struct RenderpassConfig_t
 //-------------------------------------------------------------------------
 struct Renderpass
 {
+	char* pszName{ nullptr };
 	void* pInternalData{ nullptr };
 };
 
@@ -331,8 +333,11 @@ struct Renderpass
 class IRenderView
 {
 public:
-	virtual bool	Initialize(class IRenderer* pRenderer) = 0;
+	virtual bool	Initialize(const struct EngineInterfaces_t* pEngineSystems) = 0;
 	virtual void	Shutdown(class IRenderer* pRenderer) = 0;
 
 	virtual void	Render(RenderPacket_t* pRenderData) = 0;
+
+	virtual const char*			GetViewName() const = 0;
+	virtual const Renderpass*	GetRenderpass() const = 0;
 };

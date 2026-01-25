@@ -1,5 +1,6 @@
 name="Core.UI"
 num_shader_stages=2
+renderview="UI View"
 
 stages
 {

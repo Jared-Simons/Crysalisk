@@ -1468,7 +1468,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader->m_PipelineLayout));
 
 	// Renderpass
-	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.m_pRendererView.m_pInternalData);
+	VulkanRenderPass* pRenderpass = reinterpret_cast<VulkanRenderPass*>(pConfig.pRenderView->GetRenderpass()->pInternalData);
 
 	// Graphics pipeline object
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
