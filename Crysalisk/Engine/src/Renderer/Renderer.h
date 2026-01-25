@@ -41,6 +41,9 @@ public:
 	virtual void			DestroyRenderpass(struct Renderpass* pRenderpass) = 0;
 	virtual IRenderView*	GetRenderView(const char* pszRenderpassName) = 0;
 
+	virtual bool			BeginRenderpass(struct Renderpass* pRenderpass) = 0;
+	virtual void			EndRenderpass() = 0;
+
 	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
 	virtual void			ReleaseTextureResources(struct Texture* pTexture) = 0;
 
@@ -55,12 +58,6 @@ public:
 	virtual void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID) = 0;
 
 	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) = 0;
-
-	virtual bool			CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView) = 0;
-	virtual void			DestroyRendererView(RendererView& pView) = 0;
-
-	virtual bool			BeginRendererView(RendererView& pView) = 0;
-	virtual void			EndRendererView() = 0;
 
 	virtual bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
@@ -90,9 +87,6 @@ public:
 
 	virtual RenderBuffer&	GetUIVertexBuffer() = 0;
 	virtual RenderBuffer&	GetUIIndexBuffer() = 0;
-
-	virtual RendererView&	GetSceneView() const = 0;
-	virtual RendererView&	GetUIView() const = 0;
 
 	virtual inline size_t	GetCurrentRenderFrame() const = 0;
 };

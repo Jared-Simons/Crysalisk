@@ -72,6 +72,9 @@ public:
 	void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
 	IRenderView*	GetRenderView(const char* pszRenderpassName) override;
 
+	bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
+	void			EndRenderpass() override;
+
 	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
 
@@ -86,12 +89,6 @@ public:
 	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID) override;
 
 	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
-
-	bool			CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
-	void			DestroyRendererView(RendererView& pView) override;
-
-	bool			BeginRendererView(RendererView& pView) override;
-	void			EndRendererView() override;
 
 	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
@@ -122,9 +119,6 @@ public:
 	virtual RenderBuffer& GetUIVertexBuffer() override { return m_UIVertexBuffer; }
 	virtual RenderBuffer& GetUIIndexBuffer() override { return m_UIIndexBuffer; }
 
-	virtual RendererView& GetSceneView() const override { return *m_SceneView; }
-	virtual RendererView& GetUIView() const override { return *m_UIView; }
-
 	virtual inline size_t	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
 private:
@@ -145,12 +139,6 @@ private:
 
 public:
 	Camera_t			m_Camera{};
-
-	Utl::CVector<RendererView>	m_RenderViews{};
-
-	// TODO: Remove or refactor these eventually.
-	RendererView* m_SceneView{};
-	RendererView* m_UIView{};
 
 	RenderBuffer		m_WorldVertexBuffer{};
 	RenderBuffer		m_WorldIndexBuffer{};
@@ -281,54 +269,11 @@ void CRenderer::RegisterRenderView(IRenderView* pView)
 }
 
 //-------------------------------------------------------------------------
-// Purpose: TODO: Documentation
-//-------------------------------------------------------------------------
-bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
-{
-	pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
-	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: TODO: Documentation
-//-------------------------------------------------------------------------
-void CRenderer::DestroyRenderpass(struct Renderpass* pRenderpass)
-{
-	if (pRenderpass->pszName)
-	{
-		Utl::StringFree(pRenderpass->pszName);
-		pRenderpass->pszName = nullptr;
-	}
-
-	m_RendererBackend->DestroyRenderpass(pRenderpass);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: TODO: Documentation
-//-------------------------------------------------------------------------
-IRenderView* CRenderer::GetRenderView(const char* pszRenderViewName)
-{
-	CAssert(pszRenderViewName != nullptr);
-
-	for (int iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
-	{
-		if (Utl::StringCompareInsensitive(pszRenderViewName, m_pRenderViews[iPass]->GetViewName()))
-		{
-			return m_pRenderViews[iPass];
-		}
-	}
-
-	// TODO: nullptr?
-	LOG_ERROR("Failed to find renderpass named '%s'. Returning first pass.", pszRenderViewName);
-	return m_pRenderViews[0];
-}
-
-//-------------------------------------------------------------------------
 // Purpose: Shuts down the renderer system.
 //-------------------------------------------------------------------------
 void CRenderer::Shutdown()
 {
-	LOG_INFO("Shutting Down IRenderer");
+	LOG_INFO("Shutting Down Renderer");
 
 	// Release render-views.
 	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
@@ -336,15 +281,13 @@ void CRenderer::Shutdown()
 		m_pRenderViews[iView]->Shutdown(this);
 	}
 
-	m_RenderViews.Clear();
+	// TODO: Is this the right place to free these guys?
+	m_pRenderViews.Clear();
 
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
-
-	m_RendererBackend->DestroyRendererViewInternal(*m_UIView);
-	m_RendererBackend->DestroyRendererViewInternal(*m_SceneView);
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
@@ -386,6 +329,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
+
+	// Setup frame data.
+	pRenderData.matProjection = pTargetWindow->GetViewport().matProjection;
 
 	// View Test TEMP
 	// Start rendering!
@@ -524,6 +470,66 @@ void CRenderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
+{
+	pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
+	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::DestroyRenderpass(struct Renderpass* pRenderpass)
+{
+	if (pRenderpass->pszName)
+	{
+		Utl::StringFree(pRenderpass->pszName);
+		pRenderpass->pszName = nullptr;
+	}
+
+	m_RendererBackend->DestroyRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+IRenderView* CRenderer::GetRenderView(const char* pszRenderViewName)
+{
+	CAssert(pszRenderViewName != nullptr);
+
+	for (int iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
+	{
+		if (Utl::StringCompareInsensitive(pszRenderViewName, m_pRenderViews[iPass]->GetViewName()))
+		{
+			return m_pRenderViews[iPass];
+		}
+	}
+
+	// TODO: nullptr?
+	LOG_ERROR("Failed to find renderpass named '%s'. Returning first pass.", pszRenderViewName);
+	return m_pRenderViews[0];
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+bool CRenderer::BeginRenderpass(Renderpass* pRenderpass)
+{
+	CAssert(pRenderpass != nullptr);
+	return m_RendererBackend->BeginRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::EndRenderpass()
+{
+	m_RendererBackend->EndRenderpass();
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Acquires renderer-specific resources for a texture.
 // Input:	pTexture - The texture to get resources for.
 //			internalIndex - The internal handle for this texture.
@@ -620,47 +626,6 @@ void CRenderer::BindShaderPerFrameUniforms(Shader* pShader)
 void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
 {
 	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Creates/acquires the resources needed for a renderer view.
-// Input:	pViewConfig - The configuration for the new view.
-//			pOutView - The structure to store the newly created view.
-// Output:	Returns true on successful creation, otherwise false.
-//-------------------------------------------------------------------------
-bool CRenderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
-{
-	return m_RendererBackend->CreateRendererViewInternal(pViewConfig, pOutView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Destroys/releases the resources used for a renderer view.
-// Input:	pView - The view to be destroyed.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::DestroyRendererView(RendererView& pView)
-{
-	m_RendererBackend->DestroyRendererViewInternal(pView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Begins a renderer view/renderpass.
-// Input:	pView - The view to start.
-// Output:	Returns true on successful start, otherwise false.
-//-------------------------------------------------------------------------
-bool CRenderer::BeginRendererView(RendererView& pView)
-{
-	return m_RendererBackend->BeginRenderpass(pView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Ends the current renderer view/renderpass.
-// Input:	none.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::EndRendererView()
-{
-	m_RendererBackend->EndRenderpass();
 }
 
 //-------------------------------------------------------------------------

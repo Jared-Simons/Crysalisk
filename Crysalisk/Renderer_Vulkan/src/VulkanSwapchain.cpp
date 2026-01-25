@@ -102,7 +102,18 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	unsigned int swapImageCount{ 0 };
 	vkGetSwapchainImagesKHR(pRenderingContext.m_Device.m_Device, pOutSwapchain.m_Handle, &swapImageCount, nullptr);
 	pOutSwapchain.m_SwapchainImages.Resize(imageCount);
+	pOutSwapchain.m_SwapchainImages.SetCount(imageCount);
 	vkGetSwapchainImagesKHR(pRenderingContext.m_Device.m_Device, pOutSwapchain.m_Handle, &swapImageCount, pOutSwapchain.m_SwapchainImages.Data());
+
+	// Setup swapchain image tags.
+	for (int iImage = 0; iImage < pOutSwapchain.m_SwapchainImages.Count(); iImage++)
+	{
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+		char szSwapchainImageNameBuffer[2048];
+		Utl::StringFormat_V("swapchain_image_%i", szSwapchainImageNameBuffer, iImage);
+		VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, szSwapchainImageNameBuffer, VK_OBJECT_TYPE_IMAGE, pOutSwapchain.m_SwapchainImages[iImage]);
+#endif
+	}
 
 	// Create the swapchain image views.
 	pOutSwapchain.m_SwapchainImageViews.Resize(imageCount);

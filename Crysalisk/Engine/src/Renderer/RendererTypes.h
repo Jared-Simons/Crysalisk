@@ -45,6 +45,7 @@ struct RenderPacket_t
 	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
 	unsigned int								iCulledGeometries{ 0 };
 
+	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
 };
 

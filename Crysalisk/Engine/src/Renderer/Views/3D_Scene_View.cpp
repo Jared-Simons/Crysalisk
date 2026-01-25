@@ -30,6 +30,7 @@ private:
 	Utl::CVector<GeometryInstance_t*>	m_pTransparentGeometries{};
 
 	Renderpass							m_pRenderpass{};
+	IRenderer*							m_pRenderer{ nullptr };
 	IMaterialSystem*					m_pMaterialSystem{ nullptr };
 	IShaderSystem*						m_pShaderSystem{ nullptr };
 };
@@ -44,6 +45,7 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_pTransparentGeometries.Resize(512);
 
 	// Store off subsystem pointers.
+	m_pRenderer = pEngineSystems->pRenderer;
 	m_pMaterialSystem = pEngineSystems->pMaterialSystem;
 	m_pShaderSystem = pEngineSystems->pShaderSystem;
 
@@ -61,6 +63,7 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	scenePassConfig.attachmentConfigs.PushBack(colorAttachment);
 	scenePassConfig.attachmentConfigs.PushBack(depthAttachment);
 	scenePassConfig.clearFlags = RENDERPASS_CLEAR_COLOR | RENDERPASS_CLEAR_DEPTH | RENDERPASS_CLEAR_STENCIL;
+	scenePassConfig.bPresentsAfter = true;
 
 	pEngineSystems->pRenderer->CreateRenderpass(&scenePassConfig, &m_pRenderpass);
 
@@ -77,7 +80,11 @@ void C3DSceneRenderView::Shutdown(IRenderer* pRenderer)
 
 void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 {
+	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
+	{
 
+	}
+	m_pRenderer->EndRenderpass();
 }
 
 // Factory function to create the view.

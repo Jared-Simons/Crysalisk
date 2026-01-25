@@ -91,6 +91,7 @@ void CGameApp::Shutdown()
 
 	// Clean up lingering memory.
 	m_pApplicationConfig->renderViewConfigs.Clear();
+	m_pApplicationConfig->pViews.Clear();
 }
 
 bool CGameApp::Run()

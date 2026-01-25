@@ -298,18 +298,31 @@ void CVulkanRenderer::RendererBackend_Shutdown()
 //-------------------------------------------------------------------------
 bool CVulkanRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
 {
-	CAssert(pWindow.m_pRendererState == nullptr);
-	pWindow.m_pRendererState = new VulkanWindowState_t;
-	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
-
-	Platform::CreateVulkanWindowSurface((*this), pWindow);
-
-	if (!VulkanSwapchain::CreateSwapchain((*this), pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
+	if (pWindow.m_pRendererState == nullptr)
 	{
-		LOG_ERROR("Failed to create swapchain for window.", pWindow);
-		ReleaseWindowResources(pWindow);
-		return false;
+		CAssert(pWindow.m_pRendererState == nullptr);
+		pWindow.m_pRendererState = new VulkanWindowState_t;
+		VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
+
+		Platform::CreateVulkanWindowSurface((*this), pWindow);
+
+		if (!VulkanSwapchain::CreateSwapchain((*this), pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
+		{
+			LOG_ERROR("Failed to create swapchain for window.", pWindow);
+			ReleaseWindowResources(pWindow);
+			return false;
+		}
+
+		// HACK HACK BAD! We need a better way to get the renderpass here.
+		// This is really, truly bad.
+		VulkanSwapchain::CreateFramebuffers(*this, pWindowState->m_Swapchain, (VulkanRenderPass*)m_RendererConfig.pEngine->GetEngineInterfaces()->pRenderer->GetRenderView("3D Scene View")->GetRenderpass()->pInternalData);
+		return true;
 	}
+
+	// HACK HACK BAD! We need a better way to get the renderpass here.
+	// This is really, truly bad.
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pWindow.m_pRendererState;
+	VulkanSwapchain::CreateFramebuffers(*this, pWindowState->m_Swapchain, (VulkanRenderPass*)m_RendererConfig.pEngine->GetEngineInterfaces()->pRenderer->GetRenderView("3D Scene View")->GetRenderpass()->pInternalData);
 
 	return true;
 }
@@ -438,11 +451,30 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 	subpass.pDepthStencilAttachment = depthAttachmentReferences.Data();
 	subpass.preserveAttachmentCount = 0;
 
+	// Subpass dependency.
+	VkSubpassDependency dependency{};
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependency.dstSubpass = 0;
+
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	if (depthAttachmentReferences.Count() > 0)
+		dependency.srcStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	if (depthAttachmentReferences.Count() > 0)
+		dependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	if (depthAttachmentReferences.Count() > 0)
+		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
 	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
 	renderpassInfo.attachmentCount = attachmentDescriptions.Count();
 	renderpassInfo.pAttachments = attachmentDescriptions.Data();
 	renderpassInfo.subpassCount = 1;
 	renderpassInfo.pSubpasses = &subpass;
+	renderpassInfo.dependencyCount = 1;
+	renderpassInfo.pDependencies = &dependency;
 
 	VK_CHECK(vkCreateRenderPass(m_Device.m_Device, &renderpassInfo, m_Allocator, &pInternalRenderpass->m_Handle));
 
@@ -463,6 +495,67 @@ void CVulkanRenderer::DestroyRenderpass(Renderpass* pRenderpass)
 
 	delete pInternalRenderpass;
 	pRenderpass->pInternalData = nullptr;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::BeginRenderpass(Renderpass* pRenderpass)
+{
+	VulkanRenderPass* pInternalRenderpass = reinterpret_cast<VulkanRenderPass*>(pRenderpass->pInternalData);
+
+	VkRenderPassBeginInfo beginInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
+
+	beginInfo.renderPass = pInternalRenderpass->m_Handle;
+	beginInfo.framebuffer = pWindowState->m_Swapchain.m_Framebuffers[m_ImageIndex];
+	beginInfo.renderArea.offset = { 0, 0 };
+	beginInfo.renderArea.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
+
+	VkClearValue clearColors[2]{};
+	clearColors[0].color = { 0.3f, 0.0f, 0.3f, 1.0f };
+	clearColors[1].depthStencil = { 1.0f, 0 };
+	beginInfo.clearValueCount = 2;
+	beginInfo.pClearValues = clearColors;
+
+	// Set a label for debugging.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnBeginDebugLabel)
+	{
+		VkDebugUtilsLabelEXT labelDetails{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
+		labelDetails.pLabelName = pRenderpass->pszName;
+		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
+		// TODO: Make this dynamic.
+		labelDetails.color[0] = 0.4f;
+		labelDetails.color[1] = 0.0f;
+		labelDetails.color[2] = 0.5f;
+		labelDetails.color[3] = 1.0f;
+
+		m_pfnBeginDebugLabel(commandBuffer, &labelDetails);
+	}
+#endif
+
+	vkCmdBeginRenderPass(commandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::EndRenderpass()
+{
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+	vkCmdEndRenderPass(commandBuffer);
+
+	// Close the debugging label.
+#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
+	if (m_pfnEndDebugLabel)
+	{
+		m_pfnEndDebugLabel(commandBuffer);
+	}
+#endif
 }
 
 //-------------------------------------------------------------------------
@@ -592,6 +685,7 @@ void CVulkanRenderer::EndFrame(Platform::IPlatformWindow* pTargetWindow, RenderP
 	cmdSubmitInfo.signalSemaphoreCount = 1;
 	cmdSubmitInfo.pSignalSemaphores = signalSemaphores;
 
+	// LEFTOFF: There is something going on with swapchain image formats causing this to throw errors.
 	VK_CHECK(vkQueueSubmit(m_Device.m_GraphicsQueue, 1, &cmdSubmitInfo, m_InFlightFence)); // Signal the in-flight-fence to let us know that we're done with this cmd buffer.
 
 	// Present our work.
@@ -623,70 +717,6 @@ void CVulkanRenderer::EndFrame(Platform::IPlatformWindow* pTargetWindow, RenderP
 	}
 
 	m_bCurrentlyRendering[m_ImageIndex] = false;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Begins a provided renderpass.
-// Input:	pRendererView - The renderpass to be started.
-// Output:	Returns true on successfull pass start, otherwise false.
-//-------------------------------------------------------------------------
-bool CVulkanRenderer::BeginRenderpass(RendererView& pRendererView)
-{
-	VkRenderPassBeginInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pRendererView.m_pInternalData);
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
-
-	renderpassInfo.renderPass = pInternalPass->m_Handle;
-	renderpassInfo.framebuffer = pWindowState->m_Swapchain.m_Framebuffers[m_ImageIndex];
-	renderpassInfo.renderArea.offset = { 0, 0 };
-	renderpassInfo.renderArea.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
-
-	VkClearValue clearColors[2]{};
-	clearColors[0].color = { 0.3f, 0.0f, 0.3f, 1.0f };
-	clearColors[1].depthStencil = { 1.0f, 0 };
-	renderpassInfo.clearValueCount = 2;
-	renderpassInfo.pClearValues = clearColors;
-
-	// Set a label for debugging.
-#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
-	if (m_pfnBeginDebugLabel)
-	{
-		VkDebugUtilsLabelEXT labelDetails{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
-		labelDetails.pLabelName = pRendererView.m_pszViewName;
-		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
-		// TODO: Make this dynamic.
-		labelDetails.color[0] = pRendererView.m_debuggingColor.x;
-		labelDetails.color[1] = pRendererView.m_debuggingColor.y;
-		labelDetails.color[2] = pRendererView.m_debuggingColor.z;
-		labelDetails.color[3] = 1.0f;
-
-		m_pfnBeginDebugLabel(commandBuffer, &labelDetails);
-	}
-#endif
-
-	vkCmdBeginRenderPass(commandBuffer, &renderpassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-	return true;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Ends the current renderpass.
-// Input:	none.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CVulkanRenderer::EndRenderpass()
-{
-	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
-	vkCmdEndRenderPass(commandBuffer);
-
-	// Close the debugging label.
-#ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
-	if (m_pfnEndDebugLabel)
-	{
-		m_pfnEndDebugLabel(commandBuffer);
-	}
-#endif
 }
 
 //-------------------------------------------------------------------------
@@ -813,139 +843,6 @@ void CVulkanRenderer::DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer)
 
 	delete pRenderBuffer.m_pInternalData;
 	pRenderBuffer.m_pInternalData = nullptr;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Creates an internal Vulkan renderpass and sets it up to the generic renderer view.
-// Input:	pViewConfig - A configuration used to build this pass.
-//			pOutView - The generic renderer view structure that will hold this renderpass.
-// Output:	Returns true on successful renderpass creation, otherwise false.
-//-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
-{
-	// Allocate our internal renderpass.
-	pOutView.m_pInternalData = new VulkanRenderPass;
-
-	// Setup our attachments.
-	Utl::CVector<VkAttachmentDescription>	attachments(pViewConfig.attachmentConfigs.Count());
-	Utl::CVector<VkAttachmentReference>		colorAttachmentReferences{};
-	Utl::CVector<VkAttachmentReference>		depthAttachmentReferences{};
-	int										iColorAttachmentCount{ 0 };
-	int										iDepthAttachmentCount{ 0 };
-	VulkanWindowState_t*					pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
-
-	for (int attIdx = 0; attIdx < pViewConfig.attachmentConfigs.Count(); attIdx++)
-	{
-		VkAttachmentDescription			newAttachment{};
-		VkAttachmentReference			newAttachmentRef{};
-		RendererViewAttachmentConfig_t& pCurrentAttachmentConfig = pViewConfig.attachmentConfigs[attIdx];
-		
-		newAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		newAttachmentRef.attachment = attIdx;
-
-		// NOTE: We currently do not support stencil buffers at all.
-		newAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		newAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-		switch (pCurrentAttachmentConfig.eAttachmentType)
-		{
-			case eRendererViewAttachmentType::COLOR:
-				newAttachment.format = pWindowState->m_Swapchain.m_SwapchainImageFormat;	// NOTE: Just using the swapchain image format for now.
-				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-				newAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-				newAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-				iColorAttachmentCount++;
-				colorAttachmentReferences.PushBack(newAttachmentRef);
-				break;
-
-			case eRendererViewAttachmentType::DEPTH:
-				newAttachment.format = pWindowState->m_Swapchain.m_DepthImageFormat;	// Get the depth image format from the swapchain.
-				newAttachment.loadOp = pCurrentAttachmentConfig.bShouldClear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-				newAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-				newAttachment.initialLayout = pCurrentAttachmentConfig.bShouldClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				newAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-				newAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-				iDepthAttachmentCount++;
-				depthAttachmentReferences.PushBack(newAttachmentRef);
-				break;
-
-			case eRendererViewAttachmentType::UNDEFINED:
-			default:
-				LOG_ERROR("Invalid Render View Attachment Type passed for view config '%s'. View creation failed.", pViewConfig.m_pszViewName);
-				return false;
-		}
-
-		attachments.PushBack(newAttachment);
-	}
-
-	// Setup the main subpass.
-	// NOTE: We currently always use only one subpass.
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = iColorAttachmentCount;
-	subpass.pColorAttachments = colorAttachmentReferences.Data();
-	subpass.pDepthStencilAttachment = (iDepthAttachmentCount > 0) ? depthAttachmentReferences.Data() : nullptr;
-
-	// Subpass dependency
-	VkSubpassDependency subpassDependency{};
-	subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	subpassDependency.dstSubpass = 0;
-	subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	
-	if (iDepthAttachmentCount > 0)
-		subpassDependency.srcStageMask |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-	subpassDependency.srcAccessMask = (iDepthAttachmentCount > 0) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0;
-	
-	subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	if (iDepthAttachmentCount > 0)
-		subpassDependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
-	subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	if (iDepthAttachmentCount > 0)
-		subpassDependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	renderpassInfo.attachmentCount = static_cast<uint32_t>(attachments.Count());
-	renderpassInfo.pAttachments = attachments.Data();
-	renderpassInfo.subpassCount = 1; // NOTE: Only using one subpass currently.
-	renderpassInfo.pSubpasses = &subpass;
-	renderpassInfo.dependencyCount = 1;
-	renderpassInfo.pDependencies = &subpassDependency;
-
-	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pOutView.m_pInternalData);
-	VK_CHECK(vkCreateRenderPass(m_Device.m_Device, &renderpassInfo, m_Allocator, &pInternalPass->m_Handle));
-
-	// Save off the name and create a debug label.
-	if (pViewConfig.m_pszViewName)
-	{
-		pOutView.m_pszViewName = Utl::StringDuplicate(pViewConfig.m_pszViewName);
-		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, pOutView.m_pszViewName, VK_OBJECT_TYPE_RENDER_PASS, pInternalPass->m_Handle);
-	}
-
-	return true;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Destroys an internal Vulkan Renderpass.
-// Input:	pView - The renderer view whose internal resources to destroy.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CVulkanRenderer::DestroyRendererViewInternal(RendererView& pView)
-{
-	VulkanRenderPass* pInternalPass = reinterpret_cast<VulkanRenderPass*>(pView.m_pInternalData);
-	vkDestroyRenderPass(m_Device.m_Device, pInternalPass->m_Handle, m_Allocator);
-
-	if (pView.m_pszViewName)
-		Utl::StringFree(pView.m_pszViewName);
-
-	pView.m_pszViewName = nullptr;
-
-	delete pView.m_pInternalData;
-	pView.m_pInternalData = nullptr;
 }
 
 //-------------------------------------------------------------------------

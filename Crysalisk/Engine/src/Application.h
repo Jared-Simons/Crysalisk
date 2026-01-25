@@ -25,7 +25,6 @@ struct ApplicationConfig_t
 
 	~ApplicationConfig_t()
 	{
-		renderViewConfigs.Clear();
 	}
 };
 

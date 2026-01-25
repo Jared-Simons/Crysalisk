@@ -31,17 +31,13 @@ public:
 
 	virtual bool	CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
 	virtual void	DestroyRenderpass(struct Renderpass* pRenderpass) override;
-
-	virtual bool	BeginRenderpass(RendererView& pRendererView) override;
+	virtual bool	BeginRenderpass(struct Renderpass* pRenderpass) override;
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
 
 	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
-
-	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
-	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
 
 	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;

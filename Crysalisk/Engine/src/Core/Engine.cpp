@@ -306,6 +306,11 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	{
 		m_EngineInterfaces.pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
 	}
+	else
+	{
+		// Register the game window with the renderer.
+		m_EngineInterfaces.pRenderer->RegisterWindow(*m_pEngineWindow);
+	}
 
 	// Run Post-Engine initialize routines.
 	m_EngineInterfaces.pMaterialSystem->PostInitialize();

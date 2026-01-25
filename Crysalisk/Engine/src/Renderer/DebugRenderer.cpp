@@ -157,11 +157,12 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 
 	m_DebugView.m_debuggingColor = Vector3D{ 0.5f, 0.0f, 0.7f };
 
-	if (!m_Config.pRenderer->CreateRendererView(debugViewConfig, m_DebugView))
+	// TODO: Integrate with the new RenderView system.
+	/*if (!m_Config.pRenderer->CreateRendererView(debugViewConfig, m_DebugView))
 	{
 		LOG_ERROR("Failed to create debug render view!");
 		return false;
-	}
+	}*/
 
 	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
 	{
@@ -209,7 +210,6 @@ void CDebugRenderer::Shutdown()
 {
 	m_Config.pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
 	m_Config.pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
-	m_Config.pRenderer->DestroyRendererView(m_DebugView);
 
 	// Release debug geometry data.
 	delete[] m_GeometryData;
@@ -245,7 +245,9 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 {
 	m_flRendererTime = pFrameData.flCurTime;
 
-	if (m_Config.pRenderer->BeginRendererView(m_DebugView))
+	// TODO: This is borked!
+	// Need to be integrated with the new RenderView system.
+	/*if (m_Config.pRenderer->BeginRendererView(m_DebugView))
 	{
 		IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 
@@ -332,7 +334,7 @@ void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
 	{
 		LOG_ERROR("Failed to begin Debug Renderpass. Skipping debug rendering.");
 		return;
-	}
+	}*/
 }
 
 //-------------------------------------------------------------------------
