@@ -37,7 +37,8 @@ struct RendererConfig_t
 struct RenderPacket_t
 {
 	// The time elapsed between frames.
-	double DeltaTime;
+	double	DeltaTime;
+	size_t	iNumDrawCalls{ 0 };
 
 	// TODO: These arrays should be a part of a 3D World Scene view.
 	Utl::CVector<Matrix4x4>						TransformMatrices{};

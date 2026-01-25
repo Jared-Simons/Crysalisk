@@ -123,7 +123,7 @@ public:
 
 private:
 	RendererConfig_t	m_Config{};
-	IRendererBackend* m_RendererBackend{ nullptr };
+	IRendererBackend*	m_RendererBackend{ nullptr };
 	bool				m_bMinimized{ false };
 	Clock				m_RendererClock{};
 	double				m_flLastFrameTime{};
@@ -140,6 +140,7 @@ private:
 public:
 	Camera_t			m_Camera{};
 
+	// TODO: Should these live here or with the render view?
 	RenderBuffer		m_WorldVertexBuffer{};
 	RenderBuffer		m_WorldIndexBuffer{};
 
@@ -329,14 +330,29 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
+	pRenderData.iNumDrawCalls = 0;
 
-	// Setup frame data.
-	pRenderData.matProjection = pTargetWindow->GetViewport().matProjection;
+	// Set per-frame render data.
+	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
+
+	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
+	Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
+
+	// Flip the y-axis.
+	matProjection.flData[5] *= -1.0f;
+	Vector vecCameraPos = pRenderData.pCamera->vecPosition;
+	Matrix4x4 matModel = Matrix4x4{ 1.0f };
+
+	pRenderData.matProjection = matProjection;
 
 	// View Test TEMP
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	{
+		// Set per-frame render data.
+		pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
+		
 		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
 			m_pRenderViews[iView]->Render(&pRenderData);
@@ -345,52 +361,8 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 	// End View Test TEMP
 
-	/*IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
-	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
-
-	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
-	Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
-
-	// TODO: This pass should live in the application, me-thinks.
-	m_RendererBackend->BeginRenderpass(*m_SceneView);
-	{
-		m_Metrics.NumGeometriesFrustumCulled = pRenderData.iCulledGeometries;
-		// Flip the y-axis.
-		matProjection.flData[5] *= -1.0f;
-		Vector vecCameraPos = pRenderData.pCamera->vecPosition;
-		Matrix4x4 matModel = Matrix4x4{ 1.0f };
-
-		// Set per-frame render data.
-		pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
-
-		// Render opaque geometries.
-		for (int idx = 0; idx < pRenderData.pOpaqueGeometries.Count(); idx++)
-		{
-			// Apply transformations.
-			pMaterialSystem->ApplyPerDrawRenderData(pRenderData.pOpaqueGeometries[idx]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			pMaterialSystem->ApplyMaterialInstance(pRenderData.pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pRenderData.pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
-
-			m_Metrics.NumDrawCalls++;
-		}
-
-		// Render transparent geometries.
-		for (int idx = 0; idx < pRenderData.pTransparentGeometries.Count(); idx++)
-		{
-			// Apply transformations.
-			pMaterialSystem->ApplyPerDrawRenderData(pRenderData.pTransparentGeometries[idx]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			pMaterialSystem->ApplyMaterialInstance(pRenderData.pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pRenderData.pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
-
-			m_Metrics.NumDrawCalls++;
-		}
-	}
-
-	m_RendererBackend->EndRenderpass();*/
+	// Update renderer metrics.
+	m_Metrics.NumGeometriesFrustumCulled = pRenderData.iCulledGeometries;
 
 	/*
 	// Update debug geometries.
@@ -444,7 +416,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	}*/
 	
 	// Clear out bound shader state.
-	//pShaderSystem->BindShader(kInvalidID_U32);
+	pShaderSystem->BindShader(kInvalidID_U32);
 	m_Metrics.CurrentFrameFPS++;
 
 	// Increment the frame count.
@@ -640,7 +612,9 @@ void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hIns
 //-------------------------------------------------------------------------
 bool CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
 {
-	return m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+	bool bCreateResult = m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+
+	return bCreateResult;
 }
 
 //-------------------------------------------------------------------------

@@ -381,7 +381,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 			{
 				// We need to clear this target prior to rendering.
 				description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			}
 			else
 			{
@@ -685,7 +685,6 @@ void CVulkanRenderer::EndFrame(Platform::IPlatformWindow* pTargetWindow, RenderP
 	cmdSubmitInfo.signalSemaphoreCount = 1;
 	cmdSubmitInfo.pSignalSemaphores = signalSemaphores;
 
-	// LEFTOFF: There is something going on with swapchain image formats causing this to throw errors.
 	VK_CHECK(vkQueueSubmit(m_Device.m_GraphicsQueue, 1, &cmdSubmitInfo, m_InFlightFence)); // Signal the in-flight-fence to let us know that we're done with this cmd buffer.
 
 	// Present our work.
@@ -728,7 +727,7 @@ void CVulkanRenderer::EndFrame(Platform::IPlatformWindow* pTargetWindow, RenderP
 //-------------------------------------------------------------------------
 void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryInstance_t& pGeometry)
 {
-	CAssert(m_pCurrentlyBoundShader);
+	CAssert(m_pCurrentlyBoundShader && pVertexBuffer);
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = nullptr;
 

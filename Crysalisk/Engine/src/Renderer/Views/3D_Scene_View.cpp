@@ -82,7 +82,41 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 {
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
+		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pRenderData->pOpaqueGeometries;
+		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pRenderData->pTransparentGeometries;
+		Matrix4x4 matModel = Matrix4x4{ 1.0f };
 
+		// Render opaque geometries.
+		for (int iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
+		{
+			// Apply transformations.
+			m_pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[iGeo]->matLocalToWorldTransform);
+
+			// Bind the appropriate material.
+			m_pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[iGeo]->hMaterial);
+
+			// Draw the sucker!
+			// TODO: This is probably not the best way to get the geometry buffers.
+			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
+
+			pRenderData->iNumDrawCalls++;
+		}
+
+		// Render transparent geometries.
+		for (int iGeo = 0; iGeo < pTransparentGeometries.Count(); iGeo++)
+		{
+			// Apply transformations.
+			m_pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[iGeo]->matLocalToWorldTransform);
+
+			// Bind the appropriate material.
+			m_pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[iGeo]->hMaterial);
+
+			// Draw the sucker!
+			// TODO: This is probably not the best way to get the geometry buffers.
+			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
+
+			pRenderData->iNumDrawCalls++;
+		}
 	}
 	m_pRenderer->EndRenderpass();
 }

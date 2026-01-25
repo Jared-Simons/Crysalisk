@@ -24,7 +24,7 @@ struct RenderPacket_t;
 class IRenderer
 {
 public:
-	static void		AllocateRenderSystemState(IRenderer** ppSystemState);
+	static void				AllocateRenderSystemState(IRenderer** ppSystemState);
 
 	// Initialize, shutdown.
 	virtual bool			Initialize(RendererConfig_t& pAppConfig) = 0;

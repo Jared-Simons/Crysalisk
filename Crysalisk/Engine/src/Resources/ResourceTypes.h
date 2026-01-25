@@ -274,8 +274,12 @@ struct GeometryInstance_t
 	// Indicates if the material used by this mesh is transparent.
 	bool				bIsTransparent;
 
+	// The handle to this mesh's geometry buffers.
+	uint8_t				hVertexBuffer{ kInvalidID_U8 };
+	uint8_t				hIndexBuffer{ kInvalidID_U8 };
+
 	// A unique identifier for the mesh resource this instance is tied to.
-	uint32_t							m_MeshID{ kInvalidID_U32 };
+	uint32_t			m_MeshID{ kInvalidID_U32 };
 	// The model->world transform matrix.
 	Matrix4x4			matLocalToWorldTransform{};
 	// The center of the mesh relative to it's AABB in local space.
