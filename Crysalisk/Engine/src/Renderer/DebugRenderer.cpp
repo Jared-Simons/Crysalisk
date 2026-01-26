@@ -365,7 +365,8 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 
 	uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, 4, sizeof(Vector3D), ptVerts, 6, indices, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, 4, sizeof(Vector3D), ptVerts, 6, indices, pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this geometry will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -396,7 +397,8 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
 
 	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, 2, sizeof(Vector3D), vecPositions, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Just use an identity matrix for the transform (this shouldn't ever move around).
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -480,7 +482,8 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 	ptVertices[22].y = vecLocalMins.y;
 	ptVertices[23] = vecLocalMaxs;
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	// Store off the transform index.
 	//pNewGeometry.geometryInstance.iLocalToWorldTransform = pGeometry.iLocalToWorldTransform;
@@ -561,7 +564,8 @@ int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, floa
 	ptVertices[22].y = vecMins.y;
 	ptVertices[23] = vecMaxs;
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 
@@ -632,7 +636,8 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 	indices[95] = indices[48];
 	indices[143] = indices[96];
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, iNumVertices, sizeof(Vector3D), ptVertices, iNumIndices, indices, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, iNumVertices, sizeof(Vector3D), ptVertices, iNumIndices, indices, pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this sphere will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -662,7 +667,8 @@ int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandl
 
 	GeometryConfig_t textConfig = pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, &m_DebugIndexBuffer, textConfig, pNewGeometry.geometryInstance);
 
 	// Acquire new shader instance resources.
 	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
@@ -754,7 +760,8 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	Matrix4x4 matTransform = Matrix4x4{ 1.0f };
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
 
-	m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
+	// TODO: Fix this
+	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
 
 	return iDebugGeometryIndex;
 }
@@ -770,7 +777,9 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
 
 	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
-	m_Config.pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
+	
+	// TODO: Fix this
+	//m_Config.pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
 
 	pGeoToRemove.iInstanceID = kInvalidID_U32;
 	pGeoToRemove.eType = DebugGeometryType::UNDEFINED;

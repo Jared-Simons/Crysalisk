@@ -278,7 +278,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		newConfig.Vertices = pCurSubmesh->Vertices;
 		newConfig.Indices = pCurSubmesh->Indices;
 		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
-		m_Config.pRenderer->AcquireGeometryResources(&m_Config.pRenderer->GetWorldVertexBuffer(), &m_Config.pRenderer->GetWorldIndexBuffer(), newConfig, pMesh->m_Geometries.Back());
+		// TODO: Fix this
+		//m_Config.pRenderer->AcquireGeometryResources(&m_Config.pRenderer->GetWorldVertexBuffer(), &m_Config.pRenderer->GetWorldIndexBuffer(), newConfig, pMesh->m_Geometries.Back());
+		m_Config.pRenderer->AcquireGeometryResources(newConfig.Vertices.Count(), newConfig.Vertices.Data(), newConfig.Indices.Count(), newConfig.Indices.Data(), &pMesh->m_Geometries.Back());
 
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
@@ -359,7 +361,8 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 		
 		for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
 		{
-			m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
+			// TODO: Fix this
+			//m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
 			m_Config.pMaterialSystem->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
 		}
 		ClearMeshDictionaryEntry(pMesh->m_pszMeshPath);

@@ -222,12 +222,26 @@ enum class eRenderBufferUsage
 	STORAGE
 };
 
+typedef uint8_t BufferVertexFlags_t;
+
+enum eVertexBufferDataFlags
+{
+	VERTEX_BUFFER_DATA_UNDEFINED = 0x00,
+	VERTEX_BUFFER_DATA_POSITION = 0x01,
+	VERTEX_BUFFER_DATA_TEXCOORD = 0x02,
+	VERTEX_BUFFER_DATA_NORMAL = 0x04,
+	VERTEX_BUFFER_DATA_TANGENT = 0x08,
+};
+
 //-------------------------------------------------------------------------
 // Purpose: A generic buffer used for storing data.
 //-------------------------------------------------------------------------
 class RenderBuffer
 {
 public:
+	// The types of vertex data stored in this buffer.
+	BufferVertexFlags_t	uBufferDataFlags{ 0 };
+
 	// A pointer to the internal data of the buffer.
 	void* m_pInternalData{ nullptr };
 	// TODO: Store the type off here as well?

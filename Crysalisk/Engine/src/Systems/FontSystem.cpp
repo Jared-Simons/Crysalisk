@@ -64,7 +64,8 @@ void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSys
 	// Otherwise, just update the existing data.
 	if (bCreateNewResources)
 	{
-		pRenderer->AcquireGeometryResources(pRenderer->GetUIVertexBuffer(), pRenderer->GetUIIndexBuffer(), newConfig, m_Geometry);
+		// TODO: Fix this
+		//pRenderer->AcquireGeometryResources(pRenderer->GetUIVertexBuffer(), pRenderer->GetUIIndexBuffer(), newConfig, m_Geometry);
 	}
 	else
 	{

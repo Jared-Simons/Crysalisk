@@ -1,0 +1,9 @@
+CHANGELOG:
+
+- TODO: Number these updates.
+
+- Mesh Loader/Serializer:
+	- Increased mesh serializer file version from 1 to 2:
+		- Version changes:
+		- Added a vertex layout to the header of the mesh file (this was not there previously).
+		- Vertex data is now stored in separate tables (Position table, Normal table, Texcoord, etc.).

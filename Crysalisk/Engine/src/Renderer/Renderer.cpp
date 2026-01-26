@@ -93,10 +93,7 @@ public:
 	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
-	void			AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance) override;
-	void			AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
-	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
+	bool			AcquireGeometryResources(size_t iVertexCount, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
@@ -628,6 +625,16 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CRenderer::AcquireGeometryResources(size_t iVertexCount, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
+{
+	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Sets a shader's uniform.
 // Input:	pShader - The shader who's uniform is to be set.
 //			pUniform - A pointer to the uniform to be set.
@@ -639,61 +646,6 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			iVertexCount - The number of vertices to be uploaded.
-//			iVertexStride - The size (in bytes) of each vertex.
-//			pVertices - An array of vertices to be uploaded.
-//			iIndexCount - The number of indices to be uploaded.
-//			pIndices - An array of indices to be uploaded (assumed to be made of uint32_t's).
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Releases the renderer-specific resources for geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometry - The geometry instance to be released.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
-{
-	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 //-------------------------------------------------------------------------

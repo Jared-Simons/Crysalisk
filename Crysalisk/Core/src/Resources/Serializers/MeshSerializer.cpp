@@ -13,7 +13,7 @@ namespace MeshSerializer
 	// Specific file extension for the Crysalisk model file format (CModels).
 	static const char*		kCModelFileExtension = ".cmodel_c";
 	// The current most up-to-date version of the CModel file format.
-	static const uint32_t	kCurrentModelVersion = 1;
+	static const uint32_t	kCurrentModelVersion = 2;
 
 	//-------------------------------------------------------------------------
 	// Purpose: Takes an existing mesh resource imported from another file type, 

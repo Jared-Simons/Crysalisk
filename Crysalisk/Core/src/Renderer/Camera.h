@@ -76,7 +76,7 @@ struct Frustum
 //-------------------------------------------------------------------------
 // A general purpose camera.
 //-------------------------------------------------------------------------
-struct CORE_API Camera_t
+struct Camera_t
 {
 	// The camera's position in world space.
 	Vector vecPosition{ 0, 0, 3 };
@@ -100,14 +100,14 @@ struct CORE_API Camera_t
 	float	flAspectRatio{ 16 / 9.0f };
 
 	// Returns the camera's view matrix.
-	inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
+	CORE_API inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 
 	// Recalculate's the camera's internal vectors, this is typically needed when the camera's rotation changes.
-	void RecalculateCameraVectors();
+	CORE_API void RecalculateCameraVectors();
 
 	// A simple update function.
-	void UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime);
+	CORE_API void UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime);
 
 	// Creates and returns a frustum based on the camera's internal state.
-	Frustum CreateFrustumFromCamera() const;
+	CORE_API Frustum CreateFrustumFromCamera() const;
 };

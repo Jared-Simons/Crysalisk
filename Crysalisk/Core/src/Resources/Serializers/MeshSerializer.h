@@ -18,11 +18,26 @@ namespace MeshSerializer
 	// in our own binary format.
 	CORE_API bool SerializeMeshResource(const char* pszModelName, struct MeshLoader::MeshResource_t& pInResource);
 
+	// TODO: Documentation.
+	typedef uint16_t VertexLayoutFlags_t;
+
+	enum eVertexLayoutDataFlags
+	{
+		VERTEX_LAYOUT_DATA_UNDEFINED = 0x00,
+		VERTEX_LAYOUT_DATA_POSITION = 0x01,
+		VERTEX_LAYOUT_DATA_TEXCOORD = 0x02,
+		VERTEX_LAYOUT_DATA_NORMAL = 0x04,
+		VERTEX_LAYOUT_DATA_TANGENT = 0x08,
+	};
+
 	// File header for a CModel.
 	struct CModel_FileHeader_t
 	{
 		// The file version of this asset.
 		uint32_t	iFileVersion{ 0 };
+
+		// A set of bitflags that defines this mesh's vertex layout.
+		VertexLayoutFlags_t	iVertexLayoutFlags{ 0 };
 
 		// The offset from the start of the file in bytes where the submesh data begins.
 		uint64_t	iSubmeshDataOffset{ 0 };
