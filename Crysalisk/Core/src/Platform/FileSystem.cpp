@@ -254,6 +254,16 @@ bool FileSystem::IsEOF(FileHandle_t* pFileHandle)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void FileSystem::ReturnFilePointerToHead(FileHandle_t* pFileHandle)
+{
+	CAssert(pFileHandle);
+	FILE* pInternalData = reinterpret_cast<FILE*>(pFileHandle->pInternalData);
+	rewind(pInternalData);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Writes the text data in pBuffer to the provided file.
 // Input:  pBuffer - The buffer to write to the file.  
 //		   pFileHandle - A pointer to the file handle to write to.

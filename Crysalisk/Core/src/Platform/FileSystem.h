@@ -66,6 +66,9 @@ public:
 	static bool			ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Returns whether or not the internal pointer for this handle has reached the end of the file.
 	static bool			IsEOF(FileHandle_t* pFileHandle);
+	// Returns the file's read pointer back to the head of the file.
+	// Allows the file to be read multiple times.
+	static void			ReturnFilePointerToHead(FileHandle_t* pFileHandle);
 
 	// Writes the text in pBuffer to the provided file.
 	static void			WriteLine(char* pBuffer, FileHandle_t* pFileHandle);

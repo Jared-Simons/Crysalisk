@@ -22,6 +22,7 @@
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/Map.h"
+#include <Resources/Serializers/MeshSerializer.h>
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"
@@ -114,6 +115,12 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
+
+	// TODO: MESH SERIALIZER 2.0 TEST!
+	{
+		MeshSerializer::SerializeOBJMesh("Assets/Models/Container", "Assets/Models/Container_TEST");
+	}
+	// TODO: END TEST
 
 	// Event System.
 	IEventSystem::AllocateEventSystemState(&m_EngineInterfaces.pEngineEventHandler);

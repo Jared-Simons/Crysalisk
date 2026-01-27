@@ -8,6 +8,8 @@
 
 #include "Platform/FileSystem.h"
 
+#include <stdio.h>	// for sscanf()
+
 namespace MeshSerializer
 {
 	// Specific file extension for the Crysalisk model file format (CModels).
@@ -117,6 +119,232 @@ namespace MeshSerializer
 		FileSystem::CloseFile(&pCModelFileHandle);
 
 		delete[] pTempNameBuffer;
+
+		return true;
+	}
+
+	//-------------------------------------------------------------------------
+	// Purpose: TODO: Documentation.
+	// 
+	// Mesh serialization algorithm:
+	// - Verify that source file exists						[X]
+	// - Determine the mesh's vertex layout					[X]
+	// - Process all elements into their own tables			[ ]
+	// - Write out the file header							[X]
+	//		(Note that this has to happen after processing 
+	//		elements so that we can get their offsets 
+	//		into the byte-stream).
+	// - Write out all tables								[ ]
+	//-------------------------------------------------------------------------
+	bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName)
+	{
+		// Make sure the path is valid.
+		// We can technically proceed without having an output file name, 
+		// we'll just make it the same as the input file name with a new extension.
+		if (!pszOBJMeshPath)
+		{
+			LOG_ERROR("SerializeOBJMesh() requires a path to a mesh to serialize! Mesh serialization failed.");
+			return false;
+		}
+
+		FileHandle_t hOBJFile{};
+
+		if (!FileSystem::FileExists(pszOBJMeshPath))
+		{
+			// Check with an extension added on, just in case.
+			char szTempStringBuffer[2048]{};
+			Utl::StringFormat_V("%s.obj", szTempStringBuffer, pszOBJMeshPath);
+
+			if (!FileSystem::FileExists(szTempStringBuffer))
+			{
+				LOG_ERROR("SerializeOBJMesh() - Source file '%s' does not exist. Mesh serialization failed.");
+				return false;
+			}
+			else
+			{
+				// We found the file after adding the extension, open 'er up!
+				if (!FileSystem::OpenFile(szTempStringBuffer, FILEMODE_READ, false, &hOBJFile))
+				{
+					LOG_ERROR("Failed to open OBJ file '%s' for reading.", szTempStringBuffer);
+					return false;
+				}
+			}
+		}
+		else
+		{
+			// Found the file.
+			if (!FileSystem::OpenFile(pszOBJMeshPath, FILEMODE_READ, false, &hOBJFile))
+			{
+				LOG_ERROR("Failed to open OBJ file '%s' for reading.", pszOBJMeshPath);
+				return false;
+			}
+		}
+
+		LOG_INFO("Serializing mesh '%s'.", pszOBJMeshPath);
+
+		// Create a new file/overwrite the existing file to store the new mesh.
+		FileHandle_t hNewOutputMesh{};
+		if (pszOutMeshFileName == nullptr)
+		{
+			// Just steal the input file path and put our extension on it.
+			char szTempStringBuffer[2048]{};
+			Utl::StringFormat_V("%s.%s", szTempStringBuffer, pszOBJMeshPath, kCModelFileExtension);	// TODO: We might need to strip the original OBJ extension off the input path.
+			CAssert(0);	// We need to test this.
+		}
+		else
+		{
+			// Attach our extension onto the output mesh.
+			char szTempStringBuffer[2048];
+			Utl::StringFormat_V("%s%s", szTempStringBuffer, pszOutMeshFileName, kCModelFileExtension);
+			if (!FileSystem::OpenFile(szTempStringBuffer, FILEMODE_WRITE, true, &hNewOutputMesh))
+			{
+				LOG_ERROR("Failed to open new file for writing mesh '%s'. Mesh serialization failed.", pszOBJMeshPath);
+				return false;
+			}
+		}
+
+		CModel_FileHeader_t	outFileHeader{};
+		outFileHeader.iFileVersion = kCurrentModelVersion;
+
+		// First determine the vertex format for this model.
+		// This makes the assumption that there is a singular vertex layout that is valid for the entire file.
+		bool bModelContainsVertexPositions{ false };
+		bool bModelContainsVertexNormals{ false };
+		bool bModelContainsVertexTexCoords{ false };
+		bool bModelContainsVertexTangents{ false };
+
+		char szCurrentLine[2048]{};
+		char firstChar{};
+		char secondChar{};
+		size_t bytesRead{ 0 };
+		
+		LOG_INFO("Determing vertex layout");
+
+		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
+		{
+			firstChar = szCurrentLine[0];
+			secondChar = szCurrentLine[1];
+			if (firstChar == 'v')
+			{
+				// Need to take a look at the second char to confirm.
+				if (secondChar == ' ')
+				{
+					// Vertex position.
+					bModelContainsVertexPositions = true;
+				}
+				else if (secondChar == 'n')
+				{
+					// Vertex normal.
+					bModelContainsVertexNormals = true;
+				}
+				else if (secondChar == 't')
+				{
+					// Vertex texcoords.
+					bModelContainsVertexTexCoords = true;
+				}
+			}
+		}
+
+		// Spew some vertex layout information:
+		LOG_DEBUG("Mesh contains position data: \t%s", bModelContainsVertexPositions ? "true" : "false");
+		LOG_DEBUG("Mesh contains normal data: \t%s", bModelContainsVertexNormals ? "true" : "false");
+		LOG_DEBUG("Mesh contains texcoord data: \t%s", bModelContainsVertexTexCoords ? "true" : "false");
+		LOG_DEBUG("Mesh contains tangent data: \t%s", bModelContainsVertexTangents ? "true" : "false");
+
+		// Build a bitfield representing the layout and store it in the header.
+		uint16_t uVertexLayout{ VERTEX_LAYOUT_DATA_UNDEFINED };
+		if (bModelContainsVertexPositions)
+			uVertexLayout |= VERTEX_LAYOUT_DATA_POSITION;
+		if (bModelContainsVertexNormals)
+			uVertexLayout |= VERTEX_LAYOUT_DATA_NORMAL;
+		if (bModelContainsVertexTexCoords)
+			uVertexLayout |= VERTEX_LAYOUT_DATA_TEXCOORD;
+		if (bModelContainsVertexTangents)
+			uVertexLayout |= VERTEX_LAYOUT_DATA_TANGENT;
+		
+		outFileHeader.iVertexLayoutFlags = uVertexLayout;
+
+		// Rewind the file so we can read it through again.
+		FileSystem::ReturnFilePointerToHead(&hOBJFile);
+
+		// Build out geometry tables.
+		Utl::CVector<Vector>	vertexPositions{};
+		Utl::CVector<Vector>	vertexNormals{};
+		Utl::CVector<Vector2D>	vertexTexCoords{};
+
+		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
+		bytesRead = 0;
+
+		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
+		{
+			firstChar = szCurrentLine[0];
+			secondChar = szCurrentLine[1];
+
+			switch (firstChar)
+			{
+			case '#':	// Skip comments.
+			case 0:		// And blank lines
+				break;
+
+			case 'v':
+			{
+				// Need to check the second char.
+				switch (secondChar)
+				{
+					case ' ':	// Vertex position.
+					{
+						Vector newPosition{};
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newPosition.x, &newPosition.y, &newPosition.z);
+						CAssert(numElements == 3);
+
+						// Add it to the table.
+						vertexPositions.PushBack(newPosition);
+						break;
+					}
+
+					case 'n':	// Vertex normals.
+					{
+						Vector newNormal{};
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
+						CAssert(numElements == 3);
+
+						// Add it to the table.
+						vertexNormals.PushBack(newNormal);
+						break;
+					}
+
+					case 't':	// Vertex texture coordinates.
+					{
+						Vector2D newTexCoord{};
+						int numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
+						CAssert(numElements == 2);
+
+						// Add it to the table.
+						vertexTexCoords.PushBack(newTexCoord);
+						break;
+					}
+				}
+				break;
+			}
+
+			case 'm':
+				LOG_WARN("SerializeOBJMesh() -> IMPLEMENT MATERIAL LIBRARY PROCESSING!");
+				break;
+				
+			default:
+				CAssert(0);
+				break;
+			}
+		}
+
+		// Write out the file header.
+		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);
+
+		// Close the new file.
+		FileSystem::CloseFile(&hNewOutputMesh);
+
+		// Close the original source file.
+		FileSystem::CloseFile(&hOBJFile);
 
 		return true;
 	}
