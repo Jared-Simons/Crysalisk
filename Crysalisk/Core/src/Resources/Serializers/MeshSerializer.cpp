@@ -9,6 +9,7 @@
 #include "Platform/FileSystem.h"
 
 #include <stdio.h>	// for sscanf()
+#include <float.h>
 
 namespace MeshSerializer
 {
@@ -16,6 +17,10 @@ namespace MeshSerializer
 	static const char*		kCModelFileExtension = ".cmodel_c";
 	// The current most up-to-date version of the CModel file format.
 	static const uint32_t	kCurrentModelVersion = 2;
+
+	// Forward declarations
+	static void GenerateTangentData(Vector* pPositions, Vector* pNormals, Vector2D* pTexCoords, Utl::CVector<Vector>* pOutTangents, uint64_t iFaceCount, CModel_MeshFaceData_t* pFaces);
+	static void DeduplicateGeometry(Vector* pPositions, Vector* pNormals, Vector2D* pTexCoords, CModel_MeshFaceData_t* pFaces);
 
 	//-------------------------------------------------------------------------
 	// Purpose: Takes an existing mesh resource imported from another file type, 
@@ -267,10 +272,15 @@ namespace MeshSerializer
 		// Rewind the file so we can read it through again.
 		FileSystem::ReturnFilePointerToHead(&hOBJFile);
 
+		// Geometry data.
+		Utl::CVector<CModel_MeshHeader_t>	meshHeaders{};
+		Utl::CVector<CModel_MeshFaceData_t>	meshFaces{};
+
 		// Build out geometry tables.
 		Utl::CVector<Vector>	vertexPositions{};
 		Utl::CVector<Vector>	vertexNormals{};
 		Utl::CVector<Vector2D>	vertexTexCoords{};
+		Utl::CVector<Vector>	vertexTangents{};
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
@@ -285,6 +295,51 @@ namespace MeshSerializer
 			case '#':	// Skip comments.
 			case 0:		// And blank lines
 				break;
+
+			case 'o':	// New geometry object.
+			{
+				CModel_MeshHeader_t newMesh{};
+				meshHeaders.PushBack(newMesh);
+				break;
+			}
+
+			case 'g':
+			{
+				// Skip new groups, we'll just put all the geometry in the same mesh.
+				continue;
+			}
+
+			case 'f':	// Polygon 'face'.
+			{
+				uint32_t	normalIndices[3];
+				uint32_t	positionIndices[3];
+				uint32_t	texCoordIndices[3];
+
+				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
+
+				CAssert(elements == 9);
+
+				// Write the elements out to the mesh header.
+				CModel_MeshFaceData_t newFace{};
+				for (int iVert = 0; iVert < 3; iVert++)
+				{
+					newFace.iPositionIndices[iVert] = positionIndices[iVert];
+					newFace.iNormalIndices[iVert] = normalIndices[iVert];
+					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert];
+				}
+				
+				size_t iFaceIndex = meshFaces.PushBack(newFace);
+				meshHeaders.Back().meshFaceIndices.PushBack(iFaceIndex);
+				break;
+			}
+
+			case 'u':
+				// New Material.
+				// TODO: Implement!
+				break;
+
+			case 's':	// Smoothing groups, not using these.
+				continue;
 
 			case 'v':
 			{
@@ -332,13 +387,48 @@ namespace MeshSerializer
 				break;
 				
 			default:
-				CAssert(0);
+				//CAssert(0);
 				break;
 			}
 		}
 
+		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
+		if (!bModelContainsVertexTangents)
+		{
+			LOG_INFO("Generating tangent data for mesh.");
+			GenerateTangentData(vertexPositions.Data(), vertexNormals.Data(), vertexTexCoords.Data(), &vertexTangents, meshFaces.Count(), meshFaces.Data());
+		}
+
 		// Write out the file header.
 		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);
+
+		// Write out geometry headers.
+		if (meshHeaders.Count() > 0)
+		{
+			FileSystem::WriteBytes(meshHeaders.Data(), meshHeaders.Stride() * meshHeaders.Count(), &hNewOutputMesh);
+		}
+		if (meshFaces.Count() > 0)
+		{
+			FileSystem::WriteBytes(meshFaces.Data(), meshFaces.Stride() * meshFaces.Count(), &hNewOutputMesh);
+		}
+
+		// Write out geometry tables.
+		if (vertexPositions.Count() > 0)
+		{
+			FileSystem::WriteBytes(vertexPositions.Data(), vertexPositions.Stride() * vertexPositions.Count(), &hNewOutputMesh);
+		}
+		if (vertexNormals.Count() > 0)
+		{
+			FileSystem::WriteBytes(vertexNormals.Data(), vertexNormals.Stride() * vertexNormals.Count(), &hNewOutputMesh);
+		}
+		if (vertexTexCoords.Count() > 0)
+		{
+			FileSystem::WriteBytes(vertexTexCoords.Data(), vertexTexCoords.Stride() * vertexTexCoords.Count(), &hNewOutputMesh);
+		}
+		if (vertexTangents.Count() > 0)
+		{
+			FileSystem::WriteBytes(vertexTangents.Data(), vertexTangents.Stride() * vertexTangents.Count(), &hNewOutputMesh);
+		}
 
 		// Close the new file.
 		FileSystem::CloseFile(&hNewOutputMesh);
@@ -348,4 +438,58 @@ namespace MeshSerializer
 
 		return true;
 	}
-}
+
+	static void GenerateTangentData(Vector* pPositions, Vector* pNormals, Vector2D* pTexCoords, Utl::CVector<Vector>* pOutTangents, uint64_t iFaceCount, CModel_MeshFaceData_t* pFaces)
+	{
+		uint64_t invalidTangentCount{ 0 };
+		pOutTangents->Resize(iFaceCount);
+		for (int iFace = 0; iFace < iFaceCount; iFace++)
+		{
+			Vector& pPos0 = pPositions[pFaces[iFace].iPositionIndices[0]];
+			Vector& pPos1 = pPositions[pFaces[iFace].iPositionIndices[1]];
+			Vector& pPos2 = pPositions[pFaces[iFace].iPositionIndices[2]];
+
+			Vector2D& pUV0 = pTexCoords[pFaces[iFace].iTexCoordIndices[0]];
+			Vector2D& pUV1 = pTexCoords[pFaces[iFace].iTexCoordIndices[1]];
+			Vector2D& pUV2 = pTexCoords[pFaces[iFace].iTexCoordIndices[2]];
+
+			Vector edge1 = pPos1 - pPos0;
+			Vector edge2 = pPos2 - pPos0;
+
+			Vector2D deltaUV1 = pUV1 - pUV0;
+			Vector2D deltaUV2 = pUV2 - pUV0;
+
+			float flDividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			float f = 1.0f / flDividend;
+			CAssert(!(pPos0 == pPos1));
+			CAssert(!(pPos1 == pPos2));
+			CAssert(!(pPos0 == pPos2));
+
+			if (M_ABS(flDividend) < FLT_EPSILON)
+			{
+				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
+				invalidTangentCount++;
+				continue;
+			}
+
+			Vector vecTangent{};
+			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			// LEFTOFF: Figure out how to organize generated tangent data.
+		}
+
+		// Report invalid tangents.
+		if (invalidTangentCount > 0)
+		{
+			LOG_WARN("Mesh contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", invalidTangentCount);
+		}
+	}
+
+	static void DeduplicateGeometry(Vector* pPositions, Vector* pNormals, Vector2D* pTexCoords, CModel_MeshFaceData_t* pFaces)
+	{
+
+	}
+
+}	// namespace MeshSerializer

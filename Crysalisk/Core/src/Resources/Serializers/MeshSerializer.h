@@ -50,7 +50,25 @@ namespace MeshSerializer
 		uint64_t	iSubmeshDataStride{ 0 };
 	};
 
+	struct CModel_MeshFaceData_t
+	{
+		uint64_t	iPositionIndices[3]{};
+		uint64_t	iNormalIndices[3]{};
+		uint64_t	iTexCoordIndices[3]{};
+		uint64_t	iTangentIndices[3]{};
+	};
+
+	// Contains data specific to each mesh/submesh.
+	struct CModel_MeshHeader_t
+	{
+		// A random magic number that identifies the start of a block as containing submesh data.
+		uint64_t	iSubmeshMagic{ 0xBC };
+
+		Utl::CVector<uint64_t>	meshFaceIndices{};
+	};
+
 	// Contains data specific to each submesh.
+	// TODO: DEPRECATE THIS!
 	struct CModel_SubmeshHeader_t
 	{
 		// A random magic number that identifies the start of a block as containing submesh data.
