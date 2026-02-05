@@ -206,6 +206,16 @@ namespace Utl
 			return ElementAt(index);
 		}
 
+		inline T* operator->()
+		{
+			return m_pValues;
+		}
+
+		inline T* operator->() const
+		{
+			return m_pValues;
+		}
+
 		//--------------------------------------------------
 		// Access the first element in the array.
 		//--------------------------------------------------
