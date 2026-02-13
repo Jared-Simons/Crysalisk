@@ -254,8 +254,6 @@ namespace MeshLoader
 			size_t	bytesRead{ 0 };
 			char	firstChar{};
 			char	secondChar{};
-			static bool bTestBool = false;
-			static int iTestInt = 0;
 
 			FileSystem::ReadLine(szCurrentLine, 1000, &bytesRead, &hObjFile);
 			currentLineLength = Utl::StringLength(szCurrentLine);
@@ -286,14 +284,12 @@ namespace MeshLoader
 				CAssert(pCurrentObject);
 
 				// Check for duplicate vertices.
-				if (pCurrentGroup && iTestInt < 5)
+				if (pCurrentGroup)
 				{
 					DeduplicateGeometry(pCurrentGroup);
 
 					// Generate our tangent data here as well.
 					GenerateTangentData(pCurrentGroup);
-					bTestBool = true;
-					//iTestInt++;
 				}
 
 				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);

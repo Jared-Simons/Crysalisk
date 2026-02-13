@@ -39,6 +39,10 @@ namespace MeshSerializer
 		// The file version of this asset.
 		uint32_t	iFileVersion{ 0 };
 
+		// The extents of the whole mesh.
+		Vector		vecMinExtents{};
+		Vector		vecMaxExtents{};
+
 		// A set of bitflags that defines this mesh's vertex layout.
 		VertexLayoutFlags_t	iVertexLayoutFlags{ 0 };
 

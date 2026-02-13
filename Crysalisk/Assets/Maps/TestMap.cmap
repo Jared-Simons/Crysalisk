@@ -17,7 +17,7 @@ geometry=static_mesh
 geometry=static_mesh
 {
 	name="container"
-	model_resource="Container"
+	model_resource="Monke"
 
 	# Transform
 	position="50 0 0"

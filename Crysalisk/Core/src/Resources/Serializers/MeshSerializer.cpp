@@ -21,6 +21,7 @@ namespace MeshSerializer
 	// Forward declarations
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pTangets, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static uint8_t CompressF32ToUint8(const float flUnitFloat);
 
 	//-------------------------------------------------------------------------
 	// Purpose: Takes an existing mesh resource imported from another file type, 
@@ -407,6 +408,100 @@ namespace MeshSerializer
 		LOG_INFO("Compressing mesh data.");
 		DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
 
+		// Walk through all the position vectors to determine the extents of the geometry.
+		for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+		{
+			Vector& pPos = vertexPositions[iPos];
+			if (pPos.x < outFileHeader.vecMinExtents.x)
+				outFileHeader.vecMinExtents.x = pPos.x;
+			if (pPos.y < outFileHeader.vecMinExtents.y)
+				outFileHeader.vecMinExtents.y = pPos.y;
+			if (pPos.z < outFileHeader.vecMinExtents.z)
+				outFileHeader.vecMinExtents.z = pPos.z;
+
+			if (pPos.x > outFileHeader.vecMaxExtents.x)
+				outFileHeader.vecMaxExtents.x = pPos.x;
+			if (pPos.y > outFileHeader.vecMaxExtents.y)
+				outFileHeader.vecMaxExtents.y = pPos.y;
+			if (pPos.z > outFileHeader.vecMaxExtents.z)
+				outFileHeader.vecMaxExtents.z = pPos.z;
+		}
+
+		// Pack vectors into uints.
+		// TODO: Make this optional.
+		Utl::CVector<uint8_t>	packedPositions{};
+		Utl::CVector<uint8_t>	packedNormals{};
+		Utl::CVector<uint8_t>	packedTexCoords{};
+		Utl::CVector<uint8_t>	packedTangents{};
+
+		// Positions.
+		{
+			for (int iPos = 0; iPos < vertexPositions.Count(); iPos += 3)
+			{
+				float flNormalizedX = (vertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
+				float flNormalizedY = (vertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
+				float flNormalizedZ = (vertexPositions[iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
+
+				uint8_t packedPosX = CompressF32ToUint8(flNormalizedX);
+				uint8_t packedPosY = CompressF32ToUint8(flNormalizedY);
+				uint8_t packedPosZ = CompressF32ToUint8(flNormalizedZ);
+				packedPositions.PushBack(packedPosX);
+				packedPositions.PushBack(packedPosY);
+				packedPositions.PushBack(packedPosZ);
+			}
+		}
+
+		// Normals.
+		{
+			//for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal += 3)
+			for (int iNormal = 0; iNormal < vertexNormals.Capacity(); iNormal += 3)	// FIXME: Just a test to write nulldata to the file.
+			{
+				float flNormalX = vertexNormals[iNormal].x;
+				float flNormalY = vertexNormals[iNormal].y;
+				float flNormalZ = vertexNormals[iNormal].z;
+
+				uint8_t packedNormalX = CompressF32ToUint8(flNormalX);
+				uint8_t packedNormalY = CompressF32ToUint8(flNormalY);
+				uint8_t packedNormalZ = CompressF32ToUint8(flNormalZ);
+				packedNormals.PushBack(packedNormalX);
+				packedNormals.PushBack(packedNormalY);
+				packedNormals.PushBack(packedNormalZ);
+			}
+		}
+
+		// Texcoords.
+		{
+			//for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord += 2)
+			for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Capacity(); iTexCoord += 2)	// FIXME: Just a test to write nulldata to the file.
+			{
+				float flTexCoordX = vertexTexCoords[iTexCoord].x;
+				float flTexCoordY = vertexTexCoords[iTexCoord].y;
+
+				uint8_t packedNormalX = CompressF32ToUint8(flTexCoordX);
+				uint8_t packedNormalY = CompressF32ToUint8(flTexCoordY);
+				packedTexCoords.PushBack(packedNormalX);
+				packedTexCoords.PushBack(packedNormalY);
+			}
+		}
+
+		// Tangents.
+		{
+			//for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent += 3)
+			for (int iTangent = 0; iTangent < vertexTangents.Capacity(); iTangent += 3)	// FIXME: Just a test to write nulldata to the file.
+			{
+				float flTangentX = vertexTangents[iTangent].x;
+				float flTangentY = vertexTangents[iTangent].y;
+				float flTangentZ = vertexTangents[iTangent].z;
+
+				uint8_t packedTangentX = CompressF32ToUint8(flTangentX);
+				uint8_t packedTangentY = CompressF32ToUint8(flTangentY);
+				uint8_t packedTangentZ = CompressF32ToUint8(flTangentZ);
+				packedTangents.PushBack(packedTangentX);
+				packedTangents.PushBack(packedTangentY);
+				packedTangents.PushBack(packedTangentZ);
+			}
+		}
+
 		// Write out the file header.
 		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);
 
@@ -421,21 +516,21 @@ namespace MeshSerializer
 		}
 
 		// Write out geometry tables.
-		if (vertexPositions.Count() > 0)
+		if (packedPositions.Count() > 0)
 		{
-			FileSystem::WriteBytes(vertexPositions.Data(), vertexPositions.Stride() * vertexPositions.Count(), &hNewOutputMesh);
+			FileSystem::WriteBytes(packedPositions.Data(), packedPositions.Stride() * packedPositions.Count(), &hNewOutputMesh);
 		}
-		if (vertexNormals.Count() > 0)
+		if (packedNormals.Count() > 0)
 		{
-			FileSystem::WriteBytes(vertexNormals.Data(), vertexNormals.Stride() * vertexNormals.Count(), &hNewOutputMesh);
+			FileSystem::WriteBytes(packedNormals.Data(), packedNormals.Stride() * packedNormals.Count(), &hNewOutputMesh);
 		}
-		if (vertexTexCoords.Count() > 0)
+		if (packedTexCoords.Count() > 0)
 		{
-			FileSystem::WriteBytes(vertexTexCoords.Data(), vertexTexCoords.Stride() * vertexTexCoords.Count(), &hNewOutputMesh);
+			FileSystem::WriteBytes(packedTexCoords.Data(), packedTexCoords.Stride() * packedTexCoords.Count(), &hNewOutputMesh);
 		}
-		if (vertexTangents.Count() > 0)
+		if (packedTangents.Count() > 0)
 		{
-			FileSystem::WriteBytes(vertexTangents.Data(), vertexTangents.Stride() * vertexTangents.Count(), &hNewOutputMesh);
+			FileSystem::WriteBytes(packedTangents.Data(), packedTangents.Stride() * packedTangents.Count(), &hNewOutputMesh);
 		}
 
 		// Close the new file.
@@ -530,23 +625,20 @@ namespace MeshSerializer
 
 		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
 		{
-			bool bUniquePos = true;
-			Vector* pCurPos = nullptr;
-			bool bUniqueNormal = true;
-			Vector* pCurNormal = nullptr;
-			bool bUniqueTexCoord = true;
-			Vector2D* pCurTexCoord = nullptr;
-			bool bUniqueTangent = true;
-			Vector* pCurTangent = nullptr;
-
 			int iVert = 0;
 
 			for (iVert = 0; iVert < 3; iVert++)
 			{
-				pCurPos = &pPositions[pFaces[iFace].iPositionIndices[iVert]];
-				pCurNormal = &pNormals[pFaces[iFace].iNormalIndices[iVert]];
-				pCurTexCoord = &pTexCoords[pFaces[iFace].iTexCoordIndices[iVert]];
-				pCurTangent = &pTangents[pFaces[iFace].iTangentIndices[iVert]];
+				bool bUniquePos = true;
+				Vector* pCurPos = &pPositions[pFaces[iFace].iPositionIndices[iVert]];
+
+				bool bUniqueNormal = true;
+				bool bUniqueTexCoord = true;
+				bool bUniqueTangent = true;
+
+				Vector* pCurNormal = &pNormals[pFaces[iFace].iNormalIndices[iVert]];
+				Vector2D* pCurTexCoord = &pTexCoords[pFaces[iFace].iTexCoordIndices[iVert]];
+				Vector* pCurTangent = &pTangents[pFaces[iFace].iTangentIndices[iVert]];
 
 				// Check for unique positions.
 				for (int iPos = 0; iPos < uniquePositions.Count() && bUniquePos; iPos++)
@@ -562,8 +654,15 @@ namespace MeshSerializer
 					}
 				}
 
+				if (bUniquePos)
+				{
+					uniquePositions.PushBack(*pCurPos);
+					// Save off the index for remapping later.
+					origPositionToNewPosition.PushBack((iFace * 3) + iVert);
+				}
+
 				// Check for unique normals.
-				for (int iNormal = 0; iNormal < uniqueNormals.Count() && bUniqueNormal; iNormal++)
+				/*for (int iNormal = 0; iNormal < uniqueNormals.Count() && bUniqueNormal; iNormal++)
 				{
 					if (uniqueNormals[iNormal] == *pCurNormal)
 					{
@@ -602,18 +701,10 @@ namespace MeshSerializer
 						origTangentToNewTangent.PushBack(iTangent);
 						break;
 					}
-				}
+				}*/
 			}
 
-			if (bUniquePos)
-			{
-				uniquePositions.PushBack(*pCurPos);
-
-				// Save off the index for remapping later.
-				origPositionToNewPosition.PushBack((iFace * 3) + iVert);
-			}
-
-			if (bUniqueNormal)
+			/*if (bUniqueNormal)
 			{
 				uniqueNormals.PushBack(*pCurNormal);
 
@@ -635,8 +726,10 @@ namespace MeshSerializer
 
 				// Save off the index for remapping later.
 				origTangentToNewTangent.PushBack((iFace * 3) + iVert);
-			}
+			}*/
 		}
+
+		CAssert(origPositionToNewPosition.Count() == pFaces.Count() * 3);
 
 		// Walk through the original faces, and remap the indices to the compressed data.
 		// LEFTOFF: This is broken :(
@@ -644,10 +737,10 @@ namespace MeshSerializer
 		{
 			for (int iVert = 0; iVert < 3; iVert++)
 			{
-				pFaces[iFace].iPositionIndices[iVert] = origPositionToNewPosition[(iFace * 3) + iVert];
-				pFaces[iFace].iNormalIndices[iVert] = origNormalToNewNormal[(iFace * 3) + iVert];
-				pFaces[iFace].iTexCoordIndices[iVert] = origTexcoordToNewTexcoord[(iFace * 3) + iVert];
-				pFaces[iFace].iTangentIndices[iVert] = origTangentToNewTangent[(iFace * 3) + iVert];
+			//	pFaces[iFace].iPositionIndices[iVert] = origPositionToNewPosition[(iFace * 3) + iVert];
+			//	pFaces[iFace].iNormalIndices[iVert] = origNormalToNewNormal[(iFace * 3) + iVert];
+			//	pFaces[iFace].iTexCoordIndices[iVert] = origTexcoordToNewTexcoord[(iFace * 3) + iVert];
+			//	pFaces[iFace].iTangentIndices[iVert] = origTangentToNewTangent[(iFace * 3) + iVert];
 			}
 		}
 
@@ -674,6 +767,11 @@ namespace MeshSerializer
 		Utl::CVector<Vector> oldTangents = pTangents;
 		pTangents = uniqueTangents;
 		oldTangents.Clear();
+	}
+
+	static uint8_t CompressF32ToUint8(const float flUnitFloat)
+	{
+		return 0;
 	}
 
 }	// namespace MeshSerializer

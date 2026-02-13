@@ -375,7 +375,7 @@ bool CEngine::Run()
 			frameRenderData.DeltaTime = deltaTime;
 
 			// Get render data from the application.
-			m_pApplication->FramePrepare(&frameRenderData);
+			/*m_pApplication->FramePrepare(&frameRenderData);
 
 			// Run the app's render routine.
 			/*if (!m_pApplication->Render())
@@ -385,7 +385,7 @@ bool CEngine::Run()
 			}*/
 
 			// Get our renderable geometry from the map.
-			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
+			//m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
 		}
 	}
 
