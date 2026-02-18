@@ -22,6 +22,8 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Core/Input.h
 	${ENGINE_ROOT}/Renderer/Views/3D_Scene_View.cpp
 	${ENGINE_ROOT}/Renderer/Views/3D_Scene_View.h
+	${ENGINE_ROOT}/Renderer/Views/UI_View.cpp
+	${ENGINE_ROOT}/Renderer/Views/UI_View.h
 	${ENGINE_ROOT}/Renderer/DebugRenderer.cpp
 	${ENGINE_ROOT}/Renderer/DebugRenderer.h
 	${ENGINE_ROOT}/Renderer/IRendererBackend.h

@@ -7,6 +7,6 @@
 #pragma once
 
 #include <Defines.h>
-#include "Renderer/RendererTypes.h"
+#include <Renderer/RendererTypes.h>
 
 DLL_EXPORT IRenderView*	RendererViewCreate_3DSceneView();

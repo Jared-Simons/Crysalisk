@@ -60,7 +60,8 @@ static CMeshSystem* s_MeshSystem{ nullptr };
 //-------------------------------------------------------------------------
 static int OnMeshLoadJob_Success(JobResults_t& pResults)
 {
-	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
+	// LEFTOFF: Make this work with the new mesh format.
+	/*MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
 
 	MeshLoader::MeshResource_t::GeometryGroup_t*	pMesh = &pTypedResults->pOutResource->pObjects[0];
 	MeshLoader::MeshResource_t::GeometryObject_t*	pSubmesh = nullptr;
@@ -75,7 +76,7 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 	Utl::StringFree(pTypedResults->pszMeshPath);
 	pTypedResults->pszMeshPath = nullptr;
 	delete pTypedResults;
-	pTypedResults = nullptr;
+	pTypedResults = nullptr;*/
 
 	return 1;
 }

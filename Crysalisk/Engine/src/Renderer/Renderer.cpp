@@ -443,7 +443,15 @@ void CRenderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
 //-------------------------------------------------------------------------
 bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
 {
-	pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
+	if (pConfig->attachmentConfigs.Count() < 1)
+	{
+		LOG_ERROR("Cannot create renderpass without attachments!");
+		return false;
+	}
+
+	if (pConfig->pszName)
+		pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
+	
 	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
 }
 

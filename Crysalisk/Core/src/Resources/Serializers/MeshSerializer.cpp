@@ -408,10 +408,12 @@ namespace MeshSerializer
 		{
 			LOG_INFO("Generating tangent data for mesh.");
 			GenerateTangentData(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
+			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
 
 		LOG_INFO("Compressing mesh data.");
-		DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
+		// TODO: This takes FOREVER on some not too large models (like sponza)
+		//DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
 
 		// Walk through all the position vectors to determine the extents of the geometry.
 		for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
@@ -514,7 +516,7 @@ namespace MeshSerializer
 		}
 
 		// Setup offsets/counts.
-		outFileHeader.iMeshDataOffset = sizeof(CModel_FileHeader_t);
+		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
 		outFileHeader.iMeshDataStride = (uint8_t)meshHeaders.Stride();
 
@@ -541,6 +543,9 @@ namespace MeshSerializer
 		outFileHeader.iTangentTableOffset = outFileHeader.iTexCoordTableOffset + (outFileHeader.iTexCoordStride * outFileHeader.iTexCoordCount);
 		outFileHeader.iTexCoordCount = (uint32_t)packedTangents.Count();
 		outFileHeader.iTexCoordStride = (uint8_t)packedTangents.Stride();
+
+		// Place the resource's magic number first.
+		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
 
 		// Write out the file header.
 		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);

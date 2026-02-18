@@ -63,7 +63,7 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	scenePassConfig.attachmentConfigs.PushBack(colorAttachment);
 	scenePassConfig.attachmentConfigs.PushBack(depthAttachment);
 	scenePassConfig.clearFlags = RENDERPASS_CLEAR_COLOR | RENDERPASS_CLEAR_DEPTH | RENDERPASS_CLEAR_STENCIL;
-	scenePassConfig.bPresentsAfter = true;
+	scenePassConfig.bPresentsAfter = false;
 
 	pEngineSystems->pRenderer->CreateRenderpass(&scenePassConfig, &m_pRenderpass);
 

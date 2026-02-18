@@ -71,7 +71,8 @@ namespace MeshLoader
 			Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".obj");
 			if (FileSystem::FileExists(szFormattedPathWithExtension))
 			{
-				return LoadOBJMeshResource(szFormattedPathWithExtension, pOutResource);
+				//return LoadOBJMeshResource(szFormattedPathWithExtension, pOutResource);
+				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, pszMeshFileName);
 			}
 
 			LOG_ERROR("Mesh resource file '%s' could not be found. Mesh resource load failed.", pszMeshFileName);
@@ -116,99 +117,14 @@ namespace MeshLoader
 		uint32_t* pMagicNumber = (uint32_t*)modelBytes.Data();
 		if (*pMagicNumber != MeshSerializer::kModelResourceMagicNumber)
 		{
-			LOG_ERROR("'%s' mesh does not contain kModelResourceMagicNumber, resource reading failed.");
+			LOG_ERROR("'%s' mesh does not contain kModelResourceMagicNumber, resource reading failed.", pszMeshFileName);
 			return false;
 		}
 
 		// Advance to the header.
 		currOffset += sizeof(uint32_t);
 
-		// Setup a new mesh object.
-		pOutResource.pObjects.PushBack(MeshResource_t::GeometryGroup_t{});
-
-		// File header.
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
-
-		// Advance to the mesh data.
-		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
-
-		// Process mesh data.
-		pOutResource.pObjects.Back().pGroups.Resize(pFileHeader->iSubmeshDataSize);
-		for (int meshIdx = 0; meshIdx < pFileHeader->iSubmeshDataSize; meshIdx++)
-		{
-			// Setup a new geometry group.
-			MeshSerializer::CModel_SubmeshHeader_t* pCurrentMesh = (MeshSerializer::CModel_SubmeshHeader_t*)((uint8_t*)pDataPtr + currOffset);
-			CAssert(pCurrentMesh->iSubmeshMagic == 0xBC);
-
-			// Next up is the mesh name.
-			currOffset += sizeof(MeshSerializer::CModel_SubmeshHeader_t);
-			pOutResource.pObjects.Back().pGroups[meshIdx].pszDebugName = new char[pCurrentMesh->iSubmeshNameLength + 1];
-			Platform::MemoryCopy(pOutResource.pObjects.Back().pGroups[meshIdx].pszDebugName,
-								((uint8_t*)pDataPtr + currOffset),
-								pCurrentMesh->iSubmeshNameLength);
-
-			// Material name is next.
-			currOffset += pCurrentMesh->iSubmeshNameLength;
-			pOutResource.pObjects.Back().pGroups[meshIdx].pszMaterialName = new char[pCurrentMesh->iMaterialNameLength + 1];
-			Platform::MemoryCopy(pOutResource.pObjects.Back().pGroups[meshIdx].pszMaterialName,
-								((uint8_t*)pDataPtr + currOffset),
-								pCurrentMesh->iMaterialNameLength);
-
-			// Get at the vertex data.
-			currOffset += pCurrentMesh->iMaterialNameLength;
-			Vertex3D* pVertexTable = (Vertex3D*)((uint8_t*)pDataPtr + currOffset);
-
-			// Vertex data.
-			pOutResource.pObjects.Back().pGroups[meshIdx].Vertices.Resize(pCurrentMesh->iVertexCount);
-			for (int vertIdx = 0; vertIdx < pCurrentMesh->iVertexCount; vertIdx++)
-			{
-				Vertex3D newVert = pVertexTable[vertIdx];
-				pOutResource.pObjects.Back().pGroups[meshIdx].Vertices.PushBack(newVert);
-			}
-
-			// Get at the index data.
-			currOffset += pCurrentMesh->iVertexCount * pCurrentMesh->iVertexStride;
-			uint32_t* pIndexTable = (uint32_t*)((uint8_t*)pDataPtr + currOffset);
-
-			// Index data.
-			pOutResource.pObjects.Back().pGroups[meshIdx].Indices.Resize(pCurrentMesh->iIndexCount);
-			for (int idx = 0; idx < pCurrentMesh->iIndexCount; idx++)
-			{
-				uint32_t newIdx = pIndexTable[idx];
-				pOutResource.pObjects.Back().pGroups[meshIdx].Indices.PushBack(newIdx);
-			}
-
-			// Get to the next submesh.
-			currOffset += pCurrentMesh->iIndexCount * pCurrentMesh->iIndexStride;
-		}
-
-		// Compute bounds (TODO: Store this in the file directly?)
-		for (int iMesh = 0; iMesh < pOutResource.pObjects.Capacity(); iMesh++)
-		{
-			for (int iSubMesh = 0; iSubMesh < pOutResource.pObjects[iMesh].pGroups.Capacity(); iSubMesh++)
-			{
-				MeshResource_t::GeometryObject_t& pCurObject = pOutResource.pObjects[iMesh].pGroups[iSubMesh];
-
-				// TODO: Use some actual limits for these values.
-				Vector3D vecMinAABB{ 99999999.0f, 99999999.0f, 99999999.0f };
-				Vector3D vecMaxAABB{ -99999999.0f, -99999999.0f, -99999999.0f };
-
-				for (int vertIdx = 0; vertIdx < pCurObject.Vertices.Count(); vertIdx++)
-				{
-					vecMinAABB.x = FloatMin(vecMinAABB.x, pCurObject.Vertices[vertIdx].Pos.x);
-					vecMinAABB.y = FloatMin(vecMinAABB.y, pCurObject.Vertices[vertIdx].Pos.y);
-					vecMinAABB.z = FloatMin(vecMinAABB.z, pCurObject.Vertices[vertIdx].Pos.z);
-
-					vecMaxAABB.x = FloatMax(vecMaxAABB.x, pCurObject.Vertices[vertIdx].Pos.x);
-					vecMaxAABB.y = FloatMax(vecMaxAABB.y, pCurObject.Vertices[vertIdx].Pos.y);
-					vecMaxAABB.z = FloatMax(vecMaxAABB.z, pCurObject.Vertices[vertIdx].Pos.z);
-				}
-
-				pCurObject.vecMinExtents = vecMinAABB;
-				pCurObject.vecMaxExtents = vecMaxAABB;
-				pCurObject.vecCenter = (vecMinAABB + vecMaxAABB) * 0.5f;
-			}
-		}
 
 		FileSystem::CloseFile(&hCModelFile);
 

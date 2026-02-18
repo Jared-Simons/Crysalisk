@@ -387,7 +387,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 			{
 				// Otherwise, just load as is.
 				description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-				description.initialLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;	// Should we use this or COLOR_ATTACHMENT_OPTIMAL?
+				description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;	// Should we use this or COLOR_ATTACHMENT_OPTIMAL?
 			}
 
 			if (pConfig->bPresentsAfter)
@@ -446,7 +446,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.inputAttachmentCount = 0;
-	subpass.colorAttachmentCount = colorAttachmentReferences.Count();
+	subpass.colorAttachmentCount = (uint32_t)colorAttachmentReferences.Count();
 	subpass.pColorAttachments = colorAttachmentReferences.Data();
 	subpass.pDepthStencilAttachment = depthAttachmentReferences.Data();
 	subpass.preserveAttachmentCount = 0;
@@ -469,7 +469,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	renderpassInfo.attachmentCount = attachmentDescriptions.Count();
+	renderpassInfo.attachmentCount = (uint32_t)attachmentDescriptions.Count();
 	renderpassInfo.pAttachments = attachmentDescriptions.Data();
 	renderpassInfo.subpassCount = 1;
 	renderpassInfo.pSubpasses = &subpass;

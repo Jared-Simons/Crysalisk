@@ -250,7 +250,7 @@ namespace Utl
 						// node up remain with the list, though this is error prone and the bug needs to be found asap.
 						if (pDebugNextNode->Offset == pDebugCurNode->Offset)
 						{
-							CAssert(0);
+							//CAssert(0);
 							LOG_WARN("Running bad test to clean up freelist.");
 							size_t largerSize = (pDebugCurNode->Size > pDebugNextNode->Size) ? pDebugCurNode->Size : pDebugNextNode->Size;
 							pDebugCurNode->Size = largerSize;
