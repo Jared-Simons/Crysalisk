@@ -46,6 +46,32 @@ namespace MeshSerializer
 		// A set of bitflags that defines this mesh's vertex layout.
 		VertexLayoutFlags_t	iVertexLayoutFlags{ 0 };
 
+		// Offsets from the start of the file in bytes of the different data tables.
+		uint64_t	iMeshDataOffset{ 0 };
+		uint32_t	iMeshDataCount{ 0 };
+		uint8_t		iMeshDataStride{ 0 };
+
+		uint64_t	iFaceDataOffset{ 0 };
+		uint32_t	iFaceDataCount{ 0 };
+		uint8_t		iFaceDataStride{ 0 };
+
+		uint64_t	iPositionTableOffset{ 0 };
+		uint32_t	iPositionCount{ 0 };
+		uint8_t		iPositionStride{ 0 };
+
+		uint64_t	iNormalTableOffset{ 0 };
+		uint32_t	iNormalCount{ 0 };
+		uint8_t		iNormalStride{ 0 };
+
+		uint64_t	iTexCoordTableOffset{ 0 };
+		uint32_t	iTexCoordCount{ 0 };
+		uint8_t		iTexCoordStride{ 0 };
+
+		uint64_t	iTangentTableOffset{ 0 };
+		uint32_t	iTangentCount{ 0 };
+		uint8_t		iTangentStride{ 0 };
+
+		// TODO: DEPRECATE THESE!!!
 		// The offset from the start of the file in bytes where the submesh data begins.
 		uint64_t	iSubmeshDataOffset{ 0 };
 		// The number of submeshes contained in this file.
@@ -56,19 +82,19 @@ namespace MeshSerializer
 
 	struct CModel_MeshFaceData_t
 	{
-		uint64_t	iPositionIndices[3]{};
-		uint64_t	iNormalIndices[3]{};
-		uint64_t	iTexCoordIndices[3]{};
-		uint64_t	iTangentIndices[3]{};
+		uint32_t	iPositionIndices[3]{};
+		uint32_t	iNormalIndices[3]{};
+		uint32_t	iTexCoordIndices[3]{};
+		uint32_t	iTangentIndices[3]{};
 	};
 
 	// Contains data specific to each mesh/submesh.
 	struct CModel_MeshHeader_t
 	{
 		// A random magic number that identifies the start of a block as containing submesh data.
-		uint64_t	iSubmeshMagic{ 0xBC };
+		uint8_t					iSubmeshMagic{ 0xBC };
 
-		Utl::CVector<uint64_t>	meshFaceIndices{};
+		Utl::CVector<uint16_t>	meshFaceIndices{};
 	};
 
 	// Contains data specific to each submesh.

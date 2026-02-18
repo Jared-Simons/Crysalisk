@@ -118,8 +118,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// TODO: MESH SERIALIZER 2.0 TEST!
 	{
+		//MeshSerializer::SerializeOBJMesh("Assets/Models/sponza", "Assets/Models/sponza_TEST");
 		//MeshSerializer::SerializeOBJMesh("Assets/Models/Container", "Assets/Models/Container_TEST");
-		MeshSerializer::SerializeOBJMesh("Assets/Models/Monke", "Assets/Models/Monke_TEST");
+		//MeshSerializer::SerializeOBJMesh("Assets/Models/Monke", "Assets/Models/Monke_TEST");
 	}
 	// TODO: END TEST
 
