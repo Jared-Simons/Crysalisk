@@ -374,15 +374,6 @@ namespace MeshSerializer
 				packedPositions.PushBack(packedPosX);
 				packedPositions.PushBack(packedPosY);
 				packedPositions.PushBack(packedPosZ);
-
-				// Test to demonstrate how to unpack floats stored in uint16s. Remove once model deserialization is working!
-				/* {
-					float flUnpackedUnitFloat = UnpackF32FromUint16(packedPosX);
-					float flReference = vertexPositions[iPos].x;
-					float flScaledFloat = (flUnpackedUnitFloat) * (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x) + outFileHeader.vecMinExtents.x;
-
-					LOG_WARN("BREAKPOINT!!!");
-				}*/
 			}
 		}
 
@@ -393,6 +384,8 @@ namespace MeshSerializer
 				float flNormalX = vertexNormals[iNormal].x;
 				float flNormalY = vertexNormals[iNormal].y;
 				float flNormalZ = vertexNormals[iNormal].z;
+
+				// FIXME: Make this a unit float before storing!
 
 				uint16_t packedNormalX = PackF32ToUint16(flNormalX);
 				uint16_t packedNormalY = PackF32ToUint16(flNormalY);
@@ -473,13 +466,11 @@ namespace MeshSerializer
 		// Write out geometry headers.
 		if (meshHeaders.Count() > 0)
 		{
-			FileSystem::WriteBytes(meshHeaders.Data(), meshHeaders.Stride() * meshHeaders.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += meshHeaders.Stride() * meshHeaders.Count();
-
-			for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+			for (unsigned int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 			{
+				FileSystem::WriteBytes(&meshHeaders[iMesh].iNumFaces, sizeof(uint16_t), &hNewOutputMesh);
 				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
-				iTotalBytesWritten += sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces;
+				iTotalBytesWritten += sizeof(uint16_t) + (sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces);
 			}
 		}
 

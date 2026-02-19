@@ -23,6 +23,8 @@ namespace MeshLoader
 	static void DeduplicateGeometry(MeshResource_t::GeometryObject_t* pGeometryConfig);
 	static void GenerateTangentData(MeshResource_t::GeometryObject_t* pConfig);
 
+	static inline float UnpackF32FromUint16(const uint16_t inputData);
+
 	//-------------------------------------------------------------------------
 	// Purpose: The entrypoint for MeshLoader jobs.
 	// 
@@ -142,14 +144,88 @@ namespace MeshLoader
 		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
 		byte* pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
-		for (int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
+			pMeshHeaders[iMesh].iNumFaces = *(uint16_t*)pBytes;
+			pMeshHeaders[iMesh].pFaceIndices = new uint16_t[pMeshHeaders[iMesh].iNumFaces];
+			currOffset += sizeof(uint16_t) + (sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		}
 
+		// Mesh faces.
+		MeshSerializer::CModel_MeshFaceData_t* pMeshFaces = new MeshSerializer::CModel_MeshFaceData_t[pFileHeader->iFaceDataCount];
+		Platform::MemoryCopy(pMeshFaces, pBytes, pFileHeader->iFaceDataCount * pFileHeader->iFaceDataStride);
+		currOffset += (pFileHeader->iFaceDataCount * pFileHeader->iFaceDataStride);
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// Unpack geometry tables.
+		CAssert((pFileHeader->iPositionCount % 3) == 0);
+		
+		// Positions.
+		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
+		float* pUnpackedPositions = new float[pFileHeader->iPositionCount + 3];
+
+		Platform::MemoryCopy(pPackedPositions, pBytes, pFileHeader->iPositionCount * pFileHeader->iPositionStride);
+
+		for (unsigned int iPos = 0; iPos < pFileHeader->iPositionCount; iPos++)
+		{
+			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 0]);
+			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 1]);
+			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 2]);
+
+			// Scale the positions with the mesh extents.
+			float flScaledX = (flUnpackedUnitFloatX) * (pFileHeader->vecMaxExtents.x - pFileHeader->vecMinExtents.x) + pFileHeader->vecMinExtents.x;
+			float flScaledY = (flUnpackedUnitFloatY) * (pFileHeader->vecMaxExtents.y - pFileHeader->vecMinExtents.y) + pFileHeader->vecMinExtents.y;
+			float flScaledZ = (flUnpackedUnitFloatZ) * (pFileHeader->vecMaxExtents.z - pFileHeader->vecMinExtents.z) + pFileHeader->vecMinExtents.z;
+
+			pUnpackedPositions[(iPos * 3) + 0] = flScaledX;
+			pUnpackedPositions[(iPos * 3) + 1] = flScaledY;
+			pUnpackedPositions[(iPos * 3) + 2] = flScaledZ;
+		}
+		currOffset += (pFileHeader->iPositionCount * pFileHeader->iPositionStride);
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// Normals.
+		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
+		float* pUnpackedNormals = new float[pFileHeader->iNormalCount + 3];
+
+		Platform::MemoryCopy(pPackedNormals, pBytes, pFileHeader->iNormalCount * pFileHeader->iNormalStride);
+
+		for (unsigned int iNormal = 0; iNormal < pFileHeader->iNormalCount; iNormal++)
+		{
+			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 0]);
+			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 1]);
+			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 2]);
+
+			// FIXME: These are currently not stored as unit floats!
+
+			pUnpackedNormals[(iNormal * 3) + 0] = flUnpackedUnitFloatX;
+			pUnpackedNormals[(iNormal * 3) + 1] = flUnpackedUnitFloatY;
+			pUnpackedNormals[(iNormal * 3) + 2] = flUnpackedUnitFloatZ;
 		}
 
 		FileSystem::CloseFile(&hCModelFile);
 
 		// Clean up arrays.
+		delete[] pUnpackedNormals;
+		pUnpackedNormals = nullptr;
+		delete[] pPackedNormals;
+		pPackedNormals = nullptr;
+
+		delete[] pUnpackedPositions;
+		pUnpackedPositions = nullptr;
+		delete[] pPackedPositions;
+		pPackedPositions = nullptr;
+
+		delete[] pMeshFaces;
+		pMeshFaces = nullptr;
+
+		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		{
+			delete pMeshHeaders[iMesh].pFaceIndices;
+			pMeshHeaders[iMesh].pFaceIndices = nullptr;
+		}
+
 		delete[] pMeshHeaders;
 		pMeshHeaders = nullptr;
 
@@ -669,4 +745,18 @@ namespace MeshLoader
 			LOG_WARN("GenerateTangentData(): Submesh '%s' contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", pConfig->pszDebugName, invalidTangentCount);
 		}
 	}
-}
+
+	//-------------------------------------------------------------------------
+	// Purpose: TODO: Documentation.
+	//-------------------------------------------------------------------------
+	static inline float UnpackF32FromUint16(const uint16_t inputData)
+	{
+		const unsigned int numIntervals = 1U << 16;	// Number of unique values that can be stored in a uint16.
+
+		// Scale the data and store in a float.
+		float flUnitFloat = ((float)inputData / numIntervals);
+
+		return flUnitFloat;
+	}
+
+}	// namespace MeshLoader
