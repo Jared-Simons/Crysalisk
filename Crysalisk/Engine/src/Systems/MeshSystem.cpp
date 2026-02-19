@@ -265,9 +265,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	// 
 	// TODO: Only accounts for one mesh.
 	// Reformat the mesh file eventally to make this cleaner.
-	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pGroups.Capacity(); iSubmesh++)
+	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pSubmeshes.Capacity(); iSubmesh++)
 	{
-		pCurSubmesh = &pResource.pObjects[0].pGroups[iSubmesh];
+		pCurSubmesh = &pResource.pObjects[0].pSubmeshes[iSubmesh];
 		CAssert(pCurSubmesh);
 
 		if (pCurSubmesh->Vertices.Count() < 1)

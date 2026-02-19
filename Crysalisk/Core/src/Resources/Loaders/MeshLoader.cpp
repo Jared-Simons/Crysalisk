@@ -126,7 +126,32 @@ namespace MeshLoader
 
 		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
 
+		// Vertex setup.
+		uint16_t uVertexLayout = pFileHeader->iVertexLayoutFlags;
+		uint64_t uVertexStride = 0;
+
+		if (uVertexLayout & MeshSerializer::VERTEX_LAYOUT_DATA_POSITION)
+			uVertexStride += sizeof(Vector);
+		if (uVertexLayout & MeshSerializer::VERTEX_LAYOUT_DATA_NORMAL)
+			uVertexStride += sizeof(Vector);
+		if (uVertexLayout & MeshSerializer::VERTEX_LAYOUT_DATA_TEXCOORD)
+			uVertexStride += sizeof(Vector2D);
+		if (uVertexLayout & MeshSerializer::VERTEX_LAYOUT_DATA_TANGENT)
+			uVertexStride += sizeof(Vector);
+
+		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
+		byte* pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
+		for (int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		{
+
+		}
+
 		FileSystem::CloseFile(&hCModelFile);
+
+		// Clean up arrays.
+		delete[] pMeshHeaders;
+		pMeshHeaders = nullptr;
 
 		return true;
 	}
@@ -208,8 +233,8 @@ namespace MeshLoader
 					GenerateTangentData(pCurrentGroup);
 				}
 
-				pCurrentObject->pGroups.PushBack(new MeshResource_t::GeometryObject_t);
-				pCurrentGroup = &pCurrentObject->pGroups.Back();
+				pCurrentObject->pSubmeshes.PushBack(new MeshResource_t::GeometryObject_t);
+				pCurrentGroup = &pCurrentObject->pSubmeshes.Back();
 				if (pCurrentGroup)
 					pCurrentGroup->pszDebugName = Utl::StringDuplicate(&szCurrentLine[2]);
 				break;
@@ -317,14 +342,14 @@ namespace MeshLoader
 					bMaterialDefinedBeforeNewGroup = true;
 
 					// Create a new group.
-					pCurrentObject->pGroups.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
-					pCurrentGroup = &pCurrentObject->pGroups.Back();
+					pCurrentObject->pSubmeshes.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
+					pCurrentGroup = &pCurrentObject->pSubmeshes.Back();
 				}
 				else if (bMaterialDefinedBeforeNewGroup)
 				{
 					// We need to create a new group to work with here.
-					pCurrentObject->pGroups.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
-					pCurrentGroup = &pCurrentObject->pGroups.Back();
+					pCurrentObject->pSubmeshes.PushBack(MeshLoader::MeshResource_t::GeometryObject_t{});
+					pCurrentGroup = &pCurrentObject->pSubmeshes.Back();
 				}
 
 				CAssert(pCurrentGroup);

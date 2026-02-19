@@ -70,14 +70,6 @@ namespace MeshSerializer
 		uint64_t	iTangentTableOffset{ 0 };
 		uint32_t	iTangentCount{ 0 };
 		uint8_t		iTangentStride{ 0 };
-
-		// TODO: DEPRECATE THESE!!!
-		// The offset from the start of the file in bytes where the submesh data begins.
-		uint64_t	iSubmeshDataOffset{ 0 };
-		// The number of submeshes contained in this file.
-		uint64_t	iSubmeshDataSize{ 0 };
-		// The stride of each submesh element.
-		uint64_t	iSubmeshDataStride{ 0 };
 	};
 
 	struct CModel_MeshFaceData_t
@@ -91,32 +83,7 @@ namespace MeshSerializer
 	// Contains data specific to each mesh/submesh.
 	struct CModel_MeshHeader_t
 	{
-		// A random magic number that identifies the start of a block as containing submesh data.
-		uint8_t					iSubmeshMagic{ 0xBC };
-
-		Utl::CVector<uint16_t>	meshFaceIndices{};
-	};
-
-	// Contains data specific to each submesh.
-	// TODO: DEPRECATE THIS!
-	struct CModel_SubmeshHeader_t
-	{
-		// A random magic number that identifies the start of a block as containing submesh data.
-		uint64_t	iSubmeshMagic{ 0xBC };
-
-		// The length in bytes of each vertex.
-		uint64_t	iVertexStride{ 0 };
-		// The number of vertices in this submesh.
-		uint64_t	iVertexCount{ 0 };
-
-		// The length in bytes of each index.
-		uint64_t	iIndexStride{ 0 };
-		// The number of indices in this submesh.
-		uint64_t	iIndexCount{ 0 };
-
-		// The length of the submesh name (does not include a null-terminator).
-		uint64_t	iSubmeshNameLength{ 0 };
-		// The length of the submesh's material name (does not include a null-terminator).
-		uint64_t	iMaterialNameLength{ 0 };
+		uint16_t				iNumFaces{ 0 };
+		uint16_t*				pFaceIndices{ nullptr };
 	};
 }

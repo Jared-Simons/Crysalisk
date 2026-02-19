@@ -34,93 +34,7 @@ namespace MeshSerializer
 	//-------------------------------------------------------------------------
 	bool SerializeMeshResource(const char* pszModelName, MeshLoader::MeshResource_t& pInResource)
 	{
-		// Create and setup the file.
-
-		// Chop off the file extension.
-		size_t nameLength = Utl::StringLength(pszModelName);
-		size_t extensionLength = Utl::StringLength(kCModelFileExtension);
-
-		char* pTempNameBuffer = new char[nameLength + extensionLength + 1];
-		Utl::StringFormat_V("%s%s", pTempNameBuffer, pszModelName, kCModelFileExtension);
-
-		FileHandle_t pCModelFileHandle{};
-		if (!FileSystem::OpenFile(pTempNameBuffer, eFileMode::FILEMODE_WRITE, true, &pCModelFileHandle))
-		{
-			LOG_ERROR("Failed to write CModel for model '%s'.", pszModelName);
-			return false;
-		}
-
-		// Place the resource's magic number first.
-		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &pCModelFileHandle);
-
-		// Get the total number of vertices in this model.
-		uint32_t totalVerts{ 0 };
-
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx].pGroups.Count(); gpIdx++)
-			{
-				totalVerts += (uint32_t)pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Count();
-			}
-		}
-
-		// Get the total number of submeshes in this model.
-		uint32_t totalSubmeshes{ 0 };
-
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			totalSubmeshes += (uint32_t)pInResource.pObjects[objIdx].pGroups.Count();
-		}
-
-		// Write out the header.
-		CModel_FileHeader_t fileHeader{};
-		fileHeader.iFileVersion = kCurrentModelVersion;
-
-		FileSystem::WriteBytes(&fileHeader, sizeof(CModel_FileHeader_t), &pCModelFileHandle);
-
-		// Write out all of the submesh data.
-		for (int objIdx = 0; objIdx < pInResource.pObjects.Count(); objIdx++)
-		{
-			for (int gpIdx = 0; gpIdx < pInResource.pObjects[objIdx].pGroups.Count(); gpIdx++)
-			{
-				CModel_SubmeshHeader_t subMesh{};
-
-				subMesh.iVertexCount = pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Count();
-				subMesh.iVertexStride = pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Stride();
-
-				subMesh.iIndexCount = pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Count();
-				subMesh.iIndexStride = pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Stride();
-
-				// Material data.
-				if (pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName)
-					subMesh.iSubmeshNameLength = Utl::StringLength(pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName);
-				else
-				{
-					// Add in a string for debugging purposes.
-					static const char* pszAssetDirectory = "Assets/Models";
-					static size_t iDirectoryLength = Utl::StringLength(pszAssetDirectory);
-					char szNewDebugString[512]{};
-					Utl::StringFormat_V("%s_submesh_%i", szNewDebugString, &pszModelName[iDirectoryLength], gpIdx);
-
-					subMesh.iSubmeshNameLength = Utl::StringLength(szNewDebugString);
-				}
-
-				if (pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName)
-					subMesh.iMaterialNameLength = Utl::StringLength(pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName);
-
-				// Write the header, then the data.
-				FileSystem::WriteBytes(&subMesh, sizeof(CModel_SubmeshHeader_t), &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].pszDebugName, subMesh.iSubmeshNameLength, &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].pszMaterialName, subMesh.iMaterialNameLength, &pCModelFileHandle);
-
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].Vertices.Data(), subMesh.iVertexCount * subMesh.iVertexStride, &pCModelFileHandle);
-				FileSystem::WriteBytes(pInResource.pObjects[objIdx].pGroups[gpIdx].Indices.Data(), subMesh.iIndexCount * subMesh.iIndexStride, &pCModelFileHandle);
-			}
-		}
-
-		FileSystem::CloseFile(&pCModelFileHandle);
-
-		delete[] pTempNameBuffer;
+		// TODO: REMOVE THIS!!
 
 		return true;
 	}
@@ -299,6 +213,8 @@ namespace MeshSerializer
 			{
 				CModel_MeshHeader_t newMesh{};
 				meshHeaders.PushBack(newMesh);
+				meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
+				meshHeaders.Back().iNumFaces = 0;
 				break;
 			}
 
@@ -309,6 +225,8 @@ namespace MeshSerializer
 				if (meshHeaders.Count() < 1)
 				{
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
+					meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
+					meshHeaders.Back().iNumFaces = 0;
 				}
 				continue;
 			}
@@ -340,7 +258,8 @@ namespace MeshSerializer
 					LOG_WARN("Mesh '%s' contains more than 65,535 faces in a single submesh. This mesh cannot be properly serialized.", pszOBJMeshPath);
 					return false;
 				}
-				meshHeaders.Back().meshFaceIndices.PushBack(iFaceIndex);
+				meshHeaders.Back().pFaceIndices[meshHeaders.Back().iNumFaces] = iFaceIndex;
+				meshHeaders.Back().iNumFaces++;
 				break;
 			}
 
@@ -523,7 +442,7 @@ namespace MeshSerializer
 		outFileHeader.iFaceDataOffset = outFileHeader.iMeshDataOffset + (meshHeaders.Stride() * meshHeaders.Count());
 		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
-			outFileHeader.iFaceDataOffset += meshHeaders[iMesh].meshFaceIndices.Stride() * meshHeaders[iMesh].meshFaceIndices.Count();
+			outFileHeader.iFaceDataOffset += sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces;
 		}
 		outFileHeader.iFaceDataCount = (uint32_t)meshFaces.Count();
 		outFileHeader.iFaceDataStride = (uint8_t)meshFaces.Stride();
@@ -541,8 +460,8 @@ namespace MeshSerializer
 		outFileHeader.iTexCoordStride = (uint8_t)packedTexCoords.Stride();
 
 		outFileHeader.iTangentTableOffset = outFileHeader.iTexCoordTableOffset + (outFileHeader.iTexCoordStride * outFileHeader.iTexCoordCount);
-		outFileHeader.iTexCoordCount = (uint32_t)packedTangents.Count();
-		outFileHeader.iTexCoordStride = (uint8_t)packedTangents.Stride();
+		outFileHeader.iTangentCount = (uint32_t)packedTangents.Count();
+		outFileHeader.iTangentStride = (uint8_t)packedTangents.Stride();
 
 		// Place the resource's magic number first.
 		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
@@ -559,8 +478,8 @@ namespace MeshSerializer
 
 			for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 			{
-				FileSystem::WriteBytes(meshHeaders[iMesh].meshFaceIndices.Data(), meshHeaders[iMesh].meshFaceIndices.Stride() * meshHeaders[iMesh].meshFaceIndices.Count(), &hNewOutputMesh);
-				iTotalBytesWritten += meshHeaders[iMesh].meshFaceIndices.Stride() * meshHeaders[iMesh].meshFaceIndices.Count();
+				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
+				iTotalBytesWritten += sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces;
 			}
 		}
 
@@ -590,6 +509,16 @@ namespace MeshSerializer
 		{
 			FileSystem::WriteBytes(packedTangents.Data(), packedTangents.Stride() * packedTangents.Count(), &hNewOutputMesh);
 			iTotalBytesWritten += packedTangents.Stride() * packedTangents.Count();
+		}
+
+		// Clean up arrays.
+		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		{
+			if (meshHeaders[iMesh].pFaceIndices != nullptr)
+			{
+				delete[] meshHeaders[iMesh].pFaceIndices;
+				meshHeaders[iMesh].pFaceIndices = nullptr;
+			}
 		}
 
 		// Close the new file.

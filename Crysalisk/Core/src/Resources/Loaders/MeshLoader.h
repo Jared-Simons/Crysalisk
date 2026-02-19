@@ -101,7 +101,7 @@ namespace MeshLoader
 			// The name of the group.
 			char*							pszDebugName{ nullptr };
 			// An array of submeshes.
-			Utl::CVector<GeometryObject_t>	pGroups{};
+			Utl::CVector<GeometryObject_t>	pSubmeshes{};
 
 			GeometryGroup_t() {}
 
@@ -110,7 +110,7 @@ namespace MeshLoader
 				if (pOther.pszDebugName)
 					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 
-				pGroups = pOther.pGroups;
+				pSubmeshes = pOther.pSubmeshes;
 			}
 
 			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
@@ -118,7 +118,7 @@ namespace MeshLoader
 				if (pOther.pszDebugName)
 					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
 
-				pGroups = pOther.pGroups;
+				pSubmeshes = pOther.pSubmeshes;
 
 				return *this;
 			}
@@ -128,9 +128,9 @@ namespace MeshLoader
 				if (pszDebugName)
 					Utl::StringFree(pszDebugName);
 
-				for (int idx = 0; idx < pGroups.Capacity(); idx++)
+				for (int idx = 0; idx < pSubmeshes.Capacity(); idx++)
 				{
-					pGroups[idx].~GeometryObject_t();
+					pSubmeshes[idx].~GeometryObject_t();
 				}
 			}
 		};
@@ -173,8 +173,11 @@ namespace MeshLoader
 			}
 		}
 
+		// TODO: DEPRECATE THIS
 		// An array of groups (which contain submesh data).
 		Utl::CVector<GeometryGroup_t>						pObjects{};
+		// An array of submeshes.
+		Utl::CVector<GeometryObject_t>						pSubmeshes{};
 		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 
