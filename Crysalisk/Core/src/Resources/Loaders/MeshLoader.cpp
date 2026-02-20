@@ -167,20 +167,20 @@ namespace MeshLoader
 
 		Platform::MemoryCopy(pPackedPositions, pBytes, pFileHeader->iPositionCount * pFileHeader->iPositionStride);
 
-		for (unsigned int iPos = 0; iPos < pFileHeader->iPositionCount; iPos++)
+		for (unsigned int iPos = 0; iPos < pFileHeader->iPositionCount; iPos += 3)
 		{
-			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 0]);
-			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 1]);
-			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedPositions[(iPos * 3) + 2]);
+			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedPositions[iPos + 0]);
+			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedPositions[iPos + 1]);
+			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedPositions[iPos + 2]);
 
 			// Scale the positions with the mesh extents.
 			float flScaledX = (flUnpackedUnitFloatX) * (pFileHeader->vecMaxExtents.x - pFileHeader->vecMinExtents.x) + pFileHeader->vecMinExtents.x;
 			float flScaledY = (flUnpackedUnitFloatY) * (pFileHeader->vecMaxExtents.y - pFileHeader->vecMinExtents.y) + pFileHeader->vecMinExtents.y;
 			float flScaledZ = (flUnpackedUnitFloatZ) * (pFileHeader->vecMaxExtents.z - pFileHeader->vecMinExtents.z) + pFileHeader->vecMinExtents.z;
 
-			pUnpackedPositions[(iPos * 3) + 0] = flScaledX;
-			pUnpackedPositions[(iPos * 3) + 1] = flScaledY;
-			pUnpackedPositions[(iPos * 3) + 2] = flScaledZ;
+			pUnpackedPositions[iPos + 0] = flScaledX;
+			pUnpackedPositions[iPos + 1] = flScaledY;
+			pUnpackedPositions[iPos + 2] = flScaledZ;
 		}
 		currOffset += (pFileHeader->iPositionCount * pFileHeader->iPositionStride);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
@@ -191,22 +191,49 @@ namespace MeshLoader
 
 		Platform::MemoryCopy(pPackedNormals, pBytes, pFileHeader->iNormalCount * pFileHeader->iNormalStride);
 
-		for (unsigned int iNormal = 0; iNormal < pFileHeader->iNormalCount; iNormal++)
+		for (unsigned int iNormal = 0; iNormal < pFileHeader->iNormalCount; iNormal += 3)
 		{
-			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 0]);
-			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 1]);
-			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedNormals[(iNormal * 3) + 2]);
+			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedNormals[iNormal + 0]);
+			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedNormals[iNormal + 1]);
+			float flUnpackedUnitFloatZ = UnpackF32FromUint16(pPackedNormals[iNormal + 2]);
 
-			// FIXME: These are currently not stored as unit floats!
+			float flScaledNormalX = (flUnpackedUnitFloatX * 2.0f) - 1.0f;
+			float flScaledNormalY = (flUnpackedUnitFloatY * 2.0f) - 1.0f;
+			float flScaledNormalZ = (flUnpackedUnitFloatZ * 2.0f) - 1.0f;
 
-			pUnpackedNormals[(iNormal * 3) + 0] = flUnpackedUnitFloatX;
-			pUnpackedNormals[(iNormal * 3) + 1] = flUnpackedUnitFloatY;
-			pUnpackedNormals[(iNormal * 3) + 2] = flUnpackedUnitFloatZ;
+			pUnpackedNormals[iNormal + 0] = flScaledNormalX;
+			pUnpackedNormals[iNormal + 1] = flScaledNormalY;
+			pUnpackedNormals[iNormal + 2] = flScaledNormalZ;
+		}
+		currOffset += (pFileHeader->iNormalCount * pFileHeader->iNormalStride);
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// Texcoords.
+		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
+		float* pUnpackedTexCoords = new float[pFileHeader->iTexCoordCount + 3];
+
+		Platform::MemoryCopy(pPackedTexCoords, pBytes, pFileHeader->iTexCoordCount * pFileHeader->iTexCoordStride);
+
+		for (unsigned int iTexCoord = 0; iTexCoord < pFileHeader->iTexCoordCount; iTexCoord += 2)
+		{
+			const float flPackedTexCoordMins = -512.0f;
+			const float flPackedTexCoordMaxs = 512.0f;
+
+			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedTexCoords[iTexCoord + 0]);
+			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedTexCoords[iTexCoord + 1]);
+
+			float flScaledTexCoordX = (flUnpackedUnitFloatX) * (flPackedTexCoordMaxs - flPackedTexCoordMins) + flPackedTexCoordMins;
+			float flScaledTexCoordY = (flUnpackedUnitFloatY) * (flPackedTexCoordMaxs - flPackedTexCoordMins) + flPackedTexCoordMins;
 		}
 
 		FileSystem::CloseFile(&hCModelFile);
 
 		// Clean up arrays.
+		delete[] pUnpackedTexCoords;
+		pUnpackedTexCoords = nullptr;
+		delete[] pPackedTexCoords;
+		pPackedTexCoords = nullptr;
+
 		delete[] pUnpackedNormals;
 		pUnpackedNormals = nullptr;
 		delete[] pPackedNormals;

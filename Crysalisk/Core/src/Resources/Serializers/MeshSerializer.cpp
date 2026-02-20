@@ -293,6 +293,11 @@ namespace MeshSerializer
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
 						CAssert(numElements == 3);
 
+						// When we serialize these, we're gonna quantize with -1.0 and 1.0 being our bounds.
+						CAssert(newNormal.x <= 1.0f && newNormal.x >= -1.0f);
+						CAssert(newNormal.y <= 1.0f && newNormal.y >= -1.0f);
+						CAssert(newNormal.z <= 1.0f && newNormal.z >= -1.0f);
+
 						// Add it to the table.
 						vertexNormals.PushBack(newNormal);
 						break;
@@ -303,6 +308,10 @@ namespace MeshSerializer
 						Vector2D newTexCoord{};
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
 						CAssert(numElements == 2);
+
+						// When we serialize these, we're gonna quantize with -512.0 and 512.0 being our bounds. (We're being VERY generous with repeated textures).
+						CAssert(newTexCoord.x <= 512.0f && newTexCoord.x >= -512.0f);
+						CAssert(newTexCoord.y <= 512.0f && newTexCoord.y >= -512.0f);
 
 						// Add it to the table.
 						vertexTexCoords.PushBack(newTexCoord);
@@ -362,7 +371,7 @@ namespace MeshSerializer
 
 		// Positions.
 		{
-			for (int iPos = 0; iPos < vertexPositions.Count(); iPos += 3)
+			for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
 			{
 				float flNormalizedX = (vertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
 				float flNormalizedY = (vertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
@@ -379,17 +388,15 @@ namespace MeshSerializer
 
 		// Normals.
 		{
-			for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal += 3)
+			for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal++)
 			{
-				float flNormalX = vertexNormals[iNormal].x;
-				float flNormalY = vertexNormals[iNormal].y;
-				float flNormalZ = vertexNormals[iNormal].z;
+				float flNormalizedNormalX = (vertexNormals[iNormal].x + 1.0f) / (2.0f);
+				float flNormalizedNormalY = (vertexNormals[iNormal].y + 1.0f) / (2.0f);
+				float flNormalizedNormalZ = (vertexNormals[iNormal].z + 1.0f) / (2.0f);
 
-				// FIXME: Make this a unit float before storing!
-
-				uint16_t packedNormalX = PackF32ToUint16(flNormalX);
-				uint16_t packedNormalY = PackF32ToUint16(flNormalY);
-				uint16_t packedNormalZ = PackF32ToUint16(flNormalZ);
+				uint16_t packedNormalX = PackF32ToUint16(flNormalizedNormalX);
+				uint16_t packedNormalY = PackF32ToUint16(flNormalizedNormalY);
+				uint16_t packedNormalZ = PackF32ToUint16(flNormalizedNormalZ);
 				packedNormals.PushBack(packedNormalX);
 				packedNormals.PushBack(packedNormalY);
 				packedNormals.PushBack(packedNormalZ);
@@ -398,13 +405,16 @@ namespace MeshSerializer
 
 		// Texcoords.
 		{
-			for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord += 2)
+			for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord++)
 			{
-				float flTexCoordX = vertexTexCoords[iTexCoord].x;
-				float flTexCoordY = vertexTexCoords[iTexCoord].y;
+				const float flPackedTexCoordMins = -512.0f;
+				const float flPackedTexCoordMaxs = 512.0f;
 
-				uint16_t packedNormalX = PackF32ToUint16(flTexCoordX);
-				uint16_t packedNormalY = PackF32ToUint16(flTexCoordY);
+				float flNormalizedTexCoordX = (vertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+				float flNormalizedTexCoordY = (vertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+
+				uint16_t packedNormalX = PackF32ToUint16(flNormalizedTexCoordX);
+				uint16_t packedNormalY = PackF32ToUint16(flNormalizedTexCoordY);
 				packedTexCoords.PushBack(packedNormalX);
 				packedTexCoords.PushBack(packedNormalY);
 			}
@@ -412,7 +422,7 @@ namespace MeshSerializer
 
 		// Tangents.
 		{
-			for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent += 3)
+			for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent++)
 			{
 				float flTangentX = vertexTangents[iTangent].x;
 				float flTangentY = vertexTangents[iTangent].y;
