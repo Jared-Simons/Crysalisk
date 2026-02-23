@@ -155,7 +155,7 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 	// 3D Scene View.
 	{
 		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = Utl::StringDuplicate("3D_Scene_View");
+		sceneViewConfig.m_pszViewName = "3D_Scene_View";
 
 		// This view has 2 attachments: color and depth.
 		RendererViewAttachmentConfig_t colorAttachment{};

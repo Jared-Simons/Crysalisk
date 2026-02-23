@@ -30,109 +30,13 @@ namespace MeshLoader
 	// Can be used by the engine at runtime for rendering.
 	struct MeshResource_t
 	{
-		// This is an atomic piece of geometry (submesh) in the engine.
-		// Contains a table of vertices and indices for rendering.
-		// Can only be associated with one material.
-		struct GeometryObject_t
-		{
-			// The name of this submesh (used for debugging purposes).
-			char*					pszDebugName{ nullptr };
-			// An array of vertices in this submesh.
-			Utl::CVector<Vertex3D>	Vertices{};
-			// An array of indices in this submesh.
-			Utl::CVector<uint32_t>	Indices{};
-			// The name of the material associated with this submesh.
-			char*					pszMaterialName{ nullptr };
-
-			Vector3D				vecMinExtents{};
-			Vector3D				vecMaxExtents{};
-			Vector3D				vecCenter{};
-
-			GeometryObject_t() {}
-			
-			GeometryObject_t(const GeometryObject_t& pOther)
-			{
-				if (pOther.pszDebugName)
-					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
-				if (pOther.pszMaterialName)
-					pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
-
-				Vertices = pOther.Vertices;
-				Indices = pOther.Indices;
-			}
-
-			GeometryObject_t& operator=(const GeometryObject_t& pOther)
-			{
-				if (pOther.pszDebugName)
-					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
-				if (pOther.pszMaterialName)
-					pszMaterialName = Utl::StringDuplicate(pOther.pszMaterialName);
-
-				Vertices = pOther.Vertices;
-				Indices = pOther.Indices;
-
-				return *this;
-			}
-
-			~GeometryObject_t()
-			{
-				// Make sure to free the strings.
-				if (pszDebugName)
-				{
-					Utl::StringFree(pszDebugName);
-					pszDebugName = nullptr;
-				}
-
-				if (pszMaterialName)
-				{
-					Utl::StringFree(pszMaterialName);
-					pszMaterialName = nullptr;
-				}
-
-				Vertices.Clear();
-				Indices.Clear();
-			}
-		};
-
 		// This is a method of grouping submeshes together in the engine.
 		// Contains an array of submesh data.
-		struct GeometryGroup_t
+		struct GeometryObject_t
 		{
-			// The name of the group.
-			char*							pszDebugName{ nullptr };
-			// An array of submeshes.
-			Utl::CVector<GeometryObject_t>	pSubmeshes{};
-
-			GeometryGroup_t() {}
-
-			GeometryGroup_t(const GeometryGroup_t& pOther)
-			{
-				if (pOther.pszDebugName)
-					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
-
-				pSubmeshes = pOther.pSubmeshes;
-			}
-
-			GeometryGroup_t& operator=(const GeometryGroup_t& pOther)
-			{
-				if (pOther.pszDebugName)
-					pszDebugName = Utl::StringDuplicate(pOther.pszDebugName);
-
-				pSubmeshes = pOther.pSubmeshes;
-
-				return *this;
-			}
-
-			~GeometryGroup_t()
-			{
-				if (pszDebugName)
-					Utl::StringFree(pszDebugName);
-
-				for (int idx = 0; idx < pSubmeshes.Capacity(); idx++)
-				{
-					pSubmeshes[idx].~GeometryObject_t();
-				}
-			}
+			// The raw vertex data.
+			// This is dynamically allocated, must be freed by caller.
+			byte*		pVertexData{ nullptr };
 		};
 
 		MeshResource_t() 
@@ -141,7 +45,7 @@ namespace MeshLoader
 		
 		MeshResource_t(const MeshResource_t& pOther)
 		{
-			pObjects = pOther.pObjects;
+			pMeshes = pOther.pMeshes;
 
 			vecPosition = pOther.vecPosition;
 			vecEulerAngles = pOther.vecEulerAngles;
@@ -150,7 +54,7 @@ namespace MeshLoader
 
 		MeshResource_t& operator=(const MeshResource_t& pOther)
 		{
-			pObjects = pOther.pObjects;
+			pMeshes = pOther.pMeshes;
 			pMaterials = pOther.pMaterials;
 
 			vecPosition = pOther.vecPosition;
@@ -162,22 +66,21 @@ namespace MeshLoader
 
 		~MeshResource_t()
 		{
-			for (int idx = 0; idx < pObjects.Capacity(); idx++)
-			{
-				pObjects[idx].~GeometryGroup_t();
-			}
-
 			for (int idx = 0; idx < pMaterials.Capacity(); idx++)
 			{
 				pMaterials[idx].~MaterialResource_t();
 			}
 		}
 
+		// Vertices are assembled into flat buffers.
+		// This is done so that we don't need many different types of vertices for different permutations (I.E. a vertex with/without vertex color).
+		// These flags are a bitfield that indicate the layout of the buffer.
+		uint16_t						iVertexLayoutFlags{ 0 };
+		// An array of meshes (or submeshes) in this model.
+		Utl::CVector<GeometryObject_t>	pMeshes{};
 		// TODO: DEPRECATE THIS
-		// An array of groups (which contain submesh data).
-		Utl::CVector<GeometryGroup_t>						pObjects{};
 		// An array of submeshes.
-		Utl::CVector<GeometryObject_t>						pSubmeshes{};
+		//Utl::CVector<GeometryObject_t>						pSubmeshes{};
 		// An array of material resources related to this model.
 		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 

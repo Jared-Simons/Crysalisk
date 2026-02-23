@@ -413,10 +413,13 @@ namespace MeshSerializer
 				float flNormalizedTexCoordX = (vertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
 				float flNormalizedTexCoordY = (vertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
 
-				uint16_t packedNormalX = PackF32ToUint16(flNormalizedTexCoordX);
-				uint16_t packedNormalY = PackF32ToUint16(flNormalizedTexCoordY);
-				packedTexCoords.PushBack(packedNormalX);
-				packedTexCoords.PushBack(packedNormalY);
+				flNormalizedTexCoordX = (flNormalizedTexCoordX + 1.0f) / 2.0f;
+				flNormalizedTexCoordY = (flNormalizedTexCoordY + 1.0f) / 2.0f;
+
+				uint16_t packedTexCoordX = PackF32ToUint16(flNormalizedTexCoordX);
+				uint16_t packedTexCoordY = PackF32ToUint16(flNormalizedTexCoordY);
+				packedTexCoords.PushBack(packedTexCoordX);
+				packedTexCoords.PushBack(packedTexCoordY);
 			}
 		}
 
@@ -424,13 +427,18 @@ namespace MeshSerializer
 		{
 			for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent++)
 			{
-				float flTangentX = vertexTangents[iTangent].x;
-				float flTangentY = vertexTangents[iTangent].y;
-				float flTangentZ = vertexTangents[iTangent].z;
+				// Tangents are already normalized. Just bring from [-1, 1] to [0, 1].
+				float flNormalizedTangentX = (vertexTangents[iTangent].x + 1.0f) / 2.0f;
+				float flNormalizedTangentY = (vertexTangents[iTangent].y + 1.0f) / 2.0f;
+				float flNormalizedTangentZ = (vertexTangents[iTangent].z + 1.0f) / 2.0f;
 
-				uint16_t packedTangentX = PackF32ToUint16(flTangentX);
-				uint16_t packedTangentY = PackF32ToUint16(flTangentY);
-				uint16_t packedTangentZ = PackF32ToUint16(flTangentZ);
+				CAssert(flNormalizedTangentX >= 0.0f && flNormalizedTangentX <= 1.0f);
+				CAssert(flNormalizedTangentY >= 0.0f && flNormalizedTangentY <= 1.0f);
+				CAssert(flNormalizedTangentZ >= 0.0f && flNormalizedTangentZ <= 1.0f);
+
+				uint16_t packedTangentX = PackF32ToUint16(flNormalizedTangentX);
+				uint16_t packedTangentY = PackF32ToUint16(flNormalizedTangentY);
+				uint16_t packedTangentZ = PackF32ToUint16(flNormalizedTangentZ);
 				packedTangents.PushBack(packedTangentX);
 				packedTangents.PushBack(packedTangentY);
 				packedTangents.PushBack(packedTangentZ);
@@ -573,6 +581,8 @@ namespace MeshSerializer
 			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
 			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+			vecTangent.NormalizeInPlace();
 
 			pOutTangents.PushBack(vecTangent);
 

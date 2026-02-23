@@ -260,14 +260,14 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 	pMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pMesh->m_matLocalToWorldTransform, pMesh->m_vecPosition);
 
-	MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
+	/*MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
 	// Acquire renderer resources and upload to the GPU.
 	// 
 	// TODO: Only accounts for one mesh.
 	// Reformat the mesh file eventally to make this cleaner.
-	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pSubmeshes.Capacity(); iSubmesh++)
+	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes[0].pSubmeshes.Capacity(); iSubmesh++)
 	{
-		pCurSubmesh = &pResource.pObjects[0].pSubmeshes[iSubmesh];
+		pCurSubmesh = &pResource.pMeshes[0].pSubmeshes[iSubmesh];
 		CAssert(pCurSubmesh);
 
 		if (pCurSubmesh->Vertices.Count() < 1)
@@ -297,7 +297,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 			// Set transparency state.
 			pNewSubmesh.bIsTransparent = m_Config.pMaterialSystem->IsMaterialTransparent(pNewSubmesh.hMaterial);
 		}
-	}
+	}*/
 
 	// Increment the reference count.
 	pMeshLookup->iReferenceCount++;
