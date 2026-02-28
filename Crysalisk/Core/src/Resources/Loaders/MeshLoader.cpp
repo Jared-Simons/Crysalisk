@@ -143,7 +143,13 @@ namespace MeshLoader
 		{
 			pMeshHeaders[iMesh].iNumFaces = *(uint16_t*)pBytes;
 			pMeshHeaders[iMesh].pFaceIndices = new uint16_t[pMeshHeaders[iMesh].iNumFaces];
-			currOffset += sizeof(uint16_t) + (sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
+
+			currOffset += sizeof(uint16_t);
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+			Platform::MemoryCopy(pMeshHeaders[iMesh].pFaceIndices, pBytes, sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
+
+			currOffset += (sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
 
@@ -158,10 +164,11 @@ namespace MeshLoader
 		
 		// Positions.
 		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
-		float* pUnpackedPositions = new float[pFileHeader->iPositionCount + 3];
+		Vector* pAssembledPositions = new Vector[pFileHeader->iPositionCount + 3];
 
 		Platform::MemoryCopy(pPackedPositions, pBytes, pFileHeader->iPositionCount * pFileHeader->iPositionStride);
 
+		uint64_t iCurPosVector = 0;
 		for (unsigned int iPos = 0; iPos < pFileHeader->iPositionCount; iPos += 3)
 		{
 			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedPositions[iPos + 0]);
@@ -173,19 +180,21 @@ namespace MeshLoader
 			float flScaledY = (flUnpackedUnitFloatY) * (pFileHeader->vecMaxExtents.y - pFileHeader->vecMinExtents.y) + pFileHeader->vecMinExtents.y;
 			float flScaledZ = (flUnpackedUnitFloatZ) * (pFileHeader->vecMaxExtents.z - pFileHeader->vecMinExtents.z) + pFileHeader->vecMinExtents.z;
 
-			pUnpackedPositions[iPos + 0] = flScaledX;
-			pUnpackedPositions[iPos + 1] = flScaledY;
-			pUnpackedPositions[iPos + 2] = flScaledZ;
+			pAssembledPositions[iCurPosVector].flElements[0] = flScaledX;
+			pAssembledPositions[iCurPosVector].flElements[1] = flScaledY;
+			pAssembledPositions[iCurPosVector].flElements[2] = flScaledZ;
+			iCurPosVector++;
 		}
 		currOffset += (pFileHeader->iPositionCount * pFileHeader->iPositionStride);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Normals.
 		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
-		float* pUnpackedNormals = new float[pFileHeader->iNormalCount + 3];
+		Vector* pAssembledNormals = new Vector[pFileHeader->iNormalCount + 3];
 
 		Platform::MemoryCopy(pPackedNormals, pBytes, pFileHeader->iNormalCount * pFileHeader->iNormalStride);
 
+		uint64_t iCurNormalVector = 0;
 		for (unsigned int iNormal = 0; iNormal < pFileHeader->iNormalCount; iNormal += 3)
 		{
 			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedNormals[iNormal + 0]);
@@ -196,19 +205,21 @@ namespace MeshLoader
 			float flScaledNormalY = (flUnpackedUnitFloatY * 2.0f) - 1.0f;
 			float flScaledNormalZ = (flUnpackedUnitFloatZ * 2.0f) - 1.0f;
 
-			pUnpackedNormals[iNormal + 0] = flScaledNormalX;
-			pUnpackedNormals[iNormal + 1] = flScaledNormalY;
-			pUnpackedNormals[iNormal + 2] = flScaledNormalZ;
+			pAssembledNormals[iCurNormalVector].flElements[0] = flScaledNormalX;
+			pAssembledNormals[iCurNormalVector].flElements[1] = flScaledNormalY;
+			pAssembledNormals[iCurNormalVector].flElements[2] = flScaledNormalZ;
+			iCurNormalVector++;
 		}
 		currOffset += (pFileHeader->iNormalCount * pFileHeader->iNormalStride);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Texcoords.
 		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
-		float* pUnpackedTexCoords = new float[pFileHeader->iTexCoordCount + 3];
+		Vector2D* pAssembledTexCoords = new Vector2D[pFileHeader->iTexCoordCount + 3];
 
 		Platform::MemoryCopy(pPackedTexCoords, pBytes, pFileHeader->iTexCoordCount * pFileHeader->iTexCoordStride);
 
+		uint64_t iCurTexCoord = 0;
 		for (unsigned int iTexCoord = 0; iTexCoord < pFileHeader->iTexCoordCount; iTexCoord += 2)
 		{
 			const float flPackedTexCoordMins = -512.0f;
@@ -222,18 +233,20 @@ namespace MeshLoader
 
 			float flScaledTexCoordX = (flUnpackedUnitFloatX) * (flPackedTexCoordMaxs - flPackedTexCoordMins) - flPackedTexCoordMins;
 			float flScaledTexCoordY = (flUnpackedUnitFloatY) * (flPackedTexCoordMaxs - flPackedTexCoordMins) - flPackedTexCoordMins;
-			pUnpackedTexCoords[iTexCoord + 0] = flScaledTexCoordX;
-			pUnpackedTexCoords[iTexCoord + 1] = flScaledTexCoordY;
+			pAssembledTexCoords[iCurTexCoord].flElements[0] = flScaledTexCoordX;
+			pAssembledTexCoords[iCurTexCoord].flElements[1] = flScaledTexCoordY;
+			iCurTexCoord++;
 		}
 		currOffset += (pFileHeader->iTexCoordCount * pFileHeader->iTexCoordStride);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Tangents.
 		uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount + 3]; // +3 to avoid possible buffer overrun.
-		float* pUnpackedTangents = new float[pFileHeader->iTangentCount + 3];
+		Vector* pAssembledTangents = new Vector[pFileHeader->iTangentCount + 3];
 
 		Platform::MemoryCopy(pPackedTangents, pBytes, pFileHeader->iTangentCount * pFileHeader->iTangentStride);
 
+		uint64_t iCurTangentVector = 0;
 		for (unsigned int iTangent = 0; iTangent < pFileHeader->iTangentCount; iTangent += 3)
 		{
 			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedTangents[iTangent + 0]);
@@ -244,47 +257,60 @@ namespace MeshLoader
 			float flScaledTangentY = (flUnpackedUnitFloatY * 2.0f) - 1.0f;
 			float flScaledTangentZ = (flUnpackedUnitFloatZ * 2.0f) - 1.0f;
 
-			pUnpackedTangents[iTangent + 0] = flScaledTangentX;
-			pUnpackedTangents[iTangent + 1] = flScaledTangentY;
-			pUnpackedTangents[iTangent + 2] = flScaledTangentZ;
-		}
-
-		// Generate faces from mesh data.
-		for (unsigned int iFace = 0; iFace < pFileHeader->iFaceDataCount; iFace++)
-		{
-			// LEFTOFF: How to make this work across multiple submeshes?
-			// If there is a single flat buffer for all the faces/verts in the model, how to split certain meshes?
-			MeshSerializer::CModel_MeshFaceData_t&	pCurFace = pMeshFaces[iFace];
+			pAssembledTangents[iCurTangentVector].flElements[0] = flScaledTangentX;
+			pAssembledTangents[iCurTangentVector].flElements[1] = flScaledTangentY;
+			pAssembledTangents[iCurTangentVector].flElements[2] = flScaledTangentZ;
+			iCurTangentVector++;
 		}
 
 		pOutResource.pMeshes.Resize(pFileHeader->iMeshDataCount);
 		pOutResource.iVertexLayoutFlags = pFileHeader->iVertexLayoutFlags;
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
-			//MeshResource_t::GeometryObject_t&		pCurOutMesh = pOutResource.pMeshes[iMesh];
-			//MeshSerializer::CModel_MeshHeader_t&	pCurMeshHeader = pMeshHeaders[iMesh];
+			MeshResource_t::GeometryObject_t&		pCurOutMesh = pOutResource.pMeshes[iMesh];
+			MeshSerializer::CModel_MeshHeader_t&	pCurMeshHeader = pMeshHeaders[iMesh];
+
+			pCurOutMesh.pVertexData = new byte[uVertexStride * pCurMeshHeader.iNumFaces * 3];
+			CAssert(pCurMeshHeader.pFaceIndices != nullptr);
+
+			for (int iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
+			{
+				uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
+
+				for (int iVert = 0; iVert < 3; iVert++)
+				{
+					// LEFTOFF: Seems like we're accessing invalid indices in here somewhere.
+					Vertex3D newVert{};
+					newVert.Pos = pAssembledPositions[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iPositionIndices[iVert] - 1];
+					newVert.Normal = pAssembledNormals[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iNormalIndices[iVert] - 1];
+					newVert.TexCoord = pAssembledTexCoords[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTexCoordIndices[iVert] - 1];
+					newVert.Tangent = pAssembledTangents[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTangentIndices[iVert] - 1];
+
+					// Write the vert out to the flat buffer.
+					Platform::MemoryCopy(&pCurOutMesh.pVertexData[(uVertexStride * iFace * 3) + (iVert * uVertexStride)], &newVert, uVertexStride);
+					LOG_DEBUG("BREAKPOINT");
+				}
+			}
 		}
 
-		FileSystem::CloseFile(&hCModelFile);
-
 		// Clean up arrays.
-		delete[] pUnpackedTangents;
-		pUnpackedTangents = nullptr;
+		delete[] pAssembledTangents;
+		pAssembledTangents = nullptr;
 		delete[] pPackedTangents;
 		pPackedTangents = nullptr;
 
-		delete[] pUnpackedTexCoords;
-		pUnpackedTexCoords = nullptr;
+		delete[] pAssembledTexCoords;
+		pAssembledTexCoords = nullptr;
 		delete[] pPackedTexCoords;
 		pPackedTexCoords = nullptr;
 
-		delete[] pUnpackedNormals;
-		pUnpackedNormals = nullptr;
+		delete[] pAssembledNormals;
+		pAssembledNormals = nullptr;
 		delete[] pPackedNormals;
 		pPackedNormals = nullptr;
 
-		delete[] pUnpackedPositions;
-		pUnpackedPositions = nullptr;
+		delete[] pAssembledPositions;
+		pAssembledPositions = nullptr;
 		delete[] pPackedPositions;
 		pPackedPositions = nullptr;
 

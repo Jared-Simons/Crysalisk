@@ -589,7 +589,7 @@ namespace MeshSerializer
 			// Assign this new tangent index to the 3 verts we're processing.
 			for (int iVert = 0; iVert < 3; iVert++)
 			{
-				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)(pOutTangents.Count() - 1);
+				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)(pOutTangents.Count());
 			}
 		}
 
