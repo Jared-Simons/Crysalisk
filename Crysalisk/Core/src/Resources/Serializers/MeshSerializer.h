@@ -85,5 +85,8 @@ namespace MeshSerializer
 	{
 		uint16_t				iNumFaces{ 0 };
 		uint16_t*				pFaceIndices{ nullptr };
+		// The extents of this submesh.
+		Vector					vecMinExtents{};
+		Vector					vecMaxExtents{};
 	};
 }

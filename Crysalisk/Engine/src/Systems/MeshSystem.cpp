@@ -61,22 +61,20 @@ static CMeshSystem* s_MeshSystem{ nullptr };
 static int OnMeshLoadJob_Success(JobResults_t& pResults)
 {
 	// LEFTOFF: Make this work with the new mesh format.
-	/*MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
-
-	MeshLoader::MeshResource_t::GeometryGroup_t*	pMesh = &pTypedResults->pOutResource->pObjects[0];
-	MeshLoader::MeshResource_t::GeometryObject_t*	pSubmesh = nullptr;
+	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
 
 	// This will handle mesh registration and GPU upload.
 	s_MeshSystem->AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
 
 	// Release all the resources allocated for this job.
+	// TODO: Make sure this is properly releasing EVERYTHING
 	delete pTypedResults->pOutResource;
 	pTypedResults->pOutResource = nullptr;
 	CAssert(pTypedResults->pszMeshPath != nullptr);
 	Utl::StringFree(pTypedResults->pszMeshPath);
 	pTypedResults->pszMeshPath = nullptr;
 	delete pTypedResults;
-	pTypedResults = nullptr;*/
+	pTypedResults = nullptr;
 
 	return 1;
 }
@@ -260,6 +258,19 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 	pMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pMesh->m_matLocalToWorldTransform, pMesh->m_vecPosition);
 
+	// Acquire renderer resources and upload to the GPU.
+	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes.Count(); iSubmesh++)
+	{
+		MeshLoader::MeshResource_t::GeometryObject_t& pCurSubmesh = pResource.pMeshes[iSubmesh];
+
+		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
+
+		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
+
+		// TODO: Fix indexed drawing.
+		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.pVertexData, 0, nullptr, &pNewSubmesh);
+	}
+
 	/*MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
 	// Acquire renderer resources and upload to the GPU.
 	// 
@@ -267,22 +278,6 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	// Reformat the mesh file eventally to make this cleaner.
 	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes[0].pSubmeshes.Capacity(); iSubmesh++)
 	{
-		pCurSubmesh = &pResource.pMeshes[0].pSubmeshes[iSubmesh];
-		CAssert(pCurSubmesh);
-
-		if (pCurSubmesh->Vertices.Count() < 1)
-			continue;	// Vertex data is required!
-
-		LOG_DEBUG("Acquiring mesh resources for: %s", pCurSubmesh->pszDebugName);
-
-		GeometryConfig_t newConfig{};
-		newConfig.Vertices = pCurSubmesh->Vertices;
-		newConfig.Indices = pCurSubmesh->Indices;
-		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
-		// TODO: Fix this
-		//m_Config.pRenderer->AcquireGeometryResources(&m_Config.pRenderer->GetWorldVertexBuffer(), &m_Config.pRenderer->GetWorldIndexBuffer(), newConfig, pMesh->m_Geometries.Back());
-		m_Config.pRenderer->AcquireGeometryResources(newConfig.Vertices.Count(), newConfig.Vertices.Data(), newConfig.Indices.Count(), newConfig.Indices.Data(), &pMesh->m_Geometries.Back());
-
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
 		pNewSubmesh.vecMinExtents = pCurSubmesh->vecMinExtents;

@@ -264,6 +264,7 @@ namespace MeshLoader
 		}
 
 		pOutResource.pMeshes.Resize(pFileHeader->iMeshDataCount);
+		pOutResource.pMeshes.SetCount(pFileHeader->iMeshDataCount);
 		pOutResource.iVertexLayoutFlags = pFileHeader->iVertexLayoutFlags;
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
@@ -271,7 +272,10 @@ namespace MeshLoader
 			MeshSerializer::CModel_MeshHeader_t&	pCurMeshHeader = pMeshHeaders[iMesh];
 
 			pCurOutMesh.pVertexData = new byte[uVertexStride * pCurMeshHeader.iNumFaces * 3];
+			pCurOutMesh.iVertexCount = pCurMeshHeader.iNumFaces * 3;
 			CAssert(pCurMeshHeader.pFaceIndices != nullptr);
+
+			pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
 
 			for (int iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
@@ -279,16 +283,16 @@ namespace MeshLoader
 
 				for (int iVert = 0; iVert < 3; iVert++)
 				{
-					// LEFTOFF: Seems like we're accessing invalid indices in here somewhere.
 					Vertex3D newVert{};
-					newVert.Pos = pAssembledPositions[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iPositionIndices[iVert] - 1];
-					newVert.Normal = pAssembledNormals[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iNormalIndices[iVert] - 1];
-					newVert.TexCoord = pAssembledTexCoords[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTexCoordIndices[iVert] - 1];
-					newVert.Tangent = pAssembledTangents[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTangentIndices[iVert] - 1];
+					newVert.Pos = pAssembledPositions[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iPositionIndices[iVert]];
+					newVert.Normal = pAssembledNormals[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iNormalIndices[iVert]];
+					newVert.TexCoord = pAssembledTexCoords[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTexCoordIndices[iVert]];
+					newVert.Tangent = pAssembledTangents[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTangentIndices[iVert]];
 
 					// Write the vert out to the flat buffer.
 					Platform::MemoryCopy(&pCurOutMesh.pVertexData[(uVertexStride * iFace * 3) + (iVert * uVertexStride)], &newVert, uVertexStride);
-					LOG_DEBUG("BREAKPOINT");
+					// TODO: We need to precompute and serialize these!
+					pCurOutMesh.iIndexData[(iFace * 3) + iVert] = (iFace * 3) + iVert;
 				}
 			}
 		}

@@ -20,7 +20,7 @@ namespace MeshSerializer
 
 	// Forward declarations
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pTangets, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static uint16_t PackF32ToUint16(const float flUnitFloat);
 	static float UnpackF32FromUint16(const uint16_t inputData);
 
@@ -211,6 +211,15 @@ namespace MeshSerializer
 
 			case 'o':	// New geometry object.
 			{
+				if (meshHeaders.Count() > 0)
+				{
+					// If we currently have a mesh being processed, do some extra work to prepare it for storage.
+					// FIXME: This will not apply to the final mesh in the file!
+					
+					// Walk through all the position vectors to determine the extents of the geometry.
+					// LEFTOFF: Calculate extents per submesh.
+				}
+
 				CModel_MeshHeader_t newMesh{};
 				meshHeaders.PushBack(newMesh);
 				meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
@@ -245,9 +254,10 @@ namespace MeshSerializer
 				CModel_MeshFaceData_t newFace{};
 				for (int iVert = 0; iVert < 3; iVert++)
 				{
-					newFace.iPositionIndices[iVert] = positionIndices[iVert];
-					newFace.iNormalIndices[iVert] = normalIndices[iVert];
-					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert];
+					// NOTE: OBJ files are 1-indexed so we need to bump down by one to store as a zero index.
+					newFace.iPositionIndices[iVert] = positionIndices[iVert] - 1;
+					newFace.iNormalIndices[iVert] = normalIndices[iVert] - 1;
+					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
 				
 				uint16_t iFaceIndex = (uint16_t)meshFaces.PushBack(newFace);
@@ -331,6 +341,11 @@ namespace MeshSerializer
 			}
 		}
 
+		LOG_INFO("Compressing mesh data.");
+		// TODO: This takes FOREVER on some not too large models (like sponza)
+		if (!Utl::StringCompare(pszOBJMeshPath, "Assets/Models/sponza.obj"))
+			DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, meshFaces);
+
 		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
 		if (!bModelContainsVertexTangents)	// TODO: Make generating tangets optional.
 		{
@@ -338,10 +353,6 @@ namespace MeshSerializer
 			GenerateTangentData(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
 			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
-
-		LOG_INFO("Compressing mesh data.");
-		// TODO: This takes FOREVER on some not too large models (like sponza)
-		//DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
 
 		// Walk through all the position vectors to determine the extents of the geometry.
 		for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
@@ -589,7 +600,7 @@ namespace MeshSerializer
 			// Assign this new tangent index to the 3 verts we're processing.
 			for (int iVert = 0; iVert < 3; iVert++)
 			{
-				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)(pOutTangents.Count());
+				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)(pOutTangents.Count() - 1);
 			}
 		}
 
@@ -600,191 +611,9 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
+	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
 	{
-		uint64_t iOriginalVertDataSize = (pPositions.Stride() * pPositions.Count())
-										  + (pNormals.Stride() * pNormals.Count())
-										  + (pTexCoords.Stride() * pTexCoords.Count())
-										  + (pTangents.Stride() * pTangents.Count());
-
-		uint64_t iCompressedVertDataSize = 0;
-		float	 flPercentReduced = 0;
-
-		Utl::CVector<CModel_MeshFaceData_t>	newFaceData{};
-		Utl::CVector<Vector>	uniquePositions(512);
-		Utl::CVector<Vector>	uniqueNormals(512);
-		Utl::CVector<Vector2D>	uniqueTexCoords(512);
-		Utl::CVector<Vector>	uniqueTangents(512);
-		uint64_t				iUniqueVertCount = 0;
-		bool					bUniqueVert = true;
-		uint64_t				iVertCount = pFaces.Count() * 3;
-
-		// Maps original index data to new, compressed index data.
-		Utl::CVector<uint64_t>	origPositionToNewPosition(pPositions.Count());
-		Utl::CVector<uint64_t>	origNormalToNewNormal(pNormals.Count());
-		Utl::CVector<uint64_t>	origTexcoordToNewTexcoord(pTexCoords.Count());
-		Utl::CVector<uint64_t>	origTangentToNewTangent(pTangents.Count());
-
-		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
-		{
-			int iVert = 0;
-
-			for (iVert = 0; iVert < 3; iVert++)
-			{
-				Vector* pCurPos = &pPositions[pFaces[iFace].iPositionIndices[iVert]];
-				Vector* pCurNormal = &pNormals[pFaces[iFace].iNormalIndices[iVert]];
-				Vector2D* pCurTexCoord = &pTexCoords[pFaces[iFace].iTexCoordIndices[iVert]];
-				Vector* pCurTangent = &pTangents[pFaces[iFace].iTangentIndices[iVert]];
-
-				bool bUniquePos = true;
-				bool bUniqueNormal = true;
-				bool bUniqueTexCoord = true;
-				bool bUniqueTangent = true;
-
-				// Check for unique positions.
-				for (int iPos = 0; iPos < uniquePositions.Count() && bUniquePos; iPos++)
-				{
-					if (uniquePositions[iPos] == *pCurPos)
-					{
-						// Not unique!
-						bUniquePos = false;
-
-						// Save off the index for remapping later.
-						origPositionToNewPosition.PushBack(iPos);
-						break;
-					}
-				}
-
-				if (bUniquePos)
-				{
-					uniquePositions.PushBack(*pCurPos);
-					// Save off the index for remapping later.
-					origPositionToNewPosition.PushBack((iFace * 3) + iVert);
-				}
-
-				// Check for unique normals.
-				for (int iNormal = 0; iNormal < uniqueNormals.Count() && bUniqueNormal; iNormal++)
-				{
-					if (uniqueNormals[iNormal] == *pCurNormal)
-					{
-						// Not unique!
-						bUniqueNormal = false;
-
-						// Save off the index for remapping later.
-						origNormalToNewNormal.PushBack(iNormal);
-						break;
-					}
-				}
-
-				if (bUniqueNormal)
-				{
-					uniqueNormals.PushBack(*pCurNormal);
-
-					// Save off the index for remapping later.
-					origNormalToNewNormal.PushBack((iFace * 3) + iVert);
-				}
-
-				// Check for unique texcoords.
-				for (int iTexCoord = 0; iTexCoord < uniqueTexCoords.Count() && bUniqueTexCoord; iTexCoord++)
-				{
-					if (uniqueTexCoords[iTexCoord] == *pCurTexCoord)
-					{
-						// Not unique!
-						bUniqueTexCoord = false;
-
-						// Save off the index for remapping later.
-						origTexcoordToNewTexcoord.PushBack(iTexCoord);
-						break;
-					}
-				}
-
-				if (bUniqueTexCoord)
-				{
-					uniqueTexCoords.PushBack(*pCurTexCoord);
-
-					// Save off the index for remapping later.
-					origTexcoordToNewTexcoord.PushBack((iFace * 3) + iVert);
-				}
-
-				// Check for unique tangents.
-				for (int iTangent = 0; iTangent < uniqueTangents.Count() && bUniqueTangent; iTangent++)
-				{
-					if (uniqueTangents[iTangent] == *pCurTangent)
-					{
-						// Not unique!
-						bUniqueTangent = false;
-
-						// Save off the index for remapping later.
-						origTangentToNewTangent.PushBack(iTangent);
-						break;
-					}
-				}
-
-				if (bUniqueTangent)
-				{
-					uniqueTangents.PushBack(*pCurTangent);
-
-					// Save off the index for remapping later.
-					origTangentToNewTangent.PushBack((iFace * 3) + iVert);
-				}
-			}
-		}
-
-		CAssert(origPositionToNewPosition.Count() == pFaces.Count() * 3);
-
-		// Verify that the new data fits within our limits.
-		const uint64_t MAX_TOTAL_VERTS_SUPPORTED = (1ULL << 32) - 1;
-		if (uniquePositions.Count() > MAX_TOTAL_VERTS_SUPPORTED ||
-			uniqueNormals.Count() > MAX_TOTAL_VERTS_SUPPORTED ||
-			uniqueTexCoords.Count() > MAX_TOTAL_VERTS_SUPPORTED ||
-			uniqueTangents.Count() > MAX_TOTAL_VERTS_SUPPORTED)
-		{
-			LOG_WARN("Mesh contains more than 4,294,967,295 unique vertices. This mesh cannot be properly serialized.");
-			return;
-		}
-
-		// Walk through the original faces and remap the indices to the compressed data.
-		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
-		{
-			for (int iVert = 0; iVert < 3; iVert++)		// 3 verts per face.
-			{
-				pFaces[iFace].iPositionIndices[iVert] = (uint32_t)origPositionToNewPosition[(iFace * 3) + iVert];
-				pFaces[iFace].iNormalIndices[iVert] = (uint32_t)origNormalToNewNormal[(iFace * 3) + iVert];
-				pFaces[iFace].iTexCoordIndices[iVert] = (uint32_t)origTexcoordToNewTexcoord[(iFace * 3) + iVert];
-				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)origTangentToNewTangent[(iFace * 3) + iVert];
-			}
-		}
-
-		LOG_DEBUG("Mesh positions compressed from %d to %d (%f%%)", pPositions.Count(), uniquePositions.Count(), ((float)uniquePositions.Count() / (float)pPositions.Count()) * 100.0f);
-		LOG_DEBUG("Mesh normals compressed from %d to %d (%f%%)", pNormals.Count(), uniqueNormals.Count(), ((float)uniqueNormals.Count() / (float)pNormals.Count()) * 100.0f);
-		LOG_DEBUG("Mesh texcoords compressed from %d to %d (%f%%)", pTexCoords.Count(), uniqueTexCoords.Count(), ((float)uniqueTexCoords.Count() / (float)pTexCoords.Count()) * 100.0f);
-		LOG_DEBUG("Mesh tangents compressed from %d to %d (%f%%)", pTangents.Count(), uniqueTangents.Count(), ((float)uniqueTangents.Count() / (float)pTangents.Count()) * 100.0f);
-
-		iCompressedVertDataSize = (uniquePositions.Count() * uniquePositions.Stride()) + 
-									(uniqueNormals.Count() * uniqueNormals.Stride()) +
-									(uniqueTexCoords.Count() * uniqueTexCoords.Stride()) +
-									(uniqueTangents.Count() * uniqueTangents.Stride());
-		flPercentReduced = ((float)iCompressedVertDataSize / iOriginalVertDataSize);
-		flPercentReduced *= 100.0f;
-
-		LOG_INFO("Mesh data compressed from %d bytes to %d bytes ->(%.2f%%)", iOriginalVertDataSize, iCompressedVertDataSize, flPercentReduced);
-
-		// Copy over the compressed data to the output, release original data.
-		Utl::CVector<Vector> oldPositions = pPositions;
-		pPositions = uniquePositions;
-		oldPositions.Clear();
-
-		Utl::CVector<Vector> oldNormals = pNormals;
-		pNormals = uniqueNormals;
-		oldNormals.Clear();
-
-		Utl::CVector<Vector2D> oldTexCoords = pTexCoords;
-		pTexCoords = uniqueTexCoords;
-		oldTexCoords.Clear();
-
-		Utl::CVector<Vector> oldTangents = pTangents;
-		pTangents = uniqueTangents;
-		oldTangents.Clear();
+		LOG_WARN("TODO: Implement Geometry Deduplication!");
 	}
 
 	static uint16_t PackF32ToUint16(const float flUnitFloat)

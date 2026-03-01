@@ -36,7 +36,10 @@ namespace MeshLoader
 		{
 			// The raw vertex data.
 			// This is dynamically allocated, must be freed by caller.
+			uint64_t	iVertexCount{ 0 };
 			byte*		pVertexData{ nullptr };
+			uint64_t	iIndexCount{ 0 };
+			uint32_t*	iIndexData{ nullptr };
 		};
 
 		MeshResource_t() 

@@ -158,7 +158,8 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 			}
 
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
-			if (bIsInCameraFrustum)
+			//if (bIsInCameraFrustum)
+			if (!bIsInCameraFrustum)	// HACK! Frustum culling is broken while we re-build mesh tools.
 			{
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
 				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))

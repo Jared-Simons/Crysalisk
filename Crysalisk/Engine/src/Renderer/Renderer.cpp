@@ -639,6 +639,13 @@ bool CRenderer::AcquireGeometryResources(size_t iVertexCount, void* pVertices, s
 {
 	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
 
+	pOutInstance->vertexCount = iVertexCount;
+
+	pOutInstance->indexCount = iIndexCount;
+
+	// TODO: Pass in vertex stride!
+	m_RendererBackend->AcquireGeometryResources(&m_WorldVertexBuffer, &m_WorldIndexBuffer, iVertexCount, 44, pVertices, iIndexCount, pIndices, *pOutInstance);
+
 	return true;
 }
 
