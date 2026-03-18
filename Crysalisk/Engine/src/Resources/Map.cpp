@@ -133,9 +133,15 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 
 		// Split out transform matrices.
 		pTransformationMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
+		// TEMP DEBUG
+		if (iMesh > 0)
+			return;
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
+			// TEMP DEBUG
+			if (iSubMesh > 100)
+				break;
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);
 
@@ -159,7 +165,7 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
 			//if (bIsInCameraFrustum)
-			if (!bIsInCameraFrustum)	// HACK! Frustum culling is broken while we re-build mesh tools.
+			//if (!bIsInCameraFrustum)	// HACK! Frustum culling is broken while we re-build mesh tools.
 			{
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
 				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
@@ -170,14 +176,14 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 				else
 				{
 					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
-					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pVisibleTranslucentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}
-			else
+			/*else
 			{
 				(*pCulledGeometries)++;
 				continue;
-			}
+			}*/
 		}
 	}
 }

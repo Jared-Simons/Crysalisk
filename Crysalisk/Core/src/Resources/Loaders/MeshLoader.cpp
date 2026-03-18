@@ -163,7 +163,8 @@ namespace MeshLoader
 		CAssert((pFileHeader->iPositionCount % 3) == 0);
 		
 		// Positions.
-		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
+		//uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
+		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount];
 		Vector* pAssembledPositions = new Vector[pFileHeader->iPositionCount + 3];
 
 		Platform::MemoryCopy(pPackedPositions, pBytes, pFileHeader->iPositionCount * pFileHeader->iPositionStride);
@@ -189,7 +190,8 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Normals.
-		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
+		//uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
+		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount];
 		Vector* pAssembledNormals = new Vector[pFileHeader->iNormalCount + 3];
 
 		Platform::MemoryCopy(pPackedNormals, pBytes, pFileHeader->iNormalCount * pFileHeader->iNormalStride);
@@ -214,7 +216,8 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Texcoords.
-		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
+		//uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
+		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount];
 		Vector2D* pAssembledTexCoords = new Vector2D[pFileHeader->iTexCoordCount + 3];
 
 		Platform::MemoryCopy(pPackedTexCoords, pBytes, pFileHeader->iTexCoordCount * pFileHeader->iTexCoordStride);
@@ -241,7 +244,8 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Tangents.
-		uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount + 3]; // +3 to avoid possible buffer overrun.
+		//uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount + 3]; // +3 to avoid possible buffer overrun.
+		uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount];
 		Vector* pAssembledTangents = new Vector[pFileHeader->iTangentCount + 3];
 
 		Platform::MemoryCopy(pPackedTangents, pBytes, pFileHeader->iTangentCount * pFileHeader->iTangentStride);
@@ -275,11 +279,17 @@ namespace MeshLoader
 			pCurOutMesh.iVertexCount = pCurMeshHeader.iNumFaces * 3;
 			CAssert(pCurMeshHeader.pFaceIndices != nullptr);
 
-			pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
+			// FIXME: Figure out indexed drawing
+			//pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
+			//pCurOutMesh.iIndexCount = pCurMeshHeader.iNumFaces * 3;
+
+			// LEFTOFF: There is something screwy happening here with the faces
 
 			for (int iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
-				uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
+				//uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
+				uint16_t curFaceIndex = iFace;
+				//CAssert(!(iMesh == 97 && iFace == 703));// This is the first "noticable" problem area in the sponza mesh.
 
 				for (int iVert = 0; iVert < 3; iVert++)
 				{
@@ -292,7 +302,7 @@ namespace MeshLoader
 					// Write the vert out to the flat buffer.
 					Platform::MemoryCopy(&pCurOutMesh.pVertexData[(uVertexStride * iFace * 3) + (iVert * uVertexStride)], &newVert, uVertexStride);
 					// TODO: We need to precompute and serialize these!
-					pCurOutMesh.iIndexData[(iFace * 3) + iVert] = (iFace * 3) + iVert;
+					//pCurOutMesh.iIndexData[(iFace * 3) + iVert] = (iFace * 3) + iVert;
 				}
 			}
 		}

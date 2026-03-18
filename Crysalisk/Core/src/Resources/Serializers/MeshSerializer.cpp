@@ -138,6 +138,7 @@ namespace MeshSerializer
 		
 		LOG_INFO("Determining vertex layout");
 
+		// FIXME: Reading the whole file twice is kinda bad :(
 		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
 		{
 			firstChar = szCurrentLine[0];
@@ -197,6 +198,7 @@ namespace MeshSerializer
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
+		uint64_t debugFaceCount{ 0 };
 
 		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
 		{
@@ -220,10 +222,12 @@ namespace MeshSerializer
 					// LEFTOFF: Calculate extents per submesh.
 				}
 
-				CModel_MeshHeader_t newMesh{};
-				meshHeaders.PushBack(newMesh);
+				meshHeaders.PushBack(CModel_MeshHeader_t{});
 				meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 				meshHeaders.Back().iNumFaces = 0;
+				debugFaceCount = 0;
+				CAssert(meshHeaders.Count() != 98);
+
 				break;
 			}
 
@@ -249,6 +253,7 @@ namespace MeshSerializer
 				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
 
 				CAssert(elements == 9);
+				//CAssert(!(meshHeaders.Count() == 98 && debugFaceCount == 703));
 
 				// Write the elements out to the mesh header.
 				CModel_MeshFaceData_t newFace{};
@@ -270,6 +275,7 @@ namespace MeshSerializer
 				}
 				meshHeaders.Back().pFaceIndices[meshHeaders.Back().iNumFaces] = iFaceIndex;
 				meshHeaders.Back().iNumFaces++;
+				debugFaceCount++;
 				break;
 			}
 
