@@ -83,8 +83,8 @@ namespace MeshSerializer
 	// Contains data specific to each mesh/submesh.
 	struct CModel_MeshHeader_t
 	{
-		uint16_t				iNumFaces{ 0 };
-		uint16_t*				pFaceIndices{ nullptr };
+		uint32_t				iNumFaces{ 0 };
+		uint32_t*				pFaceIndices{ nullptr };
 		// The extents of this submesh.
 		Vector					vecMinExtents{};
 		Vector					vecMaxExtents{};

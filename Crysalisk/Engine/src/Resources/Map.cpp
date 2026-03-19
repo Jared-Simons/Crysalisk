@@ -133,15 +133,9 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 
 		// Split out transform matrices.
 		pTransformationMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
-		// TEMP DEBUG
-		if (iMesh > 0)
-			return;
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
-			// TEMP DEBUG
-			if (iSubMesh > 100)
-				break;
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);
 

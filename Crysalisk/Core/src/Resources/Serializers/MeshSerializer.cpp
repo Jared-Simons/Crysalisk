@@ -223,10 +223,9 @@ namespace MeshSerializer
 				}
 
 				meshHeaders.PushBack(CModel_MeshHeader_t{});
-				meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
+				meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 				meshHeaders.Back().iNumFaces = 0;
 				debugFaceCount = 0;
-				CAssert(meshHeaders.Count() != 98);
 
 				break;
 			}
@@ -238,7 +237,7 @@ namespace MeshSerializer
 				if (meshHeaders.Count() < 1)
 				{
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
-					meshHeaders.Back().pFaceIndices = new uint16_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
+					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 					meshHeaders.Back().iNumFaces = 0;
 				}
 				continue;
@@ -253,7 +252,6 @@ namespace MeshSerializer
 				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
 
 				CAssert(elements == 9);
-				//CAssert(!(meshHeaders.Count() == 98 && debugFaceCount == 703));
 
 				// Write the elements out to the mesh header.
 				CModel_MeshFaceData_t newFace{};
@@ -265,12 +263,12 @@ namespace MeshSerializer
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
 				
-				uint16_t iFaceIndex = (uint16_t)meshFaces.PushBack(newFace);
+				uint32_t iFaceIndex = (uint32_t)meshFaces.PushBack(newFace);
 				
-				// Currently, we store face indices as uint16_t. If a single mesh contains more than than 65535 values, then we need to re-evaluate.
-				if (iFaceIndex > (1U << 16) - 1)
+				// Currently, we store face indices as uint32_t. If a single mesh contains more than than 4,294,967,295 values, then we need to re-evaluate.
+				if (iFaceIndex > 0xFFFFFFFF)
 				{
-					LOG_WARN("Mesh '%s' contains more than 65,535 faces in a single submesh. This mesh cannot be properly serialized.", pszOBJMeshPath);
+					LOG_WARN("Mesh '%s' contains more than 4,294,967,295 faces in a single mesh. This mesh cannot be properly serialized.", pszOBJMeshPath);
 					return false;
 				}
 				meshHeaders.Back().pFaceIndices[meshHeaders.Back().iNumFaces] = iFaceIndex;
@@ -503,9 +501,9 @@ namespace MeshSerializer
 		{
 			for (unsigned int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 			{
-				FileSystem::WriteBytes(&meshHeaders[iMesh].iNumFaces, sizeof(uint16_t), &hNewOutputMesh);
-				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
-				iTotalBytesWritten += sizeof(uint16_t) + (sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces);
+				FileSystem::WriteBytes(&meshHeaders[iMesh].iNumFaces, sizeof(uint32_t), &hNewOutputMesh);
+				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
+				iTotalBytesWritten += sizeof(uint32_t) + (sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces);
 			}
 		}
 

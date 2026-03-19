@@ -141,15 +141,15 @@ namespace MeshLoader
 		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
-			pMeshHeaders[iMesh].iNumFaces = *(uint16_t*)pBytes;
-			pMeshHeaders[iMesh].pFaceIndices = new uint16_t[pMeshHeaders[iMesh].iNumFaces];
+			pMeshHeaders[iMesh].iNumFaces = *(uint32_t*)pBytes;
+			pMeshHeaders[iMesh].pFaceIndices = new uint32_t[pMeshHeaders[iMesh].iNumFaces];
 
-			currOffset += sizeof(uint16_t);
+			currOffset += sizeof(uint32_t);
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
-			Platform::MemoryCopy(pMeshHeaders[iMesh].pFaceIndices, pBytes, sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
+			Platform::MemoryCopy(pMeshHeaders[iMesh].pFaceIndices, pBytes, sizeof(uint32_t) * pMeshHeaders[iMesh].iNumFaces);
 
-			currOffset += (sizeof(uint16_t) * pMeshHeaders[iMesh].iNumFaces);
+			currOffset += (sizeof(uint32_t) * pMeshHeaders[iMesh].iNumFaces);
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
 
@@ -285,11 +285,10 @@ namespace MeshLoader
 
 			// LEFTOFF: There is something screwy happening here with the faces
 
-			for (int iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
+			for (uint32_t iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
 				//uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
 				uint16_t curFaceIndex = iFace;
-				//CAssert(!(iMesh == 97 && iFace == 703));// This is the first "noticable" problem area in the sponza mesh.
 
 				for (int iVert = 0; iVert < 3; iVert++)
 				{
