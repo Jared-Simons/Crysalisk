@@ -20,7 +20,7 @@ namespace MeshSerializer
 
 	// Forward declarations
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurSubmesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static uint16_t PackF32ToUint16(const float flUnitFloat);
 	static float UnpackF32FromUint16(const uint16_t inputData);
 
@@ -42,15 +42,10 @@ namespace MeshSerializer
 	//-------------------------------------------------------------------------
 	// Purpose: TODO: Documentation.
 	// 
-	// Mesh serialization algorithm:
-	// - Verify that source file exists						[X]
-	// - Determine the mesh's vertex layout					[X]
-	// - Process all elements into their own tables			[X]
-	// - Write out the file header							[X]
-	//		(Note that this has to happen after processing 
-	//		elements so that we can get their offsets 
-	//		into the byte-stream).
-	// - Write out all tables								[X]
+	// STILL TODO:
+	// - Fix indexed drawing.
+	// - Add geometry de-duplication.
+	// - Add materials/textures.
 	//-------------------------------------------------------------------------
 	bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName)
 	{
@@ -187,14 +182,14 @@ namespace MeshSerializer
 		FileSystem::ReturnFilePointerToHead(&hOBJFile);
 
 		// Geometry data.
-		Utl::CVector<CModel_MeshHeader_t>	meshHeaders{};
-		Utl::CVector<CModel_MeshFaceData_t>	meshFaces{};
+		Utl::CVector<CModel_MeshHeader_t>					meshHeaders{};
+		Utl::CVector<Utl::CVector<CModel_MeshFaceData_t>>	meshFaces{};
 
 		// Build out geometry tables.
-		Utl::CVector<Vector>	vertexPositions{};
-		Utl::CVector<Vector>	vertexNormals{};
-		Utl::CVector<Vector2D>	vertexTexCoords{};
-		Utl::CVector<Vector>	vertexTangents{};
+		Utl::CVector<Utl::CVector<Vector>>		vertexPositions{};
+		Utl::CVector<Utl::CVector<Vector>>		vertexNormals{};
+		Utl::CVector<Utl::CVector<Vector2D>>	vertexTexCoords{};
+		Utl::CVector<Utl::CVector<Vector>>		vertexTangents{};
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
@@ -223,6 +218,12 @@ namespace MeshSerializer
 				}
 
 				meshHeaders.PushBack(CModel_MeshHeader_t{});
+				meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
+				vertexPositions.PushBack(Utl::CVector<Vector>{});
+				vertexNormals.PushBack(Utl::CVector<Vector>{});
+				vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
+				vertexTangents.PushBack(Utl::CVector<Vector>{});
+
 				meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 				meshHeaders.Back().iNumFaces = 0;
 				debugFaceCount = 0;
@@ -237,6 +238,12 @@ namespace MeshSerializer
 				if (meshHeaders.Count() < 1)
 				{
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
+					meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
+					vertexPositions.PushBack(Utl::CVector<Vector>{});
+					vertexNormals.PushBack(Utl::CVector<Vector>{});
+					vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
+					vertexTangents.PushBack(Utl::CVector<Vector>{});
+
 					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 					meshHeaders.Back().iNumFaces = 0;
 				}
@@ -263,11 +270,12 @@ namespace MeshSerializer
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
 				
-				uint32_t iFaceIndex = (uint32_t)meshFaces.PushBack(newFace);
+				uint32_t iFaceIndex = (uint32_t)meshFaces.Back().PushBack(newFace);
 				
 				// Currently, we store face indices as uint32_t. If a single mesh contains more than than 4,294,967,295 values, then we need to re-evaluate.
 				if (iFaceIndex > 0xFFFFFFFF)
 				{
+					// TODO: Delete now-unusable cmodel file!
 					LOG_WARN("Mesh '%s' contains more than 4,294,967,295 faces in a single mesh. This mesh cannot be properly serialized.", pszOBJMeshPath);
 					return false;
 				}
@@ -297,7 +305,7 @@ namespace MeshSerializer
 						CAssert(numElements == 3);
 
 						// Add it to the table.
-						vertexPositions.PushBack(newPosition);
+						vertexPositions.Back().PushBack(newPosition);
 						break;
 					}
 
@@ -313,7 +321,7 @@ namespace MeshSerializer
 						CAssert(newNormal.z <= 1.0f && newNormal.z >= -1.0f);
 
 						// Add it to the table.
-						vertexNormals.PushBack(newNormal);
+						vertexNormals.Back().PushBack(newNormal);
 						break;
 					}
 
@@ -328,7 +336,7 @@ namespace MeshSerializer
 						CAssert(newTexCoord.y <= 512.0f && newTexCoord.y >= -512.0f);
 
 						// Add it to the table.
-						vertexTexCoords.PushBack(newTexCoord);
+						vertexTexCoords.Back().PushBack(newTexCoord);
 						break;
 					}
 				}
@@ -346,20 +354,26 @@ namespace MeshSerializer
 		}
 
 		LOG_INFO("Compressing mesh data.");
-		// TODO: This takes FOREVER on some not too large models (like sponza)
-		if (!Utl::StringCompare(pszOBJMeshPath, "Assets/Models/sponza.obj"))
-			DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, meshFaces);
+		for (int iSubmesh = 0; iSubmesh < meshHeaders.Count(); iSubmesh++)
+		{
+			LOG_DEBUG("Deduplication process: %d/%d", iSubmesh, meshHeaders.Count());
+			// LEFTOFF: FIX THIS!
+			//DeduplicateGeometry(meshHeaders[iSubmesh], vertexPositions[iSubmesh], vertexNormals[iSubmesh], vertexTexCoords[iSubmesh], meshFaces[iSubmesh]);
+		}
 
 		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
 		if (!bModelContainsVertexTangents)	// TODO: Make generating tangets optional.
 		{
 			LOG_INFO("Generating tangent data for mesh.");
-			GenerateTangentData(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
+			for (int iSubmesh = 0; iSubmesh < meshHeaders.Count(); iSubmesh++)
+			{
+				GenerateTangentData(vertexPositions[iSubmesh], vertexNormals[iSubmesh], vertexTexCoords[iSubmesh], vertexTangents[iSubmesh], meshFaces[iSubmesh]);
+			}
 			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
 
 		// Walk through all the position vectors to determine the extents of the geometry.
-		for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+		/*for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
 		{
 			Vector& pPos = vertexPositions[iPos];
 			if (pPos.x < outFileHeader.vecMinExtents.x)
@@ -375,7 +389,7 @@ namespace MeshSerializer
 				outFileHeader.vecMaxExtents.y = pPos.y;
 			if (pPos.z > outFileHeader.vecMaxExtents.z)
 				outFileHeader.vecMaxExtents.z = pPos.z;
-		}
+		}*/
 
 		// Pack vectors into uints.
 		// TODO: Make this optional.
@@ -384,82 +398,86 @@ namespace MeshSerializer
 		Utl::CVector<uint16_t>	packedTexCoords{};
 		Utl::CVector<uint16_t>	packedTangents{};
 
-		// Positions.
 		{
-			for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+			for (int iSubmesh = 0; iSubmesh < meshHeaders.Count(); iSubmesh++)
 			{
-				float flNormalizedX = (vertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
-				float flNormalizedY = (vertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
-				float flNormalizedZ = (vertexPositions[iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
+				// Positions.
+				for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+				{
+					float flNormalizedX = (vertexPositions[iSubmesh][iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
+					float flNormalizedY = (vertexPositions[iSubmesh][iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
+					float flNormalizedZ = (vertexPositions[iSubmesh][iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
 
-				uint16_t packedPosX = PackF32ToUint16(flNormalizedX);
-				uint16_t packedPosY = PackF32ToUint16(flNormalizedY);
-				uint16_t packedPosZ = PackF32ToUint16(flNormalizedZ);
-				packedPositions.PushBack(packedPosX);
-				packedPositions.PushBack(packedPosY);
-				packedPositions.PushBack(packedPosZ);
+					uint16_t packedPosX = PackF32ToUint16(flNormalizedX);
+					uint16_t packedPosY = PackF32ToUint16(flNormalizedY);
+					uint16_t packedPosZ = PackF32ToUint16(flNormalizedZ);
+					packedPositions.PushBack(packedPosX);
+					packedPositions.PushBack(packedPosY);
+					packedPositions.PushBack(packedPosZ);
+				}
+
+				// Normals.
+				{
+					for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal++)
+					{
+						float flNormalizedNormalX = (vertexNormals[iSubmesh][iNormal].x + 1.0f) / (2.0f);
+						float flNormalizedNormalY = (vertexNormals[iSubmesh][iNormal].y + 1.0f) / (2.0f);
+						float flNormalizedNormalZ = (vertexNormals[iSubmesh][iNormal].z + 1.0f) / (2.0f);
+
+						uint16_t packedNormalX = PackF32ToUint16(flNormalizedNormalX);
+						uint16_t packedNormalY = PackF32ToUint16(flNormalizedNormalY);
+						uint16_t packedNormalZ = PackF32ToUint16(flNormalizedNormalZ);
+						packedNormals.PushBack(packedNormalX);
+						packedNormals.PushBack(packedNormalY);
+						packedNormals.PushBack(packedNormalZ);
+					}
+				}
+
+				// Texcoords.
+				{
+					for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord++)
+					{
+						const float flPackedTexCoordMins = -512.0f;
+						const float flPackedTexCoordMaxs = 512.0f;
+
+						float flNormalizedTexCoordX = (vertexTexCoords[iSubmesh][iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+						float flNormalizedTexCoordY = (vertexTexCoords[iSubmesh][iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+
+						flNormalizedTexCoordX = (flNormalizedTexCoordX + 1.0f) / 2.0f;
+						flNormalizedTexCoordY = (flNormalizedTexCoordY + 1.0f) / 2.0f;
+
+						uint16_t packedTexCoordX = PackF32ToUint16(flNormalizedTexCoordX);
+						uint16_t packedTexCoordY = PackF32ToUint16(flNormalizedTexCoordY);
+						packedTexCoords.PushBack(packedTexCoordX);
+						packedTexCoords.PushBack(packedTexCoordY);
+					}
+				}
+
+				// Tangents.
+				{
+					for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent++)
+					{
+						// Tangents are already normalized. Just bring from [-1, 1] to [0, 1].
+						float flNormalizedTangentX = (vertexTangents[iSubmesh][iTangent].x + 1.0f) / 2.0f;
+						float flNormalizedTangentY = (vertexTangents[iSubmesh][iTangent].y + 1.0f) / 2.0f;
+						float flNormalizedTangentZ = (vertexTangents[iSubmesh][iTangent].z + 1.0f) / 2.0f;
+
+						CAssert(flNormalizedTangentX >= 0.0f && flNormalizedTangentX <= 1.0f);
+						CAssert(flNormalizedTangentY >= 0.0f && flNormalizedTangentY <= 1.0f);
+						CAssert(flNormalizedTangentZ >= 0.0f && flNormalizedTangentZ <= 1.0f);
+
+						uint16_t packedTangentX = PackF32ToUint16(flNormalizedTangentX);
+						uint16_t packedTangentY = PackF32ToUint16(flNormalizedTangentY);
+						uint16_t packedTangentZ = PackF32ToUint16(flNormalizedTangentZ);
+						packedTangents.PushBack(packedTangentX);
+						packedTangents.PushBack(packedTangentY);
+						packedTangents.PushBack(packedTangentZ);
+					}
+				}
 			}
 		}
 
-		// Normals.
-		{
-			for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal++)
-			{
-				float flNormalizedNormalX = (vertexNormals[iNormal].x + 1.0f) / (2.0f);
-				float flNormalizedNormalY = (vertexNormals[iNormal].y + 1.0f) / (2.0f);
-				float flNormalizedNormalZ = (vertexNormals[iNormal].z + 1.0f) / (2.0f);
-
-				uint16_t packedNormalX = PackF32ToUint16(flNormalizedNormalX);
-				uint16_t packedNormalY = PackF32ToUint16(flNormalizedNormalY);
-				uint16_t packedNormalZ = PackF32ToUint16(flNormalizedNormalZ);
-				packedNormals.PushBack(packedNormalX);
-				packedNormals.PushBack(packedNormalY);
-				packedNormals.PushBack(packedNormalZ);
-			}
-		}
-
-		// Texcoords.
-		{
-			for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord++)
-			{
-				const float flPackedTexCoordMins = -512.0f;
-				const float flPackedTexCoordMaxs = 512.0f;
-
-				float flNormalizedTexCoordX = (vertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-				float flNormalizedTexCoordY = (vertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-
-				flNormalizedTexCoordX = (flNormalizedTexCoordX + 1.0f) / 2.0f;
-				flNormalizedTexCoordY = (flNormalizedTexCoordY + 1.0f) / 2.0f;
-
-				uint16_t packedTexCoordX = PackF32ToUint16(flNormalizedTexCoordX);
-				uint16_t packedTexCoordY = PackF32ToUint16(flNormalizedTexCoordY);
-				packedTexCoords.PushBack(packedTexCoordX);
-				packedTexCoords.PushBack(packedTexCoordY);
-			}
-		}
-
-		// Tangents.
-		{
-			for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent++)
-			{
-				// Tangents are already normalized. Just bring from [-1, 1] to [0, 1].
-				float flNormalizedTangentX = (vertexTangents[iTangent].x + 1.0f) / 2.0f;
-				float flNormalizedTangentY = (vertexTangents[iTangent].y + 1.0f) / 2.0f;
-				float flNormalizedTangentZ = (vertexTangents[iTangent].z + 1.0f) / 2.0f;
-
-				CAssert(flNormalizedTangentX >= 0.0f && flNormalizedTangentX <= 1.0f);
-				CAssert(flNormalizedTangentY >= 0.0f && flNormalizedTangentY <= 1.0f);
-				CAssert(flNormalizedTangentZ >= 0.0f && flNormalizedTangentZ <= 1.0f);
-
-				uint16_t packedTangentX = PackF32ToUint16(flNormalizedTangentX);
-				uint16_t packedTangentY = PackF32ToUint16(flNormalizedTangentY);
-				uint16_t packedTangentZ = PackF32ToUint16(flNormalizedTangentZ);
-				packedTangents.PushBack(packedTangentX);
-				packedTangents.PushBack(packedTangentY);
-				packedTangents.PushBack(packedTangentZ);
-			}
-		}
-
+		// FIXME: This is broken since we need to write out geometry data in double arrays now!!!
 		// Setup offsets/counts.
 		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
@@ -615,9 +633,75 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
+	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurSubmesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
 	{
-		LOG_WARN("TODO: Implement Geometry Deduplication!");
+		Utl::CVector<Vertex3D> uniqueVerts{};
+		Utl::CVector<Vector> uniquePositions{};
+		Utl::CVector<Vector> uniqueNormals{};
+		Utl::CVector<Vector2D> uniqueTexCoords{};
+
+		// LEFTOFF: We need to do this on a per-submesh basis, not across the whole model.
+		for (uint32_t iFace = 0; iFace < pCurSubmesh.iNumFaces; iFace++)
+		{
+			// Create temp verts to represent the data we're evaluating.
+			Utl::CVector<Vertex3D> tempVerts(3);
+			tempVerts[0].Pos = pPositions[pFaces[pCurSubmesh.pFaceIndices[iFace]].iPositionIndices[0]];
+			tempVerts[0].Normal = pNormals[pFaces[pCurSubmesh.pFaceIndices[iFace]].iNormalIndices[0]];
+			tempVerts[0].TexCoord = pTexCoords[pFaces[pCurSubmesh.pFaceIndices[iFace]].iTexCoordIndices[0]];
+
+			tempVerts[1].Pos = pPositions[pFaces[pCurSubmesh.pFaceIndices[iFace]].iPositionIndices[1]];
+			tempVerts[1].Normal = pNormals[pFaces[pCurSubmesh.pFaceIndices[iFace]].iNormalIndices[1]];
+			tempVerts[1].TexCoord = pTexCoords[pFaces[pCurSubmesh.pFaceIndices[iFace]].iTexCoordIndices[1]];
+
+			tempVerts[2].Pos = pPositions[pFaces[pCurSubmesh.pFaceIndices[iFace]].iPositionIndices[2]];
+			tempVerts[2].Normal = pNormals[pFaces[pCurSubmesh.pFaceIndices[iFace]].iNormalIndices[2]];
+			tempVerts[2].TexCoord = pTexCoords[pFaces[pCurSubmesh.pFaceIndices[iFace]].iTexCoordIndices[2]];
+
+			// Check through the unique verts to determine if these are duplicates.
+			for (int iVert = 0; iVert < 3; iVert++)
+			{
+				bool bUniqueVert = true;
+
+				for (int iUniqueVert = 0; iUniqueVert < uniqueVerts.Count(); iUniqueVert++)
+				{
+					if ((tempVerts[iVert].Pos == uniqueVerts[iUniqueVert].Pos) && 
+						(tempVerts[iVert].Normal == uniqueVerts[iUniqueVert].Normal) &&
+						(tempVerts[iVert].TexCoord == uniqueVerts[iUniqueVert].TexCoord))
+					{
+						// Duplicate vert, reassign indices.
+						// TODO: DO THE THING
+						bUniqueVert = false;
+						break;
+					}
+				}
+
+				if (bUniqueVert)
+				{
+					// Store this vert's data off.
+					uniqueVerts.PushBack(tempVerts[iVert]);
+				}
+			}
+		}
+
+		// Write out all unique vert data.
+		for (int iVert = 0; iVert < uniqueVerts.Count(); iVert++)
+		{
+			uniquePositions.PushBack(uniqueVerts[iVert].Pos);
+			uniqueNormals.PushBack(uniqueVerts[iVert].Normal);
+			uniqueTexCoords.PushBack(uniqueVerts[iVert].TexCoord);
+		}
+
+		Utl::CVector<Vector> oldPositions = pPositions;
+		pPositions = uniquePositions;
+		oldPositions.Clear();
+
+		Utl::CVector<Vector> oldNormals = pNormals;
+		pNormals = uniqueNormals;
+		oldNormals.Clear();
+
+		Utl::CVector<Vector2D> oldTexCoords = pTexCoords;
+		pTexCoords = uniqueTexCoords;
+		oldTexCoords.Clear();
 	}
 
 	static uint16_t PackF32ToUint16(const float flUnitFloat)

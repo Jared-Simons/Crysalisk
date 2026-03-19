@@ -163,7 +163,6 @@ namespace MeshLoader
 		CAssert((pFileHeader->iPositionCount % 3) == 0);
 		
 		// Positions.
-		//uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
 		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount];
 		Vector* pAssembledPositions = new Vector[pFileHeader->iPositionCount + 3];
 
@@ -190,7 +189,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Normals.
-		//uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount];
 		Vector* pAssembledNormals = new Vector[pFileHeader->iNormalCount + 3];
 
@@ -216,7 +214,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Texcoords.
-		//uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount];
 		Vector2D* pAssembledTexCoords = new Vector2D[pFileHeader->iTexCoordCount + 3];
 
@@ -244,7 +241,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Tangents.
-		//uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount];
 		Vector* pAssembledTangents = new Vector[pFileHeader->iTangentCount + 3];
 
@@ -283,11 +279,8 @@ namespace MeshLoader
 			//pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
 			//pCurOutMesh.iIndexCount = pCurMeshHeader.iNumFaces * 3;
 
-			// LEFTOFF: There is something screwy happening here with the faces
-
 			for (uint32_t iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
-				//uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
 				uint16_t curFaceIndex = iFace;
 
 				for (int iVert = 0; iVert < 3; iVert++)
