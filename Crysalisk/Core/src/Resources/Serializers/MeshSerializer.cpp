@@ -52,7 +52,7 @@ namespace MeshSerializer
 	//		into the byte-stream).
 	// - Write out all tables								[X]
 	//-------------------------------------------------------------------------
-	bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName)
+	bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource)
 	{
 		// Make sure the path is valid.
 		// We can technically proceed without having an output file name, 
@@ -555,7 +555,7 @@ namespace MeshSerializer
 		flPercentReduced *= 100.0f;
 		LOG_INFO("Mesh '%s' compressed from %d bytes to %d bytes ->(%.2f%%)", pszOBJMeshPath, iOriginalByteSize, iTotalBytesWritten, flPercentReduced);
 
-		return true;
+		return MeshLoader::LoadMeshResource((char*)pszOutMeshFileName, pOutResource);
 	}
 
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)

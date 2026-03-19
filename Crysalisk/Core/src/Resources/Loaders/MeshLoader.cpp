@@ -69,7 +69,7 @@ namespace MeshLoader
 			if (FileSystem::FileExists(szFormattedPathWithExtension))
 			{
 				//return LoadOBJMeshResource(szFormattedPathWithExtension, pOutResource);
-				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, pszMeshFileName);
+				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, pszMeshFileName, pOutResource);
 			}
 
 			LOG_ERROR("Mesh resource file '%s' could not be found. Mesh resource load failed.", pszMeshFileName);

@@ -19,7 +19,7 @@ namespace MeshSerializer
 	CORE_API bool SerializeMeshResource(const char* pszModelName, struct MeshLoader::MeshResource_t& pInResource);
 
 	// Writes out a model in our own binary format directly from a source file.
-	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName);
+	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource);
 
 	// TODO: Documentation.
 	typedef uint16_t VertexLayoutFlags_t;
