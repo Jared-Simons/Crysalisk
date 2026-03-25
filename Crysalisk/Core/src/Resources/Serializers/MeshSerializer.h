@@ -70,6 +70,8 @@ namespace MeshSerializer
 		uint64_t	iTangentTableOffset{ 0 };
 		uint32_t	iTangentCount{ 0 };
 		uint8_t		iTangentStride{ 0 };
+
+		uint64_t	iMaterialTableOffset{ 0 };
 	};
 
 	struct CModel_MeshFaceData_t

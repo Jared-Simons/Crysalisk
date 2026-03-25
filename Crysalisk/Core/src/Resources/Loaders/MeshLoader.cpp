@@ -283,8 +283,6 @@ namespace MeshLoader
 			//pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
 			//pCurOutMesh.iIndexCount = pCurMeshHeader.iNumFaces * 3;
 
-			// LEFTOFF: There is something screwy happening here with the faces
-
 			for (uint32_t iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
 				//uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];

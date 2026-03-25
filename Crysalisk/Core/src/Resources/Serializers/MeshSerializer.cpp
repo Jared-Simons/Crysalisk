@@ -20,7 +20,8 @@ namespace MeshSerializer
 
 	// Forward declarations
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void ImportOBJMaterialLibrary(const char* pszMaterialLibraryName);
 	static uint16_t PackF32ToUint16(const float flUnitFloat);
 	static float UnpackF32FromUint16(const uint16_t inputData);
 
@@ -186,15 +187,28 @@ namespace MeshSerializer
 		// Rewind the file so we can read it through again.
 		FileSystem::ReturnFilePointerToHead(&hOBJFile);
 
+		// Temp geometry tables.
+		// NOTE: Using nested arrays here so that we can easily de-duplicate per mesh instead of across the whole model.
+		// Then just write the unique data to the final arrays.
+		Utl::CVector<Utl::CVector<Vector>>					vertexPositions{};
+		Utl::CVector<Utl::CVector<Vector>>					vertexNormals{};
+		Utl::CVector<Utl::CVector<Vector2D>>				vertexTexCoords{};
+		Utl::CVector<Utl::CVector<CModel_MeshFaceData_t>>	meshFaces{};
+
 		// Geometry data.
 		Utl::CVector<CModel_MeshHeader_t>	meshHeaders{};
-		Utl::CVector<CModel_MeshFaceData_t>	meshFaces{};
+		Utl::CVector<CModel_MeshFaceData_t>	finalMeshFaces{};
 
-		// Build out geometry tables.
-		Utl::CVector<Vector>	vertexPositions{};
-		Utl::CVector<Vector>	vertexNormals{};
-		Utl::CVector<Vector2D>	vertexTexCoords{};
-		Utl::CVector<Vector>	vertexTangents{};
+		// Final geometry tables.
+		Utl::CVector<Vector>	finalVertexPositions{};
+		Utl::CVector<Vector>	finalVertexNormals{};
+		Utl::CVector<Vector2D>	finalVertexTexCoords{};
+		Utl::CVector<Vector>	finalVertexTangents{};
+
+		// Material stuff.
+		// CLEANUP: Scope this better?
+		char* pszMTLFilePath{ nullptr };
+		uint64_t iMatStringLength{ 0 };
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
@@ -225,6 +239,10 @@ namespace MeshSerializer
 				meshHeaders.PushBack(CModel_MeshHeader_t{});
 				meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 				meshHeaders.Back().iNumFaces = 0;
+				vertexPositions.PushBack(Utl::CVector<Vector>{});
+				vertexNormals.PushBack(Utl::CVector<Vector>{});
+				vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
+				meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
 				debugFaceCount = 0;
 
 				break;
@@ -239,6 +257,10 @@ namespace MeshSerializer
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
 					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 					meshHeaders.Back().iNumFaces = 0;
+					vertexPositions.PushBack(Utl::CVector<Vector>{});
+					vertexNormals.PushBack(Utl::CVector<Vector>{});
+					vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
+					meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
 				}
 				continue;
 			}
@@ -263,7 +285,8 @@ namespace MeshSerializer
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
 				
-				uint32_t iFaceIndex = (uint32_t)meshFaces.PushBack(newFace);
+				//uint32_t iFaceIndex = (uint32_t)meshFaces.Back().PushBack(newFace);
+				uint32_t iFaceIndex = (uint32_t)finalMeshFaces.PushBack(newFace);
 				
 				// Currently, we store face indices as uint32_t. If a single mesh contains more than than 4,294,967,295 values, then we need to re-evaluate.
 				if (iFaceIndex > 0xFFFFFFFF)
@@ -297,7 +320,7 @@ namespace MeshSerializer
 						CAssert(numElements == 3);
 
 						// Add it to the table.
-						vertexPositions.PushBack(newPosition);
+						vertexPositions.Back().PushBack(newPosition);
 						break;
 					}
 
@@ -313,7 +336,7 @@ namespace MeshSerializer
 						CAssert(newNormal.z <= 1.0f && newNormal.z >= -1.0f);
 
 						// Add it to the table.
-						vertexNormals.PushBack(newNormal);
+						vertexNormals.Back().PushBack(newNormal);
 						break;
 					}
 
@@ -328,7 +351,7 @@ namespace MeshSerializer
 						CAssert(newTexCoord.y <= 512.0f && newTexCoord.y >= -512.0f);
 
 						// Add it to the table.
-						vertexTexCoords.PushBack(newTexCoord);
+						vertexTexCoords.Back().PushBack(newTexCoord);
 						break;
 					}
 				}
@@ -336,32 +359,72 @@ namespace MeshSerializer
 			}
 
 			case 'm':
-				LOG_WARN("SerializeOBJMesh() -> IMPLEMENT MATERIAL LIBRARY PROCESSING!");
+				// Append the appropriate extension to the path.
+				// FIXME: THIS ASSUMES THAT THE MTLLIB FILE HAS THE SAME NAME AS THE OBJ!!
+				char* pszMTLFilePath = Utl::StringDuplicate(pszOBJMeshPath);
+				uint64_t iStringLength = Utl::StringLength(pszMTLFilePath);
+				pszMTLFilePath[iStringLength - 3] = 'm';
+				pszMTLFilePath[iStringLength - 2] = 't';
+				pszMTLFilePath[iStringLength - 1] = 'l';
+				pszMTLFilePath[iStringLength - 0] = '\0';
+				ImportOBJMaterialLibrary(pszMTLFilePath);
 				break;
 				
-			default:
+			/*default:
 				//CAssert(0);
-				break;
+				break;*/
 			}
 		}
 
 		LOG_INFO("Compressing mesh data.");
 		// TODO: This takes FOREVER on some not too large models (like sponza)
-		if (!Utl::StringCompare(pszOBJMeshPath, "Assets/Models/sponza.obj"))
-			DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, meshFaces);
+		//if (!Utl::StringCompare(pszOBJMeshPath, "Assets/Models/sponza.obj"))
+			//DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, meshFaces);
+
+		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		{
+			LOG_DEBUG("Geometry deduplication progress: %d/%d", iMesh, meshHeaders.Count());
+			DeduplicateGeometry(meshHeaders[iMesh], vertexPositions[iMesh], vertexNormals[iMesh], vertexTexCoords[iMesh], meshFaces[iMesh]);
+		}
+
+		// Copy all vertex data to the final arrays.
+		LOG_DEBUG("Writing final vertex data.");
+		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		{
+			for (uint64_t iPos = 0; iPos < vertexPositions[iMesh].Count(); iPos++)
+			{
+				finalVertexPositions.PushBack(vertexPositions[iMesh][iPos]);
+			}
+
+			for (uint64_t iNorm = 0; iNorm < vertexNormals[iMesh].Count(); iNorm++)
+			{
+				finalVertexNormals.PushBack(vertexNormals[iMesh][iNorm]);
+			}
+
+			for (uint64_t iTexCoord = 0; iTexCoord < vertexTexCoords[iMesh].Count(); iTexCoord++)
+			{
+				finalVertexTexCoords.PushBack(vertexTexCoords[iMesh][iTexCoord]);
+			}
+
+			// LEFTOFF: THIS IS BORKED
+			/*for (uint64_t iFace = 0; iFace < meshFaces[iMesh].Count(); iFace++)
+			{
+				finalMeshFaces.PushBack(meshFaces[iMesh][iFace]);
+			}*/
+		}
 
 		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
 		if (!bModelContainsVertexTangents)	// TODO: Make generating tangets optional.
 		{
 			LOG_INFO("Generating tangent data for mesh.");
-			GenerateTangentData(vertexPositions, vertexNormals, vertexTexCoords, vertexTangents, meshFaces);
+			GenerateTangentData(finalVertexPositions, finalVertexNormals, finalVertexTexCoords, finalVertexTangents, finalMeshFaces);
 			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
 
 		// Walk through all the position vectors to determine the extents of the geometry.
-		for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+		for (int iPos = 0; iPos < finalVertexPositions.Count(); iPos++)
 		{
-			Vector& pPos = vertexPositions[iPos];
+			Vector& pPos = finalVertexPositions[iPos];
 			if (pPos.x < outFileHeader.vecMinExtents.x)
 				outFileHeader.vecMinExtents.x = pPos.x;
 			if (pPos.y < outFileHeader.vecMinExtents.y)
@@ -386,11 +449,11 @@ namespace MeshSerializer
 
 		// Positions.
 		{
-			for (int iPos = 0; iPos < vertexPositions.Count(); iPos++)
+			for (int iPos = 0; iPos < finalVertexPositions.Count(); iPos++)
 			{
-				float flNormalizedX = (vertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
-				float flNormalizedY = (vertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
-				float flNormalizedZ = (vertexPositions[iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
+				float flNormalizedX = (finalVertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
+				float flNormalizedY = (finalVertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
+				float flNormalizedZ = (finalVertexPositions[iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
 
 				uint16_t packedPosX = PackF32ToUint16(flNormalizedX);
 				uint16_t packedPosY = PackF32ToUint16(flNormalizedY);
@@ -403,11 +466,11 @@ namespace MeshSerializer
 
 		// Normals.
 		{
-			for (int iNormal = 0; iNormal < vertexNormals.Count(); iNormal++)
+			for (int iNormal = 0; iNormal < finalVertexNormals.Count(); iNormal++)
 			{
-				float flNormalizedNormalX = (vertexNormals[iNormal].x + 1.0f) / (2.0f);
-				float flNormalizedNormalY = (vertexNormals[iNormal].y + 1.0f) / (2.0f);
-				float flNormalizedNormalZ = (vertexNormals[iNormal].z + 1.0f) / (2.0f);
+				float flNormalizedNormalX = (finalVertexNormals[iNormal].x + 1.0f) / (2.0f);
+				float flNormalizedNormalY = (finalVertexNormals[iNormal].y + 1.0f) / (2.0f);
+				float flNormalizedNormalZ = (finalVertexNormals[iNormal].z + 1.0f) / (2.0f);
 
 				uint16_t packedNormalX = PackF32ToUint16(flNormalizedNormalX);
 				uint16_t packedNormalY = PackF32ToUint16(flNormalizedNormalY);
@@ -420,13 +483,13 @@ namespace MeshSerializer
 
 		// Texcoords.
 		{
-			for (int iTexCoord = 0; iTexCoord < vertexTexCoords.Count(); iTexCoord++)
+			for (int iTexCoord = 0; iTexCoord < finalVertexTexCoords.Count(); iTexCoord++)
 			{
 				const float flPackedTexCoordMins = -512.0f;
 				const float flPackedTexCoordMaxs = 512.0f;
 
-				float flNormalizedTexCoordX = (vertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-				float flNormalizedTexCoordY = (vertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+				float flNormalizedTexCoordX = (finalVertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+				float flNormalizedTexCoordY = (finalVertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
 
 				flNormalizedTexCoordX = (flNormalizedTexCoordX + 1.0f) / 2.0f;
 				flNormalizedTexCoordY = (flNormalizedTexCoordY + 1.0f) / 2.0f;
@@ -440,12 +503,12 @@ namespace MeshSerializer
 
 		// Tangents.
 		{
-			for (int iTangent = 0; iTangent < vertexTangents.Count(); iTangent++)
+			for (int iTangent = 0; iTangent < finalVertexTangents.Count(); iTangent++)
 			{
 				// Tangents are already normalized. Just bring from [-1, 1] to [0, 1].
-				float flNormalizedTangentX = (vertexTangents[iTangent].x + 1.0f) / 2.0f;
-				float flNormalizedTangentY = (vertexTangents[iTangent].y + 1.0f) / 2.0f;
-				float flNormalizedTangentZ = (vertexTangents[iTangent].z + 1.0f) / 2.0f;
+				float flNormalizedTangentX = (finalVertexTangents[iTangent].x + 1.0f) / 2.0f;
+				float flNormalizedTangentY = (finalVertexTangents[iTangent].y + 1.0f) / 2.0f;
+				float flNormalizedTangentZ = (finalVertexTangents[iTangent].z + 1.0f) / 2.0f;
 
 				CAssert(flNormalizedTangentX >= 0.0f && flNormalizedTangentX <= 1.0f);
 				CAssert(flNormalizedTangentY >= 0.0f && flNormalizedTangentY <= 1.0f);
@@ -470,10 +533,10 @@ namespace MeshSerializer
 		{
 			outFileHeader.iFaceDataOffset += sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces;
 		}
-		outFileHeader.iFaceDataCount = (uint32_t)meshFaces.Count();
-		outFileHeader.iFaceDataStride = (uint8_t)meshFaces.Stride();
+		outFileHeader.iFaceDataCount = (uint32_t)finalMeshFaces.Count();
+		outFileHeader.iFaceDataStride = (uint8_t)finalMeshFaces.Stride();
 
-		outFileHeader.iPositionTableOffset = outFileHeader.iFaceDataOffset + (meshFaces.Count() * meshFaces.Stride());
+		outFileHeader.iPositionTableOffset = outFileHeader.iFaceDataOffset + (finalMeshFaces.Count() * finalMeshFaces.Stride());
 		outFileHeader.iPositionCount = (uint32_t)packedPositions.Count();
 		outFileHeader.iPositionStride = (uint8_t)packedPositions.Stride();
 
@@ -488,6 +551,8 @@ namespace MeshSerializer
 		outFileHeader.iTangentTableOffset = outFileHeader.iTexCoordTableOffset + (outFileHeader.iTexCoordStride * outFileHeader.iTexCoordCount);
 		outFileHeader.iTangentCount = (uint32_t)packedTangents.Count();
 		outFileHeader.iTangentStride = (uint8_t)packedTangents.Stride();
+
+		outFileHeader.iMaterialTableOffset = outFileHeader.iTangentTableOffset + (outFileHeader.iTangentStride * outFileHeader.iTangentCount);
 
 		// Place the resource's magic number first.
 		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
@@ -507,10 +572,10 @@ namespace MeshSerializer
 			}
 		}
 
-		if (meshFaces.Count() > 0)
+		if (finalMeshFaces.Count() > 0)
 		{
-			FileSystem::WriteBytes(meshFaces.Data(), meshFaces.Stride() * meshFaces.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += meshFaces.Stride() * meshFaces.Count();
+			FileSystem::WriteBytes(finalMeshFaces.Data(), finalMeshFaces.Stride() * finalMeshFaces.Count(), &hNewOutputMesh);
+			iTotalBytesWritten += finalMeshFaces.Stride() * finalMeshFaces.Count();
 		}
 
 		// Write out geometry tables.
@@ -615,9 +680,26 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
+	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
 	{
-		LOG_WARN("TODO: Implement Geometry Deduplication!");
+		// LEFTOFF: IMPLEMENT ME!
+	}
+
+	// FIXME: This should return a bool.
+	static void ImportOBJMaterialLibrary(const char* pszMaterialLibraryName)
+	{
+		CASSERTMSG(FileSystem::FileExists(pszMaterialLibraryName), "Missing OBJ Material File?");
+		FileHandle_t hMtlFile{};
+
+		if (!FileSystem::OpenFile(pszMaterialLibraryName, eFileMode::FILEMODE_READ, false, &hMtlFile))
+		{
+			LOG_ERROR("Failed to open OBJ MTL LIB file: '%s'.", pszMaterialLibraryName);
+			return;	// FIXME: return false.
+		}
+		
+		// LEFTOFF: Finish this.
+
+		FileSystem::CloseFile(&hMtlFile);
 	}
 
 	static uint16_t PackF32ToUint16(const float flUnitFloat)
