@@ -599,6 +599,7 @@ namespace MeshSerializer
 		{
 			for (unsigned int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 			{
+				FileSystem::WriteBytes(&meshHeaders[iMesh].iMaterialIndex, sizeof(uint32_t), &hNewOutputMesh);
 				FileSystem::WriteBytes(&meshHeaders[iMesh].iNumFaces, sizeof(uint32_t), &hNewOutputMesh);
 				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
 				iTotalBytesWritten += sizeof(uint32_t) + (sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces);

@@ -104,24 +104,36 @@ namespace MaterialLoader
 		~MaterialResource_t()
 		{
 			if (pszMaterialName)
+			{
 				Utl::StringFree(pszMaterialName);
+				pszMaterialName = nullptr;
+			}
 
 			if (pszShaderName)
+			{
 				Utl::StringFree(pszShaderName);
+				pszShaderName = nullptr;
+			}
 
 			textureMapConfigs.Clear();
 
 			for (int idx = 0; idx < pszCustomKeys.Count(); idx++)
 			{
 				if (pszCustomKeys[idx])
+				{
 					Utl::StringFree(pszCustomKeys[idx]);
+					pszCustomKeys[idx] = nullptr;
+				}
 			}
 			pszCustomKeys.Clear();
 			
 			for (int idx = 0; idx < pszCustomValues.Count(); idx++)
 			{
 				if (pszCustomValues[idx])
+				{
 					Utl::StringFree(pszCustomValues[idx]);
+					pszCustomValues[idx] = nullptr;
+				}
 			}
 			pszCustomValues.Clear();
 		}

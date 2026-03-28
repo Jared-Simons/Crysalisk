@@ -36,6 +36,7 @@ namespace MeshLoader
 		{
 			// The raw vertex data.
 			// This is dynamically allocated, must be freed by caller.
+			uint32_t	iMaterialIndex{ kInvalidID_U32 };
 			uint64_t	iVertexCount{ 0 };
 			byte*		pVertexData{ nullptr };
 			uint64_t	iIndexCount{ 0 };
@@ -81,11 +82,12 @@ namespace MeshLoader
 		uint16_t						iVertexLayoutFlags{ 0 };
 		// An array of meshes (or submeshes) in this model.
 		Utl::CVector<GeometryObject_t>	pMeshes{};
+		// An array of material resources related to this model.
+		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
+		Utl::CVector<char*>				pMaterialNames{};
 		// TODO: DEPRECATE THIS
 		// An array of submeshes.
 		//Utl::CVector<GeometryObject_t>						pSubmeshes{};
-		// An array of material resources related to this model.
-		Utl::CVector<MaterialLoader::MaterialResource_t>	pMaterials{};
 
 		// Transformation data.
 		Vector3D						vecPosition{};

@@ -365,7 +365,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
 		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
 		{
-			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
+			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "specular_shininess"))
 			{
 				float flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
 				// Set the instance uniform.

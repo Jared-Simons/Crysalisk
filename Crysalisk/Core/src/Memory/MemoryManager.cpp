@@ -158,26 +158,28 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 //-------------------------------------------------------------------------
 void CMemoryManager::Free(void* pMemBlock)
 {
-	m_pAllocMutex->Lock();
-	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
+	if (m_pAllocMutex->Lock())
 	{
-		CAssert(pMemBlock != nullptr);
-		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
-		if (bytesFreed < 1)
+		if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
 		{
-			// Check the header to see if we need to go through the platform layer.
-			if (*((uint16_t*)pMemBlock + kAllocHeaderSize) == kPlatformMemoryMarker)
+			CAssert(pMemBlock != nullptr);
+			int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+			if (bytesFreed < 1)
 			{
-				Platform::MemoryFree(pMemBlock);
-				pMemBlock = nullptr;
+				// Check the header to see if we need to go through the platform layer.
+				if (*((uint16_t*)pMemBlock + kAllocHeaderSize) == kPlatformMemoryMarker)
+				{
+					Platform::MemoryFree(pMemBlock);
+					pMemBlock = nullptr;
+					return;
+				}
 				return;
 			}
+
+			m_iNumBytesAllocated -= bytesFreed;
+			m_pAllocMutex->Unlock();
 			return;
 		}
-
-		m_iNumBytesAllocated -= bytesFreed;
-		m_pAllocMutex->Unlock();
-		return;
 	}
 
 	Platform::MemoryFree(pMemBlock);

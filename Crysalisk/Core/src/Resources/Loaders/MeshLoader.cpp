@@ -8,6 +8,7 @@
 
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Resources/Loaders/MaterialLoader.h"
 #include "Resources/Serializers/MaterialSerializer.h"
 #include "Resources/Serializers/MeshSerializer.h"
 
@@ -141,6 +142,10 @@ namespace MeshLoader
 		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
+			pMeshHeaders[iMesh].iMaterialIndex = *(uint32_t*)pBytes;
+			currOffset += sizeof(uint32_t);
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
 			pMeshHeaders[iMesh].iNumFaces = *(uint32_t*)pBytes;
 			pMeshHeaders[iMesh].pFaceIndices = new uint32_t[pMeshHeaders[iMesh].iNumFaces];
 
@@ -271,11 +276,22 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Materials.
-		// TODO: For now, just print them to know the memory is being read correctly.
+		pOutResource.pMaterialNames.Resize(pFileHeader->iMaterialCount);
+		pOutResource.pMaterialNames.SetCount(pFileHeader->iMaterialCount);
 		for (int iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
 		{
 			size_t iStringLength = Utl::StringLength((char*)pBytes);
-			LOG_DEBUG("%s", (char*)pBytes);
+			pOutResource.pMaterialNames[iMat] = Utl::StringDuplicate((char*)pBytes);
+			/*char szMaterialName[512];
+			Utl::StringFormat_V("%s%s%s", szMaterialName, MaterialSerializer::kDefaultMaterialAssetPath, (char*)pBytes, MaterialSerializer::kMaterialFileExtension);
+
+			MaterialLoader::MaterialResource_t newMaterial{};
+			if (!MaterialLoader::LoadMaterialResource(szMaterialName, newMaterial))
+			{
+				LOG_WARN("Failed to load material '%s'.", (char*)pBytes);
+			}
+			pOutResource.pMaterials.PushBack(newMaterial);*/ 
+
 			currOffset += iStringLength + 1;
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
@@ -288,6 +304,7 @@ namespace MeshLoader
 			MeshResource_t::GeometryObject_t&		pCurOutMesh = pOutResource.pMeshes[iMesh];
 			MeshSerializer::CModel_MeshHeader_t&	pCurMeshHeader = pMeshHeaders[iMesh];
 
+			pCurOutMesh.iMaterialIndex = pCurMeshHeader.iMaterialIndex;
 			pCurOutMesh.pVertexData = new byte[uVertexStride * pCurMeshHeader.iNumFaces * 3];
 			pCurOutMesh.iVertexCount = pCurMeshHeader.iNumFaces * 3;
 			CAssert(pCurMeshHeader.pFaceIndices != nullptr);

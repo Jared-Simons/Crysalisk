@@ -10,11 +10,6 @@
 
 namespace MaterialSerializer
 {
-	// Specific file extension for the Crysalisk material file format (CMaterials).
-	static const char*	kMaterialFileExtension = ".cmat";
-	// The default asset path to store material in.
-	static const char*	kDefaultMaterialAssetPath = "Assets/Materials/";
-
 	//-------------------------------------------------------------------------
 	// Purpose: Takes an existing material resource imported from another file type, 
 	// and writes it out to disk in our own material format.
@@ -32,7 +27,6 @@ namespace MaterialSerializer
 		size_t pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
 		size_t extensionLength = Utl::StringLength(kMaterialFileExtension);
 
-		//char* pTempNameBuffer = new char[512];
 		char pTempNameBuffer[512];
 		Utl::StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);
 
