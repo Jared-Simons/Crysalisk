@@ -32,7 +32,8 @@ namespace MaterialSerializer
 		size_t pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
 		size_t extensionLength = Utl::StringLength(kMaterialFileExtension);
 
-		char* pTempNameBuffer = new char[nameLength + pathLength + extensionLength + 1];
+		//char* pTempNameBuffer = new char[512];
+		char pTempNameBuffer[512];
 		Utl::StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);
 
 		FileHandle_t hCMaterialFile{};
@@ -89,8 +90,6 @@ namespace MaterialSerializer
 
 		// Close the file
 		FileSystem::CloseFile(&hCMaterialFile);
-
-		delete[] pTempNameBuffer;
 
 		return true;
 	}

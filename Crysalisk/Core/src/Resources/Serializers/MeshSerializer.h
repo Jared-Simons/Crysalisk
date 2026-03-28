@@ -72,6 +72,9 @@ namespace MeshSerializer
 		uint8_t		iTangentStride{ 0 };
 
 		uint64_t	iMaterialTableOffset{ 0 };
+		uint64_t	iMaterialCount{ 0 };
+		// NOTE: Material stride will depend on each string.
+		// The data is tightly packed, so the strings will be right next to each other.
 	};
 
 	struct CModel_MeshFaceData_t
@@ -85,6 +88,8 @@ namespace MeshSerializer
 	// Contains data specific to each mesh/submesh.
 	struct CModel_MeshHeader_t
 	{
+		// The index of this mesh's material in the model's material table.
+		uint32_t				iMaterialIndex{ kInvalidID_U32 };
 		uint32_t				iNumFaces{ 0 };
 		uint32_t*				pFaceIndices{ nullptr };
 		// The extents of this submesh.

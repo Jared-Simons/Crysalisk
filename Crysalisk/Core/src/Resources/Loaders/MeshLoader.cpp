@@ -267,6 +267,19 @@ namespace MeshLoader
 			iCurTangentVector++;
 		}
 
+		currOffset += (pFileHeader->iTangentCount * pFileHeader->iTangentStride);
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// Materials.
+		// TODO: For now, just print them to know the memory is being read correctly.
+		for (int iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		{
+			size_t iStringLength = Utl::StringLength((char*)pBytes);
+			LOG_DEBUG("%s", (char*)pBytes);
+			currOffset += iStringLength + 1;
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		}
+
 		pOutResource.pMeshes.Resize(pFileHeader->iMeshDataCount);
 		pOutResource.pMeshes.SetCount(pFileHeader->iMeshDataCount);
 		pOutResource.iVertexLayoutFlags = pFileHeader->iVertexLayoutFlags;

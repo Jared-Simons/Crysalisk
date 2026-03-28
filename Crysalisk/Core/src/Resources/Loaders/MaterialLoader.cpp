@@ -69,7 +69,7 @@ namespace MaterialLoader
 			else if (Utl::StringCompare(szKey, "map_diffuse"))
 			{
 				// Diffuse texture map.
-				MaterialResource_t::eTextureMapConfig_t diffuseMap{};
+				MaterialResource_t::textureMapConfig_t diffuseMap{};
 				diffuseMap.pszTextureName = Utl::StringDuplicate(szValue);
 				diffuseMap.eType = MaterialResource_t::eTextureType::DIFFUSE;
 				pOutResource.textureMapConfigs.PushBack(diffuseMap);
@@ -77,7 +77,7 @@ namespace MaterialLoader
 			else if (Utl::StringCompare(szKey, "map_specular"))
 			{
 				// Specular texture map.
-				MaterialResource_t::eTextureMapConfig_t specularMap{};
+				MaterialResource_t::textureMapConfig_t specularMap{};
 				specularMap.pszTextureName = Utl::StringDuplicate(szValue);
 				specularMap.eType = MaterialResource_t::eTextureType::SPECULAR;
 				pOutResource.textureMapConfigs.PushBack(specularMap);
@@ -85,7 +85,7 @@ namespace MaterialLoader
 			else if (Utl::StringCompare(szKey, "map_normal"))
 			{
 				// Normal texture map.
-				MaterialResource_t::eTextureMapConfig_t normalMap{};
+				MaterialResource_t::textureMapConfig_t normalMap{};
 				normalMap.pszTextureName = Utl::StringDuplicate(szValue);
 				normalMap.eType = MaterialResource_t::eTextureType::NORMAL;
 				pOutResource.textureMapConfigs.PushBack(normalMap);

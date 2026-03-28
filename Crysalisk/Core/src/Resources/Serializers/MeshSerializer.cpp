@@ -6,6 +6,7 @@
 //=============================================================================
 #include "MeshSerializer.h"
 
+#include "MaterialSerializer.h"
 #include "Platform/FileSystem.h"
 
 #include <stdio.h>	// for sscanf()
@@ -21,7 +22,7 @@ namespace MeshSerializer
 	// Forward declarations
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
-	static void ImportOBJMaterialLibrary(const char* pszMaterialLibraryName);
+	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource);
 	static uint16_t PackF32ToUint16(const float flUnitFloat);
 	static float UnpackF32FromUint16(const uint16_t inputData);
 
@@ -208,11 +209,13 @@ namespace MeshSerializer
 		// Material stuff.
 		// CLEANUP: Scope this better?
 		char* pszMTLFilePath{ nullptr };
-		uint64_t iMatStringLength{ 0 };
+		// Contains all of the material names encountered (does not contain repeats!)
+		Utl::CVector<char*>		materialNames{};
+		char* pszMaterialName{ nullptr };
+		bool bMatFound = false;
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
-		uint64_t debugFaceCount{ 0 };
 
 		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
 		{
@@ -243,8 +246,6 @@ namespace MeshSerializer
 				vertexNormals.PushBack(Utl::CVector<Vector>{});
 				vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
 				meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
-				debugFaceCount = 0;
-
 				break;
 			}
 
@@ -296,14 +297,42 @@ namespace MeshSerializer
 				}
 				meshHeaders.Back().pFaceIndices[meshHeaders.Back().iNumFaces] = iFaceIndex;
 				meshHeaders.Back().iNumFaces++;
-				debugFaceCount++;
 				break;
 			}
 
 			case 'u':
 				// New Material.
-				// TODO: Implement!
-				break;
+				// Optimize, maybe this could be made faster with a hashmap??
+				// This could become taxing on VERY large models.
+
+				// Get just the material name.
+				pszMaterialName = &szCurrentLine[7];
+				bMatFound = false;
+
+				// Check to see if we've seen this material yet.
+				for (int iMat = 0; iMat < materialNames.Count(); iMat++)
+				{
+					if (Utl::StringCompare(pszMaterialName, materialNames[iMat]))
+					{
+						// This material already exists in the table!
+						bMatFound = true;
+						meshHeaders.Back().iMaterialIndex = iMat;
+						break;
+					}
+				}
+
+				// This material still needs to be added.
+				if (!bMatFound)
+				{
+					materialNames.PushBack(Utl::StringDuplicate(pszMaterialName));
+					meshHeaders.Back().iMaterialIndex = (uint32_t)materialNames.Count() - 1;
+					break;
+				}
+				else
+				{
+					// Just break out.
+					break;
+				}
 
 			case 's':	// Smoothing groups, not using these.
 				continue;
@@ -367,7 +396,10 @@ namespace MeshSerializer
 				pszMTLFilePath[iStringLength - 2] = 't';
 				pszMTLFilePath[iStringLength - 1] = 'l';
 				pszMTLFilePath[iStringLength - 0] = '\0';
-				ImportOBJMaterialLibrary(pszMTLFilePath);
+				if (!ImportOBJMaterialLibrary(pszMTLFilePath, pOutResource))
+				{
+					// FIXME: What to do if this fails?
+				}
 				break;
 				
 			/*default:
@@ -553,6 +585,7 @@ namespace MeshSerializer
 		outFileHeader.iTangentStride = (uint8_t)packedTangents.Stride();
 
 		outFileHeader.iMaterialTableOffset = outFileHeader.iTangentTableOffset + (outFileHeader.iTangentStride * outFileHeader.iTangentCount);
+		outFileHeader.iMaterialCount = (uint32_t)materialNames.Count();
 
 		// Place the resource's magic number first.
 		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
@@ -598,6 +631,20 @@ namespace MeshSerializer
 		{
 			FileSystem::WriteBytes(packedTangents.Data(), packedTangents.Stride() * packedTangents.Count(), &hNewOutputMesh);
 			iTotalBytesWritten += packedTangents.Stride() * packedTangents.Count();
+		}
+
+		// Write out material data.
+		if (materialNames.Count() > 0)
+		{
+			for (int iMaterial = 0; iMaterial < materialNames.Count(); iMaterial++)
+			{
+				size_t iStringLength = Utl::StringLength(materialNames[iMaterial]);
+				char szMatName[512];
+				Platform::MemoryCopy(szMatName, materialNames[iMaterial], iStringLength);
+				szMatName[iStringLength] = 0;
+				FileSystem::WriteBytes(szMatName, iStringLength + 1, &hNewOutputMesh);
+				iTotalBytesWritten += (iStringLength + 1);
+			}
 		}
 
 		// Clean up arrays.
@@ -685,8 +732,7 @@ namespace MeshSerializer
 		// LEFTOFF: IMPLEMENT ME!
 	}
 
-	// FIXME: This should return a bool.
-	static void ImportOBJMaterialLibrary(const char* pszMaterialLibraryName)
+	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource)
 	{
 		CASSERTMSG(FileSystem::FileExists(pszMaterialLibraryName), "Missing OBJ Material File?");
 		FileHandle_t hMtlFile{};
@@ -694,12 +740,88 @@ namespace MeshSerializer
 		if (!FileSystem::OpenFile(pszMaterialLibraryName, eFileMode::FILEMODE_READ, false, &hMtlFile))
 		{
 			LOG_ERROR("Failed to open OBJ MTL LIB file: '%s'.", pszMaterialLibraryName);
-			return;	// FIXME: return false.
+			return false;
 		}
 		
-		// LEFTOFF: Finish this.
+		// Read through the file.
+		char	szCurrentLine[2048];
+		size_t	iBytesRead{ 0 };
+		size_t	iCurrentLineLength{ 0 };
+		char	szKey[512];
+		char	szValue[512];
+
+		Utl::CVector<MaterialLoader::MaterialResource_t> processedMaterialEntries{};
+
+		while (FileSystem::ReadLine(szCurrentLine, 2048, &iBytesRead, &hMtlFile))
+		{
+			iCurrentLineLength = Utl::StringLength(szCurrentLine);
+			// Skip blank lines and comments.
+			if (iCurrentLineLength <= 0 || szCurrentLine[0] == '#')
+				continue;
+
+			size_t iSpaceIndex = Utl::StringIndexOf(szCurrentLine, ' ');
+			CAssert(iSpaceIndex != kInvalidID_U32);
+
+			// Split into key/value pairs.
+			Platform::MemoryCopy(szKey, szCurrentLine, iSpaceIndex);
+			szKey[iSpaceIndex] = '\0';
+			Platform::MemoryCopy(szValue, &szCurrentLine[iSpaceIndex + 1], iBytesRead - iSpaceIndex);
+			szValue[iBytesRead - 1] = '\0';
+
+			// FIXME: We should be able to do this in place.
+			char* pszTrimmedKey = Utl::StringTrim(szKey);
+
+			if (Utl::StringCompare(pszTrimmedKey, "newmtl"))	// New material declaration.
+			{
+				processedMaterialEntries.PushBack(MaterialLoader::MaterialResource_t{});
+				processedMaterialEntries.Back().pszMaterialName = Utl::StringDuplicate(szValue);
+				processedMaterialEntries.Back().pszShaderName = Utl::StringDuplicate("Core.Phong");		// Default hardcoded shader.
+			}
+			else if (Utl::StringCompare(pszTrimmedKey, "map_Kd"))	// Diffuse map.
+			{
+				MaterialLoader::MaterialResource_t::textureMapConfig_t newMap{};
+				newMap.pszTextureName = Utl::StringDuplicate(szValue);
+				newMap.eType = MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE;
+				processedMaterialEntries.Back().textureMapConfigs.PushBack(newMap);
+			}
+			else if (Utl::StringCompare(pszTrimmedKey, "map_Ks"))	// Specular map.
+			{
+				MaterialLoader::MaterialResource_t::textureMapConfig_t newMap{};
+				newMap.pszTextureName = Utl::StringDuplicate(szValue);
+				newMap.eType = MaterialLoader::MaterialResource_t::eTextureType::SPECULAR;
+				processedMaterialEntries.Back().textureMapConfigs.PushBack(newMap);
+			}
+			else if (Utl::StringCompare(pszTrimmedKey, "map_bump"))	// Normal map.
+			{
+				MaterialLoader::MaterialResource_t::textureMapConfig_t newMap{};
+				newMap.pszTextureName = Utl::StringDuplicate(szValue);
+				newMap.eType = MaterialLoader::MaterialResource_t::eTextureType::NORMAL;
+				processedMaterialEntries.Back().textureMapConfigs.PushBack(newMap);
+			}
+			else if (Utl::StringCompare(pszTrimmedKey, "Ns"))	// Specular exponent.
+			{
+				processedMaterialEntries.Back().pszCustomKeys.PushBack("specular_shininess");
+				processedMaterialEntries.Back().pszCustomValues.PushBack((char*)0);
+				processedMaterialEntries.Back().pszCustomValues.Back() = Utl::StringDuplicate(szValue);
+			}
+
+			Utl::StringFree(pszTrimmedKey);
+			pszTrimmedKey = nullptr;
+		}
 
 		FileSystem::CloseFile(&hMtlFile);
+
+		// Write out all of these materials.
+		for (int iMat = 0; iMat < processedMaterialEntries.Count(); iMat++)
+		{
+			LOG_INFO("Saving material '%s'.", processedMaterialEntries[iMat].pszMaterialName);
+			if (!MaterialSerializer::SerializeMaterialResources(processedMaterialEntries[iMat].pszMaterialName, processedMaterialEntries[iMat]))
+			{
+				LOG_ERROR("Failed to serialize material resource '%s'...", processedMaterialEntries[iMat].pszMaterialName);
+			}
+		}
+
+		return true;
 	}
 
 	static uint16_t PackF32ToUint16(const float flUnitFloat)
