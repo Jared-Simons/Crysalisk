@@ -230,8 +230,8 @@ namespace MeshLoader
 		uint64_t iCurTexCoord = 0;
 		for (unsigned int iTexCoord = 0; iTexCoord < pFileHeader->iTexCoordCount; iTexCoord += 2)
 		{
-			const float flPackedTexCoordMins = -512.0f;
-			const float flPackedTexCoordMaxs = 512.0f;
+			const float flPackedTexCoordMins = -64.0f;
+			const float flPackedTexCoordMaxs = 64.0f;
 
 			float flUnpackedUnitFloatX = UnpackF32FromUint16(pPackedTexCoords[iTexCoord + 0]);
 			float flUnpackedUnitFloatY = UnpackF32FromUint16(pPackedTexCoords[iTexCoord + 1]);

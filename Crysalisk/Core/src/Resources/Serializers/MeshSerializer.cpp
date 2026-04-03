@@ -518,8 +518,8 @@ namespace MeshSerializer
 		{
 			for (int iTexCoord = 0; iTexCoord < finalVertexTexCoords.Count(); iTexCoord++)
 			{
-				const float flPackedTexCoordMins = -512.0f;
-				const float flPackedTexCoordMaxs = 512.0f;
+				const float flPackedTexCoordMins = -64.0f;
+				const float flPackedTexCoordMaxs = 64.0f;
 
 				float flNormalizedTexCoordX = (finalVertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
 				float flNormalizedTexCoordY = (finalVertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
