@@ -5,8 +5,34 @@ struct DirectionalLight_t
 {
 	vec3	vecDirection;
 	vec3	lightColor;
+	float	flBrightness;
 	vec3	ambientLightColor;
 	float	flAmbientStrength;
+};
+
+struct PointLight_t
+{
+	vec3 vecPosition;
+	vec3 lightColor;
+	float flBrightness;
+
+	float flConstant;
+	float flLinear;
+	float flQuadratic;
+};
+
+struct SpotLight_t
+{
+	vec3	vecPosition;
+	vec3	vecDirection;
+	vec3	lightColor;
+	float	flBrightness;
+
+	float	flConstant;
+	float	flLinear;
+	float	flQuadratic;
+	float	flInnerCutoff;
+	float	flOuterCutoff;
 };
 
 // Vertex input
@@ -33,8 +59,12 @@ layout(set = 0, binding = 0) uniform GlobalUniformBuffer
 	mat4 projection;
 	mat4 view;
 	vec3 viewPos;
-	vec3 dirLightPos;
 	DirectionalLight_t dirLight;
+	PointLight_t pointLight1;
+	PointLight_t pointLight2;
+	PointLight_t pointLight3;
+	PointLight_t pointLight4;
+	SpotLight_t	 spotlight;
 	int	 renderMode;
 } global_ubo;
 
