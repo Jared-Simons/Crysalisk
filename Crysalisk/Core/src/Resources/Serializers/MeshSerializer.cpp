@@ -251,9 +251,10 @@ namespace MeshSerializer
 
 			case 'g':
 			{
-				// Skip new groups, we'll just put all the geometry in the same mesh.
-				// TODO: How to handle meshes that use JUST 'g' instead of 'o' or 'o' and 'g'?
-				if (meshHeaders.Count() < 1)
+				// We only want to use 'group' tags in two cases:
+				// A.) when there are currently NO objects declared (this mesh might be using groups only instead of objects with groups).
+				// B.) if the current object has any face data in it, as new groups usually come with new materials, which we want to split off into different pieces of geo.
+				if (meshHeaders.Count() == 0 || meshHeaders.Back().iNumFaces > 0)
 				{
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
 					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
@@ -563,7 +564,7 @@ namespace MeshSerializer
 		outFileHeader.iFaceDataOffset = outFileHeader.iMeshDataOffset + (meshHeaders.Stride() * meshHeaders.Count());
 		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
-			outFileHeader.iFaceDataOffset += sizeof(uint16_t) * meshHeaders[iMesh].iNumFaces;
+			outFileHeader.iFaceDataOffset += sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces;
 		}
 		outFileHeader.iFaceDataCount = (uint32_t)finalMeshFaces.Count();
 		outFileHeader.iFaceDataStride = (uint8_t)finalMeshFaces.Stride();

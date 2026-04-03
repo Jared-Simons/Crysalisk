@@ -268,9 +268,15 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
 		// Acquire material resources.
-		if (pResource.pMaterialNames.Count() > 0)	// FIXME: We shouldn't need to check this.
+		if (pResource.pMaterialNames.Count() > 0)
+		{
 			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialIndex]);
-
+		}
+		else
+		{
+			// Just grab the default if no materials were provided.
+			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->GetDefaultMaterialReference();
+		}
 		// TODO: Fix indexed drawing.
 		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.pVertexData, pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}
