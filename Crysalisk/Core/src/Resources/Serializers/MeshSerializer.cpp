@@ -8,6 +8,7 @@
 
 #include "MaterialSerializer.h"
 #include "Platform/FileSystem.h"
+#include "Utils/Utils.h"
 
 #include <stdio.h>	// for sscanf()
 #include <float.h>
@@ -23,36 +24,9 @@ namespace MeshSerializer
 	static void GenerateTangentData(Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource);
-	static uint16_t PackF32ToUint16(const float flUnitFloat);
-	static float UnpackF32FromUint16(const uint16_t inputData);
 
 	//-------------------------------------------------------------------------
-	// Purpose: Takes an existing mesh resource imported from another file type, 
-	// and writes it out to disk in our own binary format.
-	// 
-	// Input:	pszModelName - The name of the model.
-	//			pInResource - The resource data to be serialized.
-	// Output:	bool - Returns true on successful serialization, otherwise false.
-	//-------------------------------------------------------------------------
-	bool SerializeMeshResource(const char* pszModelName, MeshLoader::MeshResource_t& pInResource)
-	{
-		// TODO: REMOVE THIS!!
-
-		return true;
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: TODO: Documentation.
-	// 
-	// Mesh serialization algorithm:
-	// - Verify that source file exists						[X]
-	// - Determine the mesh's vertex layout					[X]
-	// - Process all elements into their own tables			[X]
-	// - Write out the file header							[X]
-	//		(Note that this has to happen after processing 
-	//		elements so that we can get their offsets 
-	//		into the byte-stream).
-	// - Write out all tables								[X]
+	// Purpose: Attempts to write an OBJ mesh out in our own mesh format.
 	//-------------------------------------------------------------------------
 	bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource)
 	{
@@ -140,9 +114,10 @@ namespace MeshSerializer
 		
 		LOG_INFO("Determining vertex layout");
 
-		// FIXME: Reading the whole file twice is kinda bad :(
-		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
+		bool bAllNecessaryAttributesFound = false;
+		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile) && !bAllNecessaryAttributesFound)
 		{
+			bAllNecessaryAttributesFound = bModelContainsVertexPositions && bModelContainsVertexNormals && bModelContainsVertexTexCoords;
 			firstChar = szCurrentLine[0];
 			secondChar = szCurrentLine[1];
 			if (firstChar == 'v')
@@ -207,7 +182,6 @@ namespace MeshSerializer
 		Utl::CVector<Vector>	finalVertexTangents{};
 
 		// Material stuff.
-		// CLEANUP: Scope this better?
 		char* pszMTLFilePath{ nullptr };
 		// Contains all of the material names encountered (does not contain repeats!)
 		Utl::CVector<char*>		materialNames{};
@@ -287,7 +261,6 @@ namespace MeshSerializer
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
 				
-				//uint32_t iFaceIndex = (uint32_t)meshFaces.Back().PushBack(newFace);
 				uint32_t iFaceIndex = (uint32_t)finalMeshFaces.PushBack(newFace);
 				
 				// Currently, we store face indices as uint32_t. If a single mesh contains more than than 4,294,967,295 values, then we need to re-evaluate.
@@ -390,7 +363,7 @@ namespace MeshSerializer
 
 			case 'm':
 				// Append the appropriate extension to the path.
-				// FIXME: THIS ASSUMES THAT THE MTLLIB FILE HAS THE SAME NAME AS THE OBJ!!
+				// NOTE: This assumes that the mtllib file has the same name as the OBJ.
 				char* pszMTLFilePath = Utl::StringDuplicate(pszOBJMeshPath);
 				uint64_t iStringLength = Utl::StringLength(pszMTLFilePath);
 				pszMTLFilePath[iStringLength - 3] = 'm';
@@ -399,7 +372,7 @@ namespace MeshSerializer
 				pszMTLFilePath[iStringLength - 0] = '\0';
 				if (!ImportOBJMaterialLibrary(pszMTLFilePath, pOutResource))
 				{
-					// FIXME: What to do if this fails?
+					LOG_ERROR("Failed to import '%s' material library! Will use default material.", pszMTLFilePath);
 				}
 				break;
 				
@@ -409,16 +382,14 @@ namespace MeshSerializer
 			}
 		}
 
-		LOG_INFO("Compressing mesh data.");
-		// TODO: This takes FOREVER on some not too large models (like sponza)
-		//if (!Utl::StringCompare(pszOBJMeshPath, "Assets/Models/sponza.obj"))
-			//DeduplicateGeometry(vertexPositions, vertexNormals, vertexTexCoords, meshFaces);
+		// LEFTOFF: Fix this.
+		/*LOG_INFO("Compressing mesh data.");
 
 		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
 			LOG_DEBUG("Geometry deduplication progress: %d/%d", iMesh, meshHeaders.Count());
 			DeduplicateGeometry(meshHeaders[iMesh], vertexPositions[iMesh], vertexNormals[iMesh], vertexTexCoords[iMesh], meshFaces[iMesh]);
-		}
+		}*/
 
 		// Copy all vertex data to the final arrays.
 		LOG_DEBUG("Writing final vertex data.");
@@ -438,16 +409,10 @@ namespace MeshSerializer
 			{
 				finalVertexTexCoords.PushBack(vertexTexCoords[iMesh][iTexCoord]);
 			}
-
-			// LEFTOFF: THIS IS BORKED
-			/*for (uint64_t iFace = 0; iFace < meshFaces[iMesh].Count(); iFace++)
-			{
-				finalMeshFaces.PushBack(meshFaces[iMesh][iFace]);
-			}*/
 		}
 
 		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
-		if (!bModelContainsVertexTangents)	// TODO: Make generating tangets optional.
+		if (!bModelContainsVertexTangents)
 		{
 			LOG_INFO("Generating tangent data for mesh.");
 			GenerateTangentData(finalVertexPositions, finalVertexNormals, finalVertexTexCoords, finalVertexTangents, finalMeshFaces);
@@ -474,7 +439,6 @@ namespace MeshSerializer
 		}
 
 		// Pack vectors into uints.
-		// TODO: Make this optional.
 		Utl::CVector<uint16_t>	packedPositions{};
 		Utl::CVector<uint16_t>	packedNormals{};
 		Utl::CVector<uint16_t>	packedTexCoords{};
@@ -824,33 +788,6 @@ namespace MeshSerializer
 		}
 
 		return true;
-	}
-
-	static uint16_t PackF32ToUint16(const float flUnitFloat)
-	{
-		const unsigned int numIntervals = 1U << 16;	// Number of unique values that can be stored in a uint16.
-
-		// Scale the unit value to fit within this range.
-		float flScaledFloat = flUnitFloat * (numIntervals - 1U);
-
-		// Round and truncate to an int.
-		uint16_t nRounded = (uint16_t)(flScaledFloat + 0.5f);
-
-		// Make sure we don't go outside of our valid range.
-		if (nRounded > numIntervals - 1)
-			nRounded = numIntervals - 1U;
-
-		return nRounded;
-	}
-
-	static float UnpackF32FromUint16(const uint16_t inputData)
-	{
-		const unsigned int numIntervals = 1U << 16;	// Number of unique values that can be stored in a uint16.
-
-		// Scale the data and store in a float.
-		float flUnitFloat = ((float)inputData / numIntervals);
-
-		return flUnitFloat;
 	}
 
 }	// namespace MeshSerializer

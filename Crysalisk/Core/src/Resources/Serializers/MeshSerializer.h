@@ -14,10 +14,6 @@ namespace MeshSerializer
 	// A Crysalisk-specific model asset (.cmodel_c file) must start with this magic number to be considered a valid resource.
 	static const uint64_t	kModelResourceMagicNumber = 0xCABED;
 
-	// Takes an existing mesh resource imported from another file type, and write it out to disk
-	// in our own binary format.
-	CORE_API bool SerializeMeshResource(const char* pszModelName, struct MeshLoader::MeshResource_t& pInResource);
-
 	// Writes out a model in our own binary format directly from a source file.
 	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource);
 

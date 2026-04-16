@@ -31,3 +31,7 @@ typeOut SimpleHash(typeIn pInput, size_t numElements)
 
 // Non-templated string version of the above. To keep things simple until we need a more generic hashing structure.
 int SimpleHash_StringToInt(const char* pInput, size_t numElements);
+
+// Packing utilities.
+uint16_t PackF32ToUint16(const float flUnitFloat);
+float UnpackF32FromUint16(const uint16_t inputData);

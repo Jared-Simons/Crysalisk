@@ -11,6 +11,7 @@
 #include "Resources/Loaders/MaterialLoader.h"
 #include "Resources/Serializers/MaterialSerializer.h"
 #include "Resources/Serializers/MeshSerializer.h"
+#include "Utils/Utils.h"
 
 #include <stdio.h> // For sscanf()
 
@@ -18,8 +19,6 @@ namespace MeshLoader
 {
 	// Helper functions.
 	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource);
-
-	static inline float UnpackF32FromUint16(const uint16_t inputData);
 
 	//-------------------------------------------------------------------------
 	// Purpose: The entrypoint for MeshLoader jobs.
@@ -69,7 +68,6 @@ namespace MeshLoader
 			Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".obj");
 			if (FileSystem::FileExists(szFormattedPathWithExtension))
 			{
-				//return LoadOBJMeshResource(szFormattedPathWithExtension, pOutResource);
 				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, pszMeshFileName, pOutResource);
 			}
 
@@ -168,7 +166,6 @@ namespace MeshLoader
 		CAssert((pFileHeader->iPositionCount % 3) == 0);
 		
 		// Positions.
-		//uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount + 3];	// +3 to avoid possible buffer overrun.
 		uint16_t* pPackedPositions = new uint16_t[pFileHeader->iPositionCount];
 		Vector* pAssembledPositions = new Vector[pFileHeader->iPositionCount + 3];
 
@@ -195,7 +192,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Normals.
-		//uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedNormals = new uint16_t[pFileHeader->iNormalCount];
 		Vector* pAssembledNormals = new Vector[pFileHeader->iNormalCount + 3];
 
@@ -221,7 +217,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Texcoords.
-		//uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedTexCoords = new uint16_t[pFileHeader->iTexCoordCount];
 		Vector2D* pAssembledTexCoords = new Vector2D[pFileHeader->iTexCoordCount + 3];
 
@@ -249,7 +244,6 @@ namespace MeshLoader
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Tangents.
-		//uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount + 3]; // +3 to avoid possible buffer overrun.
 		uint16_t* pPackedTangents = new uint16_t[pFileHeader->iTangentCount];
 		Vector* pAssembledTangents = new Vector[pFileHeader->iTangentCount + 3];
 
@@ -282,16 +276,6 @@ namespace MeshLoader
 		{
 			size_t iStringLength = Utl::StringLength((char*)pBytes);
 			pOutResource.pMaterialNames[iMat] = Utl::StringDuplicate((char*)pBytes);
-			/*char szMaterialName[512];
-			Utl::StringFormat_V("%s%s%s", szMaterialName, MaterialSerializer::kDefaultMaterialAssetPath, (char*)pBytes, MaterialSerializer::kMaterialFileExtension);
-
-			MaterialLoader::MaterialResource_t newMaterial{};
-			if (!MaterialLoader::LoadMaterialResource(szMaterialName, newMaterial))
-			{
-				LOG_WARN("Failed to load material '%s'.", (char*)pBytes);
-			}
-			pOutResource.pMaterials.PushBack(newMaterial);*/ 
-
 			currOffset += iStringLength + 1;
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
@@ -368,19 +352,6 @@ namespace MeshLoader
 		pMeshHeaders = nullptr;
 
 		return true;
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: TODO: Documentation.
-	//-------------------------------------------------------------------------
-	static inline float UnpackF32FromUint16(const uint16_t inputData)
-	{
-		const unsigned int numIntervals = 1U << 16;	// Number of unique values that can be stored in a uint16.
-
-		// Scale the data and store in a float.
-		float flUnitFloat = ((float)inputData / numIntervals);
-
-		return flUnitFloat;
 	}
 
 }	// namespace MeshLoader
