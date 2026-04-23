@@ -87,7 +87,11 @@ namespace MeshSerializer
 		// The index of this mesh's material in the model's material table.
 		uint32_t				iMaterialIndex{ kInvalidID_U32 };
 		uint32_t				iNumFaces{ 0 };
+		// TODO: Remove this? We shouldn't need to serialize these to render a mesh...
 		uint32_t*				pFaceIndices{ nullptr };
+
+		uint32_t*				pIndexData{ nullptr };
+
 		// The extents of this submesh.
 		Vector					vecMinExtents{};
 		Vector					vecMaxExtents{};

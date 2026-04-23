@@ -154,6 +154,12 @@ namespace MeshLoader
 
 			currOffset += (sizeof(uint32_t) * pMeshHeaders[iMesh].iNumFaces);
 			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+			pMeshHeaders[iMesh].pIndexData = new uint32_t[pMeshHeaders[iMesh].iNumFaces * 3];
+			Platform::MemoryCopy(pMeshHeaders[iMesh].pIndexData, pBytes, sizeof(uint32_t) * pMeshHeaders[iMesh].iNumFaces * 3);
+
+			currOffset += (sizeof(uint32_t) * pMeshHeaders[iMesh].iNumFaces * 3);
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
 
 		// Mesh faces.
@@ -293,13 +299,8 @@ namespace MeshLoader
 			pCurOutMesh.iVertexCount = pCurMeshHeader.iNumFaces * 3;
 			CAssert(pCurMeshHeader.pFaceIndices != nullptr);
 
-			// FIXME: Figure out indexed drawing
-			//pCurOutMesh.iIndexData = new uint32_t[pCurMeshHeader.iNumFaces * 3];
-			//pCurOutMesh.iIndexCount = pCurMeshHeader.iNumFaces * 3;
-
 			for (uint32_t iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
-				//uint16_t curFaceIndex = pCurMeshHeader.pFaceIndices[iFace];
 				uint16_t curFaceIndex = iFace;
 
 				for (int iVert = 0; iVert < 3; iVert++)
@@ -312,10 +313,13 @@ namespace MeshLoader
 
 					// Write the vert out to the flat buffer.
 					Platform::MemoryCopy(&pCurOutMesh.pVertexData[(uVertexStride * iFace * 3) + (iVert * uVertexStride)], &newVert, uVertexStride);
-					// TODO: We need to precompute and serialize these!
-					//pCurOutMesh.iIndexData[(iFace * 3) + iVert] = (iFace * 3) + iVert;
 				}
 			}
+
+			// Copy over the index buffer.
+			pCurOutMesh.iIndexCount = pCurMeshHeader.iNumFaces * 3;
+			pCurOutMesh.iIndexData = new uint32_t[pCurOutMesh.iIndexCount];
+			Platform::MemoryCopy(pCurOutMesh.iIndexData, pCurMeshHeader.pIndexData, sizeof(uint32_t) * pCurOutMesh.iIndexCount);
 		}
 
 		// Clean up arrays.
@@ -344,8 +348,11 @@ namespace MeshLoader
 
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
-			delete pMeshHeaders[iMesh].pFaceIndices;
+			delete[] pMeshHeaders[iMesh].pFaceIndices;
 			pMeshHeaders[iMesh].pFaceIndices = nullptr;
+
+			delete[] pMeshHeaders[iMesh].pIndexData;
+			pMeshHeaders[iMesh].pIndexData = nullptr;
 		}
 
 		delete[] pMeshHeaders;

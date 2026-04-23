@@ -308,6 +308,22 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	pMeshLookup->iReferenceCount++;
 	pMeshLookup->bAutoRelease = bAutoRelease;
 
+	// FIXME: Make this a function that lives in the mesh loader.
+	// Clean up mesh resources.
+	for (uint64_t iMesh = 0; iMesh < pResource.pMeshes.Count(); iMesh++)
+	{
+		if (pResource.pMeshes[iMesh].pVertexData)
+		{
+			delete[] pResource.pMeshes[iMesh].pVertexData;
+			pResource.pMeshes[iMesh].pVertexData = nullptr;
+		}
+		if (pResource.pMeshes[iMesh].iIndexData)
+		{
+			delete[] pResource.pMeshes[iMesh].iIndexData;
+			pResource.pMeshes[iMesh].iIndexData = nullptr;
+		}
+	}
+
 	return meshHandle;
 }
 

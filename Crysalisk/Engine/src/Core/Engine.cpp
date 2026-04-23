@@ -98,7 +98,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(250);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(500);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -115,14 +115,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
-
-	// TODO: MESH SERIALIZER 2.0 TEST!
-	{
-		//MeshSerializer::SerializeOBJMesh("Assets/Models/sponza", "Assets/Models/sponza_TEST");
-		//MeshSerializer::SerializeOBJMesh("Assets/Models/Container", "Assets/Models/Container_TEST");
-		//MeshSerializer::SerializeOBJMesh("Assets/Models/Monke", "Assets/Models/Monke_TEST");
-	}
-	// TODO: END TEST
 
 	// Event System.
 	IEventSystem::AllocateEventSystemState(&m_EngineInterfaces.pEngineEventHandler);
