@@ -224,9 +224,9 @@ namespace MeshSerializer
 					// LEFTOFF: Calculate extents per submesh.
 				}
 
-				meshHeaders.PushBack(CModel_MeshHeader_t{});
-				meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
-				meshHeaders.Back().iNumFaces = 0;
+				//meshHeaders.PushBack(CModel_MeshHeader_t{});
+				//meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
+				//meshHeaders.Back().iNumFaces = 0;
 				vertexPositions.PushBack(Utl::CVector<Vector>{});
 				vertexNormals.PushBack(Utl::CVector<Vector>{});
 				vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
@@ -244,10 +244,18 @@ namespace MeshSerializer
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
 					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
 					meshHeaders.Back().iNumFaces = 0;
-					vertexPositions.PushBack(Utl::CVector<Vector>{});
-					vertexNormals.PushBack(Utl::CVector<Vector>{});
-					vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
-					meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
+					//if (vertexPositions.Back().Count() > 0)
+					//{
+						// Only create new geometry tables if the previous ones already had data in them.
+						//vertexPositions.PushBack(Utl::CVector<Vector>{});
+						//vertexNormals.PushBack(Utl::CVector<Vector>{});
+						//vertexTexCoords.PushBack(Utl::CVector<Vector2D>{});
+						meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
+					//}
+					if (vertexPositions.Count() == 39)
+					{
+						CAssert(0);
+					}
 				}
 				continue;
 			}
@@ -272,7 +280,6 @@ namespace MeshSerializer
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 
 					// FIXME: Make these methods?
-					// LEFTOFF: Memory corruption happening in the if case?
 					if ((int32_t)(newFace.iPositionIndices[iVert] - iPositionRunningTotal) < 0)
 					{
 						// This vertex position belongs to another piece of geometry, walk from the start of the geometry to find it.
@@ -297,7 +304,7 @@ namespace MeshSerializer
 							newFace.iPositionIndices[iVert] = (uint32_t)vertexPositions.Back().Count() - 1;
 
 							// Terminate the loop.
-							iMeshHeaderIdx = 0;
+							iIndexToFind = 0;
 						}
 					}
 					else
@@ -331,7 +338,7 @@ namespace MeshSerializer
 							newFace.iNormalIndices[iVert] = (uint32_t)vertexNormals.Back().Count() - 1;
 
 							// Terminate the loop.
-							iMeshHeaderIdx = 0;
+							iIndexToFind = 0;
 						}
 					}
 					else
@@ -364,7 +371,7 @@ namespace MeshSerializer
 							newFace.iTexCoordIndices[iVert] = (uint32_t)vertexTexCoords.Back().Count() - 1;
 
 							// Terminate the loop.
-							iMeshHeaderIdx = 0;
+							iIndexToFind = 0;
 						}
 					}
 					else
@@ -507,26 +514,6 @@ namespace MeshSerializer
 		{
 			LOG_DEBUG("Geometry deduplication progress: %d/%d", iMesh + 1, meshHeaders.Count());
 			DeduplicateGeometry(meshHeaders[iMesh], meshFaces[iMesh], vertexPositions[iMesh], vertexNormals[iMesh], vertexTexCoords[iMesh], finalMeshFaces, finalVertexPositions, finalVertexNormals, finalVertexTexCoords);
-		}
-
-		// Copy all vertex data to the final arrays.
-		LOG_DEBUG("Writing final vertex data.");
-		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
-		{
-			for (uint64_t iPos = 0; iPos < vertexPositions[iMesh].Count(); iPos++)
-			{
-				finalVertexPositions.PushBack(vertexPositions[iMesh][iPos]);
-			}
-
-			for (uint64_t iNorm = 0; iNorm < vertexNormals[iMesh].Count(); iNorm++)
-			{
-				finalVertexNormals.PushBack(vertexNormals[iMesh][iNorm]);
-			}
-
-			for (uint64_t iTexCoord = 0; iTexCoord < vertexTexCoords[iMesh].Count(); iTexCoord++)
-			{
-				finalVertexTexCoords.PushBack(vertexTexCoords[iMesh][iTexCoord]);
-			}
 		}
 
 		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
