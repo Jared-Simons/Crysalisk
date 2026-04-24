@@ -298,18 +298,21 @@ namespace MeshLoader
 			pCurOutMesh.pVertexData = new byte[uVertexStride * pCurMeshHeader.iNumFaces * 3];
 			pCurOutMesh.iVertexCount = pCurMeshHeader.iNumFaces * 3;
 			CAssert(pCurMeshHeader.pFaceIndices != nullptr);
+			CAssert(pCurMeshHeader.pIndexData != nullptr);
 
 			for (uint32_t iFace = 0; iFace < pCurMeshHeader.iNumFaces; iFace++)
 			{
 				uint16_t curFaceIndex = iFace;
 
+				// LEFTOFF: One big vertex buffer for the whole model?
+				// If so, this layout doesn't quite cut it.
 				for (int iVert = 0; iVert < 3; iVert++)
 				{
 					Vertex3D newVert{};
-					newVert.Pos = pAssembledPositions[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iPositionIndices[iVert]];
-					newVert.Normal = pAssembledNormals[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iNormalIndices[iVert]];
-					newVert.TexCoord = pAssembledTexCoords[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTexCoordIndices[iVert]];
-					newVert.Tangent = pAssembledTangents[pMeshFaces[pCurMeshHeader.pFaceIndices[curFaceIndex]].iTangentIndices[iVert]];
+					newVert.Pos = pAssembledPositions[pCurMeshHeader.pIndexData[(iFace * 3) + iVert]];
+					newVert.Normal = pAssembledNormals[pCurMeshHeader.pIndexData[(iFace * 3) + iVert]];
+					newVert.TexCoord = pAssembledTexCoords[pCurMeshHeader.pIndexData[(iFace * 3) + iVert]];
+					newVert.Tangent = pAssembledTangents[pCurMeshHeader.pIndexData[(iFace * 3) + iVert]];
 
 					// Write the vert out to the flat buffer.
 					Platform::MemoryCopy(&pCurOutMesh.pVertexData[(uVertexStride * iFace * 3) + (iVert * uVertexStride)], &newVert, uVertexStride);
