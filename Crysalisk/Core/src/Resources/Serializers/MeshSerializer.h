@@ -13,6 +13,9 @@ namespace MeshSerializer
 {
 	// A Crysalisk-specific model asset (.cmodel_c file) must start with this magic number to be considered a valid resource.
 	static const uint64_t	kModelResourceMagicNumber = 0xCABED;
+	
+	// Some file sub-headers.
+	static const uint32_t	kModelResourceSubmeshHeader = 0xCABEA;
 
 	// Writes out a model in our own binary format directly from a source file.
 	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource);
@@ -87,6 +90,10 @@ namespace MeshSerializer
 		// The index of this mesh's material in the model's material table.
 		uint32_t				iMaterialIndex{ kInvalidID_U32 };
 		uint32_t				iVertexCount{ 0 };
+		uint64_t				iVertexOffset{ 0 };
+		uint32_t				iIndexCount{ 0 };
+		uint64_t				iIndexOffset{ 0 };
+
 		int16_t*				iPackedVertices{ nullptr };
 
 		// FIXME: Num indices?
@@ -94,7 +101,6 @@ namespace MeshSerializer
 		// TODO: Remove this? We shouldn't need to serialize these to render a mesh...
 		uint32_t*				pFaceIndices{ nullptr };
 
-		uint32_t				iIndexCount{ 0 };
 		uint32_t*				pIndexData{ nullptr };
 
 		// The extents of this submesh.

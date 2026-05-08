@@ -279,6 +279,8 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		}
 		// TODO: Fix indexed drawing.
 		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.pVertexData, pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
+		pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
+		pNewSubmesh.indexDataOffset = pCurSubmesh.iIndexOffset;
 	}
 
 	/*MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;

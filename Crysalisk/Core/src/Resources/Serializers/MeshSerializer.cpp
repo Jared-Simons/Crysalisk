@@ -20,12 +20,20 @@ namespace MeshSerializer
 	// The current most up-to-date version of the CModel file format.
 	static const uint32_t	kCurrentModelVersion = 2;
 
+	// Identifies unique vertex data
+	struct UniqueVertex_t
+	{
+		uint32_t iPositionIdx{};
+		uint32_t iNormalIdx{};
+		uint32_t iTexCoordIdx{};
+	};
+
 	// Forward declarations
 	static void GenerateTangentData(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static void GenerateTangentData(Utl::CVector<Vertex3D>& pVertices);
 	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<CModel_MeshFaceData_t>& pInFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords,
 									Utl::CVector<CModel_MeshFaceData_t>& pOutFaces, Utl::CVector<Vector>& pOutPositions, Utl::CVector<Vector>& pOutNormals, Utl::CVector<Vector2D>& pOutTexCoords);
-	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vertex3D>& pOutVertices);
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices);
 	static void PrepareIndexBuffer(CModel_MeshHeader_t& pCurMesh);
 	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource);
 
@@ -175,6 +183,9 @@ namespace MeshSerializer
 		Utl::CVector<Utl::CVector<Vector>>		tempVertexNormals{};
 		Utl::CVector<Utl::CVector<Vector2D>>	tempVertexTexcoords{};
 
+		// Write out header data.
+		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
+
 		// REMOVE ME IMMEDIATELY!
 		bool debugStop = false;
 
@@ -198,7 +209,7 @@ namespace MeshSerializer
 					PrepareIndexBuffer(meshHeaders.Back());
 
 					// Get rid of any duplicate data.
-					DeduplicateGeometry(meshHeaders.Back(), meshFaces, tempVertexPositions.Back(), tempVertexNormals.Back(), tempVertexTexcoords.Back(), vertices);
+					//DeduplicateGeometry(meshHeaders.Back(), meshFaces, tempVertexPositions.Back(), tempVertexNormals.Back(), tempVertexTexcoords.Back(), vertices);
 
 					// Generate tangents before packing.
 					// FIXME: Implement.
@@ -274,6 +285,7 @@ namespace MeshSerializer
 					meshHeaders.Back().iVertexCount = (uint32_t)vertices.Count();
 
 					// Write the data out to the file.
+					FileSystem::WriteBytes(&kModelResourceSubmeshHeader, sizeof(uint32_t), &hNewOutputMesh);
 					FileSystem::WriteBytes(&meshHeaders.Back(), sizeof(CModel_MeshHeader_t), &hNewOutputMesh);
 					FileSystem::WriteBytes(&meshHeaders.Back().pIndexData, sizeof(uint32_t) * meshHeaders.Back().iIndexCount, &hNewOutputMesh);
 					FileSystem::WriteBytes(packedVertexData.Data(), packedVertexData.Stride() * packedVertexData.Count(), &hNewOutputMesh);
@@ -395,8 +407,6 @@ namespace MeshSerializer
 			return false;
 		}
 
-		return SerializeOBJMesh_Test(pszOBJMeshPath, pszOutMeshFileName, pOutResource);
-
 		FileHandle_t hOBJFile{};
 
 		if (!FileSystem::FileExists(pszOBJMeshPath))
@@ -469,7 +479,7 @@ namespace MeshSerializer
 		char firstChar{};
 		char secondChar{};
 		size_t bytesRead{ 0 };
-		
+
 		LOG_INFO("Determining vertex layout");
 
 		bool bAllNecessaryAttributesFound = false;
@@ -515,7 +525,7 @@ namespace MeshSerializer
 			uVertexLayout |= VERTEX_LAYOUT_DATA_TEXCOORD;
 		if (bModelContainsVertexTangents)
 			uVertexLayout |= VERTEX_LAYOUT_DATA_TANGENT;
-		
+
 		outFileHeader.iVertexLayoutFlags = uVertexLayout;
 
 		// Rewind the file so we can read it through again.
@@ -525,9 +535,7 @@ namespace MeshSerializer
 		Utl::CVector<Vector>								vertexPositions{};
 		Utl::CVector<Vector>								vertexNormals{};
 		Utl::CVector<Vector2D>								vertexTexCoords{};
-		// NOTE: Using nested arrays here so that we can easily de-duplicate per mesh instead of across the whole model.
-		// Then just write the unique data to the final arrays.
-		Utl::CVector<Utl::CVector<CModel_MeshFaceData_t>>	meshFaces{};
+		Utl::CVector<CModel_MeshFaceData_t>					meshFaces{};
 
 		// Geometry data.
 		Utl::CVector<CModel_MeshHeader_t>	meshHeaders{};
@@ -539,6 +547,10 @@ namespace MeshSerializer
 		Utl::CVector<Vector2D>	finalVertexTexCoords{};
 		Utl::CVector<Vector>	finalVertexTangents{};
 
+		Utl::CVector<float>		finalVertexData{};
+		Utl::CVector<uint32_t>	finalIndexData{};
+		uint64_t				iUniqueVertCounter{ 0 };
+
 		// Material stuff.
 		char* pszMTLFilePath{ nullptr };
 		// Contains all of the material names encountered (does not contain repeats!)
@@ -547,7 +559,7 @@ namespace MeshSerializer
 		bool bMatFound = false;
 
 		// TEMP DEBUG REMOVE ME!
-		int iDebugMeshCount = 1;
+		const int iDebugMeshCount = 400;
 		bool bDebugStop = false;
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
@@ -568,38 +580,106 @@ namespace MeshSerializer
 			{
 				if (meshHeaders.Count() > 0)
 				{
+					//Utl::CVector<Vertex3D>			uniqueVertices{};
+					Utl::CVector<uint32_t>			uniqueIndices{};
+					Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
+					DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
+					// FIXME: IMPLEMENT
+					// GenerateTangentData(uniqueVertices);
+
+					meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
+					meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
+					meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
+					meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
+
+					// Make sure the vertex/index offsets are 4-byte aligned!
+					// UNDONE: Maybe we don't want to offset the vertex buffer?
+					// If we simply offset the index buffer then we only have to re-bind the index buffer at those offsets and bind the vertex buffer once per mesh,
+					// not once per drawcall!
+					/*uint64_t vertexAlignmentOffset = 0;
+					if (meshHeaders.Back().iVertexOffset % 4 != 0)
+					{
+						vertexAlignmentOffset = 4 - (meshHeaders.Back().iVertexOffset % 4);
+						meshHeaders.Back().iVertexOffset += vertexAlignmentOffset;
+					}
+
+					for (int idx = 0; idx < vertexAlignmentOffset; idx++)
+					{
+						finalVertexData.PushBack((float)0.0f);
+					}*/
+
+					uint64_t indexAlignmentOffset = 0;
+					if (meshHeaders.Back().iIndexOffset % 4 != 0)
+					{
+						indexAlignmentOffset = 4 - (meshHeaders.Back().iIndexOffset % 4);
+						meshHeaders.Back().iIndexOffset += indexAlignmentOffset;
+					}
+
+					for (int idx = 0; idx < indexAlignmentOffset; idx++)
+					{
+						// Fill in some blank data to the index buffer to make sure we're aligned.
+						finalIndexData.PushBack((uint32_t)0);
+					}
+
+					uint32_t indexBufferBase = (uint32_t)iUniqueVertCounter;
+					iUniqueVertCounter += finalVertexIndices.Count();
+
+					// Write out the unique data to the output tables.
+					for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+					{
+						finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].x);
+						finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].y);
+						finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].z);
+
+						finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].x);
+						finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].y);
+						finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].z);
+
+						finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].x);
+						finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
+
+						// FIXME: WRITE TANGENTS
+						finalVertexData.PushBack(0.0f);
+						finalVertexData.PushBack(0.0f);
+						finalVertexData.PushBack(0.0f);
+					}
+
+					for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
+					{
+						finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
+					}
+
 					// If we currently have a mesh being processed, do some extra work to prepare it for storage.
 					// FIXME: This will not apply to the final mesh in the file!
-					
+
 					// Walk through all the position vectors to determine the extents of the geometry.
 					// LEFTOFF: Calculate extents per submesh.
 				}
 
 				if (meshHeaders.Count() >= iDebugMeshCount)
+				{
 					bDebugStop = true;
+					break;
+				}
+
+				meshHeaders.PushBack(CModel_MeshHeader_t{});
+				//vertexPositions.Clear();
+				//vertexNormals.Clear();
+				//vertexTexCoords.Clear();
+				meshFaces.Clear();
 
 				break;
 			}
 
 			case 'g':
 			{
-				// We only want to use 'group' tags in two cases:
-				// A.) when there are currently NO objects declared (this mesh might be using groups only instead of objects with groups).
-				// B.) if the current object has any face data in it, as new groups usually come with new materials, which we want to split off into different pieces of geo.
-				if (meshHeaders.Count() == 0 || meshHeaders.Back().iNumFaces > 0)
-				{
-					meshHeaders.PushBack(CModel_MeshHeader_t{});
-					meshHeaders.Back().pFaceIndices = new uint32_t[65535];	// Just allocate a bunch of these for now, we'll only write the ones that are used.
-					meshHeaders.Back().iNumFaces = 0;
-					meshFaces.PushBack(Utl::CVector<CModel_MeshFaceData_t>{});
-				}
 				continue;
 			}
 
 			case 'f':	// Polygon 'face'.
 			{
-				uint32_t	normalIndices[3];
 				uint32_t	positionIndices[3];
+				uint32_t	normalIndices[3];
 				uint32_t	texCoordIndices[3];
 
 				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
@@ -615,17 +695,7 @@ namespace MeshSerializer
 					newFace.iNormalIndices[iVert] = normalIndices[iVert] - 1;
 					newFace.iTexCoordIndices[iVert] = texCoordIndices[iVert] - 1;
 				}
-				
-				uint32_t iFaceIndex = (uint32_t)meshFaces.Back().PushBack(newFace); 
-				
-				// Currently, we store face indices as uint32_t. If a single mesh contains more than than 4,294,967,295 values, then we need to re-evaluate.
-				if (iFaceIndex > 0xFFFFFFFF)
-				{
-					LOG_WARN("Mesh '%s' contains more than 4,294,967,295 faces in a single mesh. This mesh cannot be properly serialized.", pszOBJMeshPath);
-					return false;
-				}
-				meshHeaders.Back().pFaceIndices[meshHeaders.Back().iNumFaces] = iFaceIndex;
-				meshHeaders.Back().iNumFaces++;
+				meshFaces.PushBack(newFace);
 				break;
 			}
 
@@ -737,28 +807,95 @@ namespace MeshSerializer
 			}
 		}
 
-		// Setup mesh index buffers.
-		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		// Serialize the final mesh (this won't be handled in the switch statement).
 		{
-			PrepareIndexBuffer(meshHeaders[iMesh]);
+			//Utl::CVector<Vertex3D>			uniqueVertices{};
+			Utl::CVector<uint32_t>			uniqueIndices{};
+			Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
+			DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
+			// FIXME: IMPLEMENT
+			// GenerateTangentData(uniqueVertices);
+
+			meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
+			meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
+			meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
+			meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
+
+			// Make sure the vertex/index offsets are 4-byte aligned!
+			// UNDONE: Maybe we don't want to offset the vertex buffer?
+			// If we simply offset the index buffer then we only have to re-bind the index buffer at those offsets and bind the vertex buffer once per mesh,
+			// not once per drawcall!
+			/*uint64_t vertexAlignmentOffset = 0;
+			if (meshHeaders.Back().iVertexOffset % 4 != 0)
+			{
+				vertexAlignmentOffset = 4 - (meshHeaders.Back().iVertexOffset % 4);
+				meshHeaders.Back().iVertexOffset += vertexAlignmentOffset;
+			}
+
+			for (int idx = 0; idx < vertexAlignmentOffset; idx++)
+			{
+				finalVertexData.PushBack((float)0.0f);
+			}*/
+
+			uint64_t indexAlignmentOffset = 0;
+			if (meshHeaders.Back().iIndexOffset % 4 != 0)
+			{
+				indexAlignmentOffset = 4 - (meshHeaders.Back().iIndexOffset % 4);
+				meshHeaders.Back().iIndexOffset += indexAlignmentOffset;
+			}
+
+			for (int idx = 0; idx < indexAlignmentOffset; idx++)
+			{
+				// Fill in some blank data to the index buffer to make sure we're aligned.
+				finalIndexData.PushBack((uint32_t)0);
+			}
+
+			uint32_t indexBufferBase = (uint32_t)iUniqueVertCounter;
+			iUniqueVertCounter += finalVertexIndices.Count();
+
+			// Write out the unique data to the output tables.
+			for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+			{
+				finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].x);
+				finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].y);
+				finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].z);
+
+				finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].x);
+				finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].y);
+				finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].z);
+
+				finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].x);
+				finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
+
+				// FIXME: WRITE TANGENTS
+				finalVertexData.PushBack(0.0f);
+				finalVertexData.PushBack(0.0f);
+				finalVertexData.PushBack(0.0f);
+			}
+
+			for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
+			{
+				finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
+			}
+
+			// If we currently have a mesh being processed, do some extra work to prepare it for storage.
+			// FIXME: This will not apply to the final mesh in the file!
+
+			// Walk through all the position vectors to determine the extents of the geometry.
+			// LEFTOFF: Calculate extents per submesh.
 		}
+
 
 		LOG_INFO("Compressing mesh data.");
 
 		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
 			LOG_DEBUG("Geometry deduplication progress: %d/%d", iMesh + 1, meshHeaders.Count());
-			DeduplicateGeometry(meshHeaders[iMesh], meshFaces[iMesh], vertexPositions, vertexNormals, vertexTexCoords, finalMeshFaces, finalVertexPositions, finalVertexNormals, finalVertexTexCoords);
+			//DeduplicateGeometry(meshHeaders[iMesh], meshFaces[iMesh], vertexPositions, vertexNormals, vertexTexCoords, finalMeshFaces, finalVertexPositions, finalVertexNormals, finalVertexTexCoords);
 		}
-
-		// Before writing out geometry to the file, generate tangent data and deduplicate extra data.
 		if (!bModelContainsVertexTangents)
 		{
-			LOG_INFO("Generating tangent data for mesh.");
-			for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
-			{
-				GenerateTangentData(meshHeaders[iMesh], finalVertexPositions, finalVertexNormals, finalVertexTexCoords, finalVertexTangents, meshFaces[iMesh]);
-			}
+			// FIXME: Where to put this?
 			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
 
@@ -867,34 +1004,13 @@ namespace MeshSerializer
 		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
 		outFileHeader.iMeshDataStride = (uint8_t)meshHeaders.Stride();
+		outFileHeader.iPositionCount = (uint32_t)finalVertexData.Count();
 
 		outFileHeader.iFaceDataOffset = outFileHeader.iMeshDataOffset + (meshHeaders.Stride() * meshHeaders.Count());
 		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
 			outFileHeader.iFaceDataOffset += sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces;
 		}
-		outFileHeader.iFaceDataCount = (uint32_t)meshFaces.Count();
-		outFileHeader.iFaceDataStride = (uint8_t)meshFaces.Stride();
-
-		outFileHeader.iPositionTableOffset = outFileHeader.iFaceDataOffset + (meshFaces.Count() * meshFaces.Stride());
-		outFileHeader.iPositionCount = (uint32_t)packedPositions.Count();
-		outFileHeader.iPositionStride = (uint8_t)packedPositions.Stride();
-
-		outFileHeader.iNormalTableOffset = outFileHeader.iPositionTableOffset + (outFileHeader.iPositionStride * outFileHeader.iPositionCount);
-		outFileHeader.iNormalCount = (uint32_t)packedNormals.Count();
-		outFileHeader.iNormalStride = (uint8_t)packedNormals.Stride();
-
-		outFileHeader.iTexCoordTableOffset = outFileHeader.iNormalTableOffset + (outFileHeader.iNormalStride * outFileHeader.iNormalCount);
-		outFileHeader.iTexCoordCount = (uint32_t)packedTexCoords.Count();
-		outFileHeader.iTexCoordStride = (uint8_t)packedTexCoords.Stride();
-
-		outFileHeader.iTangentTableOffset = outFileHeader.iTexCoordTableOffset + (outFileHeader.iTexCoordStride * outFileHeader.iTexCoordCount);
-		outFileHeader.iTangentCount = (uint32_t)packedTangents.Count();
-		outFileHeader.iTangentCount = 3;
-		outFileHeader.iTangentStride = (uint8_t)packedTangents.Stride();
-
-		outFileHeader.iMaterialTableOffset = outFileHeader.iTangentTableOffset + (outFileHeader.iTangentStride * outFileHeader.iTangentCount);
-		outFileHeader.iMaterialCount = (uint32_t)materialNames.Count();
 
 		// Place the resource's magic number first.
 		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
@@ -904,60 +1020,19 @@ namespace MeshSerializer
 		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);
 		iTotalBytesWritten += sizeof(CModel_FileHeader_t);
 
-		// Write out geometry headers.
-		if (meshHeaders.Count() > 0)
+		// FIXME: Header for submeshes?
+		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
-			for (unsigned int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
-			{
-				FileSystem::WriteBytes(&meshHeaders[iMesh].iMaterialIndex, sizeof(uint32_t), &hNewOutputMesh);
-				FileSystem::WriteBytes(&meshHeaders[iMesh].iNumFaces, sizeof(uint32_t), &hNewOutputMesh);
-				FileSystem::WriteBytes(meshHeaders[iMesh].pFaceIndices, sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces, &hNewOutputMesh);
-				FileSystem::WriteBytes(meshHeaders[iMesh].pIndexData, sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces * 3, &hNewOutputMesh);
-				iTotalBytesWritten += (2 * sizeof(uint32_t)) + (sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces) + (sizeof(uint32_t) * meshHeaders[iMesh].iNumFaces * 3);
-			}
+			FileSystem::WriteBytes(&meshHeaders[iMesh], sizeof(CModel_MeshHeader_t), &hNewOutputMesh);
+			iTotalBytesWritten += sizeof(CModel_MeshHeader_t);
 		}
 
-		if (meshFaces.Count() > 0)
-		{
-			FileSystem::WriteBytes(meshFaces.Data(), meshFaces.Stride() * meshFaces.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += meshFaces.Stride() * meshFaces.Count();
-		}
+		// FIXME: Pack data into uints.
+		FileSystem::WriteBytes(finalVertexData.Data(), finalVertexData.Stride() * finalVertexData.Count(), &hNewOutputMesh);
+		iTotalBytesWritten += finalVertexData.Stride() * finalVertexData.Count();
 
-		// Write out geometry tables.
-		if (packedPositions.Count() > 0)
-		{
-			FileSystem::WriteBytes(packedPositions.Data(), packedPositions.Stride() * packedPositions.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += packedPositions.Stride() * packedPositions.Count();
-		}
-		if (packedNormals.Count() > 0)
-		{
-			FileSystem::WriteBytes(packedNormals.Data(), packedNormals.Stride() * packedNormals.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += packedNormals.Stride() * packedNormals.Count();
-		}
-		if (packedTexCoords.Count() > 0)
-		{
-			FileSystem::WriteBytes(packedTexCoords.Data(), packedTexCoords.Stride() * packedTexCoords.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += packedTexCoords.Stride() * packedTexCoords.Count();
-		}
-		if (packedTangents.Count() > 0)
-		{
-			FileSystem::WriteBytes(packedTangents.Data(), packedTangents.Stride() * packedTangents.Count(), &hNewOutputMesh);
-			iTotalBytesWritten += packedTangents.Stride() * packedTangents.Count();
-		}
-
-		// Write out material data.
-		if (materialNames.Count() > 0)
-		{
-			for (int iMaterial = 0; iMaterial < materialNames.Count(); iMaterial++)
-			{
-				size_t iStringLength = Utl::StringLength(materialNames[iMaterial]);
-				char szMatName[512];
-				Platform::MemoryCopy(szMatName, materialNames[iMaterial], iStringLength);
-				szMatName[iStringLength] = 0;
-				FileSystem::WriteBytes(szMatName, iStringLength + 1, &hNewOutputMesh);
-				iTotalBytesWritten += (iStringLength + 1);
-			}
-		}
+		FileSystem::WriteBytes(finalIndexData.Data(), finalIndexData.Stride() * finalIndexData.Count(), &hNewOutputMesh);
+		iTotalBytesWritten += finalIndexData.Stride() * finalIndexData.Count();
 
 		// Clean up arrays.
 		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
@@ -1002,16 +1077,12 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vertex3D>& pOutVertices)
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices)
 	{
-		// Identifies unique vertex data
-		struct UniqueVertex_t
-		{
-			uint32_t iPositionIdx{};
-			uint32_t iNormalIdx{};
-			uint32_t iTexCoordIdx{};
-		};
 		Utl::CVector<UniqueVertex_t> uniqueVertices{};
+		uint32_t iPosIdxBase = pFaces[0].iPositionIndices[0];
+		uint32_t iNormIdxBase = pFaces[0].iNormalIndices[0];
+		uint32_t iTexCoordIdxBase = pFaces[0].iTexCoordIndices[0];
 
 		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
 		{
@@ -1023,6 +1094,15 @@ namespace MeshSerializer
 				currentVert.iPositionIdx = pFaces[iFace].iPositionIndices[iVert];
 				currentVert.iNormalIdx = pFaces[iFace].iNormalIndices[iVert];
 				currentVert.iTexCoordIdx = pFaces[iFace].iTexCoordIndices[iVert];
+
+				{
+					if (currentVert.iPositionIdx < iPosIdxBase)
+						iPosIdxBase = currentVert.iPositionIdx;
+					if (currentVert.iNormalIdx < iNormIdxBase)
+						iNormIdxBase = currentVert.iNormalIdx;
+					if (currentVert.iTexCoordIdx < iTexCoordIdxBase)
+						iTexCoordIdxBase = currentVert.iTexCoordIdx;
+				}
 
 				int iUniqueVert = 0;
 				for (iUniqueVert = 0; iUniqueVert < uniqueVertices.Count(); iUniqueVert++)
@@ -1041,12 +1121,14 @@ namespace MeshSerializer
 				{
 					// Add it to the table.
 					uniqueVertices.PushBack(currentVert);
-					pCurMesh.pIndexData[(iFace * 3) + iVert] = (uint32_t)uniqueVertices.Count() - 1;
+					pOutIndices.PushBack(iUniqueVert);
+					//pCurMesh.pIndexData[(iFace * 3) + iVert] = (uint32_t)uniqueVertices.Count() - 1;
 				}
 				else
 				{
 					// Not unique, need to reassign face indices.
-					pCurMesh.pIndexData[(iFace * 3) + iVert] = iUniqueVert;
+					pOutIndices.PushBack(iUniqueVert);
+					//pCurMesh.pIndexData[(iFace * 3) + iVert] = iUniqueVert;
 				}
 			}
 		}
@@ -1054,11 +1136,7 @@ namespace MeshSerializer
 		// At this point, the index buffer is properly setup, now just write out the unique vertices.
 		for (int iVert = 0; iVert < uniqueVertices.Count(); iVert++)
 		{
-			Vertex3D uniqueVert{};
-			uniqueVert.Pos = pInPositions[uniqueVertices[iVert].iPositionIdx];
-			uniqueVert.Normal = pInNormals[uniqueVertices[iVert].iNormalIdx];
-			uniqueVert.TexCoord = pInTexCoords[uniqueVertices[iVert].iTexCoordIdx];
-			pOutVertices.PushBack(uniqueVert);
+			pOutVertices.PushBack(uniqueVertices[iVert]);
 		}
 	}
 
@@ -1185,6 +1263,11 @@ namespace MeshSerializer
 		{
 			LOG_WARN("Mesh contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", invalidTangentCount);
 		}
+	}
+
+	static void GenerateTangentData(Utl::CVector<Vertex3D>& pVertices)
+	{
+		// FIXME: IMPLEMENT!
 	}
 
 	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource)

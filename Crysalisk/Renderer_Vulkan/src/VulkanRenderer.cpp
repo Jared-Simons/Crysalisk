@@ -753,7 +753,8 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pI
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
 	// Bind our geometry data.
-	VkDeviceSize offsets[] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
+	// FIXME: Need some kind of logic to determine when to not rebind the vertex buffer at the same offset.
+	VkDeviceSize offsets[2] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
 	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
 
 	// Bind the index buffer, if necessary

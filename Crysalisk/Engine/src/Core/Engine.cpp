@@ -98,7 +98,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(500);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(1000);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.

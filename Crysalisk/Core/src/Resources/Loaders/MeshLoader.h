@@ -38,8 +38,10 @@ namespace MeshLoader
 			// This is dynamically allocated, must be freed by caller.
 			uint32_t	iMaterialIndex{ kInvalidID_U32 };
 			uint64_t	iVertexCount{ 0 };
+			uint64_t	iVertexOffset{ 0 };
 			byte*		pVertexData{ nullptr };
 			uint64_t	iIndexCount{ 0 };
+			uint64_t	iIndexOffset{ 0 };
 			uint32_t*	iIndexData{ nullptr };
 		};
 
