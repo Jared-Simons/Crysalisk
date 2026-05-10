@@ -550,6 +550,7 @@ namespace MeshSerializer
 		Utl::CVector<float>		finalVertexData{};
 		Utl::CVector<uint32_t>	finalIndexData{};
 		uint64_t				iUniqueVertCounter{ 0 };
+		bool bMeshUsesGroups	= false;	// Indicates if this model uses groups for all data storage instead of groups AND objects.
 
 		// Material stuff.
 		char* pszMTLFilePath{ nullptr };
@@ -640,9 +641,6 @@ namespace MeshSerializer
 				}
 
 				meshHeaders.PushBack(CModel_MeshHeader_t{});
-				//vertexPositions.Clear();
-				//vertexNormals.Clear();
-				//vertexTexCoords.Clear();
 				meshFaces.Clear();
 
 				break;
@@ -650,10 +648,69 @@ namespace MeshSerializer
 
 			case 'g':
 			{
-				// FIXME: We need a better heuristic than this.
-				if (meshHeaders.Count() == 0)
+				if ((bMeshUsesGroups && meshFaces.Count() > 0) || meshHeaders.Count() == 0)
 				{
+					if (meshHeaders.Count() > 0)
+					{
+						// FIXME: DRY!!
+						Utl::CVector<uint32_t>			uniqueIndices{};
+						Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
+						DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
+						// FIXME: IMPLEMENT
+						// GenerateTangentData(uniqueVertices);
+
+						meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
+						meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
+						meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
+						meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
+
+						uint64_t indexAlignmentOffset = 0;
+						if (meshHeaders.Back().iIndexOffset % 4 != 0)
+						{
+							indexAlignmentOffset = 4 - (meshHeaders.Back().iIndexOffset % 4);
+							meshHeaders.Back().iIndexOffset += indexAlignmentOffset;
+						}
+
+						for (int idx = 0; idx < indexAlignmentOffset; idx++)
+						{
+							// Fill in some blank data to the index buffer to make sure we're aligned.
+							finalIndexData.PushBack((uint32_t)0);
+						}
+
+						uint32_t indexBufferBase = (uint32_t)iUniqueVertCounter;
+						iUniqueVertCounter += finalVertexIndices.Count();
+
+						// Write out the unique data to the output tables.
+						for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+						{
+							finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].x);
+							finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].y);
+							finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].z);
+
+							finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].x);
+							finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].y);
+							finalVertexData.PushBack(vertexNormals[finalVertexIndices[iVert].iNormalIdx].z);
+
+							finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].x);
+							finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
+
+							// FIXME: WRITE TANGENTS
+							finalVertexData.PushBack(0.0f);
+							finalVertexData.PushBack(0.0f);
+							finalVertexData.PushBack(0.0f);
+						}
+
+						for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
+						{
+							finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
+						}
+						meshFaces.Clear();
+					}
+
 					meshHeaders.PushBack(CModel_MeshHeader_t{});
+
+					// If we have not yet hit an 'O' block, consider this model to use groups for all mesh storage.
+					bMeshUsesGroups = true;
 				}
 				continue;
 			}
@@ -821,22 +878,6 @@ namespace MeshSerializer
 			meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
 			meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
 
-			// Make sure the vertex/index offsets are 4-byte aligned!
-			// UNDONE: Maybe we don't want to offset the vertex buffer?
-			// If we simply offset the index buffer then we only have to re-bind the index buffer at those offsets and bind the vertex buffer once per mesh,
-			// not once per drawcall!
-			/*uint64_t vertexAlignmentOffset = 0;
-			if (meshHeaders.Back().iVertexOffset % 4 != 0)
-			{
-				vertexAlignmentOffset = 4 - (meshHeaders.Back().iVertexOffset % 4);
-				meshHeaders.Back().iVertexOffset += vertexAlignmentOffset;
-			}
-
-			for (int idx = 0; idx < vertexAlignmentOffset; idx++)
-			{
-				finalVertexData.PushBack((float)0.0f);
-			}*/
-
 			uint64_t indexAlignmentOffset = 0;
 			if (meshHeaders.Back().iIndexOffset % 4 != 0)
 			{
@@ -877,12 +918,6 @@ namespace MeshSerializer
 			{
 				finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
 			}
-
-			// If we currently have a mesh being processed, do some extra work to prepare it for storage.
-			// FIXME: This will not apply to the final mesh in the file!
-
-			// Walk through all the position vectors to determine the extents of the geometry.
-			// LEFTOFF: Calculate extents per submesh.
 		}
 
 
