@@ -242,6 +242,8 @@ public:
 	// The types of vertex data stored in this buffer.
 	BufferVertexFlags_t	uBufferDataFlags{ 0 };
 
+	size_t				m_CurrentBoundOffset{ kInvalidID_U64 };
+
 	// A pointer to the internal data of the buffer.
 	void* m_pInternalData{ nullptr };
 	// TODO: Store the type off here as well?

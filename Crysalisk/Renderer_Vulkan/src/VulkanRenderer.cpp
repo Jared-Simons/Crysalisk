@@ -753,14 +753,19 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pI
 	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
 
 	// Bind our geometry data.
-	// FIXME: Need some kind of logic to determine when to not rebind the vertex buffer at the same offset.
 	VkDeviceSize offsets[2] = { pGeometry.vertexDataOffset, pGeometry.indexDataOffset };
-	vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
+
+	if (offsets[0] != pVertexBuffer->m_CurrentBoundOffset)
+	{
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
+		pVertexBuffer->m_CurrentBoundOffset = offsets[0];
+	}
 
 	// Bind the index buffer, if necessary
-	if (pInternalIndexBuffer && pGeometry.indexDataOffset != kInvalidID_U64)
+	if (pInternalIndexBuffer && pGeometry.indexDataOffset != kInvalidID_U64 && pIndexBuffer->m_CurrentBoundOffset != offsets[1])
 	{
 		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+		pIndexBuffer->m_CurrentBoundOffset = offsets[1];
 	}
 
 	// Issue the draw.
@@ -1832,13 +1837,14 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 //			pIndexBuffer - The index buffer to be upload index data to. Optional.
 //			iVertexCount - The number of vertices to upload, must be greater than 0.
 //			iVertexStride - The length of each vertex, must be greater than 0.
+//			iVertexBase - The offset (in vertex stride) from the start of the mesh this geometry is.
 //			pVertices - An opaque array to the vertex data.
 //			iIndexCount - The number of indices. 
 //			pIndices - An opaque array to the index data.
 //			pOutInstance - A structure that holds the instance of geometry after acquisition.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = nullptr;
@@ -1858,9 +1864,6 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 		return;
 	}
 
-	pOutInstance.vertexDataOffset = pInternalVertexBuffer->m_BytesAllocated;
-	pOutInstance.vertexCount = iVertexCount;
-
 	VulkanCommandBuffer cmdBuffer{};
 	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
@@ -1877,25 +1880,21 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 		finalBufferOffset = pInternalVertexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
 	}
 
-	pOutInstance.vertexDataOffset = finalBufferOffset;
-	pOutInstance.vertexCount = iVertexCount;
-
 	// Copy over to the device-local buffer.
 	VkBufferCopy copyRegion{};
 	copyRegion.size = stagingBuffer.m_BufferSize;
-	copyRegion.dstOffset = pOutInstance.vertexDataOffset;
+	copyRegion.dstOffset = finalBufferOffset;
 	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
 
 	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
 	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
 
-	// TODO: Handle index buffers as well...
+	pOutInstance.vertexDataOffset = finalBufferOffset - (iVertexBase * iVertexStride);	// TODO: NOTE WHY WE SUBTRACT VERTEX BASE!
+	pOutInstance.vertexCount = iVertexCount;
+
 	if (iIndexCount) // TODO: Better check could be used here.
 	{
-		pOutInstance.indexDataOffset = pInternalIndexBuffer->m_BytesAllocated;
-		pOutInstance.indexCount = iIndexCount;
-
 		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
 		VulkanBuffer::CreateBuffer(s_VulkanContext, iIndexCount * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
@@ -1912,6 +1911,9 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 
 		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+		pOutInstance.indexDataOffset = finalBufferOffset;
+		pOutInstance.indexCount = iIndexCount;
 	}
 	else
 	{

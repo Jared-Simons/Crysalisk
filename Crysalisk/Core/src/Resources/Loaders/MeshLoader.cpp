@@ -47,6 +47,7 @@ namespace MeshLoader
 			return 0;
 		}
 
+		LOG_VERBOSE("Successfully loaded mesh '%s'.", pTypedParams->pszMeshPath);
 		return 1;
 	}
 
@@ -209,27 +210,88 @@ namespace MeshLoader
 		currOffset += sizeof(MeshSerializer::CModel_MeshHeader_t) * pFileHeader->iMeshDataCount;
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
+		float* pUnpackedVertices = new float[11 * pFileHeader->iTotalVertexCount];	// 11 floats per vertex.
+
+		// Unpack the packed vertex data.
+		uint8_t iAttribIdx = 0;
+		for (uint32_t iFloat = 0; iFloat < pFileHeader->iTotalVertexCount; iFloat++)
+		{
+			uint16_t* pPacked = (uint16_t*)pBytes + iFloat;
+
+			float unpackedData = UnpackF32FromUint16(*pPacked);
+			// See the comment in the corresponding switch statement in SerializeOBJMesh() to see the meaning behind this switch.
+			switch (iAttribIdx)
+			{
+			case 0:		// Position case
+					unpackedData = unpackedData * (pFileHeader->vecMaxExtents.x - pFileHeader->vecMinExtents.x) + pFileHeader->vecMinExtents.x;
+					pUnpackedVertices[iFloat] = unpackedData;
+					break;
+			case 1:
+					unpackedData = unpackedData * (pFileHeader->vecMaxExtents.y - pFileHeader->vecMinExtents.y) + pFileHeader->vecMinExtents.y;
+					pUnpackedVertices[iFloat] = unpackedData;
+					break;
+			case 2:
+					unpackedData = unpackedData * (pFileHeader->vecMaxExtents.z - pFileHeader->vecMinExtents.z) + pFileHeader->vecMinExtents.z;
+					pUnpackedVertices[iFloat] = unpackedData;
+					break;
+
+			case 3:		// Normal case
+			case 4:
+			case 5:
+				{
+					unpackedData = (unpackedData * 2.0f) - 1.0f;
+					pUnpackedVertices[iFloat] = unpackedData;
+				}
+				break;
+
+			case 6:		// Texcoord case
+			case 7:
+				{
+					const float flPackedTexCoordMins = -64.0f;
+					const float flPackedTexCoordMaxs = 64.0f;
+
+					unpackedData = (unpackedData) * (flPackedTexCoordMaxs - flPackedTexCoordMins) - flPackedTexCoordMaxs;
+					pUnpackedVertices[iFloat] = unpackedData;
+				}
+				break;
+
+			case 8:		// Tangent case
+			case 9:
+			case 10:
+			{
+				unpackedData = (unpackedData * 2.0f) - 1.0f;
+				pUnpackedVertices[iFloat] = unpackedData;
+			}
+			break;
+
+			default:
+				CAssert(0);
+				break;
+			}
+			iAttribIdx = (iAttribIdx + 1) % 11;
+		}
+
 		// FIXME: Section guard?
-		// Copy over geometry data
+		// Copy over vertex data.
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
 			MeshResource_t::GeometryObject_t& pCurOutMesh = pOutResource.pMeshes[iMesh];
 			MeshSerializer::CModel_MeshHeader_t& pCurMeshHeader = pMeshHeaders[iMesh];
 
 			pCurOutMesh.iVertexCount = pCurMeshHeader.iVertexCount;
-			//pCurOutMesh.iVertexOffset = pCurMeshHeader.iVertexOffset;
-			pCurOutMesh.iVertexOffset = 0;	// FIXME: Probably not gonna use this?
+			pCurOutMesh.iVertexOffset = pCurMeshHeader.iVertexOffset;
+			//pCurOutMesh.iVertexOffset = 0;	// FIXME: Probably not gonna use this?
 			pCurOutMesh.pVertexData = new byte[sizeof(Vertex3D) * pCurMeshHeader.iVertexCount];	// FIXME: FREE THESE!
 			
 			Vertex3D* pVertexBase = (Vertex3D*)pCurOutMesh.pVertexData;
 
 			for (uint32_t iVert = 0; iVert < pCurMeshHeader.iVertexCount; iVert++)
 			{
-				Platform::MemoryCopy(pVertexBase + iVert, (Vertex3D*)pBytes + pCurMeshHeader.iVertexOffset + iVert, sizeof(Vertex3D));
+				Platform::MemoryCopy(pVertexBase + iVert, (Vertex3D*)pUnpackedVertices + pCurMeshHeader.iVertexOffset + iVert, sizeof(Vertex3D));
 			}
 		}
 
-		currOffset += sizeof(float) * pFileHeader->iPositionCount;
+		currOffset += sizeof(uint16_t) * pFileHeader->iTotalVertexCount;
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		// Copy over index data.

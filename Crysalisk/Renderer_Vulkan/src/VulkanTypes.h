@@ -86,6 +86,7 @@ public:
 	VkMemoryPropertyFlags	m_MemoryProperties{};
 	VkBufferUsageFlags		m_BufferUsage{};
 
+	// FIXME: MOVE THESE TO THE RENDERBUFFER CLASS!
 	size_t					m_BufferSize{ 0 };
 	size_t					m_BytesAllocated{ 0 };
 	

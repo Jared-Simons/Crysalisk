@@ -42,6 +42,9 @@ namespace MeshSerializer
 		Vector		vecMinExtents{};
 		Vector		vecMaxExtents{};
 
+		uint32_t	iTotalVertexCount{ 0 };
+		uint32_t	iVertexStride{ 0 };
+
 		// A set of bitflags that defines this mesh's vertex layout.
 		VertexLayoutFlags_t	iVertexLayoutFlags{ 0 };
 

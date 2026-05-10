@@ -62,7 +62,7 @@ public:
 	virtual bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
-	virtual bool			AcquireGeometryResources(size_t iVertexCount, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
+	virtual bool			AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
 
 	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 

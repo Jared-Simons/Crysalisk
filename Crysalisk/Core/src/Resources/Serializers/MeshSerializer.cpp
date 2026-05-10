@@ -580,7 +580,6 @@ namespace MeshSerializer
 			{
 				if (meshHeaders.Count() > 0)
 				{
-					//Utl::CVector<Vertex3D>			uniqueVertices{};
 					Utl::CVector<uint32_t>			uniqueIndices{};
 					Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
 					DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
@@ -591,22 +590,6 @@ namespace MeshSerializer
 					meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
 					meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
 					meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
-
-					// Make sure the vertex/index offsets are 4-byte aligned!
-					// UNDONE: Maybe we don't want to offset the vertex buffer?
-					// If we simply offset the index buffer then we only have to re-bind the index buffer at those offsets and bind the vertex buffer once per mesh,
-					// not once per drawcall!
-					/*uint64_t vertexAlignmentOffset = 0;
-					if (meshHeaders.Back().iVertexOffset % 4 != 0)
-					{
-						vertexAlignmentOffset = 4 - (meshHeaders.Back().iVertexOffset % 4);
-						meshHeaders.Back().iVertexOffset += vertexAlignmentOffset;
-					}
-
-					for (int idx = 0; idx < vertexAlignmentOffset; idx++)
-					{
-						finalVertexData.PushBack((float)0.0f);
-					}*/
 
 					uint64_t indexAlignmentOffset = 0;
 					if (meshHeaders.Back().iIndexOffset % 4 != 0)
@@ -648,12 +631,6 @@ namespace MeshSerializer
 					{
 						finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
 					}
-
-					// If we currently have a mesh being processed, do some extra work to prepare it for storage.
-					// FIXME: This will not apply to the final mesh in the file!
-
-					// Walk through all the position vectors to determine the extents of the geometry.
-					// LEFTOFF: Calculate extents per submesh.
 				}
 
 				if (meshHeaders.Count() >= iDebugMeshCount)
@@ -673,6 +650,11 @@ namespace MeshSerializer
 
 			case 'g':
 			{
+				// FIXME: We need a better heuristic than this.
+				if (meshHeaders.Count() == 0)
+				{
+					meshHeaders.PushBack(CModel_MeshHeader_t{});
+				}
 				continue;
 			}
 
@@ -746,6 +728,24 @@ namespace MeshSerializer
 						Vector newPosition{};
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newPosition.x, &newPosition.y, &newPosition.z);
 						CAssert(numElements == 3);
+
+						// While we're here, update mesh extents, if necessary.
+						{
+							Vector& pPos = newPosition;
+							if (pPos.x < outFileHeader.vecMinExtents.x)
+								outFileHeader.vecMinExtents.x = pPos.x;
+							if (pPos.y < outFileHeader.vecMinExtents.y)
+								outFileHeader.vecMinExtents.y = pPos.y;
+							if (pPos.z < outFileHeader.vecMinExtents.z)
+								outFileHeader.vecMinExtents.z = pPos.z;
+
+							if (pPos.x > outFileHeader.vecMaxExtents.x)
+								outFileHeader.vecMaxExtents.x = pPos.x;
+							if (pPos.y > outFileHeader.vecMaxExtents.y)
+								outFileHeader.vecMaxExtents.y = pPos.y;
+							if (pPos.z > outFileHeader.vecMaxExtents.z)
+								outFileHeader.vecMaxExtents.z = pPos.z;
+						}
 
 						// Add it to the table.
 						vertexPositions.PushBack(newPosition);
@@ -899,108 +899,91 @@ namespace MeshSerializer
 			outFileHeader.iVertexLayoutFlags |= VERTEX_LAYOUT_DATA_TANGENT;
 		}
 
-		// Walk through all the position vectors to determine the extents of the geometry.
-		for (int iPos = 0; iPos < finalVertexPositions.Count(); iPos++)
-		{
-			Vector& pPos = finalVertexPositions[iPos];
-			if (pPos.x < outFileHeader.vecMinExtents.x)
-				outFileHeader.vecMinExtents.x = pPos.x;
-			if (pPos.y < outFileHeader.vecMinExtents.y)
-				outFileHeader.vecMinExtents.y = pPos.y;
-			if (pPos.z < outFileHeader.vecMinExtents.z)
-				outFileHeader.vecMinExtents.z = pPos.z;
-
-			if (pPos.x > outFileHeader.vecMaxExtents.x)
-				outFileHeader.vecMaxExtents.x = pPos.x;
-			if (pPos.y > outFileHeader.vecMaxExtents.y)
-				outFileHeader.vecMaxExtents.y = pPos.y;
-			if (pPos.z > outFileHeader.vecMaxExtents.z)
-				outFileHeader.vecMaxExtents.z = pPos.z;
-		}
-
 		// Pack vectors into uints.
 		Utl::CVector<uint16_t>	packedPositions{};
 		Utl::CVector<uint16_t>	packedNormals{};
 		Utl::CVector<uint16_t>	packedTexCoords{};
 		Utl::CVector<uint16_t>	packedTangents{};
+		Utl::CVector<uint16_t>	packedVertexData{};
 
-		// Positions.
+		LOG_DEBUG("Packing vertex data.");
+		uint8_t floatIdx = 0;
+		for (uint32_t iFloat = 0; iFloat < finalVertexData.Count(); iFloat++)
 		{
-			for (int iPos = 0; iPos < finalVertexPositions.Count(); iPos++)
+			float* pCurFloat = &finalVertexData[iFloat];
+
+			// Packing behavior differs depending on the vertex attribute.
+			// Currently, this block of code is assuming the following layout: 
+			// 3 floats for position, 
+			// 3 floats for normal, 
+			// 2 floats for texcoord, 
+			// 3 floats for tangent.
+			// NOTE: This code will need to change when we want to support other mesh attributes, such as anim data or optional tinting.
+			float flNormalized = 0.0f;
+			uint16_t packedPos = 0;
+			switch (floatIdx)
 			{
-				float flNormalizedX = (finalVertexPositions[iPos].x - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
-				float flNormalizedY = (finalVertexPositions[iPos].y - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
-				float flNormalizedZ = (finalVertexPositions[iPos].z - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
+			case 0:		// Position case
+					flNormalized = (*pCurFloat - outFileHeader.vecMinExtents.x) / (outFileHeader.vecMaxExtents.x - outFileHeader.vecMinExtents.x);
+					packedPos = PackF32ToUint16(flNormalized);
+					packedVertexData.PushBack(packedPos);
+					break;
+			case 1:
+					flNormalized = (*pCurFloat - outFileHeader.vecMinExtents.y) / (outFileHeader.vecMaxExtents.y - outFileHeader.vecMinExtents.y);
+					packedPos = PackF32ToUint16(flNormalized);
+					packedVertexData.PushBack(packedPos);
+					break;
+			case 2:
+					flNormalized = (*pCurFloat - outFileHeader.vecMinExtents.z) / (outFileHeader.vecMaxExtents.z - outFileHeader.vecMinExtents.z);
+					packedPos = PackF32ToUint16(flNormalized);
+					packedVertexData.PushBack(packedPos);
+					break;
+				break;
 
-				uint16_t packedPosX = PackF32ToUint16(flNormalizedX);
-				uint16_t packedPosY = PackF32ToUint16(flNormalizedY);
-				uint16_t packedPosZ = PackF32ToUint16(flNormalizedZ);
-				packedPositions.PushBack(packedPosX);
-				packedPositions.PushBack(packedPosY);
-				packedPositions.PushBack(packedPosZ);
-			}
-		}
+			case 3:		// Normal case
+			case 4:
+			case 5:
+				{
+					flNormalized = (*pCurFloat + 1.0f) / 2.0f;
+					uint16_t packedNormal = PackF32ToUint16(flNormalized);
+					packedVertexData.PushBack(packedNormal);
+				}
+				break;
 
-		// Normals.
-		{
-			for (int iNormal = 0; iNormal < finalVertexNormals.Count(); iNormal++)
+			case 6:		// Texcoord case
+			case 7:
+				{
+					const float flPackedTexCoordMins = -64.0f;
+					const float flPackedTexCoordMaxs = 64.0f;
+
+					flNormalized = (*pCurFloat - flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
+					uint16_t packedTexcoord = PackF32ToUint16(flNormalized);
+					packedVertexData.PushBack(packedTexcoord);
+				}
+				break;
+
+			case 8:		// Tangent case
+			case 9:
+			case 10:
 			{
-				float flNormalizedNormalX = (finalVertexNormals[iNormal].x + 1.0f) / (2.0f);
-				float flNormalizedNormalY = (finalVertexNormals[iNormal].y + 1.0f) / (2.0f);
-				float flNormalizedNormalZ = (finalVertexNormals[iNormal].z + 1.0f) / (2.0f);
-
-				uint16_t packedNormalX = PackF32ToUint16(flNormalizedNormalX);
-				uint16_t packedNormalY = PackF32ToUint16(flNormalizedNormalY);
-				uint16_t packedNormalZ = PackF32ToUint16(flNormalizedNormalZ);
-				packedNormals.PushBack(packedNormalX);
-				packedNormals.PushBack(packedNormalY);
-				packedNormals.PushBack(packedNormalZ);
+				flNormalized = (*pCurFloat + 1.0f) / 2.0f;
+				uint16_t packedTangent = PackF32ToUint16(flNormalized);
+				packedVertexData.PushBack(packedTangent);
 			}
-		}
+			break;
 
-		// Texcoords.
-		{
-			for (int iTexCoord = 0; iTexCoord < finalVertexTexCoords.Count(); iTexCoord++)
-			{
-				const float flPackedTexCoordMins = -64.0f;
-				const float flPackedTexCoordMaxs = 64.0f;
-
-				float flNormalizedTexCoordX = (finalVertexTexCoords[iTexCoord].x + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-				float flNormalizedTexCoordY = (finalVertexTexCoords[iTexCoord].y + flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-
-				flNormalizedTexCoordX = (flNormalizedTexCoordX + 1.0f) / 2.0f;
-				flNormalizedTexCoordY = (flNormalizedTexCoordY + 1.0f) / 2.0f;
-
-				uint16_t packedTexCoordX = PackF32ToUint16(flNormalizedTexCoordX);
-				uint16_t packedTexCoordY = PackF32ToUint16(flNormalizedTexCoordY);
-				packedTexCoords.PushBack(packedTexCoordX);
-				packedTexCoords.PushBack(packedTexCoordY);
+			default:
+				CAssert(0);
+				break;
 			}
-		}
 
-		// Tangents.
-		{
-			for (int iTangent = 0; iTangent < finalVertexTangents.Count(); iTangent++)
-			{
-				// Tangents are already normalized. Just bring from [-1, 1] to [0, 1].
-				float flNormalizedTangentX = (finalVertexTangents[iTangent].x + 1.0f) / 2.0f;
-				float flNormalizedTangentY = (finalVertexTangents[iTangent].y + 1.0f) / 2.0f;
-				float flNormalizedTangentZ = (finalVertexTangents[iTangent].z + 1.0f) / 2.0f;
-
-				CAssert(flNormalizedTangentX >= 0.0f && flNormalizedTangentX <= 1.0f);
-				CAssert(flNormalizedTangentY >= 0.0f && flNormalizedTangentY <= 1.0f);
-				CAssert(flNormalizedTangentZ >= 0.0f && flNormalizedTangentZ <= 1.0f);
-
-				uint16_t packedTangentX = PackF32ToUint16(flNormalizedTangentX);
-				uint16_t packedTangentY = PackF32ToUint16(flNormalizedTangentY);
-				uint16_t packedTangentZ = PackF32ToUint16(flNormalizedTangentZ);
-				packedTangents.PushBack(packedTangentX);
-				packedTangents.PushBack(packedTangentY);
-				packedTangents.PushBack(packedTangentZ);
-			}
+			floatIdx = (floatIdx + 1) % 11;
 		}
 
 		// Setup offsets/counts.
+		outFileHeader.iVertexStride = sizeof(Vertex3D);
+		outFileHeader.iTotalVertexCount = (uint32_t)packedVertexData.Count();
+
 		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
 		outFileHeader.iMeshDataStride = (uint8_t)meshHeaders.Stride();
@@ -1028,8 +1011,11 @@ namespace MeshSerializer
 		}
 
 		// FIXME: Pack data into uints.
-		FileSystem::WriteBytes(finalVertexData.Data(), finalVertexData.Stride() * finalVertexData.Count(), &hNewOutputMesh);
-		iTotalBytesWritten += finalVertexData.Stride() * finalVertexData.Count();
+		//FileSystem::WriteBytes(finalVertexData.Data(), finalVertexData.Stride() * finalVertexData.Count(), &hNewOutputMesh);
+		//iTotalBytesWritten += finalVertexData.Stride() * finalVertexData.Count();
+
+		FileSystem::WriteBytes(packedVertexData.Data(), packedVertexData.Stride() * packedVertexData.Count(), &hNewOutputMesh);
+		iTotalBytesWritten += packedVertexData.Stride() * packedVertexData.Count();
 
 		FileSystem::WriteBytes(finalIndexData.Data(), finalIndexData.Stride() * finalIndexData.Count(), &hNewOutputMesh);
 		iTotalBytesWritten += finalIndexData.Stride() * finalIndexData.Count();

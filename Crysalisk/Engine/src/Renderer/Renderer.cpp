@@ -93,7 +93,7 @@ public:
 	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
-	bool			AcquireGeometryResources(size_t iVertexCount, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	bool			AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
@@ -414,6 +414,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	
 	// Clear out bound shader state.
 	pShaderSystem->BindShader(kInvalidID_U32);
+	m_WorldVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+	m_WorldIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+
 	m_Metrics.CurrentFrameFPS++;
 
 	// Increment the frame count.
@@ -635,7 +638,7 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-bool CRenderer::AcquireGeometryResources(size_t iVertexCount, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
+bool CRenderer::AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
 {
 	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
 
@@ -644,7 +647,7 @@ bool CRenderer::AcquireGeometryResources(size_t iVertexCount, void* pVertices, s
 	pOutInstance->indexCount = iIndexCount;
 
 	// TODO: Pass in vertex stride!
-	m_RendererBackend->AcquireGeometryResources(&m_WorldVertexBuffer, &m_WorldIndexBuffer, iVertexCount, 44, pVertices, iIndexCount, pIndices, *pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(&m_WorldVertexBuffer, &m_WorldIndexBuffer, iVertexCount, 44, iVertexBase, pVertices, iIndexCount, pIndices, *pOutInstance);
 
 	return true;
 }
