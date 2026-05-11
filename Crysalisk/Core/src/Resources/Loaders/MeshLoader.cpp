@@ -198,14 +198,17 @@ namespace MeshLoader
 		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
 		byte* pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
-		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
-		{
-			Platform::MemoryCopy(&pMeshHeaders[iMesh], (MeshSerializer::CModel_MeshHeader_t*)pBytes + iMesh, sizeof(MeshSerializer::CModel_MeshHeader_t));
-		}
+
 
 		pOutResource.pMeshes.Resize(pFileHeader->iMeshDataCount);
 		pOutResource.pMeshes.SetCount(pFileHeader->iMeshDataCount);
 		pOutResource.iVertexLayoutFlags = pFileHeader->iVertexLayoutFlags;
+		
+		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		{
+			Platform::MemoryCopy(&pMeshHeaders[iMesh], (MeshSerializer::CModel_MeshHeader_t*)pBytes + iMesh, sizeof(MeshSerializer::CModel_MeshHeader_t));
+			pOutResource.pMeshes[iMesh].iMaterialIndex = pMeshHeaders[iMesh].iMaterialIndex;
+		}
 
 		currOffset += sizeof(MeshSerializer::CModel_MeshHeader_t) * pFileHeader->iMeshDataCount;
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
@@ -310,6 +313,23 @@ namespace MeshLoader
 			{
 				Platform::MemoryCopy(pIndexBase + idx, (uint8_t*)pBytes + pCurOutMesh.iIndexOffset + (4 * idx), sizeof(uint32_t));
 			}
+		}
+
+		currOffset += pFileHeader->iTotalIndexStride * pFileHeader->iTotalIndexCount;
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// Copy over material names.
+		pOutResource.pMaterialNames.Resize(pFileHeader->iMaterialCount);
+		pOutResource.pMaterialNames.SetCount(pFileHeader->iMaterialCount);
+		for (int iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		{
+			uint64_t strLen = Utl::StringLength((char*)pBytes);
+			char* pCurString = Utl::StringDuplicate_N((char*)pBytes, strLen);
+			pOutResource.pMaterialNames[iMat] = pCurString;
+			// FIXME: FREE THESE!
+
+			currOffset += strLen + 1;
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 		}
 
 		// Clean up arrays.
