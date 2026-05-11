@@ -281,54 +281,15 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
 		pNewSubmesh.indexDataOffset = pCurSubmesh.iIndexOffset;
 		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData, pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
-
-		// REMOVE THIS.
-		//pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
-		//pNewSubmesh.indexDataOffset = pCurSubmesh.iIndexOffset;
 	}
-
-	/*MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
-	// Acquire renderer resources and upload to the GPU.
-	// 
-	// TODO: Only accounts for one mesh.
-	// Reformat the mesh file eventally to make this cleaner.
-	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes[0].pSubmeshes.Capacity(); iSubmesh++)
-	{
-		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
-
-		pNewSubmesh.vecMinExtents = pCurSubmesh->vecMinExtents;
-		pNewSubmesh.vecMaxExtents = pCurSubmesh->vecMaxExtents;
-		pNewSubmesh.vecCenter = pCurSubmesh->vecCenter;
-
-		// Acquire material resources.
-		if (pCurSubmesh->pszMaterialName != nullptr)
-		{
-			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pCurSubmesh->pszMaterialName);
-
-			// Set transparency state.
-			pNewSubmesh.bIsTransparent = m_Config.pMaterialSystem->IsMaterialTransparent(pNewSubmesh.hMaterial);
-		}
-	}*/
 
 	// Increment the reference count.
 	pMeshLookup->iReferenceCount++;
 	pMeshLookup->bAutoRelease = bAutoRelease;
 
-	// FIXME: Make this a function that lives in the mesh loader.
 	// Clean up mesh resources.
-	for (uint64_t iMesh = 0; iMesh < pResource.pMeshes.Count(); iMesh++)
-	{
-		if (pResource.pMeshes[iMesh].pVertexData)
-		{
-			delete[] pResource.pMeshes[iMesh].pVertexData;
-			pResource.pMeshes[iMesh].pVertexData = nullptr;
-		}
-		if (pResource.pMeshes[iMesh].iIndexData)
-		{
-			delete[] pResource.pMeshes[iMesh].iIndexData;
-			pResource.pMeshes[iMesh].iIndexData = nullptr;
-		}
-	}
+	// NOTE: Put this on a thread?
+	MeshLoader::UnloadMeshResource(pResource);
 
 	return meshHandle;
 }

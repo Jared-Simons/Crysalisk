@@ -23,6 +23,7 @@ namespace MeshLoader
 
 	// Attempts to load an existing mesh asset from disk.
 	CORE_API bool LoadMeshResource(char* pszMeshFileName, struct MeshResource_t& pOutResource);
+	CORE_API void UnloadMeshResource(struct MeshResource_t& pResource);
 
 	CORE_API int LoadMesh_Threaded(void* pParams, void** pJobResults);
 
