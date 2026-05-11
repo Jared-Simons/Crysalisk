@@ -26,14 +26,15 @@ namespace MeshSerializer
 		uint32_t iPositionIdx{};
 		uint32_t iNormalIdx{};
 		uint32_t iTexCoordIdx{};
+		uint32_t iTangentIdx{};
 	};
 
 	// Forward declarations
-	static void GenerateTangentData(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<uint32_t>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static void GenerateTangentData(Utl::CVector<Vertex3D>& pVertices);
 	static void DeduplicateGeometry(CModel_MeshHeader_t& pCurMesh, Utl::CVector<CModel_MeshFaceData_t>& pInFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords,
 									Utl::CVector<CModel_MeshFaceData_t>& pOutFaces, Utl::CVector<Vector>& pOutPositions, Utl::CVector<Vector>& pOutNormals, Utl::CVector<Vector2D>& pOutTexCoords);
-	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices);
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices);
 	static void PrepareIndexBuffer(CModel_MeshHeader_t& pCurMesh);
 	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource);
 
@@ -583,9 +584,11 @@ namespace MeshSerializer
 				{
 					Utl::CVector<uint32_t>			uniqueIndices{};
 					Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
-					DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
+					Utl::CVector<Vector>			generatedTangents{};
+					DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, finalVertexIndices, uniqueIndices);
 					// FIXME: IMPLEMENT
 					// GenerateTangentData(uniqueVertices);
+					GenerateTangentData(finalVertexIndices, uniqueIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
 
 					meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
 					meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
@@ -623,9 +626,9 @@ namespace MeshSerializer
 						finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
 
 						// FIXME: WRITE TANGENTS
-						finalVertexData.PushBack(0.0f);
-						finalVertexData.PushBack(0.0f);
-						finalVertexData.PushBack(0.0f);
+						finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].x);
+						finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].y);
+						finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].z);
 					}
 
 					for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
@@ -655,9 +658,11 @@ namespace MeshSerializer
 						// FIXME: DRY!!
 						Utl::CVector<uint32_t>			uniqueIndices{};
 						Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
-						DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
+						Utl::CVector<Vector>			generatedTangents{};
+						//GenerateTangentData(finalVertexIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
+						DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, finalVertexIndices, uniqueIndices);
 						// FIXME: IMPLEMENT
-						// GenerateTangentData(uniqueVertices);
+						GenerateTangentData(finalVertexIndices, uniqueIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
 
 						meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
 						meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
@@ -695,9 +700,9 @@ namespace MeshSerializer
 							finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
 
 							// FIXME: WRITE TANGENTS
-							finalVertexData.PushBack(0.0f);
-							finalVertexData.PushBack(0.0f);
-							finalVertexData.PushBack(0.0f);
+							finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].x);
+							finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].y);
+							finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].z);
 						}
 
 						for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
@@ -869,9 +874,9 @@ namespace MeshSerializer
 			//Utl::CVector<Vertex3D>			uniqueVertices{};
 			Utl::CVector<uint32_t>			uniqueIndices{};
 			Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
-			DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexIndices, uniqueIndices);
-			// FIXME: IMPLEMENT
-			// GenerateTangentData(uniqueVertices);
+			Utl::CVector<Vector>			generatedTangents{};
+			DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, finalVertexIndices, uniqueIndices);
+			GenerateTangentData(finalVertexIndices, uniqueIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
 
 			meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
 			meshHeaders.Back().iVertexOffset = iUniqueVertCounter;
@@ -909,9 +914,9 @@ namespace MeshSerializer
 				finalVertexData.PushBack(vertexTexCoords[finalVertexIndices[iVert].iTexCoordIdx].y);
 
 				// FIXME: WRITE TANGENTS
-				finalVertexData.PushBack(0.0f);
-				finalVertexData.PushBack(0.0f);
-				finalVertexData.PushBack(0.0f);
+				finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].x);
+				finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].y);
+				finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].z);
 			}
 
 			for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
@@ -922,12 +927,6 @@ namespace MeshSerializer
 
 
 		LOG_INFO("Compressing mesh data.");
-
-		for (uint64_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
-		{
-			LOG_DEBUG("Geometry deduplication progress: %d/%d", iMesh + 1, meshHeaders.Count());
-			//DeduplicateGeometry(meshHeaders[iMesh], meshFaces[iMesh], vertexPositions, vertexNormals, vertexTexCoords, finalMeshFaces, finalVertexPositions, finalVertexNormals, finalVertexTexCoords);
-		}
 		if (!bModelContainsVertexTangents)
 		{
 			// FIXME: Where to put this?
@@ -1098,7 +1097,7 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices)
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices)
 	{
 		Utl::CVector<UniqueVertex_t> uniqueVertices{};
 		uint32_t iPosIdxBase = pFaces[0].iPositionIndices[0];
@@ -1115,6 +1114,7 @@ namespace MeshSerializer
 				currentVert.iPositionIdx = pFaces[iFace].iPositionIndices[iVert];
 				currentVert.iNormalIdx = pFaces[iFace].iNormalIndices[iVert];
 				currentVert.iTexCoordIdx = pFaces[iFace].iTexCoordIndices[iVert];
+				currentVert.iTangentIdx = pFaces[iFace].iTangentIndices[iVert];
 
 				{
 					if (currentVert.iPositionIdx < iPosIdxBase)
@@ -1130,7 +1130,8 @@ namespace MeshSerializer
 				{
 					if (uniqueVertices[iUniqueVert].iPositionIdx == currentVert.iPositionIdx &&
 						uniqueVertices[iUniqueVert].iNormalIdx == currentVert.iNormalIdx &&
-						uniqueVertices[iUniqueVert].iTexCoordIdx == currentVert.iTexCoordIdx)
+						uniqueVertices[iUniqueVert].iTexCoordIdx == currentVert.iTexCoordIdx &&
+						uniqueVertices[iUniqueVert].iTangentIdx == currentVert.iTangentIdx)
 					{
 						// Duplicate vert found!
 						bUnique = false;
@@ -1226,23 +1227,23 @@ namespace MeshSerializer
 		}
 	}
 
-	static void GenerateTangentData(CModel_MeshHeader_t& pCurMesh, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
+	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<uint32_t>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
 	{
-		uint64_t iFaceCount = pFaces.Count();
-		uint64_t invalidTangentCount{ 0 };
-		for (int iFace = 0; iFace < iFaceCount; iFace++)
+		pOutTangents.Resize(pVertexIndices.Count());
+		pOutTangents.SetCount(pVertexIndices.Count());
+		for (int idx = 0; idx < pIndices.Count(); idx += 3)
 		{
-			uint32_t iVert0 = pCurMesh.pIndexData[(iFace * 3) + 0];
-			uint32_t iVert1 = pCurMesh.pIndexData[(iFace * 3) + 1];
-			uint32_t iVert2 = pCurMesh.pIndexData[(iFace * 3) + 2];
+			uint32_t& pIdx0 = pIndices[idx + 0];
+			uint32_t& pIdx1 = pIndices[idx + 1];
+			uint32_t& pIdx2 = pIndices[idx + 2];
 
-			Vector& pPos0 = pPositions[iVert0];
-			Vector& pPos1 = pPositions[iVert1];
-			Vector& pPos2 = pPositions[iVert2];
+			Vector& pPos0 = pPositions[pVertexIndices[pIdx0].iPositionIdx];
+			Vector& pPos1 = pPositions[pVertexIndices[pIdx1].iPositionIdx];
+			Vector& pPos2 = pPositions[pVertexIndices[pIdx2].iPositionIdx];
 
-			Vector2D& pUV0 = pTexCoords[iVert0];
-			Vector2D& pUV1 = pTexCoords[iVert1];
-			Vector2D& pUV2 = pTexCoords[iVert2];
+			Vector2D& pUV0 = pTexCoords[pVertexIndices[pIdx0].iTexCoordIdx];
+			Vector2D& pUV1 = pTexCoords[pVertexIndices[pIdx1].iTexCoordIdx];
+			Vector2D& pUV2 = pTexCoords[pVertexIndices[pIdx2].iTexCoordIdx];
 
 			Vector edge1 = pPos1 - pPos0;
 			Vector edge2 = pPos2 - pPos0;
@@ -1252,37 +1253,26 @@ namespace MeshSerializer
 
 			float flDividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
 			float f = 1.0f / flDividend;
-			CAssert(!(pPos0 == pPos1));
-			CAssert(!(pPos1 == pPos2));
-			CAssert(!(pPos0 == pPos2));
-
-			if (M_ABS(flDividend) < FLT_EPSILON)
-			{
-				// Don't average this value with the existing tangent data if it's invalid (It wil just fubar results further.)
-				invalidTangentCount++;
-				continue;
-			}
 
 			Vector vecTangent{};
 			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
 			vecTangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 			vecTangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 
-			vecTangent.NormalizeInPlace();
+			pOutTangents[pIdx0] += vecTangent;
+			pOutTangents[pIdx1] += vecTangent;
+			pOutTangents[pIdx2] += vecTangent;
 
-			pOutTangents.PushBack(vecTangent);
-
-			// Assign this new tangent index to the 3 verts we're processing.
-			for (int iVert = 0; iVert < 3; iVert++)
-			{
-				pFaces[iFace].iTangentIndices[iVert] = (uint32_t)(pOutTangents.Count() - 1);
-			}
+			// Also need to assign the index to the vertex.
+			pVertexIndices[pIdx0].iTangentIdx = pIdx0;
+			pVertexIndices[pIdx1].iTangentIdx = pIdx1;
+			pVertexIndices[pIdx2].iTangentIdx = pIdx2;
 		}
 
-		// Report invalid tangents.
-		if (invalidTangentCount > 0)
+		// Normalize all the new tangent data
+		for (int idx = 0; idx < pOutTangents.Count(); idx++)
 		{
-			LOG_WARN("Mesh contains %d invalid tangents. Lighting will be broken. Please verify that model sources are properly setup.", invalidTangentCount);
+			pOutTangents[idx].NormalizeInPlace();
 		}
 	}
 
