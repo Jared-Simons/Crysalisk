@@ -1433,7 +1433,12 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		VULKAN_RENDERER_NAME_OBJECT(s_VulkanContext, szDescriptorSetLabel, VK_OBJECT_TYPE_DESCRIPTOR_SET, pInternalShader->m_DescriptorSets[0].m_DescriptorSets[idx]);
 #endif
 	}
-	pInternalShader->m_DescriptorSets[0].m_Generation = 0;
+
+	// TODO: Standardize how we use these better.
+	pInternalShader->m_DescriptorSets[0].m_Generation[0] = kInvalidID_U8;
+	pInternalShader->m_DescriptorSets[0].m_Generation[1] = kInvalidID_U8;
+	pInternalShader->m_DescriptorSets[0].m_Generation[2] = kInvalidID_U8;
+	pInternalShader->m_DescriptorSets[0].m_Generation[3] = kInvalidID_U8;
 
 	// Bind the descriptor sets to our uniform buffer.
 	if (pConfig.perFrameUBOStride > 0)

@@ -138,22 +138,20 @@ namespace MeshSerializer
 		uint64_t				iUniqueVertCounter{ 0 };
 
 		// Material stuff.
+		// TEMP DEBUG
+		bool debugNoGenerateMaterials = true;
 		char* pszMTLFilePath{ nullptr };
 		// Contains all of the material names encountered (does not contain repeats!)
 		Utl::CVector<char*>		materialNames{};
 		char* pszMaterialName{ nullptr };
 		bool bMatFound = false;
 
-		// TEMP DEBUG REMOVE ME!
-		const int iDebugMeshCount = 400;
-		bool bDebugStop = false;
-
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
 
 		meshHeaders.PushBack(CModel_MeshHeader_t{});	// Setup first geo group.
 		
-		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile) && !bDebugStop)
+		while (FileSystem::ReadLine(szCurrentLine, sizeof(char) * 2048, &bytesRead, &hOBJFile))
 		{
 			firstChar = szCurrentLine[0];
 			secondChar = szCurrentLine[1];
@@ -304,6 +302,8 @@ namespace MeshSerializer
 			}
 
 			case 'm':
+				if (debugNoGenerateMaterials)
+					break;
 				// Append the appropriate extension to the path.
 				// NOTE: This assumes that the mtllib file has the same name as the OBJ.
 				char* pszMTLFilePath = Utl::StringDuplicate(pszOBJMeshPath);

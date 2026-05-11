@@ -348,13 +348,27 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
 		{
 			TextureHandle_t hTexture = m_Config.pTextureSystem->AcquireTexture(pInResource.textureMapConfigs[texIdx].pszTextureName, true);
-			textureHandles[texIdx] = hTexture;
+			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
+			{
+				textureHandles[0] = hTexture;
+			}
+			else if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::SPECULAR)
+			{
+				textureHandles[1] = hTexture;
+			}
+			else if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::NORMAL)
+			{
+				textureHandles[2] = hTexture;
+			}
 		}
 
 		// Bind the default textures for now, the actual textures will get bound after they finish loading.
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial->m_iInternalHandle, &hDefaultDiffuse);
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial->m_iInternalHandle, &hDefaultSpecular);
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial->m_iInternalHandle, &hDefaultNormal);
+
+		// Mark the material so that it will check back on the texture load status.
+		pMaterial->m_iMaterialFlags &= MATERIAL_FLAG_INTERNALS_UPDATED;
 
 		// Save off the texture handles.
 		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
@@ -378,7 +392,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
-		pLookup->ReferenceCount = 0;
+		pLookup->ReferenceCount++;
 
 		// Save off the index.
 		pLookup->MaterialIndex = newMaterialHandle;
@@ -387,6 +401,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 	{
 		// This material is already loaded, just return the handle.
 		newMaterialHandle = pLookup->MaterialIndex;
+		pLookup->ReferenceCount++;
 	}
 
 	return newMaterialHandle;
@@ -480,25 +495,59 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
 		return;
 
-	// If the texture resources were updated, we need to re-check transparency.
-	if (m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	// See if we need to check internals.
+	if (pMaterial.m_iMaterialFlags & MATERIAL_FLAG_INTERNALS_UPDATED)
 	{
-		// Use the diffuse map to determine material transparency.
-		pMaterial.m_bIsTransparent = m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+		bool bDiffuseLoaded = false;
+		bool bSpecularLoaded = false;
+		bool bNormalLoaded = false;
+
+		// This material is being used but has new textures, update internals to point to the new textures.
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hDiffuseTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial.m_iInternalHandle, &pMaterial.m_hDiffuseTextureHandle);
+			bDiffuseLoaded = true;
+
+			// Use the diffuse map to determine material transparency.
+			pMaterial.m_bIsTransparent = m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+		}
+
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hSpecularTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial.m_iInternalHandle, &pMaterial.m_hSpecularTextureHandle);
+			bSpecularLoaded = true;
+		}
+
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hNormalTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial.m_iInternalHandle, &pMaterial.m_hNormalTextureHandle);
+			bNormalLoaded = true;
+		}
+
+		// If all of our textures are loaded, we can stop checking.
+		if (bDiffuseLoaded && bSpecularLoaded && bNormalLoaded)
+		{
+			pMaterial.m_iMaterialFlags &= ~MATERIAL_FLAG_INTERNALS_UPDATED;
+		}
+
+		// Bind the appropriate shader.
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
+
+		// Bind the appropriate material instance.
+		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[m_DefaultMaterialLookup.MaterialIndex].m_iInternalHandle);
+
+		m_hCurrentlyBoundMaterialInstance = m_DefaultMaterialLookup.MaterialIndex;
 	}
+	else
+	{
+		// Bind the appropriate shader.
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
 
-	// Check textures to see if they need to be re-bound.
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hDiffuseTextureHandle, 0);		// Diffuse
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hSpecularTextureHandle, 1);		// Specular
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hNormalTextureHandle, 2);			// Normal
+		// Bind the appropriate material instance.
+		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle);
 
-	// Bind the appropriate shader.
-	m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
-
-	// Bind the appropriate material instance.
-	m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle);
-
-	m_hCurrentlyBoundMaterialInstance = hMaterial;
+		m_hCurrentlyBoundMaterialInstance = hMaterial;
+	}
 }
 
 //-------------------------------------------------------------------------

@@ -45,6 +45,7 @@ public:
 	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const = 0;
 
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) = 0;
+	virtual bool				IsTextureLoaded(TextureHandle_t hTex) = 0;
 
 	virtual TextureHandle_t		GetDefaultDiffuseTexture() = 0;
 	virtual TextureHandle_t		GetDefaultWhiteTexture() = 0;

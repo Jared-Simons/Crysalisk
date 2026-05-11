@@ -201,6 +201,11 @@ public:
 // A unique identifier for a material.
 using MaterialHandle_t = uint32_t;
 
+enum eMaterialFlags
+{
+	MATERIAL_FLAG_INTERNALS_UPDATED = 0x1,
+};
+
 // The internal representation of a material.
 class Material
 {
@@ -211,6 +216,8 @@ public:
 	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
 	// The shader used to render this material.
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
+	// Material flags.
+	uint8_t			m_iMaterialFlags{ kInvalidID_U8 };
 	// The shininess exponent used to control the concentration of specular highlights.
 	unsigned int	m_iShininess{ kInvalidID_U32 };
 	// Indicates if this material is transparent.

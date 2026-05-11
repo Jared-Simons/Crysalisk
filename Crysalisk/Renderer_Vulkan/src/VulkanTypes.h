@@ -161,7 +161,7 @@ public:
 	struct VulkanDescriptorSetState
 	{
 		VkDescriptorSet m_DescriptorSets[3];
-		byte			m_Generation;
+		byte			m_Generation[4];	// 1 Uniform Buffer, 3 Images TODO: Make dynamic
 	};
 
 	size_t		m_Generation{ kInvalidID_U32 };
