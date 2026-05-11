@@ -44,6 +44,9 @@ namespace MeshLoader
 			uint64_t	iIndexCount{ 0 };
 			uint64_t	iIndexOffset{ 0 };
 			uint32_t*	iIndexData{ nullptr };
+
+			Vector		vecMinExtents{};
+			Vector		vecMaxExtents{};
 		};
 
 		MeshResource_t() 

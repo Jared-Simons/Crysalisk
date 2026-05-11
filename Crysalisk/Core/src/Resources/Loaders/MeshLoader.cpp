@@ -173,6 +173,8 @@ namespace MeshLoader
 		{
 			Platform::MemoryCopy(&pMeshHeaders[iMesh], (MeshSerializer::CModel_MeshHeader_t*)pBytes + iMesh, sizeof(MeshSerializer::CModel_MeshHeader_t));
 			pOutResource.pMeshes[iMesh].iMaterialIndex = pMeshHeaders[iMesh].iMaterialIndex;
+			pOutResource.pMeshes[iMesh].vecMinExtents = pMeshHeaders[iMesh].vecMinExtents;
+			pOutResource.pMeshes[iMesh].vecMaxExtents = pMeshHeaders[iMesh].vecMaxExtents;
 		}
 
 		currOffset += sizeof(MeshSerializer::CModel_MeshHeader_t) * pFileHeader->iMeshDataCount;

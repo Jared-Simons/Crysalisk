@@ -280,6 +280,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 		pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
 		pNewSubmesh.indexDataOffset = pCurSubmesh.iIndexOffset;
+		pNewSubmesh.vecMinExtents = pCurSubmesh.vecMinExtents;
+		pNewSubmesh.vecMaxExtents = pCurSubmesh.vecMaxExtents;
+		pNewSubmesh.vecCenter = (pNewSubmesh.vecMinExtents + pNewSubmesh.vecMaxExtents) * 0.5f;
 		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData, pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}
 

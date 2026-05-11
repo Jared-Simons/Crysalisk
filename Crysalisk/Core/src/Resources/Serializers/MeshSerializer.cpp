@@ -477,22 +477,24 @@ namespace MeshSerializer
 		Utl::CVector<Vector>& vertexPositions, Utl::CVector<Vector>& vertexNormals, Utl::CVector<Vector2D>& vertexTexCoords,
 		Utl::CVector<float>& finalVertexData, Utl::CVector<uint32_t>& finalIndexData, uint64_t& iUniqueVertexCount, bool bFinalSubmesh)
 	{
+		CModel_MeshHeader_t& pCurHeader = meshHeaders.Back();
+
 		Utl::CVector<uint32_t>			uniqueIndices{};
 		Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
 		Utl::CVector<Vector>			generatedTangents{};
 		DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, finalVertexIndices, uniqueIndices);
 		GenerateTangentData(finalVertexIndices, uniqueIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
 
-		meshHeaders.Back().iVertexCount = (uint32_t)finalVertexIndices.Count();
-		meshHeaders.Back().iVertexOffset = iUniqueVertexCount;
-		meshHeaders.Back().iIndexCount = (uint32_t)uniqueIndices.Count();
-		meshHeaders.Back().iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
+		pCurHeader.iVertexCount = (uint32_t)finalVertexIndices.Count();
+		pCurHeader.iVertexOffset = iUniqueVertexCount;
+		pCurHeader.iIndexCount = (uint32_t)uniqueIndices.Count();
+		pCurHeader.iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
 
 		uint64_t indexAlignmentOffset = 0;
-		if (meshHeaders.Back().iIndexOffset % 4 != 0)
+		if (pCurHeader.iIndexOffset % 4 != 0)
 		{
-			indexAlignmentOffset = 4 - (meshHeaders.Back().iIndexOffset % 4);
-			meshHeaders.Back().iIndexOffset += indexAlignmentOffset;
+			indexAlignmentOffset = 4 - (pCurHeader.iIndexOffset % 4);
+			pCurHeader.iIndexOffset += indexAlignmentOffset;
 		}
 
 		for (int idx = 0; idx < indexAlignmentOffset; idx++)
@@ -503,6 +505,28 @@ namespace MeshSerializer
 
 		uint32_t indexBufferBase = (uint32_t)iUniqueVertexCount;
 		iUniqueVertexCount += finalVertexIndices.Count();
+
+		// Calculate the extents of the submesh.
+		pCurHeader.vecMinExtents = vertexPositions[finalVertexIndices[0].iPositionIdx];	// Just initialize extents to the first one to account for edge cases.
+		pCurHeader.vecMaxExtents = vertexPositions[finalVertexIndices[0].iPositionIdx];
+		for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+		{
+			Vector3D& pCurPos = vertexPositions[finalVertexIndices[iVert].iPositionIdx];
+
+			if (pCurPos.x < pCurHeader.vecMinExtents.x)
+				pCurHeader.vecMinExtents.x = pCurPos.x;
+			if (pCurPos.y < pCurHeader.vecMinExtents.y)
+				pCurHeader.vecMinExtents.y = pCurPos.y;
+			if (pCurPos.z < pCurHeader.vecMinExtents.z)
+				pCurHeader.vecMinExtents.z = pCurPos.z;
+
+			if (pCurPos.x > pCurHeader.vecMaxExtents.x)
+				pCurHeader.vecMaxExtents.x = pCurPos.x;
+			if (pCurPos.y > pCurHeader.vecMaxExtents.y)
+				pCurHeader.vecMaxExtents.y = pCurPos.y;
+			if (pCurPos.z > pCurHeader.vecMaxExtents.z)
+				pCurHeader.vecMaxExtents.z = pCurPos.z;
+		}
 
 		// Write out the unique data to the output tables.
 		for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
