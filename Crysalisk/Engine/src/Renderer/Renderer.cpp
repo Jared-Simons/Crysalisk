@@ -589,7 +589,7 @@ void CRenderer::BindShader(Shader* pShader)
 
 //-------------------------------------------------------------------------
 // Purpose: Binds a shader's per-frame uniforms.
-// Input:	pShader - The shader who's uniforms to bind.
+// Input:	pShader - The shader whose uniforms to bind.
 // Output:	none.
 //-------------------------------------------------------------------------
 void CRenderer::BindShaderPerFrameUniforms(Shader* pShader)
@@ -599,7 +599,7 @@ void CRenderer::BindShaderPerFrameUniforms(Shader* pShader)
 
 //-------------------------------------------------------------------------
 // Purpose: Binds a shader's per-instance uniforms.
-// Input:	pShader - The shader who's uniforms to bind.
+// Input:	pShader - The shader whose uniforms to bind.
 //			hInstanceID - The instance to be bound.
 // Output:	none.
 //-------------------------------------------------------------------------

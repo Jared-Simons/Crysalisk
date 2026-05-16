@@ -368,7 +368,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial->m_iInternalHandle, &hDefaultNormal);
 
 		// Mark the material so that it will check back on the texture load status.
-		pMaterial->m_iMaterialFlags &= MATERIAL_FLAG_INTERNALS_UPDATED;
+		pMaterial->m_iMaterialFlags |= MATERIAL_FLAG_INTERNALS_UPDATED;
 
 		// Save off the texture handles.
 		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
@@ -465,14 +465,6 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 
 	return pMaterial->m_bIsTransparent;
 }
-
-// Utility macro for making sure texture resources are up-to-date, and binding resources if needed.
-#define BIND_AND_APPLY_TEXTURE(pMaterial, hTexture, iTextureIndex)																											\
-	if (m_Config.pTextureSystem->IsTextureFlagSet(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED))																				\
-	{																																										\
-		m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureIndex, pMaterial.m_iInternalHandle, &hTexture);		\
-		m_Config.pTextureSystem->UnsetTextureFlags(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED);																				\
-	}
 
 //-------------------------------------------------------------------------
 // Purpose:	Binds a given material.

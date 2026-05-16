@@ -217,7 +217,7 @@ public:
 	// The shader used to render this material.
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	// Material flags.
-	uint8_t			m_iMaterialFlags{ kInvalidID_U8 };
+	uint8_t			m_iMaterialFlags{ 0 };
 	// The shininess exponent used to control the concentration of specular highlights.
 	unsigned int	m_iShininess{ kInvalidID_U32 };
 	// Indicates if this material is transparent.
