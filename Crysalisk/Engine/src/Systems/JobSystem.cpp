@@ -170,7 +170,7 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pAppConfig)
 
 	// Reasonable defaults.
 	m_LowPriorityJobs.Resize(80);
-	m_NormalPriorityJobs.Resize(80);
+	m_NormalPriorityJobs.Resize(200);
 	m_HighPriorityJobs.Resize(80);
 
 	// Make sure we have at least one additional thread (aside from the main thread) to do work on.
