@@ -93,7 +93,7 @@ public:
 	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
-	bool			AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
@@ -345,6 +345,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 
 	// View Test TEMP
 	// Start rendering!
+
+	// UI TEST
+	testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, "TESTING!");
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	{
 		// Set per-frame render data.
@@ -416,6 +419,8 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	pShaderSystem->BindShader(kInvalidID_U32);
 	m_WorldVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_WorldIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+	m_UIVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+	m_UIIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 
 	m_Metrics.CurrentFrameFPS++;
 
@@ -638,7 +643,7 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-bool CRenderer::AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
+bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
 {
 	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
 
@@ -646,8 +651,7 @@ bool CRenderer::AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBa
 
 	pOutInstance->indexCount = iIndexCount;
 
-	// TODO: Pass in vertex stride!
-	m_RendererBackend->AcquireGeometryResources(&m_WorldVertexBuffer, &m_WorldIndexBuffer, iVertexCount, 44, iVertexBase, pVertices, iIndexCount, pIndices, *pOutInstance);
+	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, iVertexCount, iVertexStride, iVertexBase, pVertices, iIndexCount, pIndices, *pOutInstance);
 
 	return true;
 }

@@ -8,6 +8,8 @@
 
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
+#include "Systems/FontSystem.h"
+#include "Systems/ShaderSystem.h"
 
 class CUIRenderView : public IRenderView
 {
@@ -23,6 +25,12 @@ public:
 private:
 	Renderpass						m_pRenderpass{};
 	IRenderer*						m_pRenderer{ nullptr };
+	IShaderSystem*					m_pShaderSystem{ nullptr };
+	IFontSystem*					m_pFontSystem{ nullptr };
+
+	ShaderHandle_t					m_hUIShader{ kInvalidID_U32 };
+	// TEST TEXT
+	TextObject						m_TestText{};
 };
 
 bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
@@ -31,6 +39,8 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 
 	// Store off subsystem pointers.
 	m_pRenderer = pEngineSystems->pRenderer;
+	m_pShaderSystem = pEngineSystems->pShaderSystem;
+	m_pFontSystem = pEngineSystems->pFontSystem;
 
 	// Setup the renderpass.
 	RenderpassConfig_t UIPassConfig{};
@@ -57,6 +67,8 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	// Register with the renderer.
 	pEngineSystems->pRenderer->RegisterRenderView(this);
 
+	m_hUIShader = m_pShaderSystem->AcquireShader("Core.UI");
+
 	return true;
 }
 
@@ -67,9 +79,19 @@ void CUIRenderView::Shutdown(IRenderer* pRenderer)
 
 void CUIRenderView::Render(RenderPacket_t* pRenderData)
 {
+	m_TestText.m_hFont = 0;
+	m_TestText.m_flTextSize = 1.0f;
+	m_TestText.m_vecPos = { -0.95f, -0.6f };
+	m_TestText.SetText(m_pRenderer, m_pFontSystem, "TESTING");
+	
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		// Draw stuff here.
+		Matrix4x4 matUIProj(1.0f);
+		m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matUIProj);
+		m_pShaderSystem->BindShader(m_hUIShader);
+		m_pShaderSystem->BindPerInstanceUniforms(1);
+		m_pRenderer->DrawGeometry(m_TestText.m_Geometry, &m_pRenderer->GetUIVertexBuffer(), &m_pRenderer->GetUIIndexBuffer());
 	}
 	m_pRenderer->EndRenderpass();
 }

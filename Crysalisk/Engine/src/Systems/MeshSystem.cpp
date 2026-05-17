@@ -283,7 +283,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		pNewSubmesh.vecMinExtents = pCurSubmesh.vecMinExtents;
 		pNewSubmesh.vecMaxExtents = pCurSubmesh.vecMaxExtents;
 		pNewSubmesh.vecCenter = (pNewSubmesh.vecMinExtents + pNewSubmesh.vecMaxExtents) * 0.5f;
-		m_Config.pRenderer->AcquireGeometryResources(pCurSubmesh.iVertexCount, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData, pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
+		m_Config.pRenderer->AcquireGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(),
+													pCurSubmesh.iVertexCount, 44, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData,	// FIXME: Hardcoded vertex stride.
+													pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}
 
 	// Increment the reference count.

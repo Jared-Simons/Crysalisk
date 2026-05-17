@@ -62,7 +62,7 @@ public:
 	virtual bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
-	virtual bool			AcquireGeometryResources(size_t iVertexCount, uint64_t iVertexBase, void* pVertices, size_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
 
 	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 
@@ -79,6 +79,7 @@ public:
 	virtual void	SetMinimized(bool bMinimized) = 0;
 	virtual void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) = 0;
 
+	// TODO: Move to views?
 	virtual RenderBuffer&	GetWorldVertexBuffer() = 0;
 	virtual RenderBuffer&	GetWorldIndexBuffer() = 0;
 
