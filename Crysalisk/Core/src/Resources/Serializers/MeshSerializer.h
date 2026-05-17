@@ -19,6 +19,7 @@ namespace MeshSerializer
 	static const uint32_t	kModelResourceVertexDataHeader = 0xCABEB;
 	static const uint32_t	kModelResourceIndexDataHeader = 0xCABEC;
 	static const uint32_t	kModelResourceMaterialDataHeader = 0xCABED;
+	static const uint32_t	kModelResourceStringDataHeader = 0xCABEE;
 
 	// Writes out a model in our own binary format directly from a source file.
 	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource);
@@ -60,8 +61,9 @@ namespace MeshSerializer
 	// Contains data specific to each mesh/submesh.
 	struct CModel_MeshHeader_t
 	{
+		uint32_t				iMeshNameIndex{ kInvalidID_U32 };
 		// The index of this mesh's material in the model's material table.
-		uint32_t				iMaterialIndex{ kInvalidID_U32 };
+		uint32_t				iMaterialNameIndex{ kInvalidID_U32 };
 
 		uint32_t				iVertexCount{ 0 };
 		uint64_t				iVertexOffset{ 0 };

@@ -268,9 +268,9 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
 		// Acquire material resources.
-		if (pResource.pMaterialNames.Count() > 0 && pResource.pMeshes[iSubmesh].iMaterialIndex != kInvalidID_U32)
+		if (pResource.pMaterialNames.Count() > 0 && pResource.pMeshes[iSubmesh].iMaterialNameIndex != kInvalidID_U32)
 		{
-			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialIndex]);
+			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialNameIndex]);
 		}
 		else
 		{

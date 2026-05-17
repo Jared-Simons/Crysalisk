@@ -139,12 +139,17 @@ namespace MeshSerializer
 
 		// Material stuff.
 		// TEMP DEBUG
-		bool debugNoGenerateMaterials = true;
+		bool debugNoGenerateMaterials = false;
 		char* pszMTLFilePath{ nullptr };
 		// Contains all of the material names encountered (does not contain repeats!)
 		Utl::CVector<char*>		materialNames{};
-		char* pszMaterialName{ nullptr };
-		bool bMatFound = false;
+		Utl::CVector<uint32_t>	materialNameIndices{};
+		uint32_t				iMaterialRunningTotal{ 0 };
+		char*					pszMaterialName{ nullptr };
+		bool					bMatFound = false;
+
+		Utl::CVector<char*> outputStringTable{};
+		uint64_t			iStringTableRunningBytes{ 0 };
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
@@ -169,6 +174,13 @@ namespace MeshSerializer
 					{
 						ProcessCurrentSubmesh(meshHeaders, meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexData, finalIndexData, iUniqueVertCounter, false);
 					}
+					char szMeshName[512];
+					Utl::StringFormat_V("%s", szMeshName, &szCurrentLine[2]);
+
+					// Add it to the string table.
+					outputStringTable.PushBack("");
+					outputStringTable.Back() = Utl::StringDuplicate(szMeshName);
+					meshHeaders.Back().iMeshNameIndex = (uint32_t)outputStringTable.Count() - 1;
 				}
 				continue;
 			}
@@ -212,7 +224,7 @@ namespace MeshSerializer
 					{
 						// This material already exists in the table!
 						bMatFound = true;
-						meshHeaders.Back().iMaterialIndex = iMat;
+						meshHeaders.Back().iMaterialNameIndex = iMat;
 						break;
 					}
 				}
@@ -220,8 +232,10 @@ namespace MeshSerializer
 				// This material still needs to be added.
 				if (!bMatFound)
 				{
-					materialNames.PushBack(Utl::StringDuplicate(pszMaterialName));
-					meshHeaders.Back().iMaterialIndex = (uint32_t)materialNames.Count() - 1;
+					outputStringTable.PushBack(Utl::StringDuplicate(pszMaterialName));
+					meshHeaders.Back().iMaterialNameIndex = iMaterialRunningTotal;
+					iMaterialRunningTotal++;
+					materialNameIndices.PushBack((uint32_t)(uint32_t)outputStringTable.Count() - 1);
 					break;
 				}
 				else
@@ -406,12 +420,33 @@ namespace MeshSerializer
 			floatIdx = (floatIdx + 1) % 11;
 		}
 
+		// Before writing out the data, map all the string indices to byte offsets
+		// so that the strings can be loaded from a single flat buffer.
+		uint32_t stringCount = (uint32_t)outputStringTable.Count();
+		Utl::CVector<uint32_t>	stringIndexToBytes(stringCount);
+		stringIndexToBytes.SetCount(stringCount);
+
+		for (uint32_t iStr = 0; iStr < stringCount; iStr++)
+		{
+			stringIndexToBytes[iStr] = (uint32_t)iStringTableRunningBytes;
+
+			uint64_t strLength = Utl::StringLength(outputStringTable[iStr]);
+			iStringTableRunningBytes += (strLength + 1);	// Including the null terminator.
+		}
+
+		// Convert the mesh name indices to byte offsets into the final string buffer.
+		for (uint32_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		{
+			uint32_t meshNameIndex = meshHeaders[iMesh].iMeshNameIndex;
+			meshHeaders[iMesh].iMeshNameIndex = stringIndexToBytes[meshNameIndex];
+		}
+
 		// Setup offsets/counts.
 		outFileHeader.iVertexStride = sizeof(Vertex3D);
 		outFileHeader.iTotalVertexCount = (uint32_t)packedVertexData.Count();
 		outFileHeader.iTotalIndexCount = (uint32_t)finalIndexData.Count();
 		outFileHeader.iTotalIndexStride = (uint32_t)finalIndexData.Stride();
-		outFileHeader.iMaterialCount = (uint32_t)materialNames.Count();
+		outFileHeader.iMaterialCount = iMaterialRunningTotal;
 
 		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
@@ -453,11 +488,23 @@ namespace MeshSerializer
 		FileSystem::WriteBytes(&kModelResourceMaterialDataHeader, sizeof(uint32_t), &hNewOutputMesh);
 		iTotalBytesWritten += sizeof(uint32_t);
 
-		for (int idx = 0; idx < materialNames.Count(); idx++)
+		// Write out an array that contains the offsets of ONLY the material names
+		// This allows us to quickly get a list of materials this model uses.
+		for (uint32_t iMat = 0; iMat < iMaterialRunningTotal; iMat++)
 		{
-			uint64_t len = Utl::StringLength(materialNames[idx]);
-			FileSystem::WriteBytes(materialNames[idx], len + 1, &hNewOutputMesh);
-			iTotalBytesWritten += len + 1;
+			FileSystem::WriteBytes(&stringIndexToBytes[materialNameIndices[iMat]], sizeof(uint32_t), &hNewOutputMesh);
+			iTotalBytesWritten += sizeof(uint32_t);
+		}
+
+		// Write out a marker for the string data.
+		FileSystem::WriteBytes(&kModelResourceStringDataHeader, sizeof(uint32_t), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(uint32_t);
+
+		for (int idx = 0; idx < outputStringTable.Count(); idx++)
+		{
+			uint64_t len = Utl::StringLength(outputStringTable[idx]);
+			FileSystem::WriteBytes(outputStringTable[idx], len + 1, &hNewOutputMesh);
+			iTotalBytesWritten += (len + 1);
 		}
 
 		// Close the new file.
@@ -465,6 +512,14 @@ namespace MeshSerializer
 
 		// Close the original source file.
 		FileSystem::CloseFile(&hOBJFile);
+
+		// Clean up strings.
+		for (int i = 0; i < outputStringTable.Count(); i++)
+		{
+			Utl::StringFree(outputStringTable[i]);
+			outputStringTable[i] = nullptr;
+		}
+		outputStringTable.Clear();
 
 		float flPercentReduced = ((float)iTotalBytesWritten / iOriginalByteSize);
 		flPercentReduced *= 100.0f;

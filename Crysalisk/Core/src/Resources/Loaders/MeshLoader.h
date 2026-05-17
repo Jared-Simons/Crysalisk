@@ -35,9 +35,11 @@ namespace MeshLoader
 		// Contains an array of submesh data.
 		struct GeometryObject_t
 		{
+			uint64_t	iMeshNameIndex{ kInvalidID_U32 };
+			uint64_t	iMaterialNameIndex{ kInvalidID_U32 };
+
 			// The raw vertex data.
 			// This is dynamically allocated, must be freed by caller.
-			uint32_t	iMaterialIndex{ kInvalidID_U32 };
 			uint64_t	iVertexCount{ 0 };
 			uint64_t	iVertexOffset{ 0 };
 			byte*		pVertexData{ nullptr };

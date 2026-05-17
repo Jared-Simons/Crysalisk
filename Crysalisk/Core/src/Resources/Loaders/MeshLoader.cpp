@@ -172,7 +172,7 @@ namespace MeshLoader
 		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
 			Platform::MemoryCopy(&pMeshHeaders[iMesh], (MeshSerializer::CModel_MeshHeader_t*)pBytes + iMesh, sizeof(MeshSerializer::CModel_MeshHeader_t));
-			pOutResource.pMeshes[iMesh].iMaterialIndex = pMeshHeaders[iMesh].iMaterialIndex;
+			pOutResource.pMeshes[iMesh].iMaterialNameIndex = pMeshHeaders[iMesh].iMaterialNameIndex;
 			pOutResource.pMeshes[iMesh].vecMinExtents = pMeshHeaders[iMesh].vecMinExtents;
 			pOutResource.pMeshes[iMesh].vecMaxExtents = pMeshHeaders[iMesh].vecMaxExtents;
 		}
@@ -310,17 +310,34 @@ namespace MeshLoader
 		currOffset += sizeof(uint32_t);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
-		// Copy over material names.
+		Utl::CVector<uint32_t> materialNameOffsets(pFileHeader->iMaterialCount);
+
+		// Get the material indices and store 'em off!
+		for (uint32_t iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		{
+			uint32_t* pNameIdx = (uint32_t*)pBytes;
+			materialNameOffsets.PushBack(*pNameIdx);
+
+			currOffset += sizeof(uint32_t);
+			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		}
+
+		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceStringDataHeader);
+		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceStringDataHeader)
+		{
+			LOG_ERROR("Mesh '%s' missing expected String Header marker. Please recompile.", pszMeshFileName);
+		}
+
+		currOffset += sizeof(uint32_t);
+		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+
+		// We are now at the string table.
+		// Copy over the string names.
 		pOutResource.pMaterialNames.Resize(pFileHeader->iMaterialCount);
 		pOutResource.pMaterialNames.SetCount(pFileHeader->iMaterialCount);
-		for (int iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		for (uint32_t iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
 		{
-			uint64_t strLen = Utl::StringLength((char*)pBytes);
-			char* pCurString = Utl::StringDuplicate_N((char*)pBytes, strLen);
-			pOutResource.pMaterialNames[iMat] = pCurString;
-
-			currOffset += strLen + 1;
-			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+			pOutResource.pMaterialNames[iMat] = Utl::StringDuplicate((char*)pBytes + materialNameOffsets[iMat]);
 		}
 
 		delete[] pMeshHeaders;
