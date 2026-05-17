@@ -92,17 +92,17 @@ namespace Utl
 
 		Value* Insert(const char* key)
 		{
-			int hashedValue = ::SimpleHash_StringToInt(key, m_Capacity);
-			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
+			int hashedKey = ::SimpleHash_StringToInt(key, m_Capacity);
+			CAssert(hashedKey >= 0 && hashedKey < m_Capacity);
 
-			if (m_pKeys[hashedValue] == nullptr)
+			if (m_pKeys[hashedKey] == nullptr)
 			{
-				m_pKeys[hashedValue] = Utl::StringDuplicate(key);
+				m_pKeys[hashedKey] = Utl::StringDuplicate(key);
 			}
-			else if (Utl::StringCompare(m_pKeys[hashedValue], key))
+			else if (Utl::StringCompare(m_pKeys[hashedKey], key))
 			{
 				// This key already exists in the table, return it's value.
-				return &m_pValues[hashedValue];
+				return &m_pValues[hashedKey];
 			}
 			else
 			{
@@ -110,15 +110,21 @@ namespace Utl
 				// This method should be fast enough since we typically store off hashed data for quick lookups anyways.
 				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
 				{
-					// We can use this slot.
-					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
+					if (m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] && Utl::StringCompare(m_pKeys[(hashedKey + iProbeIdx) % m_Capacity], key))
 					{
-						m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] = Utl::StringDuplicate(key);
-						return &m_pValues[(hashedValue + iProbeIdx) % m_Capacity];
+						// Found the data here.
+						return &m_pValues[(hashedKey + iProbeIdx) % m_Capacity];
+					}
+
+					// We can use this slot.
+					if (m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] == nullptr)
+					{
+						m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] = Utl::StringDuplicate(key);
+						return &m_pValues[(hashedKey + iProbeIdx) % m_Capacity];
 					}
 				}
 			}
-			return &m_pValues[hashedValue];
+			return &m_pValues[hashedKey];
 		}
 
 		void Resize(size_t nNewCapacity)

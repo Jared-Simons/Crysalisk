@@ -112,7 +112,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 	}
 	
 	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
-	if (spotLight->flQuadratic < 0.0001f)	// No NaNs!
+	if ((spotLight->flLinear < kVectorElementEpsilon) && (spotLight->flConstant < kVectorElementEpsilon) && (spotLight->flQuadratic < kVectorElementEpsilon))	// No NaNs!
 		spotLight->flQuadratic = 1.0f;
 
 	pMaterialSystem->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
