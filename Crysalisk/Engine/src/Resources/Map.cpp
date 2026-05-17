@@ -84,17 +84,37 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 
 	// Setup light data.
 	MapLoader::MapResource_t::LightResource_t& dirLight = pNewMapResource.DirectionalLight;
-	MapLoader::MapResource_t::LightResource_t& pointLight1 = pNewMapResource.PointLights[0];
-	MapLoader::MapResource_t::LightResource_t& pointLight2 = pNewMapResource.PointLights[1];
-	MapLoader::MapResource_t::LightResource_t& pointLight3 = pNewMapResource.PointLights[2];
-	MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
-	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
+	pMaterialSystem->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
 
- 	pMaterialSystem->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
-	pMaterialSystem->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
-	pMaterialSystem->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
-	pMaterialSystem->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
-	pMaterialSystem->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	if (pNewMapResource.PointLights.Count() > 0)
+	{
+		MapLoader::MapResource_t::LightResource_t& pointLight1 = pNewMapResource.PointLights[0];
+		MapLoader::MapResource_t::LightResource_t& pointLight2 = pNewMapResource.PointLights[1];
+		MapLoader::MapResource_t::LightResource_t& pointLight3 = pNewMapResource.PointLights[2];
+		MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
+
+		pMaterialSystem->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
+		pMaterialSystem->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
+		pMaterialSystem->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
+		pMaterialSystem->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	}
+	else
+	{
+		// TODO: If no lights are present in the map file, default to fullbright?
+
+		// If there is no lighting data present, we need to make sure to default everything to 0 EXCEPT for the quadratic attenuation term!
+		// If all 3 attenuation terms are 0, then there'll be NaNs in the shader. We'll use the standard 1-quadratic as a default.
+		Vector vecZero(0.0f, 0.0f, 0.0f);
+		pMaterialSystem->SetPointLightData(0, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(1, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(2, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(3, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+	}
+	
+	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
+	if (spotLight->flQuadratic < 0.0001f)	// No NaNs!
+		spotLight->flQuadratic = 1.0f;
+
 	pMaterialSystem->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
 	pMaterialSystem->ApplyLightData();
 

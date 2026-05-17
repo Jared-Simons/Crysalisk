@@ -617,7 +617,7 @@ void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vecto
 //-------------------------------------------------------------------------
 void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
 {
-	CAssert(flInnerCutoff < flOuterCutoff);
+	CAssert(flInnerCutoff <= flOuterCutoff);
 
 	spotLight.vecPosition = vecPosition;
 	// Direction needs to be converted from degrees to radians.
