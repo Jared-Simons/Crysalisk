@@ -307,6 +307,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	{
 		return true;
 	}
+	pRenderData.pMetrics = &m_Metrics;
 
 	if (m_Metrics.TimeSinceLastMetricsUpdate + 1 < m_RendererClock.GetElapsedTime())
 	{
@@ -379,41 +380,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 		m_pDebugRenderer->Render(debugFrameData);
 	}
 
-	m_RendererBackend->BeginRenderpass(*m_UIView);
-	{
-		if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
-		{*/
-			// TODO: Orthographic projection is broken.
-			/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
-			float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
-			Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f); */
-			/*Matrix4x4 UIProjection{1.0f};
-			pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-			pShaderSystem->BindShader(hUIShader);
-			pShaderSystem->BindPerInstanceUniforms(1);
-			DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
-		}
-	}
-
-	m_RendererBackend->EndRenderpass();
-
-	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
-
-	if (s_bDisplayProfilingText)
-	{
-		// Display renderer matrics.
-		char szMetricsString[512]{};
-		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
-			szMetricsString,
-			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
-			m_Metrics.NumDrawCalls, m_Metrics.NumGeometriesFrustumCulled,
-			g_pMemoryManager->GetPercentAllocated(),
-			(pCurrentMap && pCurrentMap->GetMapName() != nullptr) ? pCurrentMap->GetMapName() : "None",
-			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
-
-		// Set the string.
-		testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, szMetricsString);
-	}*/
+	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);*/
 	
 	// Clear out bound shader state.
 	pShaderSystem->BindShader(kInvalidID_U32);

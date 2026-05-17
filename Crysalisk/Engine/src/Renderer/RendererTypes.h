@@ -48,6 +48,9 @@ struct RenderPacket_t
 
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
+
+	// FIXME: Should these be here?
+	struct RenderMetrics_t* pMetrics{ nullptr };
 };
 
 //-------------------------------------------------------------------------
