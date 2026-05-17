@@ -210,6 +210,19 @@ namespace MeshSerializer
 
 			case 'u':
 				// New Material.
+
+				// If we are currently processing an object, save it off and start a new one.
+				// Each object should have one unique material.
+				if (meshHeaders.Count() > 0 && meshFaces.Count() > 0)
+				{
+					ProcessCurrentSubmesh(meshHeaders, meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexData, finalIndexData, iUniqueVertCounter, false);
+
+					// Use the previous mesh's name as our name.
+					uint64_t iCurIdx = outputStringTable.PushBack("");
+					outputStringTable.Back() = Utl::StringDuplicate(outputStringTable[meshHeaders[meshHeaders.Count() - 2].iMeshNameIndex]);
+					meshHeaders.Back().iMeshNameIndex = (uint32_t)outputStringTable.Count() - 1;
+				}
+
 				// Optimize, maybe this could be made faster with a hashmap??
 				// This could become taxing on VERY large models.
 
