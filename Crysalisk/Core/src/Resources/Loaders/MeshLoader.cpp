@@ -112,7 +112,7 @@ namespace MeshLoader
 			pResource.pMaterialNames[iMat] = nullptr;
 		}
 	}
-
+	
 	//-------------------------------------------------------------------------
 	// Purpose: Attempts to a Crysalisk model (CModel) at the given path.
 	// 
@@ -339,6 +339,10 @@ namespace MeshLoader
 		{
 			pOutResource.pMaterialNames[iMat] = Utl::StringDuplicate((char*)pBytes + materialNameOffsets[iMat]);
 		}
+
+		// Free memory
+		delete[] pUnpackedVertices;
+		pUnpackedVertices = nullptr;
 
 		delete[] pMeshHeaders;
 		pMeshHeaders = nullptr;
