@@ -456,12 +456,11 @@ namespace MeshSerializer
 
 		// Setup offsets/counts.
 		outFileHeader.iVertexStride = sizeof(Vertex3D);
-		outFileHeader.iTotalVertexCount = (uint32_t)packedVertexData.Count();
-		outFileHeader.iTotalIndexCount = (uint32_t)finalIndexData.Count();
-		outFileHeader.iTotalIndexStride = (uint32_t)finalIndexData.Stride();
+		outFileHeader.iVertexCount = (uint32_t)packedVertexData.Count();
+		outFileHeader.iIndexCount = (uint32_t)finalIndexData.Count();
+		outFileHeader.iIndexStride = (uint32_t)finalIndexData.Stride();
 		outFileHeader.iMaterialCount = iMaterialRunningTotal;
 
-		outFileHeader.iMeshDataOffset = sizeof(uint64_t) + sizeof(CModel_FileHeader_t);	// Accounting for the magic number.
 		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
 		outFileHeader.iMeshDataStride = (uint8_t)meshHeaders.Stride();
 

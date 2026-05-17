@@ -189,11 +189,11 @@ namespace MeshLoader
 		currOffset += sizeof(uint32_t);
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
-		float* pUnpackedVertices = new float[11 * pFileHeader->iTotalVertexCount];	// 11 floats per vertex.
+		float* pUnpackedVertices = new float[11 * pFileHeader->iVertexCount];	// 11 floats per vertex.
 
 		// Unpack the packed vertex data.
 		uint8_t iAttribIdx = 0;
-		for (uint32_t iFloat = 0; iFloat < pFileHeader->iTotalVertexCount; iFloat++)
+		for (uint32_t iFloat = 0; iFloat < pFileHeader->iVertexCount; iFloat++)
 		{
 			uint16_t* pPacked = (uint16_t*)pBytes + iFloat;
 
@@ -268,7 +268,7 @@ namespace MeshLoader
 			}
 		}
 
-		currOffset += sizeof(uint16_t) * pFileHeader->iTotalVertexCount;
+		currOffset += sizeof(uint16_t) * pFileHeader->iVertexCount;
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceIndexDataHeader);
@@ -298,7 +298,7 @@ namespace MeshLoader
 			}
 		}
 
-		currOffset += pFileHeader->iTotalIndexStride * pFileHeader->iTotalIndexCount;
+		currOffset += pFileHeader->iIndexStride * pFileHeader->iIndexCount;
 		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
 
 		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceMaterialDataHeader);

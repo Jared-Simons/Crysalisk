@@ -30,23 +30,19 @@ namespace MeshSerializer
 		// The file version of this asset.
 		uint32_t	iFileVersion{ 0 };
 
-		// The extents of the whole mesh.
-		Vector		vecMinExtents{};
-		Vector		vecMaxExtents{};
-
-		uint64_t	iMeshDataOffset{ 0 };
 		uint32_t	iMeshDataCount{ 0 };
 		uint8_t		iMeshDataStride{ 0 };
 
-		uint32_t	iTotalVertexCount{ 0 };
+		uint32_t	iVertexCount{ 0 };
 		uint32_t	iVertexStride{ 0 };
-		uint32_t	iTotalIndexCount{ 0 };
-		uint32_t	iTotalIndexStride{ 0 };
+		uint32_t	iIndexCount{ 0 };
+		uint32_t	iIndexStride{ 0 };
 
-		uint64_t	iMaterialTableOffset{ 0 };
 		uint64_t	iMaterialCount{ 0 };
-		// NOTE: Material stride will depend on each string.
-		// The data is tightly packed, so the strings will be right next to each other.
+
+		// The extents of the whole mesh.
+		Vector		vecMinExtents{};
+		Vector		vecMaxExtents{};
 	};
 
 	// Holds indices specific to each face.

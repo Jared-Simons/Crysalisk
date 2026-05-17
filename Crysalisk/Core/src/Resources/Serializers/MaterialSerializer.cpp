@@ -38,16 +38,11 @@ namespace MaterialSerializer
 
 		char tempDataBuffer[512];
 
-		// Write out the material data.
-		// First the name - this is required.
-		Utl::StringFormat_V("name=%s\n", tempDataBuffer, pInResource.pszMaterialName);
-		FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
-
-		// Next up the shader - this is also required.
+		// First up the shader - this is also required.
 		if (pInResource.pszShaderName == nullptr)
 		{
 			// Don't spew warnings but just state this once.
-			LOG_WARN("No shader provided for material '%s'. Defaulting to 'Core.Phong'.", pInResource.pszMaterialName);
+			LOG_WARN("No shader provided for material '%s'. Defaulting to 'Core.Phong'.", pszMaterialName);
 
 			// Default hardcoded shader.
 			pInResource.pszShaderName = "Core.Phong";

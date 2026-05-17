@@ -35,6 +35,9 @@ namespace MaterialLoader
 			return false;
 		}
 
+		// The name of the material will be its name on disk without the path and file extension.
+		pOutResource.pszMaterialName = Utl::StringGetFilenameFromPath(pszMaterialPath);
+
 		// Parse the config and write it to the resource.
 		while (!FileSystem::IsEOF(&hMaterialConfigFile))
 		{
@@ -57,12 +60,8 @@ namespace MaterialLoader
 			szKey[equalIndex] = '\0';
 			Platform::MemoryCopy(szValue, &szCurrentLine[equalIndex + 1], bytesRead - equalIndex);
 			szValue[bytesRead - 1] = '\0';
-
-			if (Utl::StringCompare(szKey, "name"))
-			{
-				pOutResource.pszMaterialName = Utl::StringDuplicate(szValue);
-			}
-			else if (Utl::StringCompare(szKey, "shader"))
+	
+			if (Utl::StringCompare(szKey, "shader"))
 			{
 				pOutResource.pszShaderName = Utl::StringDuplicate(szValue);
 			}

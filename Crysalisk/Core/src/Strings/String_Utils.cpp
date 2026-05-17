@@ -135,6 +135,43 @@ namespace Utl
 	}
 
 	//-------------------------------------------------------------------------
+	// Purpose: Attempts to get the name of a file from its path.
+	// NOTE: This method allocates memory!
+	// 
+	// Input:	pszPath - The path to get the name from.
+	// Output:	char* - A copy of the name from pszPath.
+	//-------------------------------------------------------------------------
+	char* StringGetFilenameFromPath(const char* pszPath)
+	{
+		char*		pszName = nullptr;
+		uint32_t	stringLength = (uint32_t)StringLength(pszPath);
+		uint32_t	iStartIdx = 0;
+		uint32_t	iEndIdx = 0;
+		uint32_t	iCurIdx = stringLength;
+		const char* p = &pszPath[stringLength - 1];
+		while (p)
+		{
+			if (*p == '.')
+			{
+				iEndIdx = iCurIdx;
+			}
+
+			if (*p == '/')	
+			{
+				iStartIdx = iCurIdx;
+				break;
+			}
+		
+			iCurIdx--;
+			p--;
+		}
+
+		CAssert(iStartIdx < iEndIdx);
+		pszName = StringDuplicate_N(&pszPath[iStartIdx], iEndIdx - iStartIdx - 1);
+		return pszName;
+	}
+
+	//-------------------------------------------------------------------------
 	// Purpose: String duplication.
 	// NOTE: This method allocates memory!
 	// 

@@ -31,6 +31,9 @@ namespace Utl
 	// Attempts to get the file extension given a file's path.
 	DLL_EXPORT char* StringGetFilenameExtension(const char* pString);
 
+	// Attempts to get the name of a file from its path.
+	DLL_EXPORT char* StringGetFilenameFromPath(const char* pPath);
+
 	// String duplication.
 	DLL_EXPORT char* StringDuplicate(const char* pStringToCopy);
 	// String duplication up to 'bytesToCopy' chars.

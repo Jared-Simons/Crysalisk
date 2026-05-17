@@ -62,6 +62,7 @@ namespace MaterialLoader
 		};
 
 		// The material's name.
+		// NOTE: This is not written out to the .cmat file
 		char*								pszMaterialName{ nullptr };
 		// The name of the material's shader.
 		char*								pszShaderName{ nullptr };
