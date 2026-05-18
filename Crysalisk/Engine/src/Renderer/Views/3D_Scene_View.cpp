@@ -122,7 +122,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 }
 
 // Factory function to create the view.
-IRenderView* RendererViewCreate_3DSceneView()
+IRenderView* RenderViewCreate_3DSceneView()
 {
 	C3DSceneRenderView* pNewView = new C3DSceneRenderView;
 	return pNewView;

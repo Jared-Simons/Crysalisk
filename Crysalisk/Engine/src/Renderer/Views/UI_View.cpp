@@ -104,7 +104,7 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 }
 
 // Factory function to create the view.
-IRenderView* RendererViewCreate_UIView()
+IRenderView* RenderViewCreate_UIView()
 {
 	CUIRenderView* pNewView = new CUIRenderView;
 	return pNewView;

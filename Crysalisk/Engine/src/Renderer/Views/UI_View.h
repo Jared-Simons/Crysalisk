@@ -9,4 +9,4 @@
 #include <Defines.h>
 #include <Renderer/RendererTypes.h>
 
-DLL_EXPORT IRenderView* RendererViewCreate_UIView();
+DLL_EXPORT IRenderView* RenderViewCreate_UIView();

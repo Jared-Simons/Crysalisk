@@ -17,6 +17,7 @@
 
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
+#include <Renderer/Views/Debug_Render_View.h>
 #include <Renderer/Views/UI_View.h>
 
 // Cryaslisk Engine entry point.
@@ -65,8 +66,9 @@ bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	ConfigureRenderViews(pAppConfig);
 
 	// Setup our render-views.
-	pAppConfig->pViews.PushBack(RendererViewCreate_3DSceneView());
-	pAppConfig->pViews.PushBack(RendererViewCreate_UIView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
 	return true;
 }
