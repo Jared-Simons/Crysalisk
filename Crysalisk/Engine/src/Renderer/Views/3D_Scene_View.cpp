@@ -84,7 +84,6 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 	{
 		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pRenderData->pOpaqueGeometries;
 		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pRenderData->pTransparentGeometries;
-		Matrix4x4 matModel = Matrix4x4{ 1.0f };
 
 		// Render opaque geometries.
 		for (int iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
@@ -117,8 +116,8 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 
 			pRenderData->iNumDrawCalls++;
 		}
+		m_pRenderer->EndRenderpass();
 	}
-	m_pRenderer->EndRenderpass();
 }
 
 // Factory function to create the view.

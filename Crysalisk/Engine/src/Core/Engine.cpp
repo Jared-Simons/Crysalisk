@@ -576,14 +576,22 @@ bool Event_MouseButtonReleased(EventData_t data)
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
 			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugRenderer);
+			// DEBUG GEO TEST
+			{
+				DebugRender::DebugGeometry_t newGeo = DebugRender::AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+				CMap& pMap = const_cast<CMap&>(s_Engine.GetCurrentMap());
+				pMap.m_hDebugMeshes.PushBack(newGeo);
+			}
 
 			Vector4D rayColor{};
 			if (ray.bDidHit)
 			{
+				LOG_DEBUG("HIT");
 				rayColor = { 0.0f, 1.0f, 0.0f, 1.0f };
 			}
 			else
 			{
+				LOG_DEBUG("MISS");
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
 			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);

@@ -9,6 +9,7 @@
 #include <Containers/CVector.h>
 #include <Defines.h>
 #include <Renderer/Camera.h>
+#include "Resources/DebugGeometry.h"
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
@@ -29,8 +30,7 @@ struct Ray_t
 	float	flDistance{ 0.0f };
 };
 
-// TODO: How to better export classes?
-class ENGINE_API CMap
+class CMap
 {
 public:
 	static bool InitializeFromResource(struct MapLoader::MapResource_t& pNewMapResource, class IMeshSystem* pMeshSystem, class IMaterialSystem* pMaterialSystem, CMap& pOutMap);
@@ -40,9 +40,11 @@ public:
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	void										GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const;
+	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, RenderPacket_t* pPacket, unsigned int* pCulledGeometries) const;
 	void										CastRayIntoScene(Ray_t& pRay, class IDebugRenderer* pDebugRenderer) const;
 
+	// FIXME: this should be private
+	Utl::CVector<DebugRender::DebugGeometry_t>		m_hDebugMeshes{};
 private:
 	char*								m_pszMapName{ nullptr };
 
@@ -52,7 +54,7 @@ private:
 		const Mesh*		pMesh{ nullptr };
 	};
 
-	Utl::CVector<MapMesh_t>				m_hMeshes{};
+	Utl::CVector<MapMesh_t>							m_hMeshes{};
 
 	bool								m_bMapResourcesLoaded{ false };
 };

@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Map.h"
 
+#include <Containers/CVector.h>
 #include <Core/Logging.h>
 #include "Core/Engine.h"
 #include <Math/MathLib.h>
@@ -141,7 +142,7 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, RenderPacket_t* pRenderPacket, unsigned int* pCulledGeometries) const
 {
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -152,7 +153,7 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 		CAssert(pCurrentMesh);
 
 		// Split out transform matrices.
-		pTransformationMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
+		pRenderPacket->TransformMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
@@ -183,13 +184,13 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
 				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
 				{
-					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
-					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pRenderPacket->pOpaqueGeometries.PushBack(pCurrentSubmesh);
+					pRenderPacket->pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 				else
 				{
-					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
-					pVisibleTranslucentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pRenderPacket->pTransparentGeometries.PushBack(pCurrentSubmesh);
+					pRenderPacket->pTransparentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}
 			else
@@ -199,12 +200,38 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 			}
 		}
 	}
+
+	for (int iDebug = 0; iDebug < m_hDebugMeshes.Count(); iDebug++)
+	{
+		// LEFTOFF: Get colors and other data in here.
+		pRenderPacket->pDebugGeometries.PushBack(&m_hDebugMeshes[iDebug].geometryInstance);
+	}
 }
 
 static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
 
 void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 {
+	// DEBUG TEST
+	// FIXME: REMOVE
+	if (m_hDebugMeshes.Count() == 0)
+	{
+		CMap& pMap = const_cast<CMap&>(*this);
+		pMap.m_hDebugMeshes.Resize(2);
+
+		GeometryInstance_t& pGeo = m_hMeshes[0].pMesh->m_Geometries[0];
+		Vector vecWorldCenter = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecCenter);
+		Vector vecWorldMins = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecMinExtents);
+		Vector vecWorldMaxs = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecMaxExtents);
+
+		DebugRender::DebugGeometry_t test = DebugRender::AddPoint(vecWorldCenter, 30.0f, Vector4D{ 0.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
+		DebugRender::DebugGeometry_t test1 = DebugRender::AddBBox(pGeo, Vector4D{ 0.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
+		pMap.m_hDebugMeshes.PushBack(test);
+		pMap.m_hDebugMeshes.PushBack(test1);
+
+		return;
+	}
+
 	pRay.bDidHit = false;
 	pRay.flDistance = kFLT_MAX;
 

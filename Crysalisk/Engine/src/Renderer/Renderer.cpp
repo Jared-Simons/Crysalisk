@@ -102,6 +102,7 @@ public:
 	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
 	const Camera_t& GetMainCamera() const { return m_Camera; }
+	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
 
 	// Temp geometry stuff
 	bool	CreateTempTextObjects() override;
@@ -115,6 +116,9 @@ public:
 
 	virtual RenderBuffer& GetUIVertexBuffer() override { return m_UIVertexBuffer; }
 	virtual RenderBuffer& GetUIIndexBuffer() override { return m_UIIndexBuffer; }
+
+	virtual RenderBuffer& GetDebugVertexBuffer() override { return m_DebugVertexBuffer; }
+	virtual RenderBuffer& GetDebugIndexBuffer() override { return m_DebugIndexBuffer; }
 
 	virtual inline size_t	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
@@ -143,6 +147,9 @@ public:
 
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
+
+	RenderBuffer		m_DebugVertexBuffer{};
+	RenderBuffer		m_DebugIndexBuffer{};
 
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
@@ -213,6 +220,9 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer);
+	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer);
+
 	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
 		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -282,6 +292,8 @@ void CRenderer::Shutdown()
 	// TODO: Is this the right place to free these guys?
 	m_pRenderViews.Clear();
 
+	m_RendererBackend->DestroyRenderBufferInternal(m_DebugIndexBuffer);
+	m_RendererBackend->DestroyRenderBufferInternal(m_DebugVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
@@ -383,9 +395,12 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);*/
 	
 	// Clear out bound shader state.
+	// FIXME: We need a way to clear out bound buffer offsets automatically, forgetting to add buffers here keeps biting us.
 	pShaderSystem->BindShader(kInvalidID_U32);
 	m_WorldVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_WorldIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+	m_DebugVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+	m_DebugIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_UIVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_UIIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 

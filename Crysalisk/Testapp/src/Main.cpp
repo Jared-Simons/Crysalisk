@@ -121,7 +121,7 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 		// TODO: Clear frame data.
 		pRenderPacket->iCulledGeometries = 0;
 
-		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket->TransformMatrices, pRenderPacket->pOpaqueGeometries, pRenderPacket->pTransparentGeometries, &pRenderPacket->iCulledGeometries);
+		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket, &pRenderPacket->iCulledGeometries);
 	}
 }
 

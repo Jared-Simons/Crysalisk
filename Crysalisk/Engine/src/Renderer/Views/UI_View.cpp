@@ -70,7 +70,7 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_hUIShader = m_pShaderSystem->AcquireShader("Core.UI");
 	m_TestText.m_hFont = 0;
 	m_TestText.m_flTextSize = 1.0f;
-	m_TestText.m_vecPos = { -0.95f, -0.75f };
+	m_TestText.m_vecPos = { -0.95f, -0.6f };
 
 	return true;
 }
@@ -84,11 +84,14 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 {
 	RenderMetrics_t& pMetrics = *pRenderData->pMetrics;
 	char szMetricsString[512]{};
-	Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f",
+	Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f",
 		szMetricsString,
 		pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
 		pMetrics.NumDrawCalls, pMetrics.NumGeometriesFrustumCulled,
-		g_pMemoryManager->GetPercentAllocated());
+		g_pMemoryManager->GetPercentAllocated(),
+		pRenderData->pCamera->vecPosition.x,
+		pRenderData->pCamera->vecPosition.y,
+		pRenderData->pCamera->vecPosition.z);
 	m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
 	
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))

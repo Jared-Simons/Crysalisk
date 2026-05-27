@@ -71,6 +71,7 @@ public:
 	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
 	virtual const Camera_t& GetMainCamera() const = 0;
+	virtual float			GetRendererTime() const = 0;
 
 	// Temp geometry stuff
 	virtual bool	CreateTempTextObjects() = 0;
@@ -85,6 +86,9 @@ public:
 
 	virtual RenderBuffer&	GetUIVertexBuffer() = 0;
 	virtual RenderBuffer&	GetUIIndexBuffer() = 0;
+
+	virtual RenderBuffer&	GetDebugVertexBuffer() = 0;
+	virtual RenderBuffer&	GetDebugIndexBuffer() = 0;
 
 	virtual inline size_t	GetCurrentRenderFrame() const = 0;
 };

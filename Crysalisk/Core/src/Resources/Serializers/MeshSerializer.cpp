@@ -271,24 +271,6 @@ namespace MeshSerializer
 						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newPosition.x, &newPosition.y, &newPosition.z);
 						CAssert(numElements == 3);
 
-						// While we're here, update mesh extents, if necessary.
-						{
-							Vector& pPos = newPosition;
-							if (pPos.x < outFileHeader.vecMinExtents.x)
-								outFileHeader.vecMinExtents.x = pPos.x;
-							if (pPos.y < outFileHeader.vecMinExtents.y)
-								outFileHeader.vecMinExtents.y = pPos.y;
-							if (pPos.z < outFileHeader.vecMinExtents.z)
-								outFileHeader.vecMinExtents.z = pPos.z;
-
-							if (pPos.x > outFileHeader.vecMaxExtents.x)
-								outFileHeader.vecMaxExtents.x = pPos.x;
-							if (pPos.y > outFileHeader.vecMaxExtents.y)
-								outFileHeader.vecMaxExtents.y = pPos.y;
-							if (pPos.z > outFileHeader.vecMaxExtents.z)
-								outFileHeader.vecMaxExtents.z = pPos.z;
-						}
-
 						// Add it to the table.
 						vertexPositions.PushBack(newPosition);
 						break;
@@ -349,6 +331,20 @@ namespace MeshSerializer
 
 		// Serialize the final mesh (this won't be handled in the switch statement).
 		ProcessCurrentSubmesh(meshHeaders, meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexData, finalIndexData, iUniqueVertCounter, true);
+
+		// Calculate the complete model extents.
+		outFileHeader.vecMinExtents = Vector(kFLT_MAX, kFLT_MAX, kFLT_MAX);
+		outFileHeader.vecMaxExtents = Vector(kFLT_MIN, kFLT_MIN, kFLT_MIN);
+		for (uint32_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		{
+			outFileHeader.vecMinExtents.x = FloatMin(outFileHeader.vecMinExtents.x, meshHeaders[iMesh].vecMinExtents.x);
+			outFileHeader.vecMinExtents.y = FloatMin(outFileHeader.vecMinExtents.y, meshHeaders[iMesh].vecMinExtents.y);
+			outFileHeader.vecMinExtents.z = FloatMin(outFileHeader.vecMinExtents.z, meshHeaders[iMesh].vecMinExtents.z);
+
+			outFileHeader.vecMaxExtents.x = FloatMax(outFileHeader.vecMaxExtents.x, meshHeaders[iMesh].vecMaxExtents.x);
+			outFileHeader.vecMaxExtents.y = FloatMax(outFileHeader.vecMaxExtents.y, meshHeaders[iMesh].vecMaxExtents.y);
+			outFileHeader.vecMaxExtents.z = FloatMax(outFileHeader.vecMaxExtents.z, meshHeaders[iMesh].vecMaxExtents.z);
+		}
 
 		LOG_INFO("Compressing mesh data.");
 
@@ -574,25 +570,19 @@ namespace MeshSerializer
 		iUniqueVertexCount += finalVertexIndices.Count();
 
 		// Calculate the extents of the submesh.
-		pCurHeader.vecMinExtents = vertexPositions[finalVertexIndices[0].iPositionIdx];	// Just initialize extents to the first one to account for edge cases.
-		pCurHeader.vecMaxExtents = vertexPositions[finalVertexIndices[0].iPositionIdx];
+		pCurHeader.vecMinExtents = Vector(kFLT_MAX, kFLT_MAX, kFLT_MAX);
+		pCurHeader.vecMaxExtents = -pCurHeader.vecMinExtents;
 		for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
 		{
 			Vector3D& pCurPos = vertexPositions[finalVertexIndices[iVert].iPositionIdx];
 
-			if (pCurPos.x < pCurHeader.vecMinExtents.x)
-				pCurHeader.vecMinExtents.x = pCurPos.x;
-			if (pCurPos.y < pCurHeader.vecMinExtents.y)
-				pCurHeader.vecMinExtents.y = pCurPos.y;
-			if (pCurPos.z < pCurHeader.vecMinExtents.z)
-				pCurHeader.vecMinExtents.z = pCurPos.z;
+			pCurHeader.vecMinExtents.x = FloatMin(pCurHeader.vecMinExtents.x, pCurPos.x);
+			pCurHeader.vecMinExtents.y = FloatMin(pCurHeader.vecMinExtents.y, pCurPos.y);
+			pCurHeader.vecMinExtents.z = FloatMin(pCurHeader.vecMinExtents.z, pCurPos.z);
 
-			if (pCurPos.x > pCurHeader.vecMaxExtents.x)
-				pCurHeader.vecMaxExtents.x = pCurPos.x;
-			if (pCurPos.y > pCurHeader.vecMaxExtents.y)
-				pCurHeader.vecMaxExtents.y = pCurPos.y;
-			if (pCurPos.z > pCurHeader.vecMaxExtents.z)
-				pCurHeader.vecMaxExtents.z = pCurPos.z;
+			pCurHeader.vecMaxExtents.x = FloatMax(pCurHeader.vecMaxExtents.x, pCurPos.x);
+			pCurHeader.vecMaxExtents.y = FloatMax(pCurHeader.vecMaxExtents.y, pCurPos.y);
+			pCurHeader.vecMaxExtents.z = FloatMax(pCurHeader.vecMaxExtents.z, pCurPos.z);
 		}
 
 		// Write out the unique data to the output tables.

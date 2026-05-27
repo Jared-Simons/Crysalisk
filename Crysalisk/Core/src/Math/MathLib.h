@@ -59,19 +59,19 @@ public:
 		};
 	};
 
-	Vector2D()
+	inline Vector2D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector2D(float inX, float inY)
+	inline Vector2D(float inX, float inY)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
 		flElements[1] = inY;
 	}
 
-	Vector2D(const Vector2D& pOtherVec)
+	inline Vector2D(const Vector2D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 2; idx++)
@@ -221,12 +221,12 @@ public:
 		};
 	};
 
-	Vector3D()
+	inline Vector3D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector3D(float inX, float inY, float inZ)
+	inline Vector3D(float inX, float inY, float inZ)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
@@ -234,7 +234,7 @@ public:
 		flElements[2] = inZ;
 	}
 
-	Vector3D(const Vector3D& pOtherVec)
+	inline Vector3D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 3; idx++)
@@ -419,12 +419,12 @@ public:
 		};
 	};
 
-	Vector4D()
+	inline Vector4D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector4D(float inX, float inY, float inZ, float inW)
+	inline Vector4D(float inX, float inY, float inZ, float inW)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
@@ -433,7 +433,7 @@ public:
 		flElements[3] = inW;
 	}
 
-	Vector4D(const Vector3D& pOtherVec)
+	inline Vector4D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 4; idx++)
@@ -586,21 +586,21 @@ public:
 	float y;
 	float z;
 	float w;
-	Quaternion()
+	inline Quaternion()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 }
 		, w{ 0 } {
 	}
 
-	Quaternion(float x_, float y_, float z_, float w_)
+	inline Quaternion(float x_, float y_, float z_, float w_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ }
 		, w{ w_ } {
 	}
 
-	Quaternion(Quaternion& pOtherQuat)
+	inline Quaternion(Quaternion& pOtherQuat)
 		: x{ pOtherQuat.x }
 		, y{ pOtherQuat.y }
 		, z{ pOtherQuat.z }
@@ -615,14 +615,14 @@ class Matrix4x4
 {
 public:
 	float flData[16];
-	Matrix4x4()
+	inline Matrix4x4()
 		: flData{ 0.0f }
 	{
 	}
 
 	// Creates an identity matrix scaled by flIdentityValue
 	// (I.E. flIdentityValue == 1 will create an identity matrix).
-	Matrix4x4(float flIdentityValue)
+	inline Matrix4x4(float flIdentityValue)
 		: flData{ 0.0f }
 	{
 		flData[0] = flIdentityValue;
@@ -631,7 +631,7 @@ public:
 		flData[15] = flIdentityValue;
 	}
 
-	Matrix4x4(const Matrix4x4& pOtherMatrix)
+	inline Matrix4x4(const Matrix4x4& pOtherMatrix)
 		: flData{ 0.0f }
 	{
 		for (int idx = 0; idx < 16; idx++)

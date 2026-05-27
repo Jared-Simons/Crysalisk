@@ -32,6 +32,8 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Renderer/Renderer.cpp
 	${ENGINE_ROOT}/Renderer/Renderer.h
 	${ENGINE_ROOT}/Renderer/RendererTypes.h
+	${ENGINE_ROOT}/Resources/DebugGeometry.cpp
+	${ENGINE_ROOT}/Resources/DebugGeometry.h
 	${ENGINE_ROOT}/Resources/GeometryGenerator.cpp
 	${ENGINE_ROOT}/Resources/GeometryGenerator.h
 	${ENGINE_ROOT}/Resources/Map.cpp

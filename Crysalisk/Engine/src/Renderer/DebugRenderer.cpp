@@ -164,17 +164,17 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pAppConfig)
 		return false;
 	}*/
 
-	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
+	/*if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
 	{
 		LOG_ERROR("Failed to create debug vertex buffer!");
 		return false;
-	}
+	}*/
 
-	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
+	/*if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
 	{
 		LOG_ERROR("Failed to create debug index buffer!");
 		return false;
-	}
+	}*/
 
 	return true;
 }
@@ -208,8 +208,8 @@ bool CDebugRenderer::InitializeDebugShaders()
 //-------------------------------------------------------------------------
 void CDebugRenderer::Shutdown()
 {
-	m_Config.pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
-	m_Config.pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
+	//m_Config.pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
+	//m_Config.pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
 
 	// Release debug geometry data.
 	delete[] m_GeometryData;

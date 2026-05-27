@@ -36,11 +36,11 @@ struct RendererConfig_t
 //-------------------------------------------------------------------------
 struct RenderPacket_t
 {
+	// TODO: Clean this up.
 	// The time elapsed between frames.
 	double	DeltaTime;
 	size_t	iNumDrawCalls{ 0 };
 
-	// TODO: These arrays should be a part of a 3D World Scene view.
 	Utl::CVector<Matrix4x4>						TransformMatrices{};
 	Utl::CVector<struct GeometryInstance_t*>	pOpaqueGeometries{};
 	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
@@ -48,6 +48,8 @@ struct RenderPacket_t
 
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
+
+	Utl::CVector<struct GeometryInstance_t*>	pDebugGeometries{};
 
 	// FIXME: Should these be here?
 	struct RenderMetrics_t* pMetrics{ nullptr };

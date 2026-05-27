@@ -188,7 +188,7 @@ void CMemoryManager::Free(void* pMemBlock)
 
 	// While this doesn't really matter as the OS will handle cleanup,
 	// if we're managing memory properly, we should never hit this.
-	CAssert(0);
+	//CAssert(0);
 }
 
 //-------------------------------------------------------------------------
