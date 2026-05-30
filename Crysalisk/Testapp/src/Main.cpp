@@ -48,7 +48,7 @@ private:
 
 static CGameApp s_GameApp{};
 
-static bool Event_WindowResized(EventData_t data);
+static bool Event_WindowResized(void* pEventListener, EventData_t data);
 
 int main(int argc, char** argv)
 {
@@ -200,7 +200,7 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 	}
 }
 
-static bool Event_WindowResized(EventData_t data)
+static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	LOG_DEBUG("APP WINDOW RESIZED!");
 

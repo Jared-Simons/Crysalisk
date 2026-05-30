@@ -357,6 +357,8 @@ struct Renderpass
 class IRenderView
 {
 public:
+	virtual ~IRenderView() = default;
+
 	virtual bool	Initialize(const struct EngineInterfaces_t* pEngineSystems) = 0;
 	virtual void	Shutdown(class IRenderer* pRenderer) = 0;
 

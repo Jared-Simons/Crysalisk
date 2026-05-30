@@ -7,9 +7,12 @@
 #include "UI_View.h"
 
 #include <Core/Engine.h>
+#include <Core/Event.h>
 #include <Renderer/Renderer.h>
 #include "Systems/FontSystem.h"
 #include "Systems/ShaderSystem.h"
+
+static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 
 class CUIRenderView : public IRenderView
 {
@@ -23,6 +26,8 @@ public:
 	virtual const Renderpass*	GetRenderpass() const override { return &m_pRenderpass; }
 
 private:
+	bool							m_bUIOverlayEnabled{ true };
+
 	Renderpass						m_pRenderpass{};
 	IRenderer*						m_pRenderer{ nullptr };
 	IShaderSystem*					m_pShaderSystem{ nullptr };
@@ -31,6 +36,9 @@ private:
 	ShaderHandle_t					m_hUIShader{ kInvalidID_U32 };
 	// TEST TEXT
 	TextObject						m_TestText{};
+
+	// This needs access to our members.
+	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 };
 
 bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
@@ -72,6 +80,8 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_TestText.m_flTextSize = 1.0f;
 	m_TestText.m_vecPos = { -0.95f, -0.6f };
 
+	pEngineSystems->pEngineEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
+
 	return true;
 }
 
@@ -82,26 +92,33 @@ void CUIRenderView::Shutdown(IRenderer* pRenderer)
 
 void CUIRenderView::Render(RenderPacket_t* pRenderData)
 {
-	RenderMetrics_t& pMetrics = *pRenderData->pMetrics;
-	char szMetricsString[512]{};
-	Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f",
-		szMetricsString,
-		pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
-		pMetrics.NumDrawCalls, pRenderData->iCulledGeometries,
-		g_pMemoryManager->GetPercentAllocated(),
-		pRenderData->pCamera->vecPosition.x,
-		pRenderData->pCamera->vecPosition.y,
-		pRenderData->pCamera->vecPosition.z);
-	m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
-	
+	if (m_bUIOverlayEnabled)
+	{
+		RenderMetrics_t& pMetrics = *pRenderData->pMetrics;
+		char szMetricsString[512]{};
+		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f",
+			szMetricsString,
+			pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
+			pMetrics.NumDrawCalls, pRenderData->iCulledGeometries,
+			g_pMemoryManager->GetPercentAllocated(),
+			pRenderData->pCamera->vecPosition.x,
+			pRenderData->pCamera->vecPosition.y,
+			pRenderData->pCamera->vecPosition.z);
+		m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
+	}
+
+	// FIXME: Orthographic projection?
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
-		// Draw stuff here.
-		Matrix4x4 matUIProj(1.0f);
-		m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matUIProj);
-		m_pShaderSystem->BindShader(m_hUIShader);
-		m_pShaderSystem->BindPerInstanceUniforms(1);
-		m_pRenderer->DrawGeometry(m_TestText.m_Geometry, &m_pRenderer->GetUIVertexBuffer(), &m_pRenderer->GetUIIndexBuffer());
+		if (m_bUIOverlayEnabled)
+		{
+			// Draw stuff here.
+			Matrix4x4 matUIProj(1.0f);
+			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matUIProj);
+			m_pShaderSystem->BindShader(m_hUIShader);
+			m_pShaderSystem->BindPerInstanceUniforms(1);
+			m_pRenderer->DrawGeometry(m_TestText.m_Geometry, &m_pRenderer->GetUIVertexBuffer(), &m_pRenderer->GetUIIndexBuffer());
+		}
 	}
 	m_pRenderer->EndRenderpass();
 }
@@ -111,4 +128,18 @@ IRenderView* RenderViewCreate_UIView()
 {
 	CUIRenderView* pNewView = new CUIRenderView;
 	return pNewView;
+}
+
+// Key-Event handler.
+static bool Event_KeyReleased(void* pEventListener, EventData_t data)
+{
+	CUIRenderView* pUIView = static_cast<CUIRenderView*>(pEventListener);
+	char keycode = *data.c;
+
+	if (pUIView && keycode == 'Y')
+	{
+		pUIView->m_bUIOverlayEnabled = !pUIView->m_bUIOverlayEnabled;
+	}
+
+	return true;
 }

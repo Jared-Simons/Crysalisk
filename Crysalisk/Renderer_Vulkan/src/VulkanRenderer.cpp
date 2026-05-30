@@ -37,8 +37,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 	void* pUserData);
 
 // Renderer event handlers.
-static bool RendererEvent_WindowResized(EventData_t data);
-static bool RendererEvent_KeyPressed(EventData_t data);
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data);
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
 
 //-------------------------------------------------------------------------
 // Purpose: Returns an opaque pointer to the renderer backend state.
@@ -2487,7 +2487,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(
 //			pUserData - Unused.
 // Output:	VkBool32.
 //-------------------------------------------------------------------------
-static bool RendererEvent_WindowResized(EventData_t data)
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 {
 	s_VulkanContext.m_bWindowResized = true;
 
@@ -2498,7 +2498,7 @@ static bool RendererEvent_WindowResized(EventData_t data)
 //-------------------------------------------------------------------------
 // Renderer-backend event handlers.
 //-------------------------------------------------------------------------
-static bool RendererEvent_KeyPressed(EventData_t data)
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 {
 	return false;
 }

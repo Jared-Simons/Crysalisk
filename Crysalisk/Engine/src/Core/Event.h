@@ -59,12 +59,14 @@ union EventData_t
 // 'handled', and will not propagate to other listeners, returning false means
 // that the event will continue to pass through to all listeners.
 //-------------------------------------------------------------------------
-typedef bool (*Event_Callback)(EventData_t data);
+typedef bool (*Event_Callback)(void* pEventListener, EventData_t data);
 
 struct Event
 {
 	// The callback function to handle the event.
 	Event_Callback m_PFNEventCallback;
+	// A pointer to the event listener.
+	void* pEventListener;
 	// An event ID that is maintained internally by the event system.
 	int m_EventID;
 	// The event category that this event is listening to.

@@ -24,8 +24,8 @@
 #include "Systems/TextureSystem.h"
 
 // Event handlers.
-static bool RendererEvent_WindowResized(EventData_t data);
-static bool RendererEvent_KeyPressed(EventData_t data);
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data);
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
@@ -749,7 +749,7 @@ void CRenderer::DestroyTempGeometry()
 // Input:	data - Event-specific data (this contains the new dimensions of the window).
 // Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
 //-------------------------------------------------------------------------
-static bool RendererEvent_WindowResized(EventData_t data)
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 {
 	// Handle minimized contexts.
 	if (data.u32[0] == 0 || data.u32[1] == 0)
@@ -776,7 +776,7 @@ static bool RendererEvent_WindowResized(EventData_t data)
 // Input:	data - Event-specific data (this contains the relevant pressed key-codes).
 // Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
 //-------------------------------------------------------------------------
-static bool RendererEvent_KeyPressed(EventData_t data)
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 {
 	if (data.c[0] == 'P')
 	{

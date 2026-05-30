@@ -36,15 +36,15 @@ static bool s_bApplicationSuspended{ false };
 bool		s_bLevelGeometryLoaded{ false };
 
 // Engine Event Handlers
-static bool Event_ApplicationQuit(EventData_t data);
-static bool Event_KeyPressed(EventData_t data);
-static bool Event_KeyReleased(EventData_t data);
-static bool Event_MouseButtonPressed(EventData_t data);
-static bool Event_MouseButtonReleased(EventData_t data);
-static bool Event_MouseMoved(EventData_t data);
-static bool Event_WindowResized(EventData_t data);
-static bool Event_WindowResizedPause(EventData_t data);
-static bool Event_WindowResizedUnpause(EventData_t data);
+static bool Event_ApplicationQuit(void* pEventListener, EventData_t data);
+static bool Event_KeyPressed(void* pEventListener, EventData_t data);
+static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+static bool Event_MouseButtonPressed(void* pEventListener, EventData_t data);
+static bool Event_MouseButtonReleased(void* pEventListener, EventData_t data);
+static bool Event_MouseMoved(void* pEventListener, EventData_t data);
+static bool Event_WindowResized(void* pEventListener, EventData_t data);
+static bool Event_WindowResizedPause(void* pEventListener, EventData_t data);
+static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data);
 
 //-------------------------------------------------------------------------
 // Implementation of the core engine class.
@@ -76,8 +76,8 @@ private:
 	double			m_LastUpdateTime{ 0.0f };
 
 	// These need access to our members.
-	friend static bool Event_KeyReleased(EventData_t data);
-	friend static bool Event_MouseButtonReleased(EventData_t data);
+	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+	friend static bool Event_MouseButtonReleased(void* pEventListener, EventData_t data);
 };
 
 // Engine context.
@@ -472,14 +472,14 @@ void CEngine::Shutdown()
 //-------------------------------------------------------------------------
 // Engine-level event handlers.
 //-------------------------------------------------------------------------
-bool Event_ApplicationQuit(EventData_t data)
+bool Event_ApplicationQuit(void* pEventListener, EventData_t data)
 {
 	LOG_VERBOSE("Application_Quit() called");
 	s_bApplicationQuitCalled = true;
 	return true;
 }
 
-bool Event_KeyPressed(EventData_t data)
+bool Event_KeyPressed(void* pEventListener, EventData_t data)
 {
 	char keycode = *data.c;
 	//if (keycode >= 65 && keycode <= 90)
@@ -487,7 +487,7 @@ bool Event_KeyPressed(EventData_t data)
 	return true;
 }
 
-bool Event_KeyReleased(EventData_t data)
+bool Event_KeyReleased(void* pEventListener, EventData_t data)
 {
 	char keycode = *data.c;
 	//if (keycode >= 65 && keycode <= 90)
@@ -528,14 +528,14 @@ bool Event_KeyReleased(EventData_t data)
 	return true;
 }
 
-bool Event_MouseButtonPressed(EventData_t data)
+bool Event_MouseButtonPressed(void* pEventListener, EventData_t data)
 {
 	u32 mouseButtonFlags = *data.u16;
 	//LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 
-bool Event_MouseButtonReleased(EventData_t data)
+bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 {
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
@@ -606,7 +606,7 @@ bool Event_MouseButtonReleased(EventData_t data)
 	return true;
 }
 
-bool Event_MouseMoved(EventData_t data)
+bool Event_MouseMoved(void* pEventListener, EventData_t data)
 {
 	float mouseXPos = data.f32[0];
 	float mouseYPos = data.f32[1];
@@ -615,7 +615,7 @@ bool Event_MouseMoved(EventData_t data)
 	return true;
 }
 
-static bool Event_WindowResized(EventData_t data)
+static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	u32 width, height;
 	width = data.u16[0];
@@ -635,13 +635,13 @@ static bool Event_WindowResized(EventData_t data)
 	return true;
 }
 
-static bool Event_WindowResizedPause(EventData_t data)
+static bool Event_WindowResizedPause(void* pEventListener, EventData_t data)
 {
 	s_bApplicationSuspended = true;
 	return true;
 }
 
-static bool Event_WindowResizedUnpause(EventData_t data)
+static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data)
 {
 	s_bApplicationSuspended = false;
 	return true;
