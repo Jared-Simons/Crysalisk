@@ -98,7 +98,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			// TODO: This is probably not the best way to get the geometry buffers.
 			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
 
-			pRenderData->iNumDrawCalls++;
+			pRenderData->pMetrics->NumDrawCalls++;
 		}
 
 		// Render transparent geometries.
@@ -114,7 +114,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			// TODO: This is probably not the best way to get the geometry buffers.
 			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
 
-			pRenderData->iNumDrawCalls++;
+			pRenderData->pMetrics->NumDrawCalls++;
 		}
 		m_pRenderer->EndRenderpass();
 	}

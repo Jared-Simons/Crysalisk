@@ -540,7 +540,9 @@ bool Event_MouseButtonReleased(EventData_t data)
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		Camera_t mainCamera = s_Engine.m_EngineInterfaces.pRenderer->GetMainCamera();
+		// FIXME: Remove renderer camera.
+		//Camera_t mainCamera = s_Engine.m_EngineInterfaces.pRenderer->GetMainCamera();
+		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };
 		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
@@ -565,11 +567,11 @@ bool Event_MouseButtonReleased(EventData_t data)
 		vecPosCamera.w = 0.0f;
 
 		// Camera space -> World space:
-		Vector vecRayDir = (mainCamera.GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+		Vector vecRayDir = (pMainCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
 		vecRayDir.NormalizeInPlace();
 
 		Ray_t ray{};
-		ray.vecOrigin = mainCamera.vecPosition;
+		ray.vecOrigin = pMainCamera->vecPosition;
 		ray.vecDirection = vecRayDir;
 
 		// We can only actually cast the ray if the level is loaded.
@@ -577,10 +579,13 @@ bool Event_MouseButtonReleased(EventData_t data)
 		{
 			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugRenderer);
 			// DEBUG GEO TEST
+			if (ray.pHitGeometry)
 			{
 				DebugRender::DebugGeometry_t newGeo = DebugRender::AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+				DebugRender::DebugGeometry_t newGeo1 = DebugRender::AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
 				CMap& pMap = const_cast<CMap&>(s_Engine.GetCurrentMap());
 				pMap.m_hDebugMeshes.PushBack(newGeo);
+				pMap.m_hDebugMeshes.PushBack(newGeo1);
 			}
 
 			Vector4D rayColor{};

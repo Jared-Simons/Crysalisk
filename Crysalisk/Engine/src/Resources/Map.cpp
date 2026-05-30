@@ -139,6 +139,7 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 		pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
+	m_hDebugMeshes.Clear();
 	m_hMeshes.Clear();
 }
 
@@ -212,26 +213,6 @@ static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
 
 void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 {
-	// DEBUG TEST
-	// FIXME: REMOVE
-	if (m_hDebugMeshes.Count() == 0)
-	{
-		CMap& pMap = const_cast<CMap&>(*this);
-		pMap.m_hDebugMeshes.Resize(2);
-
-		GeometryInstance_t& pGeo = m_hMeshes[0].pMesh->m_Geometries[0];
-		Vector vecWorldCenter = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecCenter);
-		Vector vecWorldMins = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecMinExtents);
-		Vector vecWorldMaxs = pGeo.matLocalToWorldTransform.MultiplyByVector(pGeo.vecMaxExtents);
-
-		DebugRender::DebugGeometry_t test = DebugRender::AddPoint(vecWorldCenter, 30.0f, Vector4D{ 0.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
-		DebugRender::DebugGeometry_t test1 = DebugRender::AddBBox(pGeo, Vector4D{ 0.0f, 0.0f, 0.0f, 0.0f }, -1.0f);
-		pMap.m_hDebugMeshes.PushBack(test);
-		pMap.m_hDebugMeshes.PushBack(test1);
-
-		return;
-	}
-
 	pRay.bDidHit = false;
 	pRay.flDistance = kFLT_MAX;
 
@@ -284,6 +265,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
  				pRay.bDidHit = true;
 				pRay.flDistance = flTNearMax;
 				pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
+				pRay.pHitGeometry = pCurrentSubmesh;
 				iHitMesh = iMesh;
 				iHitSubmesh = iSubMesh;
 			}

@@ -26,6 +26,8 @@ public:
 	virtual bool Render() override;
 	virtual void Shutdown() override;	
 
+	// NOTE: No camera here for now.
+	virtual Camera_t* GetMainCamera() override { CAssert(0); return nullptr; }
 private:
 	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 

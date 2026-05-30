@@ -28,6 +28,8 @@ struct Ray_t
 	bool	bDidHit{ false };
 	// The distance the ray travelled from its origin along it's direction vector.
 	float	flDistance{ 0.0f };
+	// A pointer to the geometry this ray hit, if any.
+	GeometryInstance_t* pHitGeometry{ nullptr };
 };
 
 class CMap

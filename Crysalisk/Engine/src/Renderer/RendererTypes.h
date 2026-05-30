@@ -38,6 +38,7 @@ struct RenderPacket_t
 {
 	// TODO: Clean this up.
 	// The time elapsed between frames.
+	// FIXME: DRY
 	double	DeltaTime;
 	size_t	iNumDrawCalls{ 0 };
 
@@ -65,13 +66,13 @@ struct RenderMetrics_t
 	// The time in seconds since the last metrics update.
 	double	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
-	int		NumDrawCalls{ 0 };
+	unsigned int		NumDrawCalls{ 0 };
 	// The number of meshes frustum culled in the previous frame
-	int		NumGeometriesFrustumCulled{ 0 };
+	unsigned int		NumGeometriesFrustumCulled{ 0 };
 	// Number of frames rendered in the previous frame.
-	int		PreviousFrameFPS{ 0 };
+	unsigned int		PreviousFrameFPS{ 0 };
 	// Number of frames rendered in the current frame.
-	int		CurrentFrameFPS{ 0 };
+	unsigned int		CurrentFrameFPS{ 0 };
 };
 
 //-------------------------------------------------------------------------

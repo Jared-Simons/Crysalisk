@@ -37,6 +37,8 @@ public:
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
+	virtual Camera_t* GetMainCamera() override { return &m_MainCamera; }
+
 private:
 	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 
@@ -118,8 +120,6 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 
 		// TODO: Make this work with a frame allocator.
 		// TODO: Figure out how to split out these matrices per model.
-		// TODO: Clear frame data.
-		pRenderPacket->iCulledGeometries = 0;
 
 		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket, &pRenderPacket->iCulledGeometries);
 	}

@@ -338,9 +338,12 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
 	m_flLastFrameTime = currentFrameTime;
 
+	// TODO: Clear frame data.
+	pRenderData.pMetrics->NumDrawCalls = 0;
+	pRenderData.pMetrics->NumGeometriesFrustumCulled = 0;
+
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
-	pRenderData.iNumDrawCalls = 0;
 
 	// Set per-frame render data.
 	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
@@ -373,9 +376,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	}
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 	// End View Test TEMP
-
-	// Update renderer metrics.
-	m_Metrics.NumGeometriesFrustumCulled = pRenderData.iCulledGeometries;
 
 	/*
 	// Update debug geometries.
