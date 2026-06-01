@@ -279,7 +279,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 			pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
 
 		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
-		iCurrentRayDebugGeoID = pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
+		//iCurrentRayDebugGeoID = pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 	}
 	if (!pRay.bDidHit)
 	{

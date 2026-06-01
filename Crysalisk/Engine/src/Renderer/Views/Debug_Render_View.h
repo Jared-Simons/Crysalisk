@@ -9,4 +9,12 @@
 #include <Defines.h>
 #include <Renderer/RendererTypes.h>
 
+struct DebugRenderView_ExtendedData_t
+{
+	Utl::CVector<GeometryInstance_t*> pGeometries{};
+
+	RenderBuffer*	pVertexBuffer{ nullptr };
+	RenderBuffer*	pIndexBuffer{ nullptr };
+};
+
 DLL_EXPORT IRenderView* RenderViewCreate_DebugView();

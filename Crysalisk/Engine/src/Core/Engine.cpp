@@ -340,6 +340,7 @@ bool CEngine::Run()
 {
 	m_UpdateClock.Start();
 
+	RenderPacket_t frameRenderData{};	// FIXME: This shouldn't live here, it's just here so we can clear memory.
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
@@ -351,6 +352,11 @@ bool CEngine::Run()
 			double currentFrameTime = m_UpdateClock.GetElapsedTime();
 			double deltaTime = currentFrameTime - m_LastUpdateTime;
 			m_LastUpdateTime = currentFrameTime;
+
+			// FIXME: All of the frame data stuff should be in the renderer.
+			frameRenderData.pOpaqueGeometries.Clear();
+			frameRenderData.pTransparentGeometries.Clear();
+			frameRenderData.iCulledGeometries = 0;
 
 			m_EngineInterfaces.pInputSystem->Update();
 
@@ -364,7 +370,6 @@ bool CEngine::Run()
 			// Handle jobs.
 			m_EngineInterfaces.pJobSystem->Update();
 
-			RenderPacket_t frameRenderData{};
 			frameRenderData.DeltaTime = deltaTime;
 
 			// Get render data from the application.
@@ -379,6 +384,19 @@ bool CEngine::Run()
 
 			// Get our renderable geometry from the map.
 			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
+		}
+	}
+
+	frameRenderData.pOpaqueGeometries.Clear();
+	frameRenderData.pTransparentGeometries.Clear();
+	frameRenderData.pDebugGeometries.Clear();
+	frameRenderData.TransformMatrices.Clear();
+	for (int iView = 0; iView < 3; iView++)
+	{
+		if (frameRenderData.pRenderViewExtendedData[iView])
+		{
+			delete frameRenderData.pRenderViewExtendedData[iView];
+			frameRenderData.pRenderViewExtendedData[iView] = nullptr;
 		}
 	}
 
@@ -582,10 +600,15 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 			if (ray.pHitGeometry)
 			{
 				DebugRender::DebugGeometry_t newGeo = DebugRender::AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-				DebugRender::DebugGeometry_t newGeo1 = DebugRender::AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+				DebugRender::DebugGeometry_t newGeo1 = DebugRender::AddLine(ray.vecOrigin, ray.vecEnd, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+				DebugRender::DebugGeometry_t newGeo2 = DebugRender::AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+
+				//s_Engine.GetEngineInterfaces()->pDebugRenderer->AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+				s_Engine.GetEngineInterfaces()->pDebugRenderer->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
 				CMap& pMap = const_cast<CMap&>(s_Engine.GetCurrentMap());
-				pMap.m_hDebugMeshes.PushBack(newGeo);
-				pMap.m_hDebugMeshes.PushBack(newGeo1);
+				//pMap.m_hDebugMeshes.PushBack(newGeo);
+				//pMap.m_hDebugMeshes.PushBack(newGeo1);
+				//pMap.m_hDebugMeshes.PushBack(newGeo2);
 			}
 
 			Vector4D rayColor{};
@@ -599,7 +622,7 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 				LOG_DEBUG("MISS");
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			//s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
 		}
 	}
 

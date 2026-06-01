@@ -31,7 +31,7 @@ public:
 	virtual bool	Initialize(const EngineInterfaces_t* pEngineSystems) override;
 	virtual void	Shutdown(IRenderer* pRenderer) override;
 
-	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData);
+	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData) override;
 	virtual void	Render(RenderPacket_t* pRenderData) override;
 
 	virtual const char*			GetViewName() const override { return "Debug View"; }
@@ -39,11 +39,10 @@ public:
 
 private:
 	IRenderer*						m_pRenderer{ nullptr };
+	IDebugRenderer*					m_pDebugRenderer{ nullptr };	// FIXME: Rename this, it shouldn't be responsible for rendering.
 	IShaderSystem*					m_pShaderSystem{ nullptr };
 
 	Renderpass						m_pRenderpass{};
-	RenderBuffer					m_VertexBuffer{};
-	RenderBuffer					m_IndexBuffer{};
 
 	ShaderHandle_t					m_hDebugLineShader{ kInvalidID_U32 };
 	DebugLineShaderUniformLocations	m_DebugLineShaderUniforms{};
@@ -52,19 +51,22 @@ private:
 bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 {
 	m_pRenderer = pEngineSystems->pRenderer;
+	m_pDebugRenderer = pEngineSystems->pDebugRenderer;
 	m_pShaderSystem = pEngineSystems->pShaderSystem;
 
 	// Setup the debug view renderpass.
 	RenderpassConfig_t DebugPassConfig{};
-	DebugPassConfig.pszName = "Debug Renderer";
+	DebugPassConfig.pszName = "Debug_Renderer";
 
 	// This pass has 2 attachments: color and depth.
 	// NOTE: The depth attachment is temporary, we do not actually use the contents of the depth buffer during this pass.
 	RendererViewAttachmentConfig_t colorAttachment{};
 	colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
+	colorAttachment.bShouldClear = false;
 
 	RendererViewAttachmentConfig_t depthAttachment{};
 	depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
+	depthAttachment.bShouldClear = false;
 
 	DebugPassConfig.attachmentConfigs.PushBack(colorAttachment);
 	DebugPassConfig.attachmentConfigs.PushBack(depthAttachment);
@@ -92,54 +94,49 @@ bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_DebugLineShaderUniforms.color = m_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
 	m_DebugLineShaderUniforms.model = m_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
 
-	// Set up geometry buffers.
-	if (!m_pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_VertexBuffer))
-	{
-		LOG_ERROR("Failed to create debug vertex buffer!");
-		return false;
-	}
-
-	if (!m_pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_IndexBuffer))
-	{
-		LOG_ERROR("Failed to create debug index buffer!");
-		return false;
-	}
-
 	return true;
 }
 
 void CDebugRenderView::Shutdown(IRenderer* pRenderer)
 {
-	m_pRenderer->DestroyRenderBuffer(m_IndexBuffer);
-	m_pRenderer->DestroyRenderBuffer(m_VertexBuffer);
-
 	pRenderer->DestroyRenderpass(&m_pRenderpass);
 }
 
 void CDebugRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 {
+	if (!pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG])
+	{
+		pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG] = new DebugRenderView_ExtendedData_t;
+	}
 
+	// Get any geometry data from the debug geo system.
+	DebugRenderView_ExtendedData_t* pViewData = (DebugRenderView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG];
+	m_pDebugRenderer->PopulateRenderPacket(pViewData->pGeometries, &pViewData->pVertexBuffer, &pViewData->pIndexBuffer);
 }
 
 void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 {
+	DebugRenderView_ExtendedData_t* pViewData = (DebugRenderView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG];
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		m_pShaderSystem->BindShader(m_hDebugLineShader);
 		m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
 		m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
 
-		for (int iGeo = 0; iGeo < pRenderData->pDebugGeometries.Count(); iGeo++)
+		for (int iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
 		{
 			// FIXME: Remove anything hardcoded.
-			GeometryInstance_t& pCurGeo = *pRenderData->pDebugGeometries[iGeo];
-			//m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
+			GeometryInstance_t& pCurGeo = *pViewData->pGeometries[iGeo];
 			m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
-			m_pShaderSystem->BindPerInstanceUniforms(0);
-			m_pRenderer->DrawGeometry(pCurGeo, &m_pRenderer->GetDebugVertexBuffer(), &m_pRenderer->GetDebugIndexBuffer());
+			m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
+			m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
 		}
 		m_pRenderer->EndRenderpass();
 	}
+
+	// Clear out per-frame data.
+	pViewData->pVertexBuffer->m_CurrentBoundOffset = kInvalidID_U64;
+	pViewData->pIndexBuffer->m_CurrentBoundOffset = kInvalidID_U64;
 }
 
 // Factory function to create the view.

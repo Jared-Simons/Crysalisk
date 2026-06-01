@@ -31,6 +31,16 @@ struct RendererConfig_t
 	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
 };
 
+enum eRenderViewType
+{
+	RENDER_VIEW_TYPE_UNDEFINED = -1,
+	RENDER_VIEW_TYPE_3D_SCENE = 0,
+	RENDER_VIEW_TYPE_DEBUG,
+	RENDER_VIEW_TYPE_UI,
+
+	RENDER_VIEW_MAX_TYPES,
+};
+
 //-------------------------------------------------------------------------
 // Purpose: Frame-specific data to be used in rendering operations.
 //-------------------------------------------------------------------------
@@ -54,6 +64,8 @@ struct RenderPacket_t
 
 	// FIXME: Should these be here?
 	struct RenderMetrics_t* pMetrics{ nullptr };
+
+	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
 };
 
 //-------------------------------------------------------------------------
@@ -357,11 +369,10 @@ struct Renderpass
 class IRenderView
 {
 public:
-	virtual ~IRenderView() = default;
-
 	virtual bool	Initialize(const struct EngineInterfaces_t* pEngineSystems) = 0;
 	virtual void	Shutdown(class IRenderer* pRenderer) = 0;
 
+	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData) = 0;
 	virtual void	Render(RenderPacket_t* pRenderData) = 0;
 
 	virtual const char*			GetViewName() const = 0;

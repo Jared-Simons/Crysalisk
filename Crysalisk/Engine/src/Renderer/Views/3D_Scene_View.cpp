@@ -19,6 +19,7 @@ public:
 	virtual bool	Initialize(const EngineInterfaces_t* pEngineSystems) override;
 	virtual void	Shutdown(IRenderer* pRenderer) override;
 
+	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData) override;
 	virtual void	Render(RenderPacket_t* pRenderData) override;
 
 	virtual const char*			GetViewName() const override { return "3D Scene View"; }
@@ -76,6 +77,10 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 void C3DSceneRenderView::Shutdown(IRenderer* pRenderer)
 {
 	pRenderer->DestroyRenderpass(&m_pRenderpass);
+}
+
+void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
+{
 }
 
 void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)

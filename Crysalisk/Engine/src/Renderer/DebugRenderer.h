@@ -46,7 +46,8 @@ public:
 	virtual bool	InitializeDebugShaders() = 0;
 	virtual void	Shutdown() = 0;
 
-	virtual void	Update() = 0;
+	virtual void	Update() = 0; 
+	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) = 0;
 	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;

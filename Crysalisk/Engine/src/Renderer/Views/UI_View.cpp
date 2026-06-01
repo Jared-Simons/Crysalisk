@@ -20,6 +20,7 @@ public:
 	virtual bool	Initialize(const EngineInterfaces_t* pEngineSystems) override;
 	virtual void	Shutdown(IRenderer* pRenderer) override;
 
+	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData) override;
 	virtual void	Render(RenderPacket_t* pRenderData) override;
 
 	virtual const char*			GetViewName() const override { return "UI View"; }
@@ -88,6 +89,11 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 void CUIRenderView::Shutdown(IRenderer* pRenderer)
 {
 	pRenderer->DestroyRenderpass(&m_pRenderpass);
+}
+
+void CUIRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
+{
+
 }
 
 void CUIRenderView::Render(RenderPacket_t* pRenderData)

@@ -319,6 +319,13 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	{
 		return true;
 	}
+
+	// FIXME: This shouldn't be here.
+	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	{
+		m_pRenderViews[iView]->BuildRenderPacket(&pRenderData);
+	}
+
 	pRenderData.pMetrics = &m_Metrics;
 
 	if (m_Metrics.TimeSinceLastMetricsUpdate + 1 < m_RendererClock.GetElapsedTime())
@@ -337,10 +344,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
 	m_flLastFrameTime = currentFrameTime;
-
-	// TODO: Clear frame data.
-	pRenderData.pMetrics->NumDrawCalls = 0;
-	pRenderData.pMetrics->NumGeometriesFrustumCulled = 0;
 
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;

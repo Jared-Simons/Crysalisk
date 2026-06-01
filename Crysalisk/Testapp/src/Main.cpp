@@ -127,23 +127,6 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 
 bool CGameApp::Render()
 {
-	/*
-	* RENDERER CONVERSION NOTES: 
-	* 
-	* - The engine should handle metrics, so those will be cleared/updated over there.			[ ]
-	* - The camera should be moved to the application.											[ ]
-	* - The render-views should be moved to the application.									[ ]
-	* - Scene data can probably remain engine-side.												[ ]
-	* 
-	* Code-flow:
-	* - Engine calls application's render method.												[X]
-	* - Application calls back into the engine to get a scene draw list.						[ ]
-	* - Application then calls into the engine to render scene geometry.						[ ]
-	* - The application should handle all app-configurable items								[ ]
-	*	- Such as windows and render-views.														
-	* - Metrics should be handled separately from this.											[ ]
-	*/
-
 	IRenderer* pRenderer = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer;
 	CAssert(pRenderer);
 	

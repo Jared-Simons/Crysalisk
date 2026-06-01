@@ -345,7 +345,7 @@ namespace Utl
 		//--------------------------------------------------
 		void Resize(size_t newCapacity)
 		{
-			if (newCapacity <= m_Count)
+			if (newCapacity <= m_Capacity)
 			{
 				// No need to even attempt this...
 				return;
