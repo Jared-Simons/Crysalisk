@@ -52,15 +52,10 @@ struct RenderPacket_t
 	double	DeltaTime;
 	size_t	iNumDrawCalls{ 0 };
 
-	Utl::CVector<Matrix4x4>						TransformMatrices{};
-	Utl::CVector<struct GeometryInstance_t*>	pOpaqueGeometries{};
-	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
 	unsigned int								iCulledGeometries{ 0 };
 
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
-
-	Utl::CVector<struct GeometryInstance_t*>	pDebugGeometries{};
 
 	// FIXME: Should these be here?
 	struct RenderMetrics_t* pMetrics{ nullptr };
@@ -257,6 +252,8 @@ enum eVertexBufferDataFlags
 class RenderBuffer
 {
 public:
+	char*			pszBufferName{ nullptr };
+
 	// The types of vertex data stored in this buffer.
 	BufferVertexFlags_t	uBufferDataFlags{ 0 };
 

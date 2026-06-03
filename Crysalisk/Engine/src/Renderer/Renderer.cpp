@@ -13,11 +13,11 @@
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/Map.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
@@ -87,19 +87,18 @@ public:
 
 	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
 
-	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
+	RenderBuffer*	CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
 	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
-
+	RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
 	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
 	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
 	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
-	const Camera_t& GetMainCamera() const { return m_Camera; }
 	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
 
 	// Temp geometry stuff
@@ -108,9 +107,6 @@ public:
 
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
 	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
-
-	virtual RenderBuffer& GetWorldVertexBuffer() override { return m_WorldVertexBuffer; }
-	virtual RenderBuffer& GetWorldIndexBuffer() override { return m_WorldIndexBuffer; }
 
 	virtual RenderBuffer& GetUIVertexBuffer() override { return m_UIVertexBuffer; }
 	virtual RenderBuffer& GetUIIndexBuffer() override { return m_UIIndexBuffer; }
@@ -133,13 +129,10 @@ private:
 	// An array of registered render-views.
 	Utl::CVector<IRenderView*>	m_pRenderViews{};
 
+	Utl::CVector<RenderBuffer>	m_RenderBuffers{};
+
 public:
-	Camera_t			m_Camera{};
-
 	// TODO: Should these live here or with the render view?
-	RenderBuffer		m_WorldVertexBuffer{};
-	RenderBuffer		m_WorldIndexBuffer{};
-
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
 
@@ -149,7 +142,7 @@ public:
 	// A pointer to the window we're rendering to.
 	Platform::IPlatformWindow* m_pMainWindow;
 
-	class IDebugRenderer* m_pDebugRenderer{ nullptr };
+	class IDebugGeometrySystem* m_pDebugGeoSystem{ nullptr };
 };
 
 // Internal pointer to the renderer system.
@@ -206,8 +199,7 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	}
 
 	// Set up our renderbuffers
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer", m_WorldVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer", m_WorldIndexBuffer);
+	m_RenderBuffers.Resize(6);
 
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
@@ -278,13 +270,17 @@ void CRenderer::Shutdown()
 		m_pRenderViews[iView]->Shutdown(this);
 	}
 
+	// Release render-buffers.
+	for (int iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	{
+		DestroyRenderBuffer(m_RenderBuffers[iBuffer]);
+	}
+
 	// TODO: Is this the right place to free these guys?
 	m_pRenderViews.Clear();
 
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
@@ -327,6 +323,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_Metrics.FrameTime = 0.0f;
 	m_Metrics.NumDrawCalls = 0;
 	m_Metrics.NumGeometriesFrustumCulled = 0;
+	pRenderData.iCulledGeometries = 0;
 
 	// Calculate our delta time.
 	double currentFrameTime = m_RendererClock.GetElapsedTime();
@@ -368,7 +365,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// End View Test TEMP
 
 	// Update debug geometries.
-	m_pDebugRenderer->Update();
+	m_pDebugGeoSystem->Update();
 
 	/*
 
@@ -386,12 +383,13 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);*/
 	
 	// Clear out bound shader state.
-	// FIXME: We need a way to clear out bound buffer offsets automatically, forgetting to add buffers here keeps biting us.
 	pShaderSystem->BindShader(kInvalidID_U32);
-	m_WorldVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
-	m_WorldIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
-	m_UIVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
-	m_UIIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
+
+	// Reset buffer offsets.
+	for (uint32_t iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	{
+		m_RenderBuffers[iBuffer].m_CurrentBoundOffset = kInvalidID_U64;
+	}
 
 	m_Metrics.CurrentFrameFPS++;
 
@@ -594,11 +592,21 @@ void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hIns
 //			pOutBuffer - Stores the newly created renderbuffer.
 // Output:	Returns true on successful creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
+RenderBuffer* CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName)
 {
-	bool bCreateResult = m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+	size_t iNewBuffer = m_RenderBuffers.Count();
+	m_RenderBuffers.PushBack(RenderBuffer{});
+	RenderBuffer* pNewBuffer = &m_RenderBuffers.Back();
 
-	return bCreateResult;
+	pNewBuffer->pszBufferName = Utl::StringDuplicate(pszBufferName);
+	bool bCreateResult = m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, *pNewBuffer);
+
+	if (!bCreateResult)
+	{
+		// FIXME: Logging
+	}
+
+	return pNewBuffer;
 }
 
 //-------------------------------------------------------------------------
@@ -609,6 +617,12 @@ bool CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferU
 void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 {
 	m_RendererBackend->DestroyRenderBufferInternal(pBuffer);
+
+	if (pBuffer.pszBufferName != nullptr)
+	{
+		Utl::StringFree(pBuffer.pszBufferName);
+		pBuffer.pszBufferName = nullptr;
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -631,6 +645,24 @@ void CRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuff
 	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 	pGeometry.indexCount = 0;
 	pGeometry.vertexCount = 0;
+}
+
+RenderBuffer* CRenderer::GetRenderBufferByName(const char* pszBufferName) const
+{
+	if (!pszBufferName)
+	{
+		LOG_ERROR("GetRenderBufferByName was provided with no name! Returning nullptr.");
+		return nullptr;
+	}
+
+	for (uint32_t iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	{
+		if (Utl::StringCompare(pszBufferName, m_RenderBuffers[iBuffer].pszBufferName))
+			return &m_RenderBuffers[iBuffer];
+	}
+
+	LOG_ERROR("Failed to find render buffer named '%s'. Returning nullptr.", pszBufferName);
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -719,8 +751,8 @@ bool CRenderer::CreateTempTextObjects()
 	testText.m_flTextSize = 1.0f;
 	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
 
-	m_pDebugRenderer = m_Config.pEngine->GetEngineInterfaces()->pDebugRenderer;
-	if (!m_pDebugRenderer->InitializeDebugShaders())
+	m_pDebugGeoSystem = m_Config.pEngine->GetEngineInterfaces()->pDebugGeometry;
+	if (!m_pDebugGeoSystem->InitializeDebugShaders())
 	{
 		LOG_ERROR("Failed to initialize debug shaders!");
 		return false;
@@ -759,9 +791,6 @@ static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 	// Cache off the new dimensions.
 	s_RenderSystem->SetWindowDimensions(data.u32[0], data.u32[1]);
 
-	// Make sure to resize the camera's aspect ratio as well.
-	s_RenderSystem->m_Camera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
-
 	// Let other listeners handle this event.
 	return false;
 }
@@ -773,12 +802,6 @@ static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 //-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 {
-	if (data.c[0] == 'P')
-	{
-		// Print the camera's position and angles.
-		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_RenderSystem->m_Camera.vecPosition.x, s_RenderSystem->m_Camera.vecPosition.y, s_RenderSystem->m_Camera.vecPosition.z, s_RenderSystem->m_Camera.Pitch, s_RenderSystem->m_Camera.Yaw);
-	}
-
 	if (data.c[0] >= 0 && data.c[0] <= 9)
 	{
 		s_RenderSystem->m_iRendererDebugMode = data.c[0];

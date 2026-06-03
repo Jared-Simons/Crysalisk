@@ -11,7 +11,7 @@
 
 struct DebugRenderView_ExtendedData_t
 {
-	Utl::CVector<GeometryInstance_t*> pGeometries{};
+	Utl::CVector<struct GeometryInstance_t*> pGeometries{};
 
 	RenderBuffer*	pVertexBuffer{ nullptr };
 	RenderBuffer*	pIndexBuffer{ nullptr };

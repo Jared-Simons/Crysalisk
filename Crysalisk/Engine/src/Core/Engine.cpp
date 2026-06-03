@@ -17,13 +17,12 @@
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/Map.h"
-#include <Resources/Serializers/MeshSerializer.h>
 #include <Strings/String_Utils.h>
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -249,10 +248,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	debugRendererConfig.pRenderer = m_EngineInterfaces.pRenderer;
 	debugRendererConfig.pShaderSystem = m_EngineInterfaces.pShaderSystem;
 	
-	IDebugRenderer::AllocateDebugRendererState(&m_EngineInterfaces.pDebugRenderer);
-	if (!m_EngineInterfaces.pDebugRenderer->Initialize(debugRendererConfig))
+	IDebugGeometrySystem::AllocateDebugGeometrySystemState(&m_EngineInterfaces.pDebugGeometry);
+	if (!m_EngineInterfaces.pDebugGeometry->Initialize(debugRendererConfig))
 	{
-		LOG_ERROR("Failed to initialize the debug renderer.");
+		LOG_ERROR("Failed to initialize the debug geometry system.");
 		return false;
 	}
 
@@ -342,7 +341,7 @@ bool CEngine::Run()
 	m_UpdateClock.Start();
 
 	RenderPacket_t frameRenderData{};	// FIXME: This shouldn't live here, it's just here so we can clear memory.
-	m_EngineInterfaces.pDebugRenderer->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, - 1.0f);
+	m_EngineInterfaces.pDebugGeometry->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 0.8f, 0.0f, 1.0f }, - 1.0f);
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
@@ -354,11 +353,6 @@ bool CEngine::Run()
 			double currentFrameTime = m_UpdateClock.GetElapsedTime();
 			double deltaTime = currentFrameTime - m_LastUpdateTime;
 			m_LastUpdateTime = currentFrameTime;
-
-			// FIXME: All of the frame data stuff should be in the renderer.
-			frameRenderData.pOpaqueGeometries.Clear();
-			frameRenderData.pTransparentGeometries.Clear();
-			frameRenderData.iCulledGeometries = 0;
 
 			m_EngineInterfaces.pInputSystem->Update();
 
@@ -389,10 +383,6 @@ bool CEngine::Run()
 		}
 	}
 
-	frameRenderData.pOpaqueGeometries.Clear();
-	frameRenderData.pTransparentGeometries.Clear();
-	frameRenderData.pDebugGeometries.Clear();
-	frameRenderData.TransformMatrices.Clear();
 	for (int iView = 0; iView < 3; iView++)
 	{
 		if (frameRenderData.pRenderViewExtendedData[iView])
@@ -436,9 +426,9 @@ void CEngine::Shutdown()
 	delete m_EngineInterfaces.pMaterialSystem;
 	m_EngineInterfaces.pMaterialSystem = nullptr;
 
-	m_EngineInterfaces.pDebugRenderer->Shutdown();
-	delete m_EngineInterfaces.pDebugRenderer;
-	m_EngineInterfaces.pDebugRenderer = nullptr;
+	m_EngineInterfaces.pDebugGeometry->Shutdown();
+	delete m_EngineInterfaces.pDebugGeometry;
+	m_EngineInterfaces.pDebugGeometry = nullptr;
 
 	m_EngineInterfaces.pShaderSystem->Shutdown();
 	delete m_EngineInterfaces.pShaderSystem;
@@ -597,7 +587,7 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 		// We can only actually cast the ray if the level is loaded.
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
-			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugRenderer);
+			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugGeometry);
 			Vector4D rayColor{};
 			if (ray.bDidHit)
 			{
@@ -609,12 +599,12 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 				LOG_DEBUG("MISS");
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, 5.0f);
-			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugGeometry->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugGeometry->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
 			
 			if (ray.pHitGeometry)
 			{
-				s_Engine.GetEngineInterfaces()->pDebugRenderer->AddBBox(*ray.pHitGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, 5.0f);
+				s_Engine.GetEngineInterfaces()->pDebugGeometry->AddBBox(*ray.pHitGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, 5.0f);
 			}
 		}
 	}

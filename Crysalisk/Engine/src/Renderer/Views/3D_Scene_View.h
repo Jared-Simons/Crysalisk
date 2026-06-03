@@ -6,7 +6,14 @@
 //=============================================================================
 #pragma once
 
+#include <Containers/CVector.h>
 #include <Defines.h>
 #include <Renderer/RendererTypes.h>
+
+struct MainSceneView_ExtendedData_t
+{
+	Utl::CVector<struct GeometryInstance_t*>	pOpaqueGeometries{};
+	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
+};
 
 DLL_EXPORT IRenderView*	RenderViewCreate_3DSceneView();

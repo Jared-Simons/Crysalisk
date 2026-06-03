@@ -10,6 +10,7 @@
 #include "Core/Engine.h"
 #include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
+#include "Resources/Map.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 
@@ -29,6 +30,9 @@ private:
 	Utl::CVector<Matrix4x4>				m_TransformMatrices{};	// TODO: Figure out how to split out these matrices
 	Utl::CVector<GeometryInstance_t*>	m_pOpaqueGeometries{};
 	Utl::CVector<GeometryInstance_t*>	m_pTransparentGeometries{};
+
+	RenderBuffer*						m_pWorldVertexBuffer{ nullptr };
+	RenderBuffer*						m_pWorldIndexBuffer{ nullptr };
 
 	Renderpass							m_pRenderpass{};
 	IRenderer*							m_pRenderer{ nullptr };
@@ -68,6 +72,21 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 
 	pEngineSystems->pRenderer->CreateRenderpass(&scenePassConfig, &m_pRenderpass);
 
+	// Get our renderbuffers.
+	m_pWorldVertexBuffer = m_pRenderer->GetRenderBufferByName("World_Vertex_Buffer");
+	if (m_pWorldVertexBuffer == nullptr)
+	{
+		LOG_ERROR("3D Scene View failed to initialize!");
+		return false;
+	}
+
+	m_pWorldIndexBuffer = m_pRenderer->GetRenderBufferByName("World_Index_Buffer");
+	if (m_pWorldIndexBuffer == nullptr)
+	{
+		LOG_ERROR("3D Scene View failed to initialize!");
+		return false;
+	}
+
 	// Register with the renderer.
 	pEngineSystems->pRenderer->RegisterRenderView(this);
 
@@ -81,14 +100,34 @@ void C3DSceneRenderView::Shutdown(IRenderer* pRenderer)
 
 void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 {
+	if (!pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE])
+	{
+		pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE] = new MainSceneView_ExtendedData_t;
+	}
+
+	CMap*							pMap = g_pEngine->GetEngineInterfaces()->pCurrentScene;
+	MainSceneView_ExtendedData_t*	pViewData = (MainSceneView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
+
+	if (pMap && pMap->IsMapLoaded())
+	{
+		// Get the frustum from the camera.
+		Frustum frustum = pRenderData->pCamera->CreateFrustumFromCamera();
+
+		// FIXME: Make this work with a frame allocator.
+		// FIXME: Figure out how to split out these matrices per model.
+		pMap->GetRenderablesFromScene(g_pEngine->GetEngineInterfaces()->pMaterialSystem, frustum,
+									  pViewData->pOpaqueGeometries, pViewData->pTransparentGeometries,
+									  &pRenderData->iCulledGeometries);
+	}
 }
 
 void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 {
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
-		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pRenderData->pOpaqueGeometries;
-		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pRenderData->pTransparentGeometries;
+		MainSceneView_ExtendedData_t* pViewData = (MainSceneView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
+		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pViewData->pOpaqueGeometries;
+		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pViewData->pTransparentGeometries;
 
 		// Render opaque geometries.
 		for (int iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
@@ -100,8 +139,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			m_pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[iGeo]->hMaterial);
 
 			// Draw the sucker!
-			// TODO: This is probably not the best way to get the geometry buffers.
-			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
+			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
 
 			pRenderData->pMetrics->NumDrawCalls++;
 		}
@@ -116,12 +154,14 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			m_pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[iGeo]->hMaterial);
 
 			// Draw the sucker!
-			// TODO: This is probably not the best way to get the geometry buffers.
-			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], &m_pRenderer->GetWorldVertexBuffer(), &m_pRenderer->GetWorldIndexBuffer());
+			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
 
 			pRenderData->pMetrics->NumDrawCalls++;
 		}
 		m_pRenderer->EndRenderpass();
+
+		pViewData->pOpaqueGeometries.Clear();
+		pViewData->pTransparentGeometries.Clear();
 	}
 }
 

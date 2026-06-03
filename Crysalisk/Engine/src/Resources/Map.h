@@ -9,7 +9,6 @@
 #include <Containers/CVector.h>
 #include <Defines.h>
 #include <Renderer/Camera.h>
-#include "Resources/DebugGeometry.h"
 #include <Resources/Loaders/MapLoader.h>
 #include "Resources/ResourceTypes.h"
 
@@ -42,11 +41,9 @@ public:
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, RenderPacket_t* pPacket, unsigned int* pCulledGeometries) const;
-	void										CastRayIntoScene(Ray_t& pRay, class IDebugRenderer* pDebugRenderer) const;
+	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, unsigned int* pCulledGeometries) const;
+	void										CastRayIntoScene(Ray_t& pRay, class IDebugGeometrySystem* pDebugGeometry) const;
 
-	// FIXME: this should be private
-	Utl::CVector<DebugRender::DebugGeometry_t>		m_hDebugMeshes{};
 private:
 	char*								m_pszMapName{ nullptr };
 

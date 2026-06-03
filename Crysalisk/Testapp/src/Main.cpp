@@ -44,6 +44,9 @@ private:
 
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
 	Camera_t				m_MainCamera{};
+	
+	// These need access to our members.
+	friend static bool Event_WindowResized(void* pEventListener, EventData_t data);
 };
 
 static CGameApp s_GameApp{};
@@ -81,9 +84,10 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 	// Start listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 	// Init camera data.
+	m_MainCamera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_MainCamera.RecalculateCameraVectors();
 
 	return true;
@@ -93,7 +97,7 @@ void CGameApp::Shutdown()
 {
 	// Stop listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 	// Clean up lingering memory.
 	m_pApplicationConfig->renderViewConfigs.Clear();
@@ -117,11 +121,6 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 	{
 		// Get the frustum from the camera.
 		Frustum frustum = m_MainCamera.CreateFrustumFromCamera();
-
-		// TODO: Make this work with a frame allocator.
-		// TODO: Figure out how to split out these matrices per model.
-
-		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket, &pRenderPacket->iCulledGeometries);
 	}
 }
 
@@ -186,6 +185,13 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	LOG_DEBUG("APP WINDOW RESIZED!");
+	CGameApp* pGameState = (CGameApp*)pEventListener;
+
+	// Update camera state.
+	if (data.u32[0] > 0.0f)	// not minimized
+	{
+		pGameState->m_MainCamera.bAspectRatioChanged = true;
+	}
 
 	// Allow other handlers to get this event.
 	return false;

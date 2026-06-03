@@ -99,6 +99,10 @@ struct Camera_t
 	float	flZFar{ 10000.0f };
 	float	flAspectRatio{ 16 / 9.0f };
 
+	// The window this camera is associated with, used to automatically update aspect ratio.
+	class Platform::IPlatformWindow*	pWindow{ nullptr };
+	bool								bAspectRatioChanged{ false };
+
 	// Returns the camera's view matrix.
 	CORE_API inline Matrix4x4 GetViewMatrix() { return Matrix4x4::LookAt(vecPosition, vecPosition + vecFront, vecUp); }
 

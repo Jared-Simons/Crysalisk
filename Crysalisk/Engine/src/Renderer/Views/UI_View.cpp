@@ -88,6 +88,7 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 
 void CUIRenderView::Shutdown(IRenderer* pRenderer)
 {
+	g_pEngine->GetEngineInterfaces()->pEngineEventHandler->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
 	pRenderer->DestroyRenderpass(&m_pRenderpass);
 }
 

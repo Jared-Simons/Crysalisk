@@ -35,6 +35,9 @@ private:
 private:
 	MeshSystemConfig_t	m_Config{};
 
+	RenderBuffer*		m_pWorldVertexBuffer{ nullptr };
+	RenderBuffer*		m_pWorldIndexBuffer{ nullptr };
+
 	struct MeshLookup
 	{
 		MeshHandle_t	MeshHandle{ kInvalidID_U32 };
@@ -135,6 +138,21 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 
 	m_MeshDictionary.m_MeshArray = new Mesh[m_Config.MaxMeshes];
 	m_MeshDictionary.m_MeshHashmap.Resize(m_Config.MaxMeshes);
+
+	// Get geometry buffers
+	m_pWorldVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer");
+	if (m_pWorldVertexBuffer == nullptr)
+	{
+		LOG_ERROR("Failed to create world geometry vertex buffer!");
+		return false;
+	}
+
+	m_pWorldIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer");
+	if (m_pWorldIndexBuffer == nullptr)
+	{
+		LOG_ERROR("Failed to create world geometry index buffer!");
+		return false;
+	}
 
 	LOG_INFO("Mesh system initialized! (Max meshes: %d)", m_Config.MaxMeshes);
 	return true;
@@ -283,7 +301,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		pNewSubmesh.vecMinExtents = pCurSubmesh.vecMinExtents;
 		pNewSubmesh.vecMaxExtents = pCurSubmesh.vecMaxExtents;
 		pNewSubmesh.vecCenter = (pNewSubmesh.vecMinExtents + pNewSubmesh.vecMaxExtents) * 0.5f;
-		m_Config.pRenderer->AcquireGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(),
+		m_Config.pRenderer->AcquireGeometryResources(*m_pWorldVertexBuffer, *m_pWorldIndexBuffer,
 													pCurSubmesh.iVertexCount, 44, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData,	// FIXME: Hardcoded vertex stride.
 													pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}

@@ -6,8 +6,8 @@
 //=============================================================================
 #include "Camera.h"
 
-#include <Core/Engine.h>
 #include <Core/Input.h>
+#include "Platform/Platform.h"
 #include <Defines.h>
 
 //-------------------------------------------------------------------------
@@ -29,12 +29,6 @@ void Camera_t::RecalculateCameraVectors()
 
 	Vector3D newUp = Vector3D::Cross(vecRight, vecFront);
 	vecUp = newUp.Normalize();
-
-	// Recalculate the aspect ratio in case the resolution changed.
-	// TODO: This should probably be triggered any time the screen size changes.
-	unsigned int iWindowWidth, iWindowHeight;
-	//g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
-	//flAspectRatio = (iWindowWidth / (float)iWindowHeight);
 }
 
 //-------------------------------------------------------------------------
@@ -44,6 +38,15 @@ void Camera_t::RecalculateCameraVectors()
 //-------------------------------------------------------------------------
 void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime)
 {
+	// Recalculate the aspect ratio in case the resolution changed.
+	if (bAspectRatioChanged && pWindow != nullptr)
+	{
+		unsigned int iWindowWidth, iWindowHeight;
+		pWindow->GetWindowSize(iWindowWidth, iWindowHeight);
+		flAspectRatio = (iWindowWidth / (float)iWindowHeight);
+		bAspectRatioChanged = false;
+	}
+
 	float velocity = (float)(2.5f * deltaTime);
 	const float cameraSpeedMultiplier = 100.0;
 	const float cameraRotationSpeedMultipler = 50.0f;

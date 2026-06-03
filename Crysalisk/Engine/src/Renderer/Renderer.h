@@ -59,11 +59,12 @@ public:
 
 	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) = 0;
 
-	virtual bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
+	virtual RenderBuffer*	CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
 	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
 	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
+	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const = 0;
 
 	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 
@@ -71,7 +72,6 @@ public:
 	virtual void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) = 0;
 	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
-	virtual const Camera_t& GetMainCamera() const = 0;
 	virtual float			GetRendererTime() const = 0;
 
 	// Temp geometry stuff
@@ -80,10 +80,6 @@ public:
 
 	virtual void	SetMinimized(bool bMinimized) = 0;
 	virtual void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) = 0;
-
-	// TODO: Move to views?
-	virtual RenderBuffer&	GetWorldVertexBuffer() = 0;
-	virtual RenderBuffer&	GetWorldIndexBuffer() = 0;
 
 	virtual RenderBuffer&	GetUIVertexBuffer() = 0;
 	virtual RenderBuffer&	GetUIIndexBuffer() = 0;

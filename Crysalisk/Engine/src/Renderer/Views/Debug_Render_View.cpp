@@ -7,8 +7,8 @@
 #include "Debug_Render_View.h"
 
 #include <Core/Engine.h>
-#include <Renderer/DebugRenderer.h>
 #include <Renderer/Renderer.h>
+#include <Systems/DebugGeometrySystem.h>
 #include <Systems/ShaderSystem.h>
 
 //-------------------------------------------------------------------------
@@ -48,7 +48,7 @@ public:
 
 private:
 	IRenderer*						m_pRenderer{ nullptr };
-	IDebugRenderer*					m_pDebugRenderer{ nullptr };	// FIXME: Rename this, it shouldn't be responsible for rendering.
+	IDebugGeometrySystem*			m_pDebugGeoSystem{ nullptr };
 	IShaderSystem*					m_pShaderSystem{ nullptr };
 
 	Renderpass						m_pRenderpass{};
@@ -63,7 +63,7 @@ private:
 bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 {
 	m_pRenderer = pEngineSystems->pRenderer;
-	m_pDebugRenderer = pEngineSystems->pDebugRenderer;
+	m_pDebugGeoSystem = pEngineSystems->pDebugGeometry;
 	m_pShaderSystem = pEngineSystems->pShaderSystem;
 
 	// Setup the debug view renderpass.
@@ -135,7 +135,7 @@ void CDebugRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 
 	// Get any geometry data from the debug geo system.
 	DebugRenderView_ExtendedData_t* pViewData = (DebugRenderView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG];
-	m_pDebugRenderer->PopulateRenderPacket(pViewData->pGeometries, &pViewData->pVertexBuffer, &pViewData->pIndexBuffer);
+	m_pDebugGeoSystem->PopulateRenderPacket(pViewData->pGeometries, &pViewData->pVertexBuffer, &pViewData->pIndexBuffer);
 }
 
 void CDebugRenderView::Render(RenderPacket_t* pRenderData)
@@ -143,9 +143,8 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 	DebugRenderView_ExtendedData_t* pViewData = (DebugRenderView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG];
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
-		m_pShaderSystem->BindShader(m_hDebugLineShader);
-		m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
-		m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
+		bool bLineShaderGlobalsSetThisFrame = false;
+		bool bTextShaderGlobalsSetThisFrame = false;
 
 		for (int iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
 		{
@@ -153,8 +152,34 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 			// FIXME: Make shader selection logic better here.
 			GeometryInstance_t& pCurGeo = *pViewData->pGeometries[iGeo];
 
-			if (pCurGeo.hShader == m_hDebugTextShader)
+			if (pCurGeo.hShader == m_hDebugLineShader)
 			{
+				m_pShaderSystem->BindShader(m_hDebugLineShader);
+
+				// Bind globals if this hasn't happened yet this frame.
+				if (!bLineShaderGlobalsSetThisFrame)
+				{
+					m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
+					m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
+					bLineShaderGlobalsSetThisFrame = true;
+				}
+
+				m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
+				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
+				m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
+			}
+			else  // Text shader
+			{
+				m_pShaderSystem->BindShader(m_hDebugTextShader);
+
+				// Bind globals if this hasn't happened yet this frame.
+				if (!bTextShaderGlobalsSetThisFrame)
+				{
+					m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
+					m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
+					bTextShaderGlobalsSetThisFrame = true;
+				}
+
 				Matrix4x4 matTransform = pCurGeo.matLocalToWorldTransform;
 
 				// The text needs to be rotated to always face the camera
@@ -163,27 +188,13 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
 				matTransform = Matrix4x4::RotateAboutYAxis(pCurGeo.matLocalToWorldTransform, M_DEG2RAD_F(flAngle + 180.0f)); // NOTE: The +180 degrees is to flip the text to face the right way.
 
-				m_pShaderSystem->BindShader(m_hDebugTextShader);
-				m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
-				m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
-
 				m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugTextShaderUniforms.model, 0, 0, &matTransform);
 				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
 				m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
-
-				continue;
-			}
-
-			m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
-			m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
-			m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
+			}			
 		}
 		m_pRenderer->EndRenderpass();
 	}
-
-	// Clear out per-frame data.
-	pViewData->pVertexBuffer->m_CurrentBoundOffset = kInvalidID_U64;
-	pViewData->pIndexBuffer->m_CurrentBoundOffset = kInvalidID_U64;
 }
 
 // Factory function to create the view.

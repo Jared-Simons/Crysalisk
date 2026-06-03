@@ -31,7 +31,7 @@ struct EngineInterfaces_t
 	class IEventSystem*		pEngineEventHandler{ nullptr };
 	class IInputSystem*		pInputSystem{ nullptr };
 	class IRenderer*		pRenderer{ nullptr };
-	class IDebugRenderer*	pDebugRenderer{ nullptr };
+	class IDebugGeometrySystem*	pDebugGeometry{ nullptr };
 	class IJobSystem*		pJobSystem{ nullptr };
 	class ITextureSystem*	pTextureSystem{ nullptr };
 	class IShaderSystem*	pShaderSystem{ nullptr };

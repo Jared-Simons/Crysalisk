@@ -37,10 +37,10 @@ struct DebugRendererConfig_t
 //-------------------------------------------------------------------------
 // Purpose: Interface to the debug rendering system.
 //-------------------------------------------------------------------------
-class IDebugRenderer
+class IDebugGeometrySystem
 {
 public:
-	static void		AllocateDebugRendererState(IDebugRenderer** ppSystemState);
+	static void		AllocateDebugGeometrySystemState(IDebugGeometrySystem** ppSystemState);
 
 	virtual bool	Initialize(DebugRendererConfig_t& pAppConfig) = 0;
 	virtual bool	InitializeDebugShaders() = 0;
@@ -48,7 +48,6 @@ public:
 
 	virtual void	Update() = 0; 
 	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) = 0;
-	virtual void	Render(DebugRendererFrameData_t& pFrameData) = 0;
 
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) = 0;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) = 0;

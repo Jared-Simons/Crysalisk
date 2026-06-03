@@ -12,9 +12,9 @@
 #include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/MeshSystem.h"
-#include "Renderer/DebugRenderer.h"
 
 bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource)
 {
@@ -139,11 +139,10 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 		pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
-	m_hDebugMeshes.Clear();
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, RenderPacket_t* pRenderPacket, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, unsigned int* pCulledGeometries) const
 {
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -152,9 +151,6 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 	{
  		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
-
-		// Split out transform matrices.
-		pRenderPacket->TransformMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
@@ -185,13 +181,13 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
 				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
 				{
-					pRenderPacket->pOpaqueGeometries.PushBack(pCurrentSubmesh);
-					pRenderPacket->pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pOpaqueGeometries.PushBack(pCurrentSubmesh);
+					pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 				else
 				{
-					pRenderPacket->pTransparentGeometries.PushBack(pCurrentSubmesh);
-					pRenderPacket->pTransparentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pTransparentGeometries.PushBack(pCurrentSubmesh);
+					pTransparentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}
 			else
@@ -201,17 +197,9 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 			}
 		}
 	}
-
-	for (int iDebug = 0; iDebug < m_hDebugMeshes.Count(); iDebug++)
-	{
-		// LEFTOFF: Get colors and other data in here.
-		pRenderPacket->pDebugGeometries.PushBack(&m_hDebugMeshes[iDebug].geometryInstance);
-	}
 }
 
-static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
-
-void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
+void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) const
 {
 	pRay.bDidHit = false;
 	pRay.flDistance = kFLT_MAX;
@@ -270,21 +258,6 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 				iHitSubmesh = iSubMesh;
 			}
 		}
-	}
-
-	// Outline the geometry that we hit.
-	if (iHitMesh != kInvalidID_U32 && iHitSubmesh != kInvalidID_U32)
-	{
-		if (iCurrentRayDebugGeoID != kInvalidID_U32)
-			pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
-
-		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
-		//iCurrentRayDebugGeoID = pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
-	}
-	if (!pRay.bDidHit)
-	{
-		// Just cast the ray off to the limits of the space.
-		pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
 	}
 }
 

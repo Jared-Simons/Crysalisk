@@ -4,12 +4,12 @@
 // 
 // Purpose: The debug renderer, used to draw simple primitives.
 //=============================================================================
-#include "DebugRenderer.h"
+#include "DebugGeometrySystem.h"
 
 #include "Core/Engine.h"
 #include <Containers/CVector.h>
 #include <Math/MathLib.h>
-#include "Renderer.h"
+#include "Renderer/Renderer.h"
 #include <Renderer/Camera.h>
 #include <Strings/String_Utils.h>
 #include "Systems/FontSystem.h"
@@ -67,7 +67,7 @@ struct DebugTextShaderUniformLocations
 //-------------------------------------------------------------------------
 // Purpose: Debug renderer implementation.
 //-------------------------------------------------------------------------
-class CDebugRenderer : public IDebugRenderer
+class CDebugGeometrySystem : public IDebugGeometrySystem
 {
 public:
 	virtual bool	Initialize(DebugRendererConfig_t& pAppConfig) override;
@@ -76,7 +76,6 @@ public:
 
 	virtual void	Update() override;
 	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) override;
-	virtual void	Render(DebugRendererFrameData_t& pFrameData) override;
 
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) override;
@@ -95,12 +94,8 @@ private:
 private:
 	DebugRendererConfig_t		m_Config{};
 
-	// The debug renderer's renderpass.
-	// FIXME: Remove this.
-	RendererView				m_DebugView{};
-
-	RenderBuffer				m_DebugVertexBuffer{};
-	RenderBuffer				m_DebugIndexBuffer{};
+	RenderBuffer*				m_pDebugVertexBuffer{};
+	RenderBuffer*				m_pDebugIndexBuffer{};
 
 	ShaderHandle_t					m_hDebugLineShader{ kInvalidID_U32 };
 	DebugLineShaderUniformLocations	m_DebugLineShaderUniforms{};
@@ -118,7 +113,7 @@ private:
 //-------------------------------------------------------------------------
 // Purpose - TODO: Documentation.
 //-------------------------------------------------------------------------
-void IDebugRenderer::AllocateDebugRendererState(IDebugRenderer** ppSystemState)
+void IDebugGeometrySystem::AllocateDebugGeometrySystemState(IDebugGeometrySystem** ppSystemState)
 {
 	if (!ppSystemState)
 	{
@@ -126,13 +121,13 @@ void IDebugRenderer::AllocateDebugRendererState(IDebugRenderer** ppSystemState)
 		return;
 	}
 
-	*ppSystemState = new CDebugRenderer;
+	*ppSystemState = new CDebugGeometrySystem;
 }
 
 //-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
+bool CDebugGeometrySystem::Initialize(DebugRendererConfig_t& pConfig)
 {
 	// Save off config.
 	m_Config = pConfig;
@@ -141,13 +136,15 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
 	m_GeometryData = new DebugGeometry_t[pConfig.uMaxDebugGeometries];
 
 	// Set up geometry buffers.
-	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer))
+	m_pDebugVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer");
+	if (m_pDebugVertexBuffer == nullptr)
 	{
 		LOG_ERROR("Failed to create debug vertex buffer!");
 		return false;
 	}
 
-	if (!m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer))
+	m_pDebugIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer");
+	if (m_pDebugIndexBuffer == nullptr)
 	{
 		LOG_ERROR("Failed to create debug index buffer!");
 		return false;
@@ -159,7 +156,7 @@ bool CDebugRenderer::Initialize(DebugRendererConfig_t& pConfig)
 //-------------------------------------------------------------------------
 // Purpose: Perform some post-initialization setup.
 //-------------------------------------------------------------------------
-bool CDebugRenderer::InitializeDebugShaders()
+bool CDebugGeometrySystem::InitializeDebugShaders()
 {
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 	m_hDebugLineShader = pShaderSystem->AcquireShader("Debug.Line");
@@ -183,11 +180,8 @@ bool CDebugRenderer::InitializeDebugShaders()
 //-------------------------------------------------------------------------
 // Shutdown.
 //-------------------------------------------------------------------------
-void CDebugRenderer::Shutdown()
+void CDebugGeometrySystem::Shutdown()
 {
-	m_Config.pRenderer->DestroyRenderBuffer(m_DebugIndexBuffer);
-	m_Config.pRenderer->DestroyRenderBuffer(m_DebugVertexBuffer);
-
 	// Release debug geometry data.
 	delete[] m_GeometryData;
 	m_GeometryData = nullptr;
@@ -196,7 +190,7 @@ void CDebugRenderer::Shutdown()
 //-------------------------------------------------------------------------
 // Purpose: Updates internal debug renderer state.
 //-------------------------------------------------------------------------
-void CDebugRenderer::Update()
+void CDebugGeometrySystem::Update()
 {
 	m_flRendererTime = m_Config.pRenderer->GetRendererTime();
 	uint32_t numGeoFound = 0;
@@ -218,7 +212,7 @@ void CDebugRenderer::Update()
 	}
 }
 
-void CDebugRenderer::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer)
+void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer)
 {
 	// FIXME: Frame allocator
 	pGeometries.Clear();
@@ -226,8 +220,8 @@ void CDebugRenderer::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGe
 	pGeometries.Resize(m_iActiveGeometryInstances < m_Config.uMaxDebugGeometries ? m_iActiveGeometryInstances : m_Config.uMaxDebugGeometries);
 	pGeometries.SetCount(m_iActiveGeometryInstances < m_Config.uMaxDebugGeometries ? m_iActiveGeometryInstances : m_Config.uMaxDebugGeometries);
 
-	*pOutVertexBuffer = &m_DebugVertexBuffer;
-	*pOutIndexBuffer = &m_DebugIndexBuffer;
+	*pOutVertexBuffer = m_pDebugVertexBuffer;
+	*pOutIndexBuffer = m_pDebugIndexBuffer;
 
 	// FIXME: This isn't great.
 	uint32_t numGeoFound = 0;
@@ -242,107 +236,9 @@ void CDebugRenderer::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGe
 }
 
 //-------------------------------------------------------------------------
-// Purpose: Render all active debug geometries.
-//-------------------------------------------------------------------------
-void CDebugRenderer::Render(DebugRendererFrameData_t& pFrameData)
-{
-
-	// TODO: This is borked!
-	// Need to be integrated with the new RenderView system.
-	/*if (m_Config.pRenderer->BeginRendererView(m_DebugView))
-	{
-		IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
-
-		// Apply per-frame shader uniforms.
-		pShaderSystem->BindShader(m_hDebugLineShader);
-		pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
-
-		pShaderSystem->BindShader(m_hDebugTextShader);
-		pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.projection, 0, 0, &pFrameData.matProjection);
-		pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugLineShaderUniforms.view, 0, 0, &pFrameData.matView);
-
-		bool bLineShaderBound = false;
-		ShaderHandle_t hCurrentlyBoundShader = m_hDebugTextShader;
-
-		// Just iterate through everything for now.
-		// This is not very efficient, could make this work with a spatial partition or tie to entity/pvs.
-		for (int iGeo = 0; iGeo < m_iNumGeometryInstances; iGeo++)
-		{
-			DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
-			if (pCurGeo.iInstanceID == kInvalidID_U32)
-				continue;
-
-			// We need to save off the transform and restore it after rendering.
-			Matrix4x4 matSave = pCurGeo.geometryInstance.matLocalToWorldTransform;
-
-			if (pCurGeo.eType == DebugGeometryType::TEXT)
-			{
-				if (bLineShaderBound)
-				{
-					pShaderSystem->BindShader(m_hDebugTextShader);
-					hCurrentlyBoundShader = m_hDebugTextShader;
-					bLineShaderBound = false;
-				}
-				// The text needs to be rotated to always face the camera (billboarding!)
-				Vector vecTextPos{ matSave.flData[12], matSave.flData[13], matSave.flData[14] };
-				Vector vecCameraPos{ pFrameData.vecCameraPosition };
-				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
-				matSave = Matrix4x4::RotateAboutYAxis(matSave, M_DEG2RAD_F(flAngle + 180.0f));	// NOTE: The +180 is to flip the text to face the right way.
-				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
-			}
-			else
-			{
-				if (!bLineShaderBound)
-				{
-					pShaderSystem->BindShader(m_hDebugLineShader);
-					hCurrentlyBoundShader = m_hDebugLineShader;
-					bLineShaderBound = true;
-				}
-
-				if (pCurGeo.eType == DebugGeometryType::CAMERA_FRUSTUM)
-				{
-					// Parent this to the camera's (inverse) transform.
-					pCurGeo.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-					pCurGeo.geometryInstance.matLocalToWorldTransform = pCurGeo.geometryInstance.matLocalToWorldTransform * pFrameData.matProjection.Inverse();
-					pCurGeo.geometryInstance.matLocalToWorldTransform = pCurGeo.geometryInstance.matLocalToWorldTransform * pFrameData.matView.Inverse();
-				}
-			}
-
-			if (pCurGeo.eType == DebugGeometryType::TEXT)
-			{
-				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugTextShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
-
-				pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
-				m_Config.pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
-
-				pCurGeo.geometryInstance.matLocalToWorldTransform = matSave;
-			}
-			else
-			{
-				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.color, 0, pCurGeo.iInstanceID, &pCurGeo.color);
-				pShaderSystem->SetShaderUniform(hCurrentlyBoundShader, m_DebugLineShaderUniforms.model, 0, pCurGeo.iInstanceID, &pCurGeo.geometryInstance.matLocalToWorldTransform);
-
-				pShaderSystem->BindPerInstanceUniforms(pCurGeo.iInstanceID);
-				m_Config.pRenderer->DrawGeometry(pCurGeo.geometryInstance, &m_DebugVertexBuffer, &m_DebugIndexBuffer);
-
-			}
-		}
-
-		m_Config.pRenderer->EndRendererView();
-	}
-	else
-	{
-		LOG_ERROR("Failed to begin Debug Renderpass. Skipping debug rendering.");
-		return;
-	}*/
-}
-
-//-------------------------------------------------------------------------
 // Purpose: Adds a point (provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -372,7 +268,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 
 	uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
 
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, 4, sizeof(Vector), 0, ptVerts, 6, indices, &pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, 4, sizeof(Vector), 0, ptVerts, 6, indices, &pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this geometry will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -387,7 +283,7 @@ int CDebugRenderer::AddPoint(Vector& pOrigin, const float flRadius, Vector4D col
 //-------------------------------------------------------------------------
 // Purpose: Adds a line (endpoints provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -410,7 +306,7 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
 
 	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, 4, sizeof(Vector), 0, vecPositions, 0, nullptr, &pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, 4, sizeof(Vector), 0, vecPositions, 0, nullptr, &pNewGeometry.geometryInstance);
 
 	// Just use an identity matrix for the transform (this shouldn't ever move around).
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -423,7 +319,7 @@ int CDebugRenderer::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D col
 //-------------------------------------------------------------------------
 // Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -494,7 +390,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 		indices[idx + 1] = i + 4;
 	}
 
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
 
 	// Store off the transform index.
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
@@ -507,7 +403,7 @@ int CDebugRenderer::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float
 //-------------------------------------------------------------------------
 // Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -592,7 +488,7 @@ int CDebugRenderer::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, floa
 //-------------------------------------------------------------------------
 // Purpose: Adds a sphere (origin provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -658,7 +554,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 	indices[95] = indices[48];
 	indices[143] = indices[96];
 
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
 
 	// Create a new transform matrix (this method assumes that this sphere will not be parented with another transform).
 	Matrix4x4 matTransform{ 1.0f };
@@ -673,7 +569,7 @@ int CDebugRenderer::AddSphere(Vector& pOrigin, const float flRadius, Vector4D co
 //-------------------------------------------------------------------------
 // Purpose: Adds a piece of text to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
 {
 	// TODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
@@ -694,8 +590,7 @@ int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandl
 
 	GeometryConfig_t textConfig = pFontSystem->Acquire3DConfigForText(hFont, 12.0f, pszText);
 
-	// TODO: Fix this
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, 
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, 
 												 textConfig.Vertices.Count(), textConfig.Vertices.Stride(), 0, textConfig.Vertices.Data(),
 												 textConfig.Indices.Count(), textConfig.Indices.Data(), &pNewGeometry.geometryInstance);
 
@@ -711,6 +606,7 @@ int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandl
 	Matrix4x4 matTransform{ 1.0f };
 	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
+
 	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 	m_iActiveGeometryInstances++;
 
@@ -720,7 +616,7 @@ int CDebugRenderer::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandl
 //-------------------------------------------------------------------------
 // Purpose: Adds a camera frustum to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -742,55 +638,54 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
 	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
 
-	const int iNumVertices = 24;
-	Vector3D ptVertices[iNumVertices]{};
+	// Define the frustum vertices in clip-space.
+	// Then unproject into world-space.
+	const int iNumVertices = 8;
+	Vector ptVertices[iNumVertices]{};
+
+	const int iNumIndices = 24;
+	uint32_t indices[iNumIndices];
 
 	Vector vecCameraPosition = pCamera.vecPosition;
 
-	// FIXME: This could be indexed.
-	{
-		// Define the frustum vertices in clip-space.
-		// Then, unproject into world-space.
-		Vector frustumVerts[8]{};
-		frustumVerts[0] = Vector{ 1.0f, 1.0f, 1.0f };
-		frustumVerts[1] = Vector{ -1.0f, 1.0f, 1.0f };
-		frustumVerts[2] = Vector{ 1.0f, -1.0f, 1.0f };
-		frustumVerts[3] = Vector{ -1.0f, -1.0f, 1.0f };
-		frustumVerts[4] = Vector{ 1.0f, 1.0f, -1.0f };
-		frustumVerts[5] = Vector{ -1.0f, 1.0f, -1.0f };
-		frustumVerts[6] = Vector{ 1.0f, -1.0f, -1.0f };
-		frustumVerts[7] = Vector{ -1.0f, -1.0f, -1.0f };
+	ptVertices[0] = Vector{ 1.0f, 1.0f, 1.0f };
+	ptVertices[1] = Vector{ -1.0f, 1.0f, 1.0f };
+	ptVertices[2] = Vector{ 1.0f, -1.0f, 1.0f };
+	ptVertices[3] = Vector{ -1.0f, -1.0f, 1.0f };
+	ptVertices[4] = Vector{ 1.0f, 1.0f, -1.0f };
+	ptVertices[5] = Vector{ -1.0f, 1.0f, -1.0f };
+	ptVertices[6] = Vector{ 1.0f, -1.0f, -1.0f };
+	ptVertices[7] = Vector{ -1.0f, -1.0f, -1.0f };
 
-		// Defines the far-clipping plane.
-		ptVertices[0] = frustumVerts[0];
-		ptVertices[1] = frustumVerts[1];
-		ptVertices[2] = frustumVerts[2];
-		ptVertices[3] = frustumVerts[3];
-		ptVertices[4] = frustumVerts[0];
-		ptVertices[5] = frustumVerts[2];
-		ptVertices[6] = frustumVerts[1];
-		ptVertices[7] = frustumVerts[3];
+	// Defines the far-clipping plane.
+	indices[0] = 0;
+	indices[1] = 1;
+	indices[2] = 2;
+	indices[3] = 3;
+	indices[4] = 0;
+	indices[5] = 2;
+	indices[6] = 1;
+	indices[7] = 3;
 
-		// Defines the near-clipping plane.
-		ptVertices[8] = frustumVerts[4];
-		ptVertices[9] = frustumVerts[5];
-		ptVertices[10] = frustumVerts[6];
-		ptVertices[11] = frustumVerts[7];
-		ptVertices[12] = frustumVerts[4];
-		ptVertices[13] = frustumVerts[6];
-		ptVertices[14] = frustumVerts[5];
-		ptVertices[15] = frustumVerts[7];
+	// Defines the near-clipping plane.
+	indices[8] = 4;
+	indices[9] = 5;
+	indices[10] = 6;
+	indices[11] = 7;
+	indices[12] = 4;
+	indices[13] = 6;
+	indices[14] = 5;
+	indices[15] = 7;
 
-		// Connect the four corners.
-		ptVertices[16] = frustumVerts[0];
-		ptVertices[17] = frustumVerts[4];
-		ptVertices[18] = frustumVerts[1];
-		ptVertices[19] = frustumVerts[5];
-		ptVertices[20] = frustumVerts[2];
-		ptVertices[21] = frustumVerts[6];
-		ptVertices[22] = frustumVerts[3];
-		ptVertices[23] = frustumVerts[7];
-	}
+	// Connect the four corners.
+	indices[16] = 0;
+	indices[17] = 4;
+	indices[18] = 1;
+	indices[19] = 5;
+	indices[20] = 2;
+	indices[21] = 6;
+	indices[22] = 3;
+	indices[23] = 7;
 
 	// Clip->World
 	Matrix4x4 matClipToWorld = Matrix4x4(1.0f);
@@ -799,7 +694,7 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matClipToWorld;
 	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 
-	m_Config.pRenderer->AcquireGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, 0, nullptr, &pNewGeometry.geometryInstance);
+	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -810,13 +705,13 @@ int CDebugRenderer::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float fl
 // Input:   debugGeoHandle - A handle to the debug geometry to release.
 // Output:  none.
 //-------------------------------------------------------------------------
-void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
+void CDebugGeometrySystem::RemoveDebugGeometry(int debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
 
 	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
-	m_Config.pRenderer->ReleaseGeometryResources(m_DebugVertexBuffer, m_DebugIndexBuffer, pGeoToRemove.geometryInstance);
+	m_Config.pRenderer->ReleaseGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, pGeoToRemove.geometryInstance);
 
 	pGeoToRemove.iInstanceID = kInvalidID_U32;
 	pGeoToRemove.eType = DebugGeometryType::UNDEFINED;
@@ -826,7 +721,7 @@ void CDebugRenderer::RemoveDebugGeometry(int debugGeoHandle)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-void CDebugRenderer::UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matrix4x4 matTransform)
+void CDebugGeometrySystem::UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matrix4x4 matTransform)
 {
 	if (debugGeoHandle == kInvalidID_U32)
 		return;
@@ -839,7 +734,7 @@ void CDebugRenderer::UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matri
 // Input:   none.
 // Output:  The new index, if one was found, otherwise an invalid ID.
 //-------------------------------------------------------------------------
-int CDebugRenderer::GetFirstFreeGeometryDataIndex() const
+int CDebugGeometrySystem::GetFirstFreeGeometryDataIndex() const
 {
 	for (unsigned int idx = 0; idx < m_Config.uMaxDebugGeometries; idx++)
 	{
