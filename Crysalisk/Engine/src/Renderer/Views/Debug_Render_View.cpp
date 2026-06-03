@@ -22,6 +22,15 @@ struct DebugLineShaderUniformLocations
 	uint16_t	model{ kInvalidID_U16 };
 };
 
+struct DebugTextShaderUniformLocations
+{
+	uint16_t	projection{ kInvalidID_U16 };
+	uint16_t	view{ kInvalidID_U16 };
+	uint16_t	color{ kInvalidID_U16 };
+	uint16_t	fontAtlas{ kInvalidID_U16 };
+	uint16_t	model{ kInvalidID_U16 };
+};
+
 //-------------------------------------------------------------------------
 // Purpose: Debug render view implementation.
 //-------------------------------------------------------------------------
@@ -46,6 +55,9 @@ private:
 
 	ShaderHandle_t					m_hDebugLineShader{ kInvalidID_U32 };
 	DebugLineShaderUniformLocations	m_DebugLineShaderUniforms{};
+
+	ShaderHandle_t					m_hDebugTextShader{ kInvalidID_U32 };
+	DebugTextShaderUniformLocations m_DebugTextShaderUniforms{};
 };
 
 bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
@@ -94,6 +106,18 @@ bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_DebugLineShaderUniforms.color = m_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "color");
 	m_DebugLineShaderUniforms.model = m_pShaderSystem->GetShaderUniformLocation(m_hDebugLineShader, "model");
 
+	m_hDebugTextShader = m_pShaderSystem->AcquireShader("Debug.Text");
+	if (m_hDebugTextShader == kInvalidID_U32)
+	{
+		LOG_ERROR("Failed to find 'Debug.Text' shader. Debug visualization will not render.");
+		return false;
+	}
+	m_DebugTextShaderUniforms.projection = m_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "projection");
+	m_DebugTextShaderUniforms.view = m_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "view");
+	m_DebugTextShaderUniforms.color = m_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "color");
+	m_DebugTextShaderUniforms.fontAtlas = m_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "font_atlas");
+	m_DebugTextShaderUniforms.model = m_pShaderSystem->GetShaderUniformLocation(m_hDebugTextShader, "model");
+
 	return true;
 }
 
@@ -126,8 +150,31 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 		for (int iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
 		{
 			// FIXME: Remove anything hardcoded.
+			// FIXME: Make shader selection logic better here.
 			GeometryInstance_t& pCurGeo = *pViewData->pGeometries[iGeo];
-			m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
+
+			if (pCurGeo.hShader == m_hDebugTextShader)
+			{
+				Matrix4x4 matTransform = pCurGeo.matLocalToWorldTransform;
+
+				// The text needs to be rotated to always face the camera
+				Vector vecTextPos{ matTransform.flData[12], matTransform.flData[13], matTransform.flData[14] };	// FIXME: Add a matrix method to get the transform from a matrix.
+				Vector vecCameraPos = pRenderData->pCamera->vecPosition;
+				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
+				matTransform = Matrix4x4::RotateAboutYAxis(pCurGeo.matLocalToWorldTransform, M_DEG2RAD_F(flAngle + 180.0f)); // NOTE: The +180 degrees is to flip the text to face the right way.
+
+				m_pShaderSystem->BindShader(m_hDebugTextShader);
+				m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.projection, 0, 0, &pRenderData->matProjection);
+				m_pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.view, 0, 0, &pRenderData->pCamera->GetViewMatrix());
+
+				m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugTextShaderUniforms.model, 0, 0, &matTransform);
+				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
+				m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
+
+				continue;
+			}
+
+			m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
 			m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
 			m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
 		}

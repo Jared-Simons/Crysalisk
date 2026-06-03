@@ -276,6 +276,9 @@ struct GeometryInstance_t
 	// The length in bytes of a single index used by this mesh.
 	size_t indexDataStride{ kInvalidID_U64 };
 
+	// The shader to be used in rendering this mesh.
+	// FIXME: This should not be here. Only temp.
+	ShaderHandle_t		hShader;
 	// The material used in rendering this mesh.
 	MaterialHandle_t	hMaterial;
 	// Indicates if the material used by this mesh is transparent.

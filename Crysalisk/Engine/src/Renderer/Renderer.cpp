@@ -48,9 +48,6 @@ static const char* szRendererVisualizationModesLabels[9] =
 	"GEOMETRIC BITANGENTS",
 };
 
-static bool s_bDisplayProfilingText = false;
-// END TEMP!
-
 //-------------------------------------------------------------------------
 // The renderer frontend.
 //-------------------------------------------------------------------------
@@ -94,6 +91,7 @@ public:
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
 	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
@@ -116,9 +114,6 @@ public:
 
 	virtual RenderBuffer& GetUIVertexBuffer() override { return m_UIVertexBuffer; }
 	virtual RenderBuffer& GetUIIndexBuffer() override { return m_UIIndexBuffer; }
-
-	virtual RenderBuffer& GetDebugVertexBuffer() override { return m_DebugVertexBuffer; }
-	virtual RenderBuffer& GetDebugIndexBuffer() override { return m_DebugIndexBuffer; }
 
 	virtual inline size_t	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
@@ -147,9 +142,6 @@ public:
 
 	RenderBuffer		m_UIVertexBuffer{};
 	RenderBuffer		m_UIIndexBuffer{};
-
-	RenderBuffer		m_DebugVertexBuffer{};
-	RenderBuffer		m_DebugIndexBuffer{};
 
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
@@ -220,9 +212,6 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
 	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vector3D) * 1024, eRenderBufferUsage::VERTEX, true, "Debug_Renderer_Line_Vertex_Buffer", m_DebugVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer", m_DebugIndexBuffer);
-
 	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
 		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -292,8 +281,6 @@ void CRenderer::Shutdown()
 	// TODO: Is this the right place to free these guys?
 	m_pRenderViews.Clear();
 
-	m_RendererBackend->DestroyRenderBufferInternal(m_DebugIndexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_DebugVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
 	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
@@ -380,9 +367,10 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 	// End View Test TEMP
 
-	/*
 	// Update debug geometries.
 	m_pDebugRenderer->Update();
+
+	/*
 
 	// Render debug geometry.
 	{
@@ -402,8 +390,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	pShaderSystem->BindShader(kInvalidID_U32);
 	m_WorldVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_WorldIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
-	m_DebugVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
-	m_DebugIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_UIVertexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 	m_UIIndexBuffer.m_CurrentBoundOffset = kInvalidID_U64;
 
@@ -633,12 +619,18 @@ bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuff
 	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
 
 	pOutInstance->vertexCount = iVertexCount;
-
 	pOutInstance->indexCount = iIndexCount;
 
 	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, iVertexCount, iVertexStride, iVertexBase, pVertices, iIndexCount, pIndices, *pOutInstance);
 
 	return true;
+}
+
+void CRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
+{
+	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
+	pGeometry.indexCount = 0;
+	pGeometry.vertexCount = 0;
 }
 
 //-------------------------------------------------------------------------
@@ -785,12 +777,6 @@ static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 	{
 		// Print the camera's position and angles.
 		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_RenderSystem->m_Camera.vecPosition.x, s_RenderSystem->m_Camera.vecPosition.y, s_RenderSystem->m_Camera.vecPosition.z, s_RenderSystem->m_Camera.Pitch, s_RenderSystem->m_Camera.Yaw);
-	}
-
-	if (data.c[0] == 'Y')
-	{
-		// Toggle profiling text.
-		s_bDisplayProfilingText = !s_bDisplayProfilingText;
 	}
 
 	if (data.c[0] >= 0 && data.c[0] <= 9)

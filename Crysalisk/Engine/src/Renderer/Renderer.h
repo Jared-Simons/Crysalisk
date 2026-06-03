@@ -63,6 +63,7 @@ public:
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
 	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
+	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
 
 	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 
@@ -86,9 +87,6 @@ public:
 
 	virtual RenderBuffer&	GetUIVertexBuffer() = 0;
 	virtual RenderBuffer&	GetUIIndexBuffer() = 0;
-
-	virtual RenderBuffer&	GetDebugVertexBuffer() = 0;
-	virtual RenderBuffer&	GetDebugIndexBuffer() = 0;
 
 	virtual inline size_t	GetCurrentRenderFrame() const = 0;
 };

@@ -69,6 +69,7 @@ private:
 	EngineInterfaces_t		m_EngineInterfaces{};
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
+	uint32_t				m_hDebugCameraFrustum{ kInvalidID_U32 };
 
 	CMap			m_CurrentMap{};
 
@@ -341,6 +342,7 @@ bool CEngine::Run()
 	m_UpdateClock.Start();
 
 	RenderPacket_t frameRenderData{};	// FIXME: This shouldn't live here, it's just here so we can clear memory.
+	m_EngineInterfaces.pDebugRenderer->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, - 1.0f);
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
@@ -596,21 +598,6 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
 			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugRenderer);
-			// DEBUG GEO TEST
-			if (ray.pHitGeometry)
-			{
-				DebugRender::DebugGeometry_t newGeo = DebugRender::AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-				DebugRender::DebugGeometry_t newGeo1 = DebugRender::AddLine(ray.vecOrigin, ray.vecEnd, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-				DebugRender::DebugGeometry_t newGeo2 = DebugRender::AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-
-				//s_Engine.GetEngineInterfaces()->pDebugRenderer->AddBBox(*ray.pHitGeometry, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-				s_Engine.GetEngineInterfaces()->pDebugRenderer->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-				CMap& pMap = const_cast<CMap&>(s_Engine.GetCurrentMap());
-				//pMap.m_hDebugMeshes.PushBack(newGeo);
-				//pMap.m_hDebugMeshes.PushBack(newGeo1);
-				//pMap.m_hDebugMeshes.PushBack(newGeo2);
-			}
-
 			Vector4D rayColor{};
 			if (ray.bDidHit)
 			{
@@ -622,7 +609,13 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 				LOG_DEBUG("MISS");
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			//s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			
+			if (ray.pHitGeometry)
+			{
+				s_Engine.GetEngineInterfaces()->pDebugRenderer->AddBBox(*ray.pHitGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, 5.0f);
+			}
 		}
 	}
 

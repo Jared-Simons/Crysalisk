@@ -58,4 +58,6 @@ public:
 	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) = 0;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) = 0;
 	virtual void	RemoveDebugGeometry(int debugGeoHandle) = 0;
+
+	virtual void	UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matrix4x4 matTransform) = 0;
 };

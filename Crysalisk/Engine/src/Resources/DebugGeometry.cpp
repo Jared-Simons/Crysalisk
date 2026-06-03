@@ -60,9 +60,9 @@ namespace DebugRender
 		uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
 
 		IRenderer* pRenderer = s_DebugShaderData.pRenderer;
-		pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
+		/*pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
 											4, sizeof(Vector), 0, ptVerts,
-											6, indices, &newGeo.geometryInstance);
+											6, indices, &newGeo.geometryInstance);*/
 
 		// Create a transform matrix (this method assumes that this geometry will not be parented with another transform).
 		Matrix4x4 matTransform{ 1.0f };
@@ -97,9 +97,9 @@ namespace DebugRender
 		Vector ptVerts[2] = { ptStartPos, ptEndPos };
 
 		IRenderer* pRenderer = s_DebugShaderData.pRenderer;
-		pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
+		/*pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
 			2, sizeof(Vector), 0, ptVerts,
-			0, nullptr, &newGeo.geometryInstance);
+			0, nullptr, &newGeo.geometryInstance);*/
 
 		// Just use an identity matrix for the transform (this shouldn't ever move around).
 		newGeo.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
@@ -179,9 +179,9 @@ namespace DebugRender
 		}
 
 		IRenderer* pRenderer = s_DebugShaderData.pRenderer;
-		pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
+		/*pRenderer->AcquireGeometryResources(pRenderer->GetDebugVertexBuffer(), pRenderer->GetDebugIndexBuffer(),
 			iNumVertices, sizeof(Vector), 0, ptVertices,
-			iNumIndices, indices, &newGeo.geometryInstance);
+			iNumIndices, indices, &newGeo.geometryInstance);*/
 
 		// Store off the transform matrix.
 		newGeo.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
