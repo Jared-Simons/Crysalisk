@@ -98,7 +98,7 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_TestText.m_hFont = 0;
 	m_TestText.m_flTextSize = 1.0f;
 	//m_TestText.m_vecPos = { -0.95f, -0.6f };
-	m_TestText.m_vecPos = { 0.0f, 0.0f };
+	m_TestText.m_vecPos = { 25.0f, 700.0f };
 
 	pEngineSystems->pEngineEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
 
@@ -131,6 +131,7 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 			pRenderData->pCamera->vecPosition.y,
 			pRenderData->pCamera->vecPosition.z);
 		m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
+		//m_TestText.SetText(m_pRenderer, m_pFontSystem, "TEST STRING");
 	}
 
 	// FIXME: Orthographic projection?

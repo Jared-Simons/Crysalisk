@@ -202,7 +202,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 	if (pFontLookup->FontIndex == kInvalidID_U32)
 	{
 		// The font is not yet loaded, load it up.
-		if (!FontLoader::LoadFontResource(pszFontName, 25, fontResource))
+		if (!FontLoader::LoadFontResource(pszFontName, 30, fontResource))
 		{
 			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
 			return m_hDefaultFont;
@@ -266,27 +266,20 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 	size_t						iStringLength = Utl::StringLength(pTextObject.m_pszText);
 	int							iCurNonWhitespaceCharCount = 0; 
-	
-	unsigned int				iSurfaceWidth, iSurfaceHeight;
-	float						flPixelScaleFactor = 0.0f;
-	Vector2D					vecCurPos = pTextObject.m_vecPos;
 
 	// Geometry data.
-	u32							width, height;
-	u32							glyphXMin, glyphYMin;
-	u32							glyphXMax, glyphYMax;
+	Vector2D					vecCurPos = pTextObject.m_vecPos;
+	float						width, height;
 	Vector2D					vecGlyphBottomLeftPos = {};
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
-
-	flPixelScaleFactor = 1.0f;
 
 	for (int ch = 0; ch < iStringLength; ch++)
 	{
 		// If a space, just push the position forward by some amount.
 		if (pTextObject.m_pszText[ch] == ' ')
 		{
-			vecCurPos.x += 6.0f * flPixelScaleFactor * flTextSize;
+			vecCurPos.x += 6.0f * flTextSize;
 			continue;
 		}
 
@@ -309,33 +302,39 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		if (pTextObject.m_pszText[ch] < kCodePointOfFirstChar || pTextObject.m_pszText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
 			continue;
 
-		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar];
+		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar]; 
+		width = pCurGlyph->xMax - pCurGlyph->xMin;
+		height = pCurGlyph->yMax - pCurGlyph->yMin;
+		
+		float flMinX = (vecCurPos.x + pCurGlyph->xOffset) * flTextSize;
+		float flMinY = (vecCurPos.y + pCurGlyph->yOffset) * flTextSize;
+		float flMaxX = (flMinX + width) * flTextSize;
+		float flMaxY = (flMinY + height) * flTextSize;
+		float flTexMinX = pCurGlyph->sMin;
+		float flTexMaxX = pCurGlyph->sMax;
+		// Flip the y-coord around.
+		float flTexMinY = 1.0f - pCurGlyph->tMin;
+		float flTexMaxY = 1.0f - pCurGlyph->tMax;
 
-		width = (pCurGlyph->xMax - pCurGlyph->xMin) * flPixelScaleFactor * flTextSize;
-		height = (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
+		// Vertices:
+		vecCharVertices[0] = { flMinX, flMinY };
+		vecCharVertices[1] = { flMaxX, flMinY };
+		vecCharVertices[2] = { flMaxX, flMaxY };
+		vecCharVertices[3] = { flMinX, flMaxY };
 
-		vecGlyphBottomLeftPos.x = vecCurPos.x + (flPixelScaleFactor * flTextSize);
-		vecGlyphBottomLeftPos.y = vecCurPos.y - (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
-
-		// Vertex positions: top-right, top-left, bottom-left, bottom-right.
-		vecCharVertices[0] = { vecGlyphBottomLeftPos.x + width, vecGlyphBottomLeftPos.y + height };
-		vecCharVertices[1] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y + height };
-		vecCharVertices[2] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y };
-		vecCharVertices[3] = { vecGlyphBottomLeftPos.x + width, vecGlyphBottomLeftPos.y };
-
-		// Vertex TexCoords.
-		vecCharTexCoords[0] = { pCurGlyph->sMax, pCurGlyph->tMin };
-		vecCharTexCoords[1] = { pCurGlyph->sMin, pCurGlyph->tMin };
-		vecCharTexCoords[2] = { pCurGlyph->sMin, pCurGlyph->tMax };
-		vecCharTexCoords[3] = { pCurGlyph->sMax, pCurGlyph->tMax };
+		// Vertex texcoords.
+		vecCharTexCoords[0] = { flTexMinX, flTexMinY };
+		vecCharTexCoords[1] = { flTexMaxX, flTexMinY };
+		vecCharTexCoords[2] = { flTexMaxX, flTexMaxY };
+		vecCharTexCoords[3] = { flTexMinX, flTexMaxY };
 
 		// Add these to the geometry config.
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
 
-		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
+		int indexOrder[6] = { 2, 1, 0, 3, 0, 1 };
 
 		// Fill up the index buffer as well.
 		for (int idx = 0; idx < 6; idx++)
@@ -344,7 +343,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		}
 
 		// Advance the x-position over.
-		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
+		vecCurPos.x += pCurGlyph->flAdvance * flTextSize;
 
 		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
 		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character

@@ -8,6 +8,7 @@
 	- [X] Math Library
 	- [ ] Networking
 	- [ ] Multi-threading
+	- [ ] Dev. Console
 
 - [-] Containers
 	- [X] Dynamic array (Utl::CVector)
@@ -46,6 +47,7 @@
 			- [ ] AI characters
 	- [ ] Spatial Partitioning/PVS
 	- [X] Raycasting
+	- [ ] Prefabs
 
 - [-] Renderer
 	- [X] Textures
@@ -102,5 +104,9 @@
 	- [ ] Radiosity solver
 
 - TODO
-	- [ ] Fix Window-Resizing
+	- [ ] Replace all simple types with our typedefs.
+	- [ ] Fix Window-Resizing.
 	- [ ] Add some process to 'catch' jobs that couldn't be submitted in a frame, and then attempt to resubmit later, rather than just dropping it.
+	- [ ] Split lighting code out to it's own manager.
+	- [ ] - [ ] Fix font rendering.
+		- [ ] Figure out why depth in the UI shader gets clipped at 0.
