@@ -74,11 +74,9 @@ bool CDebugRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	// NOTE: The depth attachment is temporary, we do not actually use the contents of the depth buffer during this pass.
 	RendererViewAttachmentConfig_t colorAttachment{};
 	colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-	colorAttachment.bShouldClear = false;
 
 	RendererViewAttachmentConfig_t depthAttachment{};
 	depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-	depthAttachment.bShouldClear = false;
 
 	DebugPassConfig.attachmentConfigs.PushBack(colorAttachment);
 	DebugPassConfig.attachmentConfigs.PushBack(depthAttachment);

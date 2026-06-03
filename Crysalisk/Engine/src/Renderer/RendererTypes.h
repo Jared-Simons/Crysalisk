@@ -284,9 +284,6 @@ struct RendererViewAttachmentConfig_t
 {
 	// The type of attachment.
 	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
-	// Whether or not this attachment should be cleared prior to rendering.
-	// DEPRECATED!
-	bool						bShouldClear{ false };
 };
 
 //-------------------------------------------------------------------------

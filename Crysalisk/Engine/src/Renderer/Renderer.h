@@ -69,7 +69,7 @@ public:
 	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 
 	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) = 0;
-	virtual void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) = 0;
+	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) = 0;
 	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
 	virtual float			GetRendererTime() const = 0;
@@ -80,9 +80,6 @@ public:
 
 	virtual void	SetMinimized(bool bMinimized) = 0;
 	virtual void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) = 0;
-
-	virtual RenderBuffer&	GetUIVertexBuffer() = 0;
-	virtual RenderBuffer&	GetUIIndexBuffer() = 0;
 
 	virtual inline size_t	GetCurrentRenderFrame() const = 0;
 };

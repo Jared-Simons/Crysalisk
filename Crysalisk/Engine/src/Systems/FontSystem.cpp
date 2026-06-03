@@ -41,40 +41,6 @@ const int kUIInputWidth = 640;
 const int kUIInputHeight = 480;
 
 //-------------------------------------------------------------------------
-// Purpose: Sets the actual text to be rendered with this text object.
-// Input:	pszText - The new string to be rendered with this object.
-// Output:	none.
-//-------------------------------------------------------------------------
-void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
-{
-	// Can't render text without text to render!
-	if (!pszText || Utl::StringLength(pszText) < 1)
-		return;
-
-	bool bCreateNewResources = (m_pszText == nullptr);
-
-	if (m_pszText)
-		Utl::StringFree(m_pszText);
-	m_pszText = Utl::StringDuplicate(pszText);
-
-	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
-	
-	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
-	// Otherwise, just update the existing data.
-	if (bCreateNewResources)
-	{
-		pRenderer->AcquireGeometryResources(pRenderer->GetUIVertexBuffer(), pRenderer->GetUIIndexBuffer(),
-											newConfig.Vertices.Count(), newConfig.Vertices.Stride(), 0, (void*)newConfig.Vertices.Data(),
-											newConfig.Indices.Count(), (void*)newConfig.Indices.Data(), &m_Geometry);					
-	}
-	else
-	{
-		pRenderer->UpdateGeometryResources(m_Geometry, newConfig);
-	}
-}
-
-//-------------------------------------------------------------------------
 // Font System Implementation.
 //-------------------------------------------------------------------------
 class CFontSystem : public IFontSystem
@@ -115,6 +81,9 @@ private:
 		Font*									m_FontArray{ nullptr };
 	};
 
+	RenderBuffer* m_pUIVertexBuffer{ nullptr };
+	RenderBuffer* m_pUIIndexBuffer{ nullptr };
+
 	// The font dictionary.
 	FontDictionary	m_FontDictionary{};
 	// The default UI shader, in case a different shader is not available.
@@ -122,6 +91,9 @@ private:
 
 	// The default font, used in case nothing else is available.
 	FontHandle_t	m_hDefaultFont{ kInvalidID_U32 };
+
+	// This needs access to our buffers.
+	friend class TextObject;
 };
 
 // The internal font atlas data for a font.
@@ -155,6 +127,20 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 
 	// Allocate memory for our font array
 	m_FontDictionary.m_FontArray = (Font*)new Font[config.MaxFonts];
+
+	m_pUIVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer");
+	if (m_pUIVertexBuffer == nullptr)
+	{
+		LOG_ERROR("UI View failed to initialize!");
+		return false;
+	}
+
+	m_pUIIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer");
+	if (m_pUIVertexBuffer == nullptr)
+	{
+		LOG_ERROR("UI View failed to initialize!");
+		return false;
+	}
 
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;
@@ -224,6 +210,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 
 		fontHandle = GetFirstFreeFontHandle();
 		pFont = &m_FontDictionary.m_FontArray[fontHandle];
+		pFont->m_iLineHeight = fontResource.lineHeight;
 
 		// Load up the texture data.
 		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
@@ -285,14 +272,14 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	Vector2D					vecCurPos = pTextObject.m_vecPos;
 
 	// Geometry data.
-	Vector2D					vecGlyphSize = {};
+	u32							width, height;
+	u32							glyphXMin, glyphYMin;
+	u32							glyphXMax, glyphYMax;
 	Vector2D					vecGlyphBottomLeftPos = {};
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
-	
-	// We need to scale the geometry by the rendering surface's dimensions.
-	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceWidth, iSurfaceHeight);
-	flPixelScaleFactor = 2.0f / iSurfaceHeight;	// The height of a single pixel with a range of [-1..1]
+
+	flPixelScaleFactor = 1.0f;
 
 	for (int ch = 0; ch < iStringLength; ch++)
 	{
@@ -310,9 +297,10 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 			// Escape chars!
 			if (pTextObject.m_pszText[ch] == '\n')
 			{
-				// TODO: Handle this properly.
+				// LEFTOFF: This still isn't quite right.
 				vecCurPos.x = pTextObject.m_vecPos.x;
-				vecCurPos.y -= 0.085f * pTextObject.m_flTextSize;
+				vecCurPos.y -= m_FontDictionary.m_FontArray[hFont].m_iLineHeight * 0.03f;
+
 				continue;
 			}
 		}
@@ -323,17 +311,17 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar];
 
-		vecGlyphSize.x = (pCurGlyph->xMax - pCurGlyph->xMin) * flPixelScaleFactor * flTextSize;
-		vecGlyphSize.y = (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
+		width = (pCurGlyph->xMax - pCurGlyph->xMin) * flPixelScaleFactor * flTextSize;
+		height = (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
 
-		vecGlyphBottomLeftPos.x = vecCurPos.x + (pCurGlyph->xOffset * flPixelScaleFactor * flTextSize);
-		vecGlyphBottomLeftPos.y = vecCurPos.y - (pCurGlyph->yOffset + pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
+		vecGlyphBottomLeftPos.x = vecCurPos.x + (flPixelScaleFactor * flTextSize);
+		vecGlyphBottomLeftPos.y = vecCurPos.y - (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
 
 		// Vertex positions: top-right, top-left, bottom-left, bottom-right.
-		vecCharVertices[0] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
-		vecCharVertices[1] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
+		vecCharVertices[0] = { vecGlyphBottomLeftPos.x + width, vecGlyphBottomLeftPos.y + height };
+		vecCharVertices[1] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y + height };
 		vecCharVertices[2] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y };
-		vecCharVertices[3] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y };
+		vecCharVertices[3] = { vecGlyphBottomLeftPos.x + width, vecGlyphBottomLeftPos.y };
 
 		// Vertex TexCoords.
 		vecCharTexCoords[0] = { pCurGlyph->sMax, pCurGlyph->tMin };
@@ -460,4 +448,39 @@ FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 
 	LOG_ERROR("No free slot was found in the font dictionary! Returning invalid ID");
 	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Sets the actual text to be rendered with this text object.
+// Input:	pszText - The new string to be rendered with this object.
+// Output:	none.
+//-------------------------------------------------------------------------
+void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
+{
+	// Can't render text without text to render!
+	if (!pszText || Utl::StringLength(pszText) < 1)
+		return;
+
+	bool bCreateNewResources = (m_pszText == nullptr);
+
+	if (m_pszText)
+		Utl::StringFree(m_pszText);
+	m_pszText = Utl::StringDuplicate(pszText);
+
+	// Get new geometry for our text.
+	GeometryConfig2D_t newConfig = pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
+	CFontSystem* pTypedSystem = dynamic_cast<CFontSystem*>(pFontSystem);
+
+	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
+	// Otherwise, just update the existing data.
+	if (bCreateNewResources)
+	{
+		pRenderer->AcquireGeometryResources(*pTypedSystem->m_pUIVertexBuffer, *pTypedSystem->m_pUIIndexBuffer,
+			newConfig.Vertices.Count(), newConfig.Vertices.Stride(), 0, (void*)newConfig.Vertices.Data(),
+			newConfig.Indices.Count(), (void*)newConfig.Indices.Data(), &m_Geometry);
+	}
+	else
+	{
+		pRenderer->UpdateGeometryResources(*pTypedSystem->m_pUIVertexBuffer, *pTypedSystem->m_pUIIndexBuffer, m_Geometry, newConfig);
+	}
 }

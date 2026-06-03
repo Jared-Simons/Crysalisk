@@ -42,6 +42,8 @@ namespace FontLoader
 		float							FontSize{ 0.0f };
 		// The scale of the font, for scaling to surface resolution.
 		float							flFontScale{ 0.0f };
+		// The unit height between lines.
+		u32								lineHeight{ 0 };
 
 		Utl::CVector<FontCharData_t>	charGlyphs{};
 

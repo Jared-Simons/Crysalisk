@@ -96,7 +96,7 @@ public:
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
 	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
-	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
+	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
 	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
 	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
@@ -107,9 +107,6 @@ public:
 
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
 	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
-
-	virtual RenderBuffer& GetUIVertexBuffer() override { return m_UIVertexBuffer; }
-	virtual RenderBuffer& GetUIIndexBuffer() override { return m_UIIndexBuffer; }
 
 	virtual inline size_t	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
@@ -132,10 +129,6 @@ private:
 	Utl::CVector<RenderBuffer>	m_RenderBuffers{};
 
 public:
-	// TODO: Should these live here or with the render view?
-	RenderBuffer		m_UIVertexBuffer{};
-	RenderBuffer		m_UIIndexBuffer{};
-
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
 
@@ -200,9 +193,6 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 
 	// Set up our renderbuffers
 	m_RenderBuffers.Resize(6);
-
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
 
 	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
@@ -279,9 +269,6 @@ void CRenderer::Shutdown()
 	// TODO: Is this the right place to free these guys?
 	m_pRenderViews.Clear();
 
-	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
-
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
@@ -336,6 +323,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
 	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
+	// FIXME: Move this to 3D view.
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
 	Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
 
@@ -349,8 +337,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	// View Test TEMP
 	// Start rendering!
 
-	// UI TEST
-	testText.SetText(this, m_Config.pEngine->GetEngineInterfaces()->pFontSystem, "TESTING!");
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	{
 		// Set per-frame render data.
@@ -715,9 +701,9 @@ void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 // NOTE: This method handles 2D geometry
 // TODO: Find a way to combine this and the above method.
 //-------------------------------------------------------------------------
-void CRenderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
+void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
 {
-	m_RendererBackend->UpdateGeometryResources(m_UIVertexBuffer, m_UIIndexBuffer, pGeometry, pNewGeometryConfig);
+	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
 }
 
 //-------------------------------------------------------------------------

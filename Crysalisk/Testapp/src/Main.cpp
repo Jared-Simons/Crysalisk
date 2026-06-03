@@ -144,11 +144,9 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 		// This view has 2 attachments: color and depth.
 		RendererViewAttachmentConfig_t colorAttachment{};
 		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
 
 		RendererViewAttachmentConfig_t depthAttachment{};
 		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
 
 		// Add them to the config.
 		sceneViewConfig.attachmentConfigs.Resize(2);
@@ -167,12 +165,10 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 		// This pass has 1 attachment: color.
 		RendererViewAttachmentConfig_t colorAttachment{};
 		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = false;
 
 		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
 		RendererViewAttachmentConfig_t depthAttachment{};
 		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
 
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);

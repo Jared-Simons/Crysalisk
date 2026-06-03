@@ -29,6 +29,9 @@ public:
 private:
 	bool							m_bUIOverlayEnabled{ true };
 
+	RenderBuffer*					m_pUIVertexBuffer{ nullptr };
+	RenderBuffer*					m_pUIIndexBuffer{ nullptr };
+
 	Renderpass						m_pRenderpass{};
 	IRenderer*						m_pRenderer{ nullptr };
 	IShaderSystem*					m_pShaderSystem{ nullptr };
@@ -76,10 +79,26 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	// Register with the renderer.
 	pEngineSystems->pRenderer->RegisterRenderView(this);
 
+	// Get our renderbuffers.
+	m_pUIVertexBuffer = m_pRenderer->GetRenderBufferByName("UI_Vertex_Buffer");
+	if (m_pUIVertexBuffer == nullptr)
+	{
+		LOG_ERROR("UI View failed to initialize!");
+		return false;
+	}
+
+	m_pUIIndexBuffer = m_pRenderer->GetRenderBufferByName("UI_Index_Buffer");
+	if (m_pUIIndexBuffer == nullptr)
+	{
+		LOG_ERROR("UI View failed to initialize!");
+		return false;
+	}
+
 	m_hUIShader = m_pShaderSystem->AcquireShader("Core.UI");
 	m_TestText.m_hFont = 0;
 	m_TestText.m_flTextSize = 1.0f;
-	m_TestText.m_vecPos = { -0.95f, -0.6f };
+	//m_TestText.m_vecPos = { -0.95f, -0.6f };
+	m_TestText.m_vecPos = { 0.0f, 0.0f };
 
 	pEngineSystems->pEngineEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
 
@@ -115,16 +134,17 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 	}
 
 	// FIXME: Orthographic projection?
+	Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, 0.1f, 1000.0f);
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		if (m_bUIOverlayEnabled)
 		{
 			// Draw stuff here.
 			Matrix4x4 matUIProj(1.0f);
-			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matUIProj);
+			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
 			m_pShaderSystem->BindShader(m_hUIShader);
 			m_pShaderSystem->BindPerInstanceUniforms(1);
-			m_pRenderer->DrawGeometry(m_TestText.m_Geometry, &m_pRenderer->GetUIVertexBuffer(), &m_pRenderer->GetUIIndexBuffer());
+			m_pRenderer->DrawGeometry(m_TestText.m_Geometry, m_pUIVertexBuffer, m_pUIIndexBuffer);
 		}
 	}
 	m_pRenderer->EndRenderpass();

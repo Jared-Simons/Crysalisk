@@ -16,7 +16,9 @@ struct FontSystemConfig_t
 {
 	// The maximum number of fonts that can be loaded at once.
 	size_t	MaxFonts{ 0 };
-	
+
+	// A pointer to the renderer.
+	class IRenderer* pRenderer{ nullptr };
 	// A pointer to the texture system.
 	class ITextureSystem* pTextureSystem{ nullptr };
 	// A pointer to the shader system.

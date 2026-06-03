@@ -285,6 +285,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
+	fontSysConfig.pRenderer = m_EngineInterfaces.pRenderer;
 	fontSysConfig.pTextureSystem = m_EngineInterfaces.pTextureSystem;
 	fontSysConfig.pShaderSystem = m_EngineInterfaces.pShaderSystem;
 

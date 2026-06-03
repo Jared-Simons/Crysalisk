@@ -73,6 +73,8 @@ public:
 	uint32_t		m_InternalInstanceID{ kInvalidID_U32 };
 	// The font atlas texture map.
 	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
+	// The height between lines in this font.
+	u32				m_iLineHeight{ 0 };
 	// The internal data, typically font/glyph data used for rendering.
 	void*			m_pInternalFontAtlasData{ nullptr };
 };

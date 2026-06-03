@@ -10,9 +10,9 @@
 	- [ ] Multi-threading
 
 - [-] Containers
-	- [X] Dynamic array (Utl::CVector<T>)
+	- [X] Dynamic array (Utl::CVector)
 	- [X] Freelist  (Utl::CFreelist)
-	- [X] String Hashtable (Utl::CStringHashMap<T>)
+	- [X] String Hashtable (Utl::CStringHashMap)
 	- [ ] Stack
 	- [ ] Binary Tree
 	- [ ] Custom String Handlers
@@ -45,7 +45,7 @@
 			- [ ] Dynamic meshes
 			- [ ] AI characters
 	- [ ] Spatial Partitioning/PVS
-	- [ ] Raycasting
+	- [X] Raycasting
 
 - [-] Renderer
 	- [X] Textures
@@ -88,12 +88,19 @@
 		- [-] Textbox
 		- [ ] Radio Buttons
 		- [ ] Drop-down menus
+	- [ ] Platform-specific File IO
 		
-- [ ] Editor
+- [ ] Editor Suite
+	- [ ] Level editor
+	- [ ] Material editor
+	- [ ] Model editor
 
 - [ ] Content toolchain
-	- [ ] Max/Scene compiler
+	- [ ] Map/Scene compiler
 	- [ ] Visibility solver
 		- [ ] BSP-Tree/Octree
 	- [ ] Radiosity solver
 
+- TODO
+	- [ ] Fix Window-Resizing
+	- [ ] Add some process to 'catch' jobs that couldn't be submitted in a frame, and then attempt to resubmit later, rather than just dropping it.

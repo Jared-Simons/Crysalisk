@@ -87,7 +87,11 @@ namespace FontLoader
 		// Parse the font data.
 		stbtt_InitFont(&fontInfo, ttfBytes.Data(), 0);	// No offset for single-font files.
 
-		pOutResource.flFontScale = stbtt_ScaleForPixelHeight(&fontInfo, 12);
+		pOutResource.flFontScale = stbtt_ScaleForPixelHeight(&fontInfo, iFontSize);
+
+		i32 ascent, descent, lineGap;
+		stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+		pOutResource.lineHeight = (ascent - descent + lineGap);
 
 		if (bLoadAllGlyphs)
 		{
