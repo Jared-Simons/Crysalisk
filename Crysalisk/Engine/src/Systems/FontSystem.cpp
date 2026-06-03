@@ -290,9 +290,8 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 			// Escape chars!
 			if (pTextObject.m_pszText[ch] == '\n')
 			{
-				// LEFTOFF: This still isn't quite right.
 				vecCurPos.x = pTextObject.m_vecPos.x;
-				vecCurPos.y -= m_FontDictionary.m_FontArray[hFont].m_iLineHeight * 0.03f;
+				vecCurPos.y += m_FontDictionary.m_FontArray[hFont].m_iLineHeight;
 
 				continue;
 			}

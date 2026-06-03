@@ -91,7 +91,7 @@ namespace FontLoader
 
 		i32 ascent, descent, lineGap;
 		stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
-		pOutResource.lineHeight = (ascent - descent + lineGap);
+		pOutResource.lineHeight = (ascent - descent + lineGap) * pOutResource.flFontScale;
 
 		if (bLoadAllGlyphs)
 		{
