@@ -30,13 +30,9 @@ static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
 
-// TEMP Test font
-FontHandle_t	testFont;
-TextObject		testText;
-ShaderHandle_t	hUIShader{ kInvalidID_U32 };
-
-static const char* szRendererVisualizationModesLabels[9] =
+static const char* szRendererVisualizationModesLabels[10] =
 {
+	"FORWARD",
 	"FULLBRIGHT",
 	"LIGHTING ONLY",
 	"DIFFUSE LIGHTING",
@@ -100,9 +96,10 @@ public:
 	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
 	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
+	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
 
 	// Temp geometry stuff
-	bool	CreateTempTextObjects() override;
+	bool	PostInitialize() override;
 	void	DestroyTempGeometry() override;
 
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
@@ -223,6 +220,24 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Renderer post-initialization utilities.
+// Input:	none.
+// Output:	True on successful geometry initialization, otherwise false.
+//-------------------------------------------------------------------------
+bool CRenderer::PostInitialize()
+{
+	// We can now setup the debug geo system.
+	m_pDebugGeoSystem = m_Config.pEngine->GetEngineInterfaces()->pDebugGeometry;
+	if (!m_pDebugGeoSystem->InitializeDebugShaders())
+	{
+		LOG_ERROR("Failed to initialize debug shaders!");
+		return false;
+	}
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: TODO: Documentation
 //-------------------------------------------------------------------------
 void CRenderer::ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews)
@@ -278,11 +293,11 @@ void CRenderer::Shutdown()
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
 // Input: pTargetWindow - The window to render to.
-//		  pRenderData - Frame-specific data to be used in rendering ops.
 //		  pCurrentMap - The current map to get rendering data from.
+//		  deltaTime - Frame delta time.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
-bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t& pRenderData, CMap* pCurrentMap)
+bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap)
 {
 	// If we are currently minimized, do not do anything!
 	if (m_bMinimized)
@@ -290,7 +305,6 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 		return true;
 	}
 
-	// FIXME: This shouldn't be here.
 	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
 	{
 		m_pRenderViews[iView]->BuildRenderPacket(&pRenderData);
@@ -323,50 +337,28 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, RenderPacket_t&
 	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
 	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
-	// FIXME: Move this to 3D view.
+	// Setup main projection matrix.
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
-	Matrix4x4 matView = pRenderData.pCamera->GetViewMatrix();
 
 	// Flip the y-axis.
 	matProjection.flData[5] *= -1.0f;
 	Vector vecCameraPos = pRenderData.pCamera->vecPosition;
-	Matrix4x4 matModel = Matrix4x4{ 1.0f };
 
 	pRenderData.matProjection = matProjection;
+	pRenderData.iDebugRendererMode = m_iRendererDebugMode;
 
-	// View Test TEMP
 	// Start rendering!
-
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
-	{
-		// Set per-frame render data.
-		pMaterialSystem->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_RenderSystem->m_iRendererDebugMode);
-		
+	{		
 		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
 			m_pRenderViews[iView]->Render(&pRenderData);
 		}
 	}
 	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
-	// End View Test TEMP
 
 	// Update debug geometries.
 	m_pDebugGeoSystem->Update();
-
-	/*
-
-	// Render debug geometry.
-	{
-		DebugRendererFrameData_t debugFrameData{};
-		debugFrameData.matProjection = matProjection;
-		debugFrameData.matView = matView;
-		debugFrameData.vecCameraPosition = m_Camera.vecPosition;
-		debugFrameData.vecCameraForward = m_Camera.vecFront;
-		debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
-		m_pDebugRenderer->Render(debugFrameData);
-	}
-
-	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);*/
 	
 	// Clear out bound shader state.
 	pShaderSystem->BindShader(kInvalidID_U32);
@@ -589,7 +581,8 @@ RenderBuffer* CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsag
 
 	if (!bCreateResult)
 	{
-		// FIXME: Logging
+		LOG_ERROR("Failed to create renderbuffer. Returning nullptr.");
+		return nullptr;
 	}
 
 	return pNewBuffer;
@@ -719,32 +712,6 @@ void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: A temporary function to create geometry for testing.
-// Input:	none.
-// Output:	True on successful geometry creation, otherwise false.
-// TODO:	Find a better name/place for this function.
-//				This really is responsible for creating/initializing structures
-//				that need to be created post system-initialization.
-//-------------------------------------------------------------------------
-bool CRenderer::CreateTempTextObjects()
-{
-	hUIShader = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem->AcquireShader("Core.UI");
-	testFont = m_Config.pEngine->GetEngineInterfaces()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-	testText.m_hFont = testFont;
-	testText.m_flTextSize = 1.0f;
-	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
-
-	m_pDebugGeoSystem = m_Config.pEngine->GetEngineInterfaces()->pDebugGeometry;
-	if (!m_pDebugGeoSystem->InitializeDebugShaders())
-	{
-		LOG_ERROR("Failed to initialize debug shaders!");
-		return false;
-	}
-
-	return true;
 }
 
 //-------------------------------------------------------------------------

@@ -73,9 +73,10 @@ public:
 	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
 	virtual float			GetRendererTime() const = 0;
+	virtual const char*		GetRendererDebugVisModeName() const = 0;
 
 	// Temp geometry stuff
-	virtual bool	CreateTempTextObjects() = 0;
+	virtual bool	PostInitialize() = 0;
 	virtual void	DestroyTempGeometry() = 0;
 
 	virtual void	SetMinimized(bool bMinimized) = 0;

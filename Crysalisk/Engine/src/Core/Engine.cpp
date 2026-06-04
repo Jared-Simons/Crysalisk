@@ -315,6 +315,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Run Post-Engine initialize routines.
+	m_EngineInterfaces.pRenderer->PostInitialize();
 	m_EngineInterfaces.pMaterialSystem->PostInitialize();
 	m_EngineInterfaces.pFontSystem->PostInitialize();
 
@@ -325,9 +326,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
-
-	// Create temporary geometry.
-	m_EngineInterfaces.pRenderer->CreateTempTextObjects();
 
 	return true;
 }
@@ -341,7 +339,7 @@ bool CEngine::Run()
 {
 	m_UpdateClock.Start();
 
-	RenderPacket_t frameRenderData{};	// FIXME: This shouldn't live here, it's just here so we can clear memory.
+	RenderPacket_t frameRenderData{};
 	m_EngineInterfaces.pDebugGeometry->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 0.8f, 0.0f, 1.0f }, - 1.0f);
 	while (!s_bApplicationQuitCalled)
 	{
@@ -384,7 +382,7 @@ bool CEngine::Run()
 		}
 	}
 
-	for (int iView = 0; iView < 3; iView++)
+	for (int iView = 0; iView < RENDER_VIEW_MAX_TYPES; iView++)
 	{
 		if (frameRenderData.pRenderViewExtendedData[iView])
 		{
@@ -551,8 +549,6 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		// FIXME: Remove renderer camera.
-		//Camera_t mainCamera = s_Engine.m_EngineInterfaces.pRenderer->GetMainCamera();
 		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };

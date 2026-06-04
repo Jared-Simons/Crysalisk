@@ -129,6 +129,8 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pViewData->pOpaqueGeometries;
 		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pViewData->pTransparentGeometries;
 
+		m_pMaterialSystem->ApplyGlobalRenderData(pRenderData->matProjection, pRenderData->pCamera->GetViewMatrix(), pRenderData->pCamera->vecPosition, pRenderData->iDebugRendererMode);
+
 		// Render opaque geometries.
 		for (int iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
 		{

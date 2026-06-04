@@ -53,6 +53,7 @@ struct RenderPacket_t
 	size_t	iNumDrawCalls{ 0 };
 
 	unsigned int								iCulledGeometries{ 0 };
+	int											iDebugRendererMode{ 0 };
 
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };

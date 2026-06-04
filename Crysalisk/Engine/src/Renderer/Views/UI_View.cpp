@@ -97,8 +97,7 @@ bool CUIRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	m_hUIShader = m_pShaderSystem->AcquireShader("Core.UI");
 	m_TestText.m_hFont = 0;
 	m_TestText.m_flTextSize = 1.0f;
-	//m_TestText.m_vecPos = { -0.95f, -0.6f };
-	m_TestText.m_vecPos = { 25.0f, 615.0f };
+	m_TestText.m_vecPos = { 25.0f, 575.0f };
 
 	pEngineSystems->pEngineEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
 
@@ -122,18 +121,20 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 	{
 		RenderMetrics_t& pMetrics = *pRenderData->pMetrics;
 		char szMetricsString[512]{};
-		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f",
+		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f\nDebug vis mode: %s",
 			szMetricsString,
 			pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
 			pMetrics.NumDrawCalls, pRenderData->iCulledGeometries,
 			g_pMemoryManager->GetPercentAllocated(),
 			pRenderData->pCamera->vecPosition.x,
 			pRenderData->pCamera->vecPosition.y,
-			pRenderData->pCamera->vecPosition.z);
+			pRenderData->pCamera->vecPosition.z,
+			m_pRenderer->GetRendererDebugVisModeName());
 		m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
 	}
 
-	Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, 0.1f, 1000.0f);
+	// FIXME: Why does text get clipped if the near plane is > 0?
+	Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, -1000.0f, 1000.0f);
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		if (m_bUIOverlayEnabled)

@@ -111,17 +111,8 @@ bool CGameApp::Run()
 
 void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
-	IMaterialSystem*	pMaterialSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pMaterialSystem;
-	CMap*				pMap = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pCurrentScene;
-
 	m_MainCamera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	pRenderPacket->pCamera = &m_MainCamera;
-
-	if (pMap && pMap->IsMapLoaded())
-	{
-		// Get the frustum from the camera.
-		Frustum frustum = m_MainCamera.CreateFrustumFromCamera();
-	}
 }
 
 bool CGameApp::Render()
