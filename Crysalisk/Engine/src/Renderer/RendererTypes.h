@@ -46,11 +46,8 @@ enum eRenderViewType
 //-------------------------------------------------------------------------
 struct RenderPacket_t
 {
-	// TODO: Clean this up.
 	// The time elapsed between frames.
-	// FIXME: DRY
 	double	DeltaTime;
-	size_t	iNumDrawCalls{ 0 };
 
 	unsigned int								iCulledGeometries{ 0 };
 	int											iDebugRendererMode{ 0 };
@@ -58,7 +55,6 @@ struct RenderPacket_t
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
 
-	// FIXME: Should these be here?
 	struct RenderMetrics_t* pMetrics{ nullptr };
 
 	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];

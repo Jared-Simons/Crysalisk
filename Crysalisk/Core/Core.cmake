@@ -29,8 +29,8 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Memory/DynamicAllocator.cpp
 	${CORE_ROOT}/Memory/DynamicAllocator.h
 	${CORE_ROOT}/Memory/IMemoryAllocator.h
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.cpp
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.h
+	${CORE_ROOT}/Memory/LinearAllocator.cpp
+	${CORE_ROOT}/Memory/LinearAllocator.h
 	${CORE_ROOT}/Memory/MemoryManager.cpp
 	${CORE_ROOT}/Memory/MemoryManager.h
 	${CORE_ROOT}/Platform/FileSystem.cpp

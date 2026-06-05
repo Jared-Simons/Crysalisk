@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Containers/CFreeList.h"
+#include "Memory/IMemoryAllocator.h"
 
 // Stores metadata about heap allocations made by freelist allocators.
 struct AllocHeader_t
@@ -20,7 +21,7 @@ const int kAllocHeaderSize = sizeof(AllocHeader_t);
 namespace Utl
 {
 	// A dynamic memory allocator that tracks memory state with a freelist.
-	class DynamicAllocator
+	class DynamicAllocator : public IBaseMemoryAllocator
 	{
 	public:
 		// Constructor.
@@ -42,6 +43,9 @@ namespace Utl
 
 		// Free a block of memory.
 		int Free(void* pMemoryBlock);
+
+		// FIXME: Put a message here.
+		virtual void FreeAll() override { CAssert(0); }
 
 	private:
 		// The number of bytes that this allocator is tracking/can allocate from.

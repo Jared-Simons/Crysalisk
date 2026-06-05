@@ -12,6 +12,7 @@ namespace Utl
 	{
 	public:
 		virtual void*	Allocate(size_t numBytes) = 0;
-		virtual void	Free(void* pMemBlock) = 0;
+		virtual int		Free(void* pMemBlock) = 0;
+		virtual void	FreeAll() = 0;
 	};
 } // namespace Utl

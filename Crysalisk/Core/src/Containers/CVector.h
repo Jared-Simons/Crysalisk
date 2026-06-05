@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Core/Assertions.h"
-#include "Memory/MemoryAllocatorBase.h"
+#include "Memory/IMemoryAllocator.h"
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
@@ -46,7 +46,7 @@ namespace Utl
 		T* m_DataPtr{ nullptr };
 	};
 
-	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
+	template<typename T>
 	class CVector
 	{
 		using Iterator = VectorIterator<T>;
@@ -65,6 +65,7 @@ namespace Utl
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
+			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 		}
 
 		//--------------------------------------------------
@@ -81,10 +82,11 @@ namespace Utl
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
+			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 
 			// Allocate memory for our array.
 			if (initialCapacity > 0)
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(initialCapacity * m_ValueStride));
 		}
 
 		//--------------------------------------------------
@@ -101,12 +103,11 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -126,12 +127,11 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -143,7 +143,7 @@ namespace Utl
 		{
 			if (m_pValues && m_Capacity > 0)
 			{
-				m_Allocator.Free(m_pValues);
+				m_Allocator->Free(m_pValues);
 			}
 			m_pValues = nullptr;
 
@@ -166,12 +166,11 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
@@ -352,7 +351,7 @@ namespace Utl
 			}
 
 			// Allocate some new memory.
-			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);
+			void* pNewData = m_Allocator->Allocate(m_ValueStride * newCapacity);
 			T* pNewArray = new (pNewData) T[newCapacity];	// This is required so that our allocator is always properly initialized.
 			CAssert(pNewArray);
 
@@ -361,7 +360,7 @@ namespace Utl
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				m_Allocator.Free(m_pValues);
+				m_Allocator->Free(m_pValues);
 			m_pValues = pNewArray;
 
 			// Bump up our capacity!
@@ -396,7 +395,7 @@ namespace Utl
 
 		/* An allocator that can be used to make memory allocations from.
 		If not provided by the user, then an allocator to the application's heap will be created.*/
-		Allocator m_Allocator{};
+		IBaseMemoryAllocator* m_Allocator{};
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;

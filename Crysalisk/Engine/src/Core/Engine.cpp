@@ -14,6 +14,7 @@
 #include <Core/Input.h>
 #include <Core/Logging.h>
 #include <Memory/MemoryManager.h>
+#include <Memory/LinearAllocator.h>
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
@@ -105,6 +106,46 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		Platform::DisplayMessageBox(nullptr, "Memory manager failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
+
+	Utl::LinearAllocator allocator{};
+	if (!allocator.Initialize(KIBIBYTES(1)))
+	{
+		LOG_ERROR("Failed to initialize linear allocator.");
+		return false;
+	}
+
+	u64* pMemory = nullptr;
+	pMemory = (u64*)allocator.Allocate(sizeof(u64) * 3);
+	pMemory[0] = 0;
+	pMemory[1] = 1;
+	pMemory[2] = 54;
+
+	for (uint32_t i = 0; i < 3; i++)
+	{
+		LOG_DEBUG("%d", pMemory[i]);
+	}
+
+	u64* pMemory2 = (u64*)allocator.Allocate(sizeof(u64) * 10);
+	for (uint32_t i = 0; i < 10; i++)
+	{
+		pMemory2[i] = i + 10;
+	}
+
+	for (uint32_t i = 0; i < 3; i++)
+	{
+		LOG_DEBUG("%d", pMemory[i]);
+	}
+
+	for (uint32_t i = 0; i < 10; i++)
+	{
+		LOG_DEBUG("%d", pMemory2[i]);
+	}
+
+	allocator.FreeAll();
+
+	allocator.Destroy();
+
+	LOG_DEBUG("%d", pMemory[0]);
 
 	// Logger.
 	m_EngineInterfaces.pLogger = new LogSystem;

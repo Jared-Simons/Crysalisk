@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Defines.h>
+#include "Memory/IMemoryAllocator.h"
 
 // Some configuration parameters for the application-wide memory manager.
 struct ApplicationMemoryConfiguration_t
@@ -36,7 +37,10 @@ public:
 
 	virtual bool		IsInitialized() const = 0;
 	virtual void		PrintMemoryStats() = 0;
-	virtual float	GetPercentAllocated() const = 0;
+	virtual float		GetPercentAllocated() const = 0;
+
+	// FIXME: Make const
+	virtual Utl::IBaseMemoryAllocator* GetMemoryAllocator() = 0;
 };
 
 // A global interface pointer to the application's memory manager.

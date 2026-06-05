@@ -16,6 +16,7 @@ namespace Utl
 	public:
 		virtual void*	Allocate(size_t numBytes) override;
 		virtual void	Free(void* pMemBlock) override;
+		virtual void	FreeAll() override;
 
 		// Factory method to return a default memory allocator.
 		CBaseMemoryAllocator	CreateDefaultMemoryAllocator()

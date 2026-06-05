@@ -28,6 +28,7 @@ public:
 	virtual bool	IsInitialized() const override { return m_bInitialized; }
 	virtual void	PrintMemoryStats() override;
 	virtual float	GetPercentAllocated() const override;
+	virtual Utl::IBaseMemoryAllocator* GetMemoryAllocator() { return static_cast<Utl::IBaseMemoryAllocator*>(&m_MemoryAllocator); }
 
 private:
 	// The configuration for the memory manager.

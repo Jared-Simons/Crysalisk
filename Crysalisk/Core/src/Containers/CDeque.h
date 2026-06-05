@@ -6,12 +6,12 @@
 //=============================================================================
 #pragma once
 
-#include "Memory/MemoryAllocatorBase.h"
+#include "Memory/IMemoryAllocator.h"
 #include "Platform/Platform.h"
 
 namespace Utl
 {
-	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
+	template<typename T>
 	class CDeque
 	{
 	public:
@@ -22,6 +22,7 @@ namespace Utl
 		{
 			m_pData = nullptr;
 			m_iElementCapacity = 0;
+			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 		}
 
 		//--------------------------------------------------
@@ -30,6 +31,7 @@ namespace Utl
 		CDeque(size_t initialCapacity)
 		{
 			// Allocate new memory and place the objects in there.
+			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 			void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * sizeof(T)));
 			m_pData = new (pNewMemory) T[initialCapacity];
 			m_iElementCapacity = initialCapacity;
@@ -45,7 +47,7 @@ namespace Utl
 			, m_iTailElement{ pOtherDeque.m_iTailElement }
 		{
 			// Copy over the allocator, in case it's a custom implementation.
-			Platform::MemoryCopy(&m_Allocator, &pOtherDeque.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_iElementCapacity)
 			{
@@ -65,7 +67,7 @@ namespace Utl
 			, m_iTailElement{ pOtherDeque.m_iTailElement }
 		{
 			// Copy over the allocator, in case it's a custom implementation.
-			Platform::MemoryCopy(&m_Allocator, &pOtherDeque.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_iElementCapacity)
 			{
@@ -104,7 +106,7 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator.Free(m_pData);
+				m_Allocator->Free(m_pData);
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -117,7 +119,7 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator.Free(m_pData);
+				m_Allocator->Free(m_pData);
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -135,7 +137,7 @@ namespace Utl
 			}
 
 			// Allocate a new block.
-			void* pNewMemory = m_Allocator.Allocate(iNewCapacity * sizeof(T));
+			void* pNewMemory = m_Allocator->Allocate(iNewCapacity * sizeof(T));
 			m_pData = new (pNewMemory) T[iNewCapacity];
 
 			// Copy over the existing data.
@@ -147,7 +149,7 @@ namespace Utl
 			// Free the old block.
 			if (pOldBlock)
 			{
-				m_Allocator.Free(pOldBlock);
+				m_Allocator->Free(pOldBlock);
 			}
 			m_iElementCapacity = iNewCapacity;
 		}
@@ -238,7 +240,7 @@ namespace Utl
 		int32_t						m_iTailElement{ -1 };
 
 		// NOTE: Not using a CVector because we do not want this to automatically resize.
-		Allocator					m_Allocator{};
+		IBaseMemoryAllocator*		m_Allocator{};
 		T*							m_pData{ nullptr };
 	};
 }
