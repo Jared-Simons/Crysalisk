@@ -28,6 +28,7 @@ public:
 	virtual bool	IsInitialized() const override { return m_bInitialized; }
 	virtual void	PrintMemoryStats() override;
 	virtual float	GetPercentAllocated() const override;
+	// LEFTOFF: Returning this allocator directly is causing race conditions on asset load. We can't do this!
 	virtual Utl::IBaseMemoryAllocator* GetMemoryAllocator() { return static_cast<Utl::IBaseMemoryAllocator*>(&m_MemoryAllocator); }
 
 private:

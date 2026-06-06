@@ -37,6 +37,7 @@ namespace MaterialLoader
 
 		// The name of the material will be its name on disk without the path and file extension.
 		pOutResource.pszMaterialName = Utl::StringGetFilenameFromPath(pszMaterialPath);
+		pOutResource.textureMapConfigs.Resize(5);
 
 		// Parse the config and write it to the resource.
 		while (!FileSystem::IsEOF(&hMaterialConfigFile))

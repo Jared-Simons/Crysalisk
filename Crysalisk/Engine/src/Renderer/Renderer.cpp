@@ -12,6 +12,7 @@
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include <Memory/LinearAllocator.h>
 #include "Renderer/Camera.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
@@ -52,6 +53,7 @@ class CRenderer : public IRenderer
 public:
 	// Initialize, shutdown.
 	bool			Initialize(RendererConfig_t& pAppConfig) override;
+	bool			PostInitialize(RenderPacket_t& pRenderPacket) override;
 	void			Shutdown() override;
 	bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) override;
 
@@ -99,7 +101,6 @@ public:
 	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
 
 	// Temp geometry stuff
-	bool	PostInitialize() override;
 	void	DestroyTempGeometry() override;
 
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
@@ -120,11 +121,14 @@ private:
 	unsigned int	m_iWindowWidth{ 0 };
 	unsigned int	m_iWindowHeight{ 0 };
 
+	Utl::LinearAllocator	m_FrameAllocator{};
+
 	// An array of registered render-views.
 	Utl::CVector<IRenderView*>	m_pRenderViews{};
 
 	Utl::CVector<RenderBuffer>	m_RenderBuffers{};
 
+	// FIXME: Make private.
 public:
 	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
 	uint8_t				m_iRendererDebugMode{ 0 };
@@ -215,6 +219,13 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	// Save off the config.
 	m_Config = pAppConfig;
 
+	// Set up frame allocator.
+	if (!m_FrameAllocator.Initialize(MEBIBYTES(5)))
+	{
+		LOG_ERROR("Renderer frame allocator failed to initialize!");
+		return false;
+	}
+
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
@@ -224,7 +235,7 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 // Input:	none.
 // Output:	True on successful geometry initialization, otherwise false.
 //-------------------------------------------------------------------------
-bool CRenderer::PostInitialize()
+bool CRenderer::PostInitialize(RenderPacket_t& pRenderPacket)
 {
 	// We can now setup the debug geo system.
 	m_pDebugGeoSystem = m_Config.pEngine->GetEngineInterfaces()->pDebugGeometry;
@@ -233,6 +244,8 @@ bool CRenderer::PostInitialize()
 		LOG_ERROR("Failed to initialize debug shaders!");
 		return false;
 	}
+
+	pRenderPacket.pFrameAllocator = &m_FrameAllocator;
 
 	return true;
 }
@@ -268,6 +281,8 @@ void CRenderer::RegisterRenderView(IRenderView* pView)
 void CRenderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
+
+	m_FrameAllocator.Destroy();
 
 	// Release render-views.
 	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
@@ -368,6 +383,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	{
 		m_RenderBuffers[iBuffer].m_CurrentBoundOffset = kInvalidID_U64;
 	}
+
+	// Clear out the frame allocator.
+	m_FrameAllocator.FreeAll();
 
 	m_Metrics.CurrentFrameFPS++;
 

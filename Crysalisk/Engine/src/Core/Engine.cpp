@@ -14,7 +14,6 @@
 #include <Core/Input.h>
 #include <Core/Logging.h>
 #include <Memory/MemoryManager.h>
-#include <Memory/LinearAllocator.h>
 #include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
@@ -69,7 +68,7 @@ private:
 	EngineInterfaces_t		m_EngineInterfaces{};
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
-	uint32_t				m_hDebugCameraFrustum{ kInvalidID_U32 };
+	RenderPacket_t				m_FrameRenderData{};
 
 	CMap			m_CurrentMap{};
 
@@ -106,46 +105,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		Platform::DisplayMessageBox(nullptr, "Memory manager failed to initialize! Application cannot continue.", "Engine Error", false);
 		return false;
 	}
-
-	Utl::LinearAllocator allocator{};
-	if (!allocator.Initialize(KIBIBYTES(1)))
-	{
-		LOG_ERROR("Failed to initialize linear allocator.");
-		return false;
-	}
-
-	u64* pMemory = nullptr;
-	pMemory = (u64*)allocator.Allocate(sizeof(u64) * 3);
-	pMemory[0] = 0;
-	pMemory[1] = 1;
-	pMemory[2] = 54;
-
-	for (uint32_t i = 0; i < 3; i++)
-	{
-		LOG_DEBUG("%d", pMemory[i]);
-	}
-
-	u64* pMemory2 = (u64*)allocator.Allocate(sizeof(u64) * 10);
-	for (uint32_t i = 0; i < 10; i++)
-	{
-		pMemory2[i] = i + 10;
-	}
-
-	for (uint32_t i = 0; i < 3; i++)
-	{
-		LOG_DEBUG("%d", pMemory[i]);
-	}
-
-	for (uint32_t i = 0; i < 10; i++)
-	{
-		LOG_DEBUG("%d", pMemory2[i]);
-	}
-
-	allocator.FreeAll();
-
-	allocator.Destroy();
-
-	LOG_DEBUG("%d", pMemory[0]);
 
 	// Logger.
 	m_EngineInterfaces.pLogger = new LogSystem;
@@ -356,7 +315,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Run Post-Engine initialize routines.
-	m_EngineInterfaces.pRenderer->PostInitialize();
+	m_EngineInterfaces.pRenderer->PostInitialize(m_FrameRenderData);
 	m_EngineInterfaces.pMaterialSystem->PostInitialize();
 	m_EngineInterfaces.pFontSystem->PostInitialize();
 
@@ -380,7 +339,6 @@ bool CEngine::Run()
 {
 	m_UpdateClock.Start();
 
-	RenderPacket_t frameRenderData{};
 	m_EngineInterfaces.pDebugGeometry->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 0.8f, 0.0f, 1.0f }, - 1.0f);
 	while (!s_bApplicationQuitCalled)
 	{
@@ -406,10 +364,10 @@ bool CEngine::Run()
 			// Handle jobs.
 			m_EngineInterfaces.pJobSystem->Update();
 
-			frameRenderData.DeltaTime = deltaTime;
+			m_FrameRenderData.DeltaTime = deltaTime;
 
 			// Get render data from the application.
-			m_pApplication->FramePrepare(&frameRenderData);
+			m_pApplication->FramePrepare(&m_FrameRenderData);
 
 			// Run the app's render routine.
 			if (!m_pApplication->Render())
@@ -418,17 +376,16 @@ bool CEngine::Run()
 				return false;
 			}
 
-			// Get our renderable geometry from the map.
-			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
+			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, m_FrameRenderData, &m_CurrentMap);
 		}
 	}
 
 	for (int iView = 0; iView < RENDER_VIEW_MAX_TYPES; iView++)
 	{
-		if (frameRenderData.pRenderViewExtendedData[iView])
+		if (m_FrameRenderData.pRenderViewExtendedData[iView])
 		{
-			delete frameRenderData.pRenderViewExtendedData[iView];
-			frameRenderData.pRenderViewExtendedData[iView] = nullptr;
+			delete m_FrameRenderData.pRenderViewExtendedData[iView];
+			m_FrameRenderData.pRenderViewExtendedData[iView] = nullptr;
 		}
 	}
 
@@ -716,7 +673,7 @@ bool WindowResizeHandler(unsigned int width, unsigned int height)
 }
 
 //-------------------------------------------------------------------------
-// An callback the allows the window to fire engine-shutdown events.
+// An callback that allows the window to fire engine-shutdown events.
 //-------------------------------------------------------------------------
 void WindowClosedHandler()
 {

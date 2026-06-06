@@ -215,6 +215,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// Parse the vertex attribute data and stride.
+		newShaderConfig.vertexAttributes.Resize(newShaderResource.ShaderAttributes.Count());
 		for (int attribIdx = 0; attribIdx < newShaderResource.ShaderAttributes.Count(); attribIdx++)
 		{
 			VertexAttribute_t newAttribute = GetVertexAttributeDataFromString(newShaderResource.ShaderAttributes[attribIdx].pszType);
@@ -226,6 +227,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		}
 
 		// Parse the uniform configs.
+		newShaderConfig.uniformConfigs.Resize(newShaderResource.ShaderUniforms.Count());
 		for (int uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
 		{
 			ShaderUniformConfig_t newUniform = GetShaderAttributeFromString(newShaderResource.ShaderUniforms[uniformIdx].pszType, newShaderResource.ShaderUniforms[uniformIdx].pszFreq);
@@ -533,22 +535,22 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 		attrib.type = ShaderAttribute_t::Float32;
 		attrib.stride = sizeof(float);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec2") || Utl::StringCompareInsensitive(pszString, "Vector2D_OLD"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec2") || Utl::StringCompareInsensitive(pszString, "Vector2D"))
 	{
 		attrib.type = ShaderAttribute_t::Vector2;
 		attrib.stride = sizeof(Vector2D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec3") || Utl::StringCompareInsensitive(pszString, "Vector3D_OLD"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec3") || Utl::StringCompareInsensitive(pszString, "Vector3D"))
 	{
 		attrib.type = ShaderAttribute_t::Vector3;
 		attrib.stride = sizeof(Vector3D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "Vector4D_OLD"))
+	else if (Utl::StringCompareInsensitive(pszString, "vec4") || Utl::StringCompareInsensitive(pszString, "Vector4D"))
 	{
 		attrib.type = ShaderAttribute_t::Vector4;
 		attrib.stride = sizeof(Vector4D);
 	}
-	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "Matrix4x4_OLD"))
+	else if (Utl::StringCompareInsensitive(pszString, "mat4") || Utl::StringCompareInsensitive(pszString, "Matrix4x4"))
 	{
 		attrib.type = ShaderAttribute_t::Matrix4;
 		attrib.stride = sizeof(Matrix4x4);

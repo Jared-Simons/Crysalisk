@@ -65,7 +65,6 @@ namespace Utl
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
-			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 		}
 
 		//--------------------------------------------------
@@ -82,11 +81,15 @@ namespace Utl
 			{
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
-			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 
 			// Allocate memory for our array.
 			if (initialCapacity > 0)
-				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(initialCapacity * m_ValueStride));
+			{
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(initialCapacity * m_ValueStride));
+				else
+					m_pValues = new T[initialCapacity];
+			}
 		}
 
 		//--------------------------------------------------
@@ -107,7 +110,11 @@ namespace Utl
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -131,7 +138,11 @@ namespace Utl
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -143,7 +154,10 @@ namespace Utl
 		{
 			if (m_pValues && m_Capacity > 0)
 			{
-				m_Allocator->Free(m_pValues);
+				if (m_Allocator != nullptr)
+					m_Allocator->Free(m_pValues);
+				else
+					delete[] m_Allocator;
 			}
 			m_pValues = nullptr;
 
@@ -170,11 +184,25 @@ namespace Utl
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
 			return *this;
+		}
+
+		//--------------------------------------------------
+		// Sets the allocator this container allocates from
+		//--------------------------------------------------
+		inline void SetAllocator(IBaseMemoryAllocator* pAllocator)
+		{
+			CAssert(pAllocator != nullptr);
+			CAssert(m_Count == 0 && m_Capacity == 0); // We can't change allocators if we already have some memory allocated.
+			m_Allocator = pAllocator;
 		}
 
 		//--------------------------------------------------
@@ -282,14 +310,22 @@ namespace Utl
 		//--------------------------------------------------
 		void Clear()
 		{
-			if (m_pValues)
+			if (m_pValues && m_Allocator != nullptr)
 			{
-				delete m_pValues;
+				if (m_Allocator->GetAllocatorType() != ALLOCATOR_TYPE_LINEAR)	// Don't release memory if this is a linear allocator.
+				{
+					m_Allocator->Free(m_pValues);
+					m_pValues = nullptr;
+					m_Capacity = 0;
+				}
+			}
+			else if (m_Allocator == nullptr && m_pValues)	// no custom allocator
+			{
+				delete[] m_pValues;
+				m_pValues = nullptr;
+				m_Capacity = 0;
 			}
 
-			m_pValues = nullptr;
-
-			m_Capacity = 0;
 			m_Count = 0;
 		}
 
@@ -351,7 +387,15 @@ namespace Utl
 			}
 
 			// Allocate some new memory.
-			void* pNewData = m_Allocator->Allocate(m_ValueStride * newCapacity);
+			void* pNewData = nullptr;
+			if (m_Allocator)
+			{
+				pNewData = m_Allocator->Allocate(m_ValueStride * newCapacity);
+			}
+			else
+			{
+				pNewData = new T[newCapacity];
+			}
 			T* pNewArray = new (pNewData) T[newCapacity];	// This is required so that our allocator is always properly initialized.
 			CAssert(pNewArray);
 
@@ -360,7 +404,16 @@ namespace Utl
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				m_Allocator->Free(m_pValues);
+			{
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pValues);
+				}
+				else
+				{
+					delete[] m_pValues;
+				}
+			}
 			m_pValues = pNewArray;
 
 			// Bump up our capacity!
@@ -395,7 +448,7 @@ namespace Utl
 
 		/* An allocator that can be used to make memory allocations from.
 		If not provided by the user, then an allocator to the application's heap will be created.*/
-		IBaseMemoryAllocator* m_Allocator{};
+		IBaseMemoryAllocator* m_Allocator{ nullptr };
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;

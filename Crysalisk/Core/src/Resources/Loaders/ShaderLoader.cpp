@@ -164,6 +164,7 @@ namespace ShaderLoader
 				else if (Utl::StringCompare(szCurrentLine, "attributes"))
 				{
 					// Vertex attributes.
+					pOutResource.ShaderAttributes.Resize(32);
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
 					size_t	subBlockBytesRead{ 0 };
@@ -198,12 +199,13 @@ namespace ShaderLoader
 				else if (Utl::StringCompare(szCurrentLine, "uniforms"))
 				{
 					// Shader uniforms.
+					pOutResource.ShaderUniforms.Resize(32);
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
 					size_t	subBlockBytesRead{ 0 };
 					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
 
-					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 vertex attributes to one shader.
+					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 uniforms to one shader.
 					{
 						// Doing a second line read here is okay because the one above should simply be a '{'.
 						// If this is not the case, then the file is formatted wrong.

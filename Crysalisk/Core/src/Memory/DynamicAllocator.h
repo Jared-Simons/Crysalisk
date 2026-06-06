@@ -47,6 +47,8 @@ namespace Utl
 		// FIXME: Put a message here.
 		virtual void FreeAll() override { CAssert(0); }
 
+		virtual eAllocatorType	GetAllocatorType() const override { return ALLOCATOR_TYPE_DYNAMIC; }
+
 	private:
 		// The number of bytes that this allocator is tracking/can allocate from.
 		size_t		m_SizeInBytes;

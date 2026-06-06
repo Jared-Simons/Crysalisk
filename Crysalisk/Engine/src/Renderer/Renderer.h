@@ -28,6 +28,7 @@ public:
 
 	// Initialize, shutdown.
 	virtual bool			Initialize(RendererConfig_t& pAppConfig) = 0;
+	virtual bool			PostInitialize(RenderPacket_t& pRenderPacket) = 0;
 	virtual void			Shutdown() = 0;
 	virtual bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) = 0;
 
@@ -76,7 +77,6 @@ public:
 	virtual const char*		GetRendererDebugVisModeName() const = 0;
 
 	// Temp geometry stuff
-	virtual bool	PostInitialize() = 0;
 	virtual void	DestroyTempGeometry() = 0;
 
 	virtual void	SetMinimized(bool bMinimized) = 0;

@@ -11,6 +11,7 @@
 #include <Containers/CFreeList.h>
 #include <Containers/CVector.h>
 #include <Math/MathLib.h>
+#include <Memory/LinearAllocator.h>
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -56,6 +57,7 @@ struct RenderPacket_t
 	struct Camera_t*							pCamera{ nullptr };
 
 	struct RenderMetrics_t* pMetrics{ nullptr };
+	Utl::LinearAllocator* pFrameAllocator{ nullptr };
 
 	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
 };

@@ -22,6 +22,8 @@ namespace Utl
 		virtual int		Free(void* pMemBlock) override;
 		virtual void	FreeAll() override;
 
+		virtual eAllocatorType	GetAllocatorType() const override { return ALLOCATOR_TYPE_LINEAR; }
+
 	private:
 		u64		m_iTotalAllocatorSize{ 0 };
 		u64		m_iMemoryHeadPtr{ 0 };

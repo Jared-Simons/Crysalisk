@@ -53,6 +53,13 @@ namespace Utl
 			return nullptr;
 		}
 
+		if (m_iMemoryHeadPtr + numBytes > m_iTotalAllocatorSize)
+		{
+			// We don't have the space for it! Warn and boot.
+			LOG_ERROR("LinearAllocator::Allocate() attempted to allocate %d bytes, while only %d are available. Returning nullptr.", numBytes, m_iTotalAllocatorSize - m_iMemoryHeadPtr);
+			return nullptr;
+		}
+
 		void* pMemToReturn = (u8*)m_pMemory + m_iMemoryHeadPtr;
 		m_iMemoryHeadPtr += numBytes;
 
@@ -61,15 +68,18 @@ namespace Utl
 	
 	int LinearAllocator::Free(void* pMemBlock)
 	{
-		CASSERTMSG(0, "LinearAllocator does not support Free(), call FreeAll()!");
+		//CASSERTMSG(0, "LinearAllocator does not support Free(), call FreeAll()!");
+		FreeAll();
 		return 0;
 	}
 
 	void LinearAllocator::FreeAll()
 	{
-		CAssert(m_pMemory != nullptr);
-		// Zero out the whole block
-		Platform::MemorySet(m_pMemory, 0, m_iTotalAllocatorSize);
-		m_iMemoryHeadPtr = 0;
+		if (m_pMemory)
+		{
+			// Zero out the whole block
+			Platform::MemorySet(m_pMemory, 0, m_iTotalAllocatorSize);
+			m_iMemoryHeadPtr = 0;
+		}
 	}
 } // namespace Utl

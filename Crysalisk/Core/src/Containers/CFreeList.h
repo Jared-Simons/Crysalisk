@@ -10,9 +10,9 @@
 
 #ifdef _DEBUG
 // Enable this to test if the freelist is placing nodes in the appropriate order when freeing memory.
-#define DEBUG_FREELIST_MEMORY_ORDER 1
+#define DEBUG_FREELIST_MEMORY_ORDER 
 #else
-#define DEBUG_FREELIST_MEMORY_ORDER 0
+//#define DEBUG_FREELIST_MEMORY_ORDER
 #endif
 
 namespace Utl

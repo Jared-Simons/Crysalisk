@@ -27,10 +27,6 @@ public:
 	virtual const Renderpass*	GetRenderpass() const override { return &m_pRenderpass; }
 
 private:
-	Utl::CVector<Matrix4x4>				m_TransformMatrices{};	// TODO: Figure out how to split out these matrices
-	Utl::CVector<GeometryInstance_t*>	m_pOpaqueGeometries{};
-	Utl::CVector<GeometryInstance_t*>	m_pTransparentGeometries{};
-
 	RenderBuffer*						m_pWorldVertexBuffer{ nullptr };
 	RenderBuffer*						m_pWorldIndexBuffer{ nullptr };
 
@@ -43,11 +39,6 @@ private:
 bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 {
 	CAssert(pEngineSystems != nullptr);
-
-	// Reserve memory for our geometry lists.
-	m_TransformMatrices.Resize(32);
-	m_pOpaqueGeometries.Resize(512);
-	m_pTransparentGeometries.Resize(512);
 
 	// Store off subsystem pointers.
 	m_pRenderer = pEngineSystems->pRenderer;
@@ -103,6 +94,14 @@ void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 	if (!pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE])
 	{
 		pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE] = new MainSceneView_ExtendedData_t;
+		MainSceneView_ExtendedData_t* pViewData = (MainSceneView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
+		
+		pViewData->pOpaqueGeometries.SetAllocator(pRenderData->pFrameAllocator);
+		pViewData->pTransparentGeometries.SetAllocator(pRenderData->pFrameAllocator);
+
+		// TODO: Is this a hard limit? If so, can we change this based on how much geometry is in the scene or make it a little more dynamic?
+		pViewData->pOpaqueGeometries.Resize(8999);
+		pViewData->pTransparentGeometries.Resize(8999);
 	}
 
 	CMap*							pMap = g_pEngine->GetEngineInterfaces()->pCurrentScene;
@@ -113,7 +112,6 @@ void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 		// Get the frustum from the camera.
 		Frustum frustum = pRenderData->pCamera->CreateFrustumFromCamera();
 
-		// FIXME: Make this work with a frame allocator.
 		// FIXME: Figure out how to split out these matrices per model.
 		pMap->GetRenderablesFromScene(g_pEngine->GetEngineInterfaces()->pMaterialSystem, frustum,
 									  pViewData->pOpaqueGeometries, pViewData->pTransparentGeometries,
