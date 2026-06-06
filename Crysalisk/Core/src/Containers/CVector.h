@@ -157,7 +157,7 @@ namespace Utl
 				if (m_Allocator != nullptr)
 					m_Allocator->Free(m_pValues);
 				else
-					delete[] m_Allocator;
+					delete[] m_pValues;
 			}
 			m_pValues = nullptr;
 
