@@ -231,7 +231,7 @@ void VulkanSwapchain::RecreateSwapchain(CVulkanRenderer& pRenderingContext, Vulk
 	vkDeviceWaitIdle(pRenderingContext.m_Device.m_Device);
 
 	DestroySwapchain(pRenderingContext, pSwapchain);
-	CreateSwapchain(pRenderingContext, ((VulkanWindowState_t*)pRenderingContext.m_pMainWindow)->m_WindowSurface, pSwapchain);
+	CreateSwapchain(pRenderingContext, ((VulkanWindowState_t*)pRenderingContext.m_pMainWindow->m_pRendererState)->m_WindowSurface, pSwapchain);
 	CreateFramebuffers(pRenderingContext, pSwapchain, pSwapchain.m_pFramebufferPass);
 
 	pRenderingContext.m_bResizingFramebuffer = false;
