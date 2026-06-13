@@ -56,12 +56,12 @@ public:
 	// Checks to see if the file exists on disk.
 	static bool			FileExists(const char* pszFilePath);
 	// Returns the size of the provided file.
-	static size_t		FileSize(FileHandle_t* fileHandle);
+	static u64		FileSize(FileHandle_t* fileHandle);
 
 	// Reads a line of text from the provided file and places it into pBuffer.
-	static bool 		ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle);
+	static bool 		ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Reads the entire file and places it into pBuffer.
-	static bool			ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle);
+	static bool			ReadWholeFile(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Reads the entire file in binary mode, and places the bytes into pBuffer.
 	static bool			ReadWholeBinaryFile(byte* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle);
 	// Returns whether or not the internal pointer for this handle has reached the end of the file.
@@ -73,5 +73,5 @@ public:
 	// Writes the text in pBuffer to the provided file.
 	static void			WriteLine(char* pBuffer, FileHandle_t* pFileHandle);
 	// Writes the bytes in pBytes to the provided file.
-	static void			WriteBytes(const void* pBytes, size_t dataSize, FileHandle_t* pFileHandle);
+	static void			WriteBytes(const void* pBytes, u64 dataSize, FileHandle_t* pFileHandle);
 };

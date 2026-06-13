@@ -16,7 +16,7 @@
 struct MaterialSystemConfig_t
 {
 	// The maximum number of materials that can be loaded at once.
-	size_t	MaxMaterials{ 0 };
+	u64	MaxMaterials{ 0 };
 	// A pointer to the texture system.
 	class ITextureSystem* pTextureSystem{ nullptr };
 	// A pointer to the shader system.
@@ -45,7 +45,7 @@ public:
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	// TODO: Make this return flags instead.
-	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const = 0;
+	virtual u32			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const = 0;
 
 	// Applies a given material.
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hShaderInstance) = 0;
@@ -59,8 +59,8 @@ public:
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) = 0;
 
 	// Sets lighting data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) = 0;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) = 0;
-	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) = 0;
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength) = 0;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic) = 0;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff) = 0;
 	virtual void				ApplyLightData() = 0;
 };

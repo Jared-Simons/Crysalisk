@@ -18,24 +18,24 @@ namespace MeshSerializer
 	// Specific file extension for the Crysalisk model file format (CModels).
 	static const char*		kCModelFileExtension = ".cmodel_c";
 	// The current most up-to-date version of the CModel file format.
-	static const uint32_t	kCurrentModelVersion = 2;
+	static const u32	kCurrentModelVersion = 2;
 
 	// Identifies unique vertex data
 	struct UniqueVertex_t
 	{
-		uint32_t iPositionIdx{};
-		uint32_t iNormalIdx{};
-		uint32_t iTexCoordIdx{};
-		uint32_t iTangentIdx{};
+		u32 iPositionIdx{};
+		u32 iNormalIdx{};
+		u32 iTexCoordIdx{};
+		u32 iTangentIdx{};
 	};
 
 	// Forward declarations
 	static void ProcessCurrentSubmesh(Utl::CVector<CModel_MeshHeader_t>& meshHeaders, Utl::CVector<CModel_MeshFaceData_t>& meshFaces, 
 									  Utl::CVector<Vector>& vertexPositions, Utl::CVector<Vector>& vertexNormals, Utl::CVector<Vector2D>& vertexTexCoords, 
-									  Utl::CVector<float>& finalVertexData, Utl::CVector<uint32_t>& finalIndexData, uint64_t& iUniqueVertexCount, bool bFinalSubmesh);
+									  Utl::CVector<f32>& finalVertexData, Utl::CVector<u32>& finalIndexData, u64& iUniqueVertexCount, bool bFinalSubmesh);
 
-	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices);
-	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<uint32_t>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<u32>& pOutIndices);
+	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<u32>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces);
 	static bool ImportOBJMaterialLibrary(const char* pszMaterialLibraryName, MeshLoader::MeshResource_t& pMeshResource);
 
 	//-------------------------------------------------------------------------
@@ -93,8 +93,8 @@ namespace MeshSerializer
 
 		// Create a new file/overwrite the existing file to store the new mesh.
 		FileHandle_t hNewOutputMesh{};
-		uint64_t iTotalBytesWritten{ 0 };
-		uint64_t iOriginalByteSize = FileSystem::FileSize(&hOBJFile);
+		u64 iTotalBytesWritten{ 0 };
+		u64 iOriginalByteSize = FileSystem::FileSize(&hOBJFile);
 		char szTempStringBuffer[2048];
 
 		// Attach our extension onto the output mesh.
@@ -112,7 +112,7 @@ namespace MeshSerializer
 		char szCurrentLine[2048]{};
 		char firstChar{};
 		char secondChar{};
-		size_t bytesRead{ 0 };
+		u64 bytesRead{ 0 };
 
 		// Rewind the file so we can read it through again.
 		FileSystem::ReturnFilePointerToHead(&hOBJFile);
@@ -133,9 +133,9 @@ namespace MeshSerializer
 		Utl::CVector<Vector2D>	finalVertexTexCoords{};
 		Utl::CVector<Vector>	finalVertexTangents{};
 
-		Utl::CVector<float>		finalVertexData{};
-		Utl::CVector<uint32_t>	finalIndexData{};
-		uint64_t				iUniqueVertCounter{ 0 };
+		Utl::CVector<f32>		finalVertexData{};
+		Utl::CVector<u32>	finalIndexData{};
+		u64				iUniqueVertCounter{ 0 };
 
 		// Material stuff.
 		// TEMP DEBUG
@@ -143,13 +143,13 @@ namespace MeshSerializer
 		char* pszMTLFilePath{ nullptr };
 		// Contains all of the material names encountered (does not contain repeats!)
 		Utl::CVector<char*>		materialNames{};
-		Utl::CVector<uint32_t>	materialNameIndices{};
-		uint32_t				iMaterialRunningTotal{ 0 };
+		Utl::CVector<u32>	materialNameIndices{};
+		u32				iMaterialRunningTotal{ 0 };
 		char*					pszMaterialName{ nullptr };
 		bool					bMatFound = false;
 
 		Utl::CVector<char*> outputStringTable{};
-		uint64_t			iStringTableRunningBytes{ 0 };
+		u64			iStringTableRunningBytes{ 0 };
 
 		Platform::MemorySet(szCurrentLine, 0, sizeof(char) * 2048);
 		bytesRead = 0;
@@ -180,16 +180,16 @@ namespace MeshSerializer
 					// Add it to the string table.
 					outputStringTable.PushBack("");
 					outputStringTable.Back() = Utl::StringDuplicate(szMeshName);
-					meshHeaders.Back().iMeshNameIndex = (uint32_t)outputStringTable.Count() - 1;
+					meshHeaders.Back().iMeshNameIndex = (u32)outputStringTable.Count() - 1;
 				}
 				continue;
 			}
 
 			case 'f':	// Polygon 'face'.
 			{
-				uint32_t	positionIndices[3];
-				uint32_t	normalIndices[3];
-				uint32_t	texCoordIndices[3];
+				u32	positionIndices[3];
+				u32	normalIndices[3];
+				u32	texCoordIndices[3];
 
 				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
 
@@ -218,9 +218,9 @@ namespace MeshSerializer
 					ProcessCurrentSubmesh(meshHeaders, meshFaces, vertexPositions, vertexNormals, vertexTexCoords, finalVertexData, finalIndexData, iUniqueVertCounter, false);
 
 					// Use the previous mesh's name as our name.
-					uint64_t iCurIdx = outputStringTable.PushBack("");
+					u64 iCurIdx = outputStringTable.PushBack("");
 					outputStringTable.Back() = Utl::StringDuplicate(outputStringTable[meshHeaders[meshHeaders.Count() - 2].iMeshNameIndex]);
-					meshHeaders.Back().iMeshNameIndex = (uint32_t)outputStringTable.Count() - 1;
+					meshHeaders.Back().iMeshNameIndex = (u32)outputStringTable.Count() - 1;
 				}
 
 				// Optimize, maybe this could be made faster with a hashmap??
@@ -248,7 +248,7 @@ namespace MeshSerializer
 					outputStringTable.PushBack(Utl::StringDuplicate(pszMaterialName));
 					meshHeaders.Back().iMaterialNameIndex = iMaterialRunningTotal;
 					iMaterialRunningTotal++;
-					materialNameIndices.PushBack((uint32_t)(uint32_t)outputStringTable.Count() - 1);
+					materialNameIndices.PushBack((u32)(u32)outputStringTable.Count() - 1);
 					break;
 				}
 				else
@@ -316,7 +316,7 @@ namespace MeshSerializer
 				// Append the appropriate extension to the path.
 				// NOTE: This assumes that the mtllib file has the same name as the OBJ.
 				char* pszMTLFilePath = Utl::StringDuplicate(pszOBJMeshPath);
-				uint64_t iStringLength = Utl::StringLength(pszMTLFilePath);
+				u64 iStringLength = Utl::StringLength(pszMTLFilePath);
 				pszMTLFilePath[iStringLength - 3] = 'm';
 				pszMTLFilePath[iStringLength - 2] = 't';
 				pszMTLFilePath[iStringLength - 1] = 'l';
@@ -335,7 +335,7 @@ namespace MeshSerializer
 		// Calculate the complete model extents.
 		outFileHeader.vecMinExtents = Vector(kFLT_MAX, kFLT_MAX, kFLT_MAX);
 		outFileHeader.vecMaxExtents = Vector(kFLT_MIN, kFLT_MIN, kFLT_MIN);
-		for (uint32_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		for (u32 iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
 			outFileHeader.vecMinExtents.x = FloatMin(outFileHeader.vecMinExtents.x, meshHeaders[iMesh].vecMinExtents.x);
 			outFileHeader.vecMinExtents.y = FloatMin(outFileHeader.vecMinExtents.y, meshHeaders[iMesh].vecMinExtents.y);
@@ -349,17 +349,17 @@ namespace MeshSerializer
 		LOG_INFO("Compressing mesh data.");
 
 		// Pack vectors into uints.
-		Utl::CVector<uint16_t>	packedPositions{};
-		Utl::CVector<uint16_t>	packedNormals{};
-		Utl::CVector<uint16_t>	packedTexCoords{};
-		Utl::CVector<uint16_t>	packedTangents{};
-		Utl::CVector<uint16_t>	packedVertexData{};
+		Utl::CVector<u16>	packedPositions{};
+		Utl::CVector<u16>	packedNormals{};
+		Utl::CVector<u16>	packedTexCoords{};
+		Utl::CVector<u16>	packedTangents{};
+		Utl::CVector<u16>	packedVertexData{};
 
 		LOG_DEBUG("Packing vertex data.");
-		uint8_t floatIdx = 0;
-		for (uint32_t iFloat = 0; iFloat < finalVertexData.Count(); iFloat++)
+		u8 floatIdx = 0;
+		for (u32 iFloat = 0; iFloat < finalVertexData.Count(); iFloat++)
 		{
-			float* pCurFloat = &finalVertexData[iFloat];
+			f32* pCurFloat = &finalVertexData[iFloat];
 
 			// Packing behavior differs depending on the vertex attribute.
 			// Currently, this block of code is assuming the following layout: 
@@ -368,8 +368,8 @@ namespace MeshSerializer
 			// 2 floats for texcoord, 
 			// 3 floats for tangent.
 			// NOTE: This code will need to change when we want to support other mesh attributes, such as anim data or optional tinting.
-			float flNormalized = 0.0f;
-			uint16_t packedPos = 0;
+			f32 flNormalized = 0.0f;
+			u16 packedPos = 0;
 			switch (floatIdx)
 			{
 			case 0:		// Position case
@@ -394,7 +394,7 @@ namespace MeshSerializer
 			case 5:
 				{
 					flNormalized = (*pCurFloat + 1.0f) / 2.0f;
-					uint16_t packedNormal = PackF32ToUint16(flNormalized);
+					u16 packedNormal = PackF32ToUint16(flNormalized);
 					packedVertexData.PushBack(packedNormal);
 				}
 				break;
@@ -402,11 +402,11 @@ namespace MeshSerializer
 			case 6:		// Texcoord case
 			case 7:
 				{
-					const float flPackedTexCoordMins = -64.0f;
-					const float flPackedTexCoordMaxs = 64.0f;
+					const f32 flPackedTexCoordMins = -64.0f;
+					const f32 flPackedTexCoordMaxs = 64.0f;
 
 					flNormalized = (*pCurFloat - flPackedTexCoordMins) / (flPackedTexCoordMaxs - flPackedTexCoordMins);
-					uint16_t packedTexcoord = PackF32ToUint16(flNormalized);
+					u16 packedTexcoord = PackF32ToUint16(flNormalized);
 					packedVertexData.PushBack(packedTexcoord);
 				}
 				break;
@@ -416,7 +416,7 @@ namespace MeshSerializer
 			case 10:
 			{
 				flNormalized = (*pCurFloat + 1.0f) / 2.0f;
-				uint16_t packedTangent = PackF32ToUint16(flNormalized);
+				u16 packedTangent = PackF32ToUint16(flNormalized);
 				packedVertexData.PushBack(packedTangent);
 			}
 			break;
@@ -431,46 +431,46 @@ namespace MeshSerializer
 
 		// Before writing out the data, map all the string indices to byte offsets
 		// so that the strings can be loaded from a single flat buffer.
-		uint32_t stringCount = (uint32_t)outputStringTable.Count();
-		Utl::CVector<uint32_t>	stringIndexToBytes(stringCount);
+		u32 stringCount = (u32)outputStringTable.Count();
+		Utl::CVector<u32>	stringIndexToBytes(stringCount);
 		stringIndexToBytes.SetCount(stringCount);
 
-		for (uint32_t iStr = 0; iStr < stringCount; iStr++)
+		for (u32 iStr = 0; iStr < stringCount; iStr++)
 		{
-			stringIndexToBytes[iStr] = (uint32_t)iStringTableRunningBytes;
+			stringIndexToBytes[iStr] = (u32)iStringTableRunningBytes;
 
-			uint64_t strLength = Utl::StringLength(outputStringTable[iStr]);
+			u64 strLength = Utl::StringLength(outputStringTable[iStr]);
 			iStringTableRunningBytes += (strLength + 1);	// Including the null terminator.
 		}
 
 		// Convert the mesh name indices to byte offsets into the final string buffer.
-		for (uint32_t iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		for (u32 iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
-			uint32_t meshNameIndex = meshHeaders[iMesh].iMeshNameIndex;
+			u32 meshNameIndex = meshHeaders[iMesh].iMeshNameIndex;
 			meshHeaders[iMesh].iMeshNameIndex = stringIndexToBytes[meshNameIndex];
 		}
 
 		// Setup offsets/counts.
 		outFileHeader.iVertexStride = sizeof(Vertex3D);
-		outFileHeader.iVertexCount = (uint32_t)packedVertexData.Count();
-		outFileHeader.iIndexCount = (uint32_t)finalIndexData.Count();
-		outFileHeader.iIndexStride = (uint32_t)finalIndexData.Stride();
+		outFileHeader.iVertexCount = (u32)packedVertexData.Count();
+		outFileHeader.iIndexCount = (u32)finalIndexData.Count();
+		outFileHeader.iIndexStride = (u32)finalIndexData.Stride();
 		outFileHeader.iMaterialCount = iMaterialRunningTotal;
 
-		outFileHeader.iMeshDataCount = (uint32_t)meshHeaders.Count();
-		outFileHeader.iMeshDataStride = (uint8_t)meshHeaders.Stride();
+		outFileHeader.iMeshDataCount = (u32)meshHeaders.Count();
+		outFileHeader.iMeshDataStride = (u8)meshHeaders.Stride();
 
 		// Place the resource's magic number first.
-		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceMagicNumber, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		// Write out the file header.
 		FileSystem::WriteBytes(&outFileHeader, sizeof(CModel_FileHeader_t), &hNewOutputMesh);
 		iTotalBytesWritten += sizeof(CModel_FileHeader_t);
 
 		// Write out a marker for the submesh headers.
-		FileSystem::WriteBytes(&kModelResourceSubmeshHeader, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceSubmeshHeader, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
@@ -479,38 +479,38 @@ namespace MeshSerializer
 		}
 
 		// Write out a marker for the vertex data.
-		FileSystem::WriteBytes(&kModelResourceVertexDataHeader, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceVertexDataHeader, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		FileSystem::WriteBytes(packedVertexData.Data(), packedVertexData.Stride() * packedVertexData.Count(), &hNewOutputMesh);
 		iTotalBytesWritten += packedVertexData.Stride() * packedVertexData.Count();
 
 		// Write out a marker for the index data.
-		FileSystem::WriteBytes(&kModelResourceIndexDataHeader, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceIndexDataHeader, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		FileSystem::WriteBytes(finalIndexData.Data(), finalIndexData.Stride() * finalIndexData.Count(), &hNewOutputMesh);
 		iTotalBytesWritten += finalIndexData.Stride() * finalIndexData.Count();
 
 		// Write out a marker for the material data.
-		FileSystem::WriteBytes(&kModelResourceMaterialDataHeader, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceMaterialDataHeader, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		// Write out an array that contains the offsets of ONLY the material names
 		// This allows us to quickly get a list of materials this model uses.
-		for (uint32_t iMat = 0; iMat < iMaterialRunningTotal; iMat++)
+		for (u32 iMat = 0; iMat < iMaterialRunningTotal; iMat++)
 		{
-			FileSystem::WriteBytes(&stringIndexToBytes[materialNameIndices[iMat]], sizeof(uint32_t), &hNewOutputMesh);
-			iTotalBytesWritten += sizeof(uint32_t);
+			FileSystem::WriteBytes(&stringIndexToBytes[materialNameIndices[iMat]], sizeof(u32), &hNewOutputMesh);
+			iTotalBytesWritten += sizeof(u32);
 		}
 
 		// Write out a marker for the string data.
-		FileSystem::WriteBytes(&kModelResourceStringDataHeader, sizeof(uint32_t), &hNewOutputMesh);
-		iTotalBytesWritten += sizeof(uint32_t);
+		FileSystem::WriteBytes(&kModelResourceStringDataHeader, sizeof(u32), &hNewOutputMesh);
+		iTotalBytesWritten += sizeof(u32);
 
 		for (int idx = 0; idx < outputStringTable.Count(); idx++)
 		{
-			uint64_t len = Utl::StringLength(outputStringTable[idx]);
+			u64 len = Utl::StringLength(outputStringTable[idx]);
 			FileSystem::WriteBytes(outputStringTable[idx], len + 1, &hNewOutputMesh);
 			iTotalBytesWritten += (len + 1);
 		}
@@ -529,7 +529,7 @@ namespace MeshSerializer
 		}
 		outputStringTable.Clear();
 
-		float flPercentReduced = ((float)iTotalBytesWritten / iOriginalByteSize);
+		f32 flPercentReduced = ((f32)iTotalBytesWritten / iOriginalByteSize);
 		flPercentReduced *= 100.0f;
 		LOG_INFO("Mesh '%s' compressed from %d bytes to %d bytes ->(%.2f%%)", pszOBJMeshPath, iOriginalByteSize, iTotalBytesWritten, flPercentReduced);
 
@@ -538,22 +538,22 @@ namespace MeshSerializer
 
 	static void ProcessCurrentSubmesh(Utl::CVector<CModel_MeshHeader_t>& meshHeaders, Utl::CVector<CModel_MeshFaceData_t>& meshFaces,
 		Utl::CVector<Vector>& vertexPositions, Utl::CVector<Vector>& vertexNormals, Utl::CVector<Vector2D>& vertexTexCoords,
-		Utl::CVector<float>& finalVertexData, Utl::CVector<uint32_t>& finalIndexData, uint64_t& iUniqueVertexCount, bool bFinalSubmesh)
+		Utl::CVector<f32>& finalVertexData, Utl::CVector<u32>& finalIndexData, u64& iUniqueVertexCount, bool bFinalSubmesh)
 	{
 		CModel_MeshHeader_t& pCurHeader = meshHeaders.Back();
 
-		Utl::CVector<uint32_t>			uniqueIndices{};
+		Utl::CVector<u32>			uniqueIndices{};
 		Utl::CVector<UniqueVertex_t>	finalVertexIndices{};
 		Utl::CVector<Vector>			generatedTangents{};
 		DeduplicateGeometry(meshFaces, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, finalVertexIndices, uniqueIndices);
 		GenerateTangentData(finalVertexIndices, uniqueIndices, vertexPositions, vertexNormals, vertexTexCoords, generatedTangents, meshFaces);
 
-		pCurHeader.iVertexCount = (uint32_t)finalVertexIndices.Count();
+		pCurHeader.iVertexCount = (u32)finalVertexIndices.Count();
 		pCurHeader.iVertexOffset = iUniqueVertexCount;
-		pCurHeader.iIndexCount = (uint32_t)uniqueIndices.Count();
-		pCurHeader.iIndexOffset = sizeof(uint32_t) * finalIndexData.Count();	// This is the byte offset into the index data.
+		pCurHeader.iIndexCount = (u32)uniqueIndices.Count();
+		pCurHeader.iIndexOffset = sizeof(u32) * finalIndexData.Count();	// This is the byte offset into the index data.
 
-		uint64_t indexAlignmentOffset = 0;
+		u64 indexAlignmentOffset = 0;
 		if (pCurHeader.iIndexOffset % 4 != 0)
 		{
 			indexAlignmentOffset = 4 - (pCurHeader.iIndexOffset % 4);
@@ -563,16 +563,16 @@ namespace MeshSerializer
 		for (int idx = 0; idx < indexAlignmentOffset; idx++)
 		{
 			// Fill in some blank data to the index buffer to make sure we're aligned.
-			finalIndexData.PushBack((uint32_t)0);
+			finalIndexData.PushBack((u32)0);
 		}
 
-		uint32_t indexBufferBase = (uint32_t)iUniqueVertexCount;
+		u32 indexBufferBase = (u32)iUniqueVertexCount;
 		iUniqueVertexCount += finalVertexIndices.Count();
 
 		// Calculate the extents of the submesh.
 		pCurHeader.vecMinExtents = Vector(kFLT_MAX, kFLT_MAX, kFLT_MAX);
 		pCurHeader.vecMaxExtents = -pCurHeader.vecMinExtents;
-		for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+		for (u32 iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
 		{
 			Vector3D& pCurPos = vertexPositions[finalVertexIndices[iVert].iPositionIdx];
 
@@ -586,7 +586,7 @@ namespace MeshSerializer
 		}
 
 		// Write out the unique data to the output tables.
-		for (uint32_t iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
+		for (u32 iVert = 0; iVert < finalVertexIndices.Count(); iVert++)
 		{
 			finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].x);
 			finalVertexData.PushBack(vertexPositions[finalVertexIndices[iVert].iPositionIdx].y);
@@ -604,7 +604,7 @@ namespace MeshSerializer
 			finalVertexData.PushBack(generatedTangents[finalVertexIndices[iVert].iTangentIdx].z);
 		}
 
-		for (uint32_t idx = 0; idx < uniqueIndices.Count(); idx++)
+		for (u32 idx = 0; idx < uniqueIndices.Count(); idx++)
 		{
 			finalIndexData.PushBack(uniqueIndices[idx] + indexBufferBase);
 		}
@@ -616,12 +616,12 @@ namespace MeshSerializer
 		}
 	}
 
-	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<uint32_t>& pOutIndices)
+	static void DeduplicateGeometry(Utl::CVector<CModel_MeshFaceData_t>& pFaces, Utl::CVector<Vector>& pInPositions, Utl::CVector<Vector>& pInNormals, Utl::CVector<Vector2D>& pInTexCoords, Utl::CVector<Vector>& pInTangents, Utl::CVector<UniqueVertex_t>& pOutVertices, Utl::CVector<u32>& pOutIndices)
 	{
 		Utl::CVector<UniqueVertex_t> uniqueVertices{};
-		uint32_t iPosIdxBase = pFaces[0].iPositionIndices[0];
-		uint32_t iNormIdxBase = pFaces[0].iNormalIndices[0];
-		uint32_t iTexCoordIdxBase = pFaces[0].iTexCoordIndices[0];
+		u32 iPosIdxBase = pFaces[0].iPositionIndices[0];
+		u32 iNormIdxBase = pFaces[0].iNormalIndices[0];
+		u32 iTexCoordIdxBase = pFaces[0].iTexCoordIndices[0];
 
 		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
 		{
@@ -679,15 +679,15 @@ namespace MeshSerializer
 		}
 	}
 
-	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<uint32_t>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
+	static void GenerateTangentData(Utl::CVector<UniqueVertex_t>& pVertexIndices, Utl::CVector<u32>& pIndices, Utl::CVector<Vector>& pPositions, Utl::CVector<Vector>& pNormals, Utl::CVector<Vector2D>& pTexCoords, Utl::CVector<Vector>& pOutTangents, Utl::CVector<CModel_MeshFaceData_t>& pFaces)
 	{
 		pOutTangents.Resize(pVertexIndices.Count());
 		pOutTangents.SetCount(pVertexIndices.Count());
 		for (int idx = 0; idx < pIndices.Count(); idx += 3)
 		{
-			uint32_t& pIdx0 = pIndices[idx + 0];
-			uint32_t& pIdx1 = pIndices[idx + 1];
-			uint32_t& pIdx2 = pIndices[idx + 2];
+			u32& pIdx0 = pIndices[idx + 0];
+			u32& pIdx1 = pIndices[idx + 1];
+			u32& pIdx2 = pIndices[idx + 2];
 
 			Vector& pPos0 = pPositions[pVertexIndices[pIdx0].iPositionIdx];
 			Vector& pPos1 = pPositions[pVertexIndices[pIdx1].iPositionIdx];
@@ -703,8 +703,8 @@ namespace MeshSerializer
 			Vector2D deltaUV1 = pUV1 - pUV0;
 			Vector2D deltaUV2 = pUV2 - pUV0;
 
-			float flDividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
-			float f = 1.0f / flDividend;
+			f32 flDividend = deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y;
+			f32 f = 1.0f / flDividend;
 
 			Vector vecTangent{};
 			vecTangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
@@ -741,8 +741,8 @@ namespace MeshSerializer
 		
 		// Read through the file.
 		char	szCurrentLine[2048];
-		size_t	iBytesRead{ 0 };
-		size_t	iCurrentLineLength{ 0 };
+		u64	iBytesRead{ 0 };
+		u64	iCurrentLineLength{ 0 };
 		char	szKey[512];
 		char	szValue[512];
 
@@ -756,7 +756,7 @@ namespace MeshSerializer
 			if (iCurrentLineLength <= 0 || szCurrentLine[0] == '#')
 				continue;
 
-			size_t iSpaceIndex = Utl::StringIndexOf(szCurrentLine, ' ');
+			u64 iSpaceIndex = Utl::StringIndexOf(szCurrentLine, ' ');
 			CAssert(iSpaceIndex != kInvalidID_U32);
 
 			// Split into key/value pairs.

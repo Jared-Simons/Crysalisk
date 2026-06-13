@@ -17,7 +17,7 @@ namespace Utl
 	class IBaseMemoryAllocator
 	{
 	public:
-		virtual void*	Allocate(size_t numBytes) = 0;
+		virtual void*	Allocate(u64 numBytes) = 0;
 		virtual int		Free(void* pMemBlock) = 0;
 		virtual void	FreeAll() = 0;
 

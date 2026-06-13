@@ -104,12 +104,8 @@
 	- [ ] Radiosity solver
 
 - TODO
-	- [ ] Replace all simple types with our typedefs.
-	- [ ] Fix Window-Resizing.
 	- [ ] Add some process to 'catch' jobs that couldn't be submitted in a frame, and then attempt to resubmit later, rather than just dropping it.
 	- [ ] Make shader loading 'static' - remove dynamic memory allocations and enforce max sizes for uniforms and vertex attributes.
 		- [ ] Same for materials and other assets.
 	- [ ] Fix level un-loading/re-loading.
 	- [ ] Split lighting code out to it's own manager.
-	- [ ] - [ ] Fix font rendering.
-		- [ ] Figure out why depth in the UI shader gets clipped at 0.

@@ -70,7 +70,7 @@ namespace Utl
 		//--------------------------------------------------
 		// Creates a vector with space for 'initialCapacity' number of elements.
 		//--------------------------------------------------
-		CVector(size_t initialCapacity, size_t resizeFactor = 2)
+		CVector(u64 initialCapacity, u64 resizeFactor = 2)
 			: m_Count{ 0 }
 			, m_Capacity{ initialCapacity }
 			, m_ValueStride{ sizeof(T) }
@@ -208,7 +208,7 @@ namespace Utl
 		//--------------------------------------------------
 		// Array indexing.
 		//--------------------------------------------------
-		inline T& ElementAt(size_t index) const
+		inline T& ElementAt(u64 index) const
 		{
 			CASSERTMSG(index >= 0 && index < m_Capacity, "Attempted to index CVector data out of bounds!");
 
@@ -223,12 +223,12 @@ namespace Utl
 		//--------------------------------------------------
 		// Same as above, for ease of use.
 		//--------------------------------------------------
-		inline T& operator[](size_t index)
+		inline T& operator[](u64 index)
 		{
 			return ElementAt(index);
 		}
 
-		inline T& operator[](size_t index) const
+		inline T& operator[](u64 index) const
 		{
 			return ElementAt(index);
 		}
@@ -333,7 +333,7 @@ namespace Utl
 		// Adds an element to the end of the vector, 
 		// (and returns the index to the new element).
 		//--------------------------------------------------
-		size_t PushBack(T element)
+		u64 PushBack(T element)
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
@@ -341,7 +341,7 @@ namespace Utl
 					m_ResizeFactor = 2; // Just a safety in case something got messed up along the way.
 
 				// We need to resize to make space for us.
-				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
+				u64 newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.
 				Resize(newCapacity);
 			}
@@ -357,12 +357,12 @@ namespace Utl
 		// Adds an element to the end of the vector, 
 		// (and returns the index to the new element).
 		//--------------------------------------------------
-		size_t PushBack(T* element)
+		u64 PushBack(T* element)
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
 				// We need to resize to make space for us.
-				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
+				u64 newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.
 				Resize(newCapacity);
 			}
@@ -378,7 +378,7 @@ namespace Utl
 		// Resizes the container to newCapacity elements,
 		// does nothing if newCapacity <= Count().
 		//--------------------------------------------------
-		void Resize(size_t newCapacity)
+		void Resize(u64 newCapacity)
 		{
 			if (newCapacity <= m_Capacity)
 			{
@@ -424,27 +424,27 @@ namespace Utl
 		inline bool IsEmpty() const { return m_Count == 0; }
 
 		// Returns the current number of elements in the vector.
-		inline size_t Count() const { return m_Count; }
-		inline void	  SetCount(size_t count) { m_Count = count; }
+		inline u64 Count() const { return m_Count; }
+		inline void	  SetCount(u64 count) { m_Count = count; }
 
 		// Returns the number of bytes between elements in the vector.
-		inline size_t Stride() const { return m_ValueStride; }
+		inline u64 Stride() const { return m_ValueStride; }
 
 		// Returns the number of elements able to be stored without resizing the container.
-		inline size_t Capacity() const { return m_Capacity; }
+		inline u64 Capacity() const { return m_Capacity; }
 
 	private:
 		/* The current number of elements in the array (not necessarily the capacity) */
-		size_t m_Count;
+		u64 m_Count;
 
 		/* The maximum number of elements that can be held in the array. (Can be resized, of course) */
-		size_t m_Capacity;
+		u64 m_Capacity;
 
 		/* The stride of the elements (the length in bytes between each element) */
-		size_t m_ValueStride;
+		u64 m_ValueStride;
 
 		/* The multiplier to be used when the vector resizes to make more room. */
-		size_t m_ResizeFactor;
+		u64 m_ResizeFactor;
 
 		/* An allocator that can be used to make memory allocations from.
 		If not provided by the user, then an allocator to the application's heap will be created.*/

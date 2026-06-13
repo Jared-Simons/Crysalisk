@@ -29,7 +29,7 @@ struct MouseState_t
 	// The position of the cursor on the screen.
 	int m_XPos;
 	int m_YPos;
-	unsigned int m_bitsMouseButtons;
+	u32 m_bitsMouseButtons;
 };
 
 //-------------------------------------------------------------------------
@@ -56,5 +56,5 @@ public:
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
 void API_ProcessKeyInput(int processedKeyInput, bool pressed);
-void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed);
+void API_ProcessMouseButtonInput(u32 mouseButtonFlags, bool bPressed);
 void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos);

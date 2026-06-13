@@ -23,9 +23,9 @@ namespace MaterialSerializer
 		// Create and setup the file.
 
 		// Chop off the file extension.
-		size_t nameLength = Utl::StringLength(pszMaterialName);
-		size_t pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
-		size_t extensionLength = Utl::StringLength(kMaterialFileExtension);
+		u64 nameLength = Utl::StringLength(pszMaterialName);
+		u64 pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
+		u64 extensionLength = Utl::StringLength(kMaterialFileExtension);
 
 		char pTempNameBuffer[512];
 		Utl::StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);

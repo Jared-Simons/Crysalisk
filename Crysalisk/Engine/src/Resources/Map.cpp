@@ -142,7 +142,7 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, u32* pCulledGeometries) const
 {
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -165,9 +165,9 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
 			Vector3D vecHalfExtents = {
-				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
-				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
-				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
+				(f32)M_ABS(vecMaxExtents.x - vecCenter.x),
+				(f32)M_ABS(vecMaxExtents.y - vecCenter.y),
+				(f32)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
 			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
@@ -208,7 +208,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) c
 	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
 	const Mesh* pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
-	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
+	u32 iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
 	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
@@ -236,8 +236,8 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) c
 			Vector vecMins = pCurrentSubmesh->vecMinExtents;
 			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
 
-			float flTMin = kFLT_MAX;
-			float flTMax = kFLT_MIN;
+			f32 flTMin = kFLT_MAX;
+			f32 flTMax = kFLT_MIN;
 
 			Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
 			Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
@@ -245,8 +245,8 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) c
 			Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
 			Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
 
-			float flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
-			float flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+			f32 flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+			f32 flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
 
 			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
 			{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).

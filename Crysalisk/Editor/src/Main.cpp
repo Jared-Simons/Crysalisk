@@ -74,7 +74,7 @@ bool LoadTool(const char* pszToolName)
 {
 	CAssert(pszToolName);
 
-	size_t strLen = Utl::StringLength(pszToolName);
+	u64 strLen = Utl::StringLength(pszToolName);
 	char szToolLibName[10000]{};
 	CAssert(strLen < 10000);
 	Platform::MemoryCopy(szToolLibName, pszToolName, strLen);

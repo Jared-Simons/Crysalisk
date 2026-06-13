@@ -19,8 +19,8 @@ namespace Utl
 {
 	struct FreeListNode_t
 	{
-		size_t			Size{ 0 };
-		size_t			Offset{ 0 };
+		u64			Size{ 0 };
+		u64			Offset{ 0 };
 		FreeListNode_t* pNextNode{ nullptr };
 	};
 
@@ -34,8 +34,8 @@ namespace Utl
 
 		}
 
-		void	SetNumBytesToTrack(size_t bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = bytesToTrack / (sizeof(void*) * sizeof(FreeListNode_t)); }
-		size_t	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes * sizeof(FreeListNode_t); }
+		void	SetNumBytesToTrack(u64 bytesToTrack) { m_iNumBytesTracked = bytesToTrack; m_iNumFreelistNodes = bytesToTrack / (sizeof(void*) * sizeof(FreeListNode_t)); }
+		u64	GetInternalMemoryRequirement() const { return m_iNumFreelistNodes * sizeof(FreeListNode_t); }
 		void	InitFreelist(void* pMemory)
 		{
 			CAssert(pMemory);
@@ -58,14 +58,14 @@ namespace Utl
 			m_HeadNode->pNextNode = nullptr;
 		}
 
-		size_t	Allocate(size_t size)
+		u64	Allocate(u64 size)
 		{
 			// Make sure we don't try to allocate more than we have available.
 			CAssert(size <= m_iNumBytesTracked);
 
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
-			size_t retDataOffset = 0;
+			u64 retDataOffset = 0;
 
 			// Search the freelist for an available block of memory.
 			while (pCurrentNode != nullptr)
@@ -111,7 +111,7 @@ namespace Utl
 			return retDataOffset;
 		}
 
-		void	Free(size_t size, size_t offset)
+		void	Free(u64 size, u64 offset)
 		{
 			FreeListNode_t* pPreviousNode = nullptr;
 			FreeListNode_t* pCurrentNode = m_HeadNode;
@@ -252,7 +252,7 @@ namespace Utl
 						{
 							//CAssert(0);
 							LOG_WARN("Running bad test to clean up freelist.");
-							size_t largerSize = (pDebugCurNode->Size > pDebugNextNode->Size) ? pDebugCurNode->Size : pDebugNextNode->Size;
+							u64 largerSize = (pDebugCurNode->Size > pDebugNextNode->Size) ? pDebugCurNode->Size : pDebugNextNode->Size;
 							pDebugCurNode->Size = largerSize;
 							pDebugPrevNode->pNextNode = pDebugCurNode;
 							pDebugCurNode->pNextNode = pDebugNextNode->pNextNode;
@@ -297,7 +297,7 @@ namespace Utl
 
 		FreeListNode_t* m_HeadNode{ nullptr };
 		FreeListNode_t* m_pNextFreeNode{ m_HeadNode };
-		size_t			m_iNumBytesTracked{ 0 };
-		size_t			m_iNumFreelistNodes{ 0 };
+		u64			m_iNumBytesTracked{ 0 };
+		u64			m_iNumFreelistNodes{ 0 };
 	};
 }

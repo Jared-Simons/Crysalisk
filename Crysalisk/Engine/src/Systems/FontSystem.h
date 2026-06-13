@@ -15,7 +15,7 @@
 struct FontSystemConfig_t
 {
 	// The maximum number of fonts that can be loaded at once.
-	size_t	MaxFonts{ 0 };
+	u64	MaxFonts{ 0 };
 
 	// A pointer to the renderer.
 	class IRenderer* pRenderer{ nullptr };
@@ -36,7 +36,7 @@ public:
 
 public:
 	// The size of this text.
-	float				m_flTextSize{ 0.0f };
+	f32				m_flTextSize{ 0.0f };
 	// The position of this text (in Screen-Space [1080x720]).
 	Vector2D			m_vecPos{};
 	// The text this element should be rendering.
@@ -66,6 +66,6 @@ public:
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const = 0;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSizet) = 0;
-	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) = 0;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSizet) = 0;
+	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText) = 0;
 };

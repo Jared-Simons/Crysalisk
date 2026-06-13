@@ -21,20 +21,20 @@
 //-------------------------------------------------------------------------
 struct PhongShaderLocations_t
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	viewPos{ kInvalidID_U16 };
-	uint16_t	dirLight{ kInvalidID_U16 };
-	uint16_t	pointLight1{ kInvalidID_U16 };
-	uint16_t	pointLight2{ kInvalidID_U16 };
-	uint16_t	pointLight3{ kInvalidID_U16 };
-	uint16_t	pointLight4{ kInvalidID_U16 };
-	uint16_t	spotLight{ kInvalidID_U16 };
-	uint16_t	renderMode{ kInvalidID_U16 };
-	uint16_t	shininess{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	textureMaps{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	viewPos{ kInvalidID_U16 };
+	u16	dirLight{ kInvalidID_U16 };
+	u16	pointLight1{ kInvalidID_U16 };
+	u16	pointLight2{ kInvalidID_U16 };
+	u16	pointLight3{ kInvalidID_U16 };
+	u16	pointLight4{ kInvalidID_U16 };
+	u16	spotLight{ kInvalidID_U16 };
+	u16	renderMode{ kInvalidID_U16 };
+	u16	shininess{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	textureMaps{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 static PhongShaderLocations_t s_PhongShaderLocations{};
 
@@ -57,7 +57,7 @@ public:
 	virtual void				ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease) override;
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
-	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const override;
+	virtual u32			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const override;
 
 	// Applies a given material.
 	virtual void				ApplyMaterialInstance(MaterialHandle_t hShaderInstance) override;
@@ -71,9 +71,9 @@ public:
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
-	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength) override;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic) override;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff) override;
 	virtual void				ApplyLightData() override;
 
 private:
@@ -128,22 +128,22 @@ private:
 	struct DirectionalLight_t
 	{
 		Vector3D	vecDirection{};
-		float		padding1{};
+		f32		padding1{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 		Vector3D	ambientLightColor{};
-		float		flAmbientStrength{};
+		f32		flAmbientStrength{};
 	} dirLight;
 
 	struct PointLight_t
 	{
 		Vector4D	vecPosition{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 
-		float		flConstant{};
-		float		flLinear{};
-		float		flQuadratic{};
+		f32		flConstant{};
+		f32		flLinear{};
+		f32		flQuadratic{};
 	} pointLights[4];
 
 	struct SpotLight_t
@@ -151,14 +151,14 @@ private:
 		Vector4D	vecPosition{};
 		Vector4D	vecDirection{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 
-		float		flConstant{};
-		float		flLinear{};
-		float		flQuadratic{};
+		f32		flConstant{};
+		f32		flLinear{};
+		f32		flQuadratic{};
 
-		float		flInnerCutoff{};
-		float		flOuterCutoff{};
+		f32		flInnerCutoff{};
+		f32		flOuterCutoff{};
 	} spotLight;
 };
 
@@ -333,7 +333,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle, pInResource.pszMaterialName);
 
 		// Texture maps.
-		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
+		u64							textureMapCount = pInResource.textureMapConfigs.Count();
 		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
 
 		// Set some default textures, just in case.
@@ -381,7 +381,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		{
 			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "specular_shininess"))
 			{
-				float flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
+				f32 flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
 				// Set the instance uniform.
 				pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
 			}
@@ -455,7 +455,7 @@ void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bFo
 // Input:	hMaterial - The material whose transparency to check for.
 // Output:	Returns true if the material is transparent in any way, otherwise false.
 //-------------------------------------------------------------------------
-uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hShaderInstance) const
+u32 CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hShaderInstance) const
 {
 	if (hShaderInstance == kInvalidID_U32)
 		//hMaterial = m_DefaultMaterialLookup.MaterialIndex;
@@ -586,7 +586,7 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
+void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength)
 {
 	dirLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
 	dirLight.flBrightness = flBrightness;
@@ -600,7 +600,7 @@ void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D ve
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
+void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic)
 {
 	pointLights[lightIndex].vecPosition = vecPoint;
 	pointLights[lightIndex].lightColor = vecLightColor;
@@ -615,7 +615,7 @@ void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vecto
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
+void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff)
 {
 	CAssert(flInnerCutoff <= flOuterCutoff);
 
@@ -690,7 +690,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
-	float flShininess = 32;
+	f32 flShininess = 32;
 	// Set the instance uniform.
 	pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
 }

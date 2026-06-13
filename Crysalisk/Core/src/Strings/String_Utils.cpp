@@ -20,7 +20,7 @@ namespace Utl
 	// Input:	pszString - The string's path to return.
 	// Output:	int - The size of the string.
 	//-------------------------------------------------------------------------
-	size_t StringLength(const char* pszString)
+	u64 StringLength(const char* pszString)
 	{
 		if (!pszString)
 			return 0;
@@ -99,9 +99,9 @@ namespace Utl
 	//			charToFind - The character to search for.
 	// Output:	int - Returns the index of 'charToFind', or kInvalidID_U32 if not found.
 	//-------------------------------------------------------------------------
-	unsigned int StringIndexOf(const char* pszString, char charToFind)
+	u32 StringIndexOf(const char* pszString, char charToFind)
 	{
-		size_t len = StringLength(pszString);
+		u64 len = StringLength(pszString);
 		for (int idx = 0; idx < len; idx++)
 		{
 			if (pszString[idx] == charToFind)
@@ -120,8 +120,8 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	char* StringGetFilenameExtension(const char* pszString)
 	{
-		size_t length = StringLength(pszString);
-		size_t curIdx = length - 1;
+		u64 length = StringLength(pszString);
+		u64 curIdx = length - 1;
 		char* pCurChar = const_cast<char*>(&pszString[length - 1]);
 		while (pCurChar && *pCurChar != '.')
 		{
@@ -144,10 +144,10 @@ namespace Utl
 	char* StringGetFilenameFromPath(const char* pszPath)
 	{
 		char*		pszName = nullptr;
-		uint32_t	stringLength = (uint32_t)StringLength(pszPath);
-		uint32_t	iStartIdx = 0;
-		uint32_t	iEndIdx = 0;
-		uint32_t	iCurIdx = stringLength;
+		u32	stringLength = (u32)StringLength(pszPath);
+		u32	iStartIdx = 0;
+		u32	iEndIdx = 0;
+		u32	iCurIdx = stringLength;
 		const char* p = &pszPath[stringLength - 1];
 		while (p)
 		{
@@ -180,7 +180,7 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	char* StringDuplicate(const char* pszStrToCopy)
 	{
-		size_t strLength = StringLength(pszStrToCopy);
+		u64 strLength = StringLength(pszStrToCopy);
 		char* stringCopy = new char[strLength + 1];
 		memcpy(stringCopy, pszStrToCopy, strLength + 1);
 		stringCopy[strLength] = 0;
@@ -197,7 +197,7 @@ namespace Utl
 	//			bytesToCopy - The number of chars to copy.
 	// Output:	char* - A copy of pszString.
 	//-------------------------------------------------------------------------
-	char* StringDuplicate_N(const char* pszStrToCopy, size_t charsToCopy)
+	char* StringDuplicate_N(const char* pszStrToCopy, u64 charsToCopy)
 	{
 		char* stringCopy = new char[charsToCopy + 1];
 		memcpy(stringCopy, pszStrToCopy, charsToCopy + 1);
@@ -230,8 +230,8 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	char* StringConcat(char* pszStr1, char* pszStr2)
 	{
-		size_t len1 = StringLength(pszStr1);
-		size_t len2 = StringLength(pszStr2);
+		u64 len1 = StringLength(pszStr1);
+		u64 len2 = StringLength(pszStr2);
 
 		// Make sure we're null-terminated.
 		char* newString = new char[len1 + len2 + 1];
@@ -254,11 +254,11 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	char* StringTrim(char* pszStr)
 	{
-		size_t strLength = StringLength(pszStr);
+		u64 strLength = StringLength(pszStr);
 
-		size_t startIndex = -1;
-		size_t endIndex = -1;
-		size_t numWhitespaceCharacters = 0;
+		u64 startIndex = -1;
+		u64 endIndex = -1;
+		u64 numWhitespaceCharacters = 0;
 
 		for (int idx = 0; idx < strLength; idx++)
 		{
@@ -283,8 +283,8 @@ namespace Utl
 			endIndex = strLength + 1;
 		}
 
-		size_t newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
-		size_t lastNonWhitespaceIdx{ 0 };
+		u64 newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
+		u64 lastNonWhitespaceIdx{ 0 };
 		char* pTrimmedString = new char[newStringLength];
 
 		// Step through the string again, this time copying over all the characters BUT the whitespace characters.
@@ -317,8 +317,8 @@ namespace Utl
 			return nullptr;
 		}
 
-		size_t len = StringLength(pszStr);
-		size_t numInstances = 0;
+		u64 len = StringLength(pszStr);
+		u64 numInstances = 0;
 
 		for (int idx = 0; idx < len; idx++)
 		{
@@ -357,8 +357,8 @@ namespace Utl
 			return;
 		}
 
-		size_t len = StringLength(pszStr);
-		size_t numInstances = 0;
+		u64 len = StringLength(pszStr);
+		u64 numInstances = 0;
 
 		for (int idx = 0; idx < len; idx++)
 		{
@@ -388,18 +388,18 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	// Purpose: Converts an ascii value to a floating-point value.
 	// 
-	// Input:	c - The character to convert to a float.
-	// Output:	float - The converted character.
+	// Input:	c - The character to convert to a f32.
+	// Output:	f32 - The converted character.
 	//-------------------------------------------------------------------------
-	float String_ATOF(const char* c)
+	f32 String_ATOF(const char* c)
 	{
-		return static_cast<float>(atof(c));
+		return static_cast<f32>(atof(c));
 	}
 
 	//-------------------------------------------------------------------------
 	// Purpose: Converts an ascii string to a Vector3D_OLD.
 	// 
-	// Input:	c - The character to convert to a float.
+	// Input:	c - The character to convert to a f32.
 	//			pOutVec - Vector that will hold the converted character.
 	// Output:	none.
 	//-------------------------------------------------------------------------

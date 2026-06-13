@@ -147,7 +147,7 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 		return false;
 	}
 
-	m_pWorldIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer");
+	m_pWorldIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(u32) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer");
 	if (m_pWorldIndexBuffer == nullptr)
 	{
 		LOG_ERROR("Failed to create world geometry index buffer!");
@@ -193,9 +193,6 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 	MeshLookup*		pMeshLookup = nullptr;
 	Mesh*			pMesh = nullptr;
 
-	MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
-	MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
-
 	// Format the string with the path to the model directory.
 	char szFormattedPath[512]{};
 	Utl::StringFormat_V("Assets/Models/%s\0", szFormattedPath, pszMeshName);
@@ -211,6 +208,9 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 			LOG_ERROR("AcquireMeshInstance() could not acquire a new mesh slot. Increase mesh system config to allow for more. Returning null handle.");
 			return kInvalidID_U32;
 		}
+
+		MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
+		MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
 
 		pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
 		pMesh->m_MeshID = newMeshHandle;

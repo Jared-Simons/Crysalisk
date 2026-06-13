@@ -17,12 +17,12 @@
 struct CWorkerThread
 {
 	// The unique index of this thread in the job system.
-	uint8_t						m_iThreadIdx{ 0 };
+	u8						m_iThreadIdx{ 0 };
 	// A pointer to the thread itself.
 	Platform::ISystemThread*	m_pThread{};
 	// A bitfield corresponding to eWorkerThreadType,
 	// describes the types of jobs this thread can do.
-	uint8_t						m_iThreadType{ WORKER_THREAD_TYPE_GENERAL };
+	u8						m_iThreadType{ WORKER_THREAD_TYPE_GENERAL };
 	// The mutex for this thread's work data.
 	Platform::ISystemMutex*		m_pWorkDataMutex{ nullptr };
 	// The current job's work data.
@@ -55,7 +55,7 @@ public:
 	virtual void	Update() override;
 
 	virtual bool	SubmitJob(JobDeclaration_t& pJobInfo) override;
-	virtual void	SubmitJobResults(size_t iResultSize, JobResults_t* pResults);
+	virtual void	SubmitJobResults(u64 iResultSize, JobResults_t* pResults);
 
 	virtual void	WaitForWorkerThreadsToFinish() const override;
 	virtual void	WaitForWorkerThreadsToShutdown();
@@ -89,12 +89,12 @@ static CJobSystem* s_JobSystem;
 //			Will run in a loop forever until either the application terminates
 //			or a job becomes available.
 // 
-// Input:	pParams - An opaque pointer to be cast to a uint8_t containing the thread's index in the job system.
+// Input:	pParams - An opaque pointer to be cast to a u8 containing the thread's index in the job system.
 // Output:	int - 0 indicates the thread shutdown successfully, otherwise nonzero.
 //-------------------------------------------------------------------------
 static int JobThread_Main(void* pParams)
 {
-	uint8_t iThreadIdx = *(uint8_t*)pParams;
+	u8 iThreadIdx = *(u8*)pParams;
 	int iThreadID = Platform::GetCurrentThreadID();
 
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
@@ -182,7 +182,7 @@ bool CJobSystem::Initialize(JobSystemConfig_t& pAppConfig)
 	m_pWorkerThreads.Resize(pAppConfig.iNumJobThreads);
 	m_pWorkerThreads.SetCount(pAppConfig.iNumJobThreads);
 
-	for (uint8_t iThread = 0; iThread < pAppConfig.iNumJobThreads; iThread++)
+	for (u8 iThread = 0; iThread < pAppConfig.iNumJobThreads; iThread++)
 	{
 		m_pWorkerThreads[iThread].m_iThreadIdx = iThread;
 		m_pWorkerThreads[iThread].m_pThread = Platform::CreateSystemThread(JobThread_Main, &m_pWorkerThreads[iThread].m_iThreadIdx);
@@ -311,7 +311,7 @@ bool CJobSystem::SubmitJob(JobDeclaration_t& pJobInfo)
 //			pJobResults - A pointer to the job result data.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CJobSystem::SubmitJobResults(size_t iResultSize, JobResults_t* pJobResults)
+void CJobSystem::SubmitJobResults(u64 iResultSize, JobResults_t* pJobResults)
 {
 	if (iResultSize > 0 && pJobResults)
 	{

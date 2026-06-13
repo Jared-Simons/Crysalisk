@@ -92,7 +92,7 @@ namespace MeshLoader
 	//-------------------------------------------------------------------------
 	void UnloadMeshResource(MeshResource_t& pResource)
 	{
-		for (uint64_t iMesh = 0; iMesh < pResource.pMeshes.Count(); iMesh++)
+		for (u64 iMesh = 0; iMesh < pResource.pMeshes.Count(); iMesh++)
 		{
 			if (pResource.pMeshes[iMesh].pVertexData)
 			{
@@ -106,7 +106,7 @@ namespace MeshLoader
 			}
 		}
 
-		for (uint64_t iMat = 0; iMat < pResource.pMaterialNames.Count(); iMat++)
+		for (u64 iMat = 0; iMat < pResource.pMaterialNames.Count(); iMat++)
 		{
 			Utl::StringFree(pResource.pMaterialNames[iMat]);
 			pResource.pMaterialNames[iMat] = nullptr;
@@ -122,10 +122,10 @@ namespace MeshLoader
 	//-------------------------------------------------------------------------
 	static bool LoadCModelMeshResource(const char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
-		Utl::CVector<uint8_t> modelBytes{};
+		Utl::CVector<u8> modelBytes{};
 		FileHandle_t hCModelFile;
-		size_t modelDataSize{ 0 };
-		size_t bytesRead{ 0 };
+		u64 modelDataSize{ 0 };
+		u64 bytesRead{ 0 };
 
 		if (!FileSystem::OpenFile(pszMeshFileName, eFileMode::FILEMODE_READ, true, &hCModelFile))
 		{
@@ -137,10 +137,10 @@ namespace MeshLoader
 		FileSystem::ReadWholeBinaryFile(modelBytes.Data(), modelDataSize, &bytesRead, &hCModelFile);
 
 		void* pDataPtr = modelBytes.Data();
-		uint64_t	currOffset{ 0 };
+		u64	currOffset{ 0 };
 
 		// First up is the magic number.
-		uint32_t* pMagicNumber = (uint32_t*)modelBytes.Data();
+		u32* pMagicNumber = (u32*)modelBytes.Data();
 		if (*pMagicNumber != MeshSerializer::kModelResourceMagicNumber)
 		{
 			LOG_ERROR("'%s' mesh does not contain kModelResourceMagicNumber, resource reading failed.", pszMeshFileName);
@@ -148,28 +148,28 @@ namespace MeshLoader
 		}
 
 		// Advance to the header.
-		currOffset += sizeof(uint32_t);
+		currOffset += sizeof(u32);
 
-		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((uint8_t*)pDataPtr + currOffset);
+		MeshSerializer::CModel_FileHeader_t* pFileHeader = (MeshSerializer::CModel_FileHeader_t*)((u8*)pDataPtr + currOffset);
 
 		currOffset += sizeof(MeshSerializer::CModel_FileHeader_t);
-		byte* pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		byte* pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceSubmeshHeader);
-		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceSubmeshHeader)
+		CAssert(*(u32*)pBytes == MeshSerializer::kModelResourceSubmeshHeader);
+		if (*(u32*)pBytes != MeshSerializer::kModelResourceSubmeshHeader)
 		{
 			LOG_ERROR("Mesh '%s' missing expected Submesh Header marker. Please recompile.", pszMeshFileName);
 		}
 
-		currOffset += sizeof(uint32_t);
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u32);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
 		MeshSerializer::CModel_MeshHeader_t* pMeshHeaders = new MeshSerializer::CModel_MeshHeader_t[pFileHeader->iMeshDataCount];
 
 		pOutResource.pMeshes.Resize(pFileHeader->iMeshDataCount);
 		pOutResource.pMeshes.SetCount(pFileHeader->iMeshDataCount);
 		
-		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		for (u32 iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
 			Platform::MemoryCopy(&pMeshHeaders[iMesh], (MeshSerializer::CModel_MeshHeader_t*)pBytes + iMesh, sizeof(MeshSerializer::CModel_MeshHeader_t));
 			pOutResource.pMeshes[iMesh].iMaterialNameIndex = pMeshHeaders[iMesh].iMaterialNameIndex;
@@ -180,26 +180,26 @@ namespace MeshLoader
 		}
 
 		currOffset += sizeof(MeshSerializer::CModel_MeshHeader_t) * pFileHeader->iMeshDataCount;
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceVertexDataHeader);
-		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceVertexDataHeader)
+		CAssert(*(u32*)pBytes == MeshSerializer::kModelResourceVertexDataHeader);
+		if (*(u32*)pBytes != MeshSerializer::kModelResourceVertexDataHeader)
 		{
 			LOG_ERROR("Mesh '%s' missing expected Vertex Header marker. Please recompile.", pszMeshFileName);
 		}
 
-		currOffset += sizeof(uint32_t);
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u32);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		float* pUnpackedVertices = new float[11 * pFileHeader->iVertexCount];	// 11 floats per vertex.
+		f32* pUnpackedVertices = new f32[11 * pFileHeader->iVertexCount];	// 11 floats per vertex.
 
 		// Unpack the packed vertex data.
-		uint8_t iAttribIdx = 0;
-		for (uint32_t iFloat = 0; iFloat < pFileHeader->iVertexCount; iFloat++)
+		u8 iAttribIdx = 0;
+		for (u32 iFloat = 0; iFloat < pFileHeader->iVertexCount; iFloat++)
 		{
-			uint16_t* pPacked = (uint16_t*)pBytes + iFloat;
+			u16* pPacked = (u16*)pBytes + iFloat;
 
-			float unpackedData = UnpackF32FromUint16(*pPacked);
+			f32 unpackedData = UnpackF32FromUint16(*pPacked);
 			// See the comment in the corresponding switch statement in SerializeOBJMesh() to see the meaning behind this switch.
 			switch (iAttribIdx)
 			{
@@ -228,8 +228,8 @@ namespace MeshLoader
 			case 6:		// Texcoord case
 			case 7:
 				{
-					const float flPackedTexCoordMins = -64.0f;
-					const float flPackedTexCoordMaxs = 64.0f;
+					const f32 flPackedTexCoordMins = -64.0f;
+					const f32 flPackedTexCoordMaxs = 64.0f;
 
 					unpackedData = (unpackedData) * (flPackedTexCoordMaxs - flPackedTexCoordMins) - flPackedTexCoordMaxs;
 					pUnpackedVertices[iFloat] = unpackedData;
@@ -253,7 +253,7 @@ namespace MeshLoader
 		}
 
 		// Copy over vertex data.
-		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		for (u32 iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
 			MeshResource_t::GeometryObject_t& pCurOutMesh = pOutResource.pMeshes[iMesh];
 			MeshSerializer::CModel_MeshHeader_t& pCurMeshHeader = pMeshHeaders[iMesh];
@@ -264,80 +264,80 @@ namespace MeshLoader
 			
 			Vertex3D* pVertexBase = (Vertex3D*)pCurOutMesh.pVertexData;
 
-			for (uint32_t iVert = 0; iVert < pCurMeshHeader.iVertexCount; iVert++)
+			for (u32 iVert = 0; iVert < pCurMeshHeader.iVertexCount; iVert++)
 			{
 				Platform::MemoryCopy(pVertexBase + iVert, (Vertex3D*)pUnpackedVertices + pCurMeshHeader.iVertexOffset + iVert, sizeof(Vertex3D));
 			}
 		}
 
-		currOffset += sizeof(uint16_t) * pFileHeader->iVertexCount;
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u16) * pFileHeader->iVertexCount;
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceIndexDataHeader);
-		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceIndexDataHeader)
+		CAssert(*(u32*)pBytes == MeshSerializer::kModelResourceIndexDataHeader);
+		if (*(u32*)pBytes != MeshSerializer::kModelResourceIndexDataHeader)
 		{
 			LOG_ERROR("Mesh '%s' missing expected Index Header marker. Please recompile.", pszMeshFileName);
 		}
 
-		currOffset += sizeof(uint32_t);
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u32);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
 		// Copy over index data.
-		for (unsigned int iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
+		for (u32 iMesh = 0; iMesh < pFileHeader->iMeshDataCount; iMesh++)
 		{
 			MeshResource_t::GeometryObject_t& pCurOutMesh = pOutResource.pMeshes[iMesh];
 			MeshSerializer::CModel_MeshHeader_t& pCurMeshHeader = pMeshHeaders[iMesh];
 
 			pCurOutMesh.iIndexCount = pCurMeshHeader.iIndexCount;
 			pCurOutMesh.iIndexOffset = pCurMeshHeader.iIndexOffset;
-			pCurOutMesh.iIndexData = new uint32_t[pCurOutMesh.iIndexCount];
+			pCurOutMesh.iIndexData = new u32[pCurOutMesh.iIndexCount];
 
-			uint32_t* pIndexBase = (uint32_t*)pCurOutMesh.iIndexData;
+			u32* pIndexBase = (u32*)pCurOutMesh.iIndexData;
 
-			for (uint32_t idx = 0; idx < pCurMeshHeader.iIndexCount; idx++)
+			for (u32 idx = 0; idx < pCurMeshHeader.iIndexCount; idx++)
 			{
-				Platform::MemoryCopy(pIndexBase + idx, (uint8_t*)pBytes + pCurOutMesh.iIndexOffset + (4 * idx), sizeof(uint32_t));
+				Platform::MemoryCopy(pIndexBase + idx, (u8*)pBytes + pCurOutMesh.iIndexOffset + (4 * idx), sizeof(u32));
 			}
 		}
 
 		currOffset += pFileHeader->iIndexStride * pFileHeader->iIndexCount;
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceMaterialDataHeader);
-		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceMaterialDataHeader)
+		CAssert(*(u32*)pBytes == MeshSerializer::kModelResourceMaterialDataHeader);
+		if (*(u32*)pBytes != MeshSerializer::kModelResourceMaterialDataHeader)
 		{
 			LOG_ERROR("Mesh '%s' missing expected Material Header marker. Please recompile.", pszMeshFileName);
 		}
 
-		currOffset += sizeof(uint32_t);
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u32);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
-		Utl::CVector<uint32_t> materialNameOffsets(pFileHeader->iMaterialCount);
+		Utl::CVector<u32> materialNameOffsets(pFileHeader->iMaterialCount);
 
 		// Get the material indices and store 'em off!
-		for (uint32_t iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		for (u32 iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
 		{
-			uint32_t* pNameIdx = (uint32_t*)pBytes;
+			u32* pNameIdx = (u32*)pBytes;
 			materialNameOffsets.PushBack(*pNameIdx);
 
-			currOffset += sizeof(uint32_t);
-			pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+			currOffset += sizeof(u32);
+			pBytes = (byte*)((u8*)pDataPtr + currOffset);
 		}
 
-		CAssert(*(uint32_t*)pBytes == MeshSerializer::kModelResourceStringDataHeader);
-		if (*(uint32_t*)pBytes != MeshSerializer::kModelResourceStringDataHeader)
+		CAssert(*(u32*)pBytes == MeshSerializer::kModelResourceStringDataHeader);
+		if (*(u32*)pBytes != MeshSerializer::kModelResourceStringDataHeader)
 		{
 			LOG_ERROR("Mesh '%s' missing expected String Header marker. Please recompile.", pszMeshFileName);
 		}
 
-		currOffset += sizeof(uint32_t);
-		pBytes = (byte*)((uint8_t*)pDataPtr + currOffset);
+		currOffset += sizeof(u32);
+		pBytes = (byte*)((u8*)pDataPtr + currOffset);
 
 		// We are now at the string table.
 		// Copy over the string names.
 		pOutResource.pMaterialNames.Resize(pFileHeader->iMaterialCount);
 		pOutResource.pMaterialNames.SetCount(pFileHeader->iMaterialCount);
-		for (uint32_t iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
+		for (u32 iMat = 0; iMat < pFileHeader->iMaterialCount; iMat++)
 		{
 			pOutResource.pMaterialNames[iMat] = Utl::StringDuplicate((char*)pBytes + materialNameOffsets[iMat]);
 		}

@@ -43,9 +43,9 @@ namespace MaterialLoader
 		while (!FileSystem::IsEOF(&hMaterialConfigFile))
 		{
 			char	szCurrentLine[kScratchStringBufferLength];
-			size_t	currentLineLength{ 0 };
-			size_t	bytesRead{ 0 };
-			size_t	equalIndex{ 0 };
+			u64	currentLineLength{ 0 };
+			u64	bytesRead{ 0 };
+			u64	equalIndex{ 0 };
 			char	szKey[500];
 			char	szValue[500];
 			

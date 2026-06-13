@@ -16,19 +16,19 @@
 //-------------------------------------------------------------------------
 struct DebugLineShaderUniformLocations
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 struct DebugTextShaderUniformLocations
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	fontAtlas{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	fontAtlas{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 //-------------------------------------------------------------------------
@@ -187,7 +187,7 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 				// The text needs to be rotated to always face the camera
 				Vector vecTextPos = matTransform.GetTranslation();
 				Vector vecCameraPos = pRenderData->pCamera->vecPosition;
-				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
+				f32 flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
 				matTransform = Matrix4x4::RotateAboutYAxis(pCurGeo.matLocalToWorldTransform, M_DEG2RAD_F(flAngle + 180.0f)); // NOTE: The +180 degrees is to flip the text to face the right way.
 
 				m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugTextShaderUniforms.model, 0, 0, &matTransform);

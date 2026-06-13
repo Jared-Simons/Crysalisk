@@ -26,7 +26,7 @@ struct Ray_t
 	// Indicates if the ray hit anything.
 	bool	bDidHit{ false };
 	// The distance the ray travelled from its origin along it's direction vector.
-	float	flDistance{ 0.0f };
+	f32	flDistance{ 0.0f };
 	// A pointer to the geometry this ray hit, if any.
 	GeometryInstance_t* pHitGeometry{ nullptr };
 };
@@ -41,7 +41,7 @@ public:
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, unsigned int* pCulledGeometries) const;
+	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, u32* pCulledGeometries) const;
 	void										CastRayIntoScene(Ray_t& pRay, class IDebugGeometrySystem* pDebugGeometry) const;
 
 private:

@@ -45,25 +45,25 @@ public:
 	virtual bool			BeginRenderpass(struct Renderpass* pRenderpass) = 0;
 	virtual void			EndRenderpass() = 0;
 
-	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) = 0;
+	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
 	virtual void			ReleaseTextureResources(struct Texture* pTexture) = 0;
 
 	virtual bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) = 0;
 	virtual void			DestroyShader(class Shader* pShader) = 0;
 
-	virtual void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) = 0;
-	virtual void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) = 0;
+	virtual void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) = 0;
+	virtual void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) = 0;
 
 	virtual void			BindShader(class Shader* pShader) = 0;
 	virtual void			BindShaderPerFrameUniforms(class Shader* pShader) = 0;
-	virtual void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID) = 0;
+	virtual void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) = 0;
 
-	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) = 0;
+	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) = 0;
 
-	virtual RenderBuffer*	CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
+	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
-	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
 	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
 	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const = 0;
 
@@ -71,13 +71,13 @@ public:
 
 	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) = 0;
 	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) = 0;
-	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
+	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
-	virtual float			GetRendererTime() const = 0;
+	virtual f32			GetRendererTime() const = 0;
 	virtual const char*		GetRendererDebugVisModeName() const = 0;
 
 	virtual void	SetMinimized(bool bMinimized) = 0;
-	virtual void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) = 0;
+	virtual void	SetWindowDimensions(u32 iWidth, u32 iHeight) = 0;
 
-	virtual inline size_t	GetCurrentRenderFrame() const = 0;
+	virtual inline u64	GetCurrentRenderFrame() const = 0;
 };

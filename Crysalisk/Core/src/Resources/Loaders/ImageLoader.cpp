@@ -69,8 +69,8 @@ namespace ImageLoader
 			return false;
 		}
 
-		size_t imageDataSize = FileSystem::FileSize(&tempFileHandle);
-		size_t bytesRead{ 0 };
+		u64 imageDataSize = FileSystem::FileSize(&tempFileHandle);
+		u64 bytesRead{ 0 };
 		Utl::CVector<byte> rawImageData(imageDataSize);
 		FileSystem::ReadWholeBinaryFile(rawImageData.Data(), imageDataSize, &bytesRead, &tempFileHandle);
 		

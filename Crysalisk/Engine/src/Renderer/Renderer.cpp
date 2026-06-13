@@ -70,56 +70,56 @@ public:
 	bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
 	void			EndRenderpass() override;
 
-	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) override;
 	void			DestroyShader(class Shader* pShader) override;
 
-	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) override;
-	void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) override;
+	void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) override;
+	void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) override;
 
 	void			BindShader(class Shader* pShader) override;
 	void			BindShaderPerFrameUniforms(class Shader* pShader) override;
-	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID) override;
+	void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) override;
 
-	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
 
-	RenderBuffer*	CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
+	RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
 	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
-	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 	RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
 	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
 	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
 	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
-	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
+	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
-	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
+	virtual f32	GetRendererTime() const { return (f32)m_flLastFrameTime; }
 	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
 
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
-	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
+	void	SetWindowDimensions(u32 iWidth, u32 iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
-	virtual inline size_t	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
+	virtual inline u64	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
 private:
 	RendererConfig_t	m_Config{};
 	IRendererBackend*	m_RendererBackend{ nullptr };
 	bool				m_bMinimized{ false };
 	Clock				m_RendererClock{};
-	double				m_flLastFrameTime{};
+	f64				m_flLastFrameTime{};
 
-	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
-	uint8_t				m_iRendererDebugMode{ 0 };
+	u64				m_iCurrentRendererFrame{ kInvalidID_U64 };
+	u8				m_iRendererDebugMode{ 0 };
 
 	RenderMetrics_t		m_Metrics{};
 
 	// The current dimensions of the surface we are presenting to (usually a window).
-	unsigned int	m_iWindowWidth{ 0 };
-	unsigned int	m_iWindowHeight{ 0 };
+	u32	m_iWindowWidth{ 0 };
+	u32	m_iWindowHeight{ 0 };
 
 	Utl::LinearAllocator	m_FrameAllocator{};
 
@@ -333,7 +333,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	pRenderData.iCulledGeometries = 0;
 
 	// Calculate our delta time.
-	double currentFrameTime = m_RendererClock.GetElapsedTime();
+	f64 currentFrameTime = m_RendererClock.GetElapsedTime();
 	m_flLastFrameTime = currentFrameTime;
 
 	// Save off the frametime.
@@ -370,7 +370,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	pShaderSystem->BindShader(kInvalidID_U32);
 
 	// Reset buffer offsets.
-	for (uint32_t iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	for (u32 iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
 	{
 		m_RenderBuffers[iBuffer].m_CurrentBoundOffset = kInvalidID_U64;
 	}
@@ -478,7 +478,7 @@ void CRenderer::EndRenderpass()
 //			pPixelData - An array of the texture's pixel data.
 // Output:	bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool CRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool CRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData)
 {
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
@@ -522,7 +522,7 @@ void CRenderer::DestroyShader(Shader* pShader)
 //			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
+void CRenderer::AcquireShaderInstanceResources(Shader* pShader, u32* pOutInstanceID, const char* pszResourceName)
 {
 	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
 }
@@ -533,7 +533,7 @@ void CRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pO
 //			pInstanceID - The instance to be released.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CRenderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+void CRenderer::ReleaseShaderInstanceResources(Shader* pShader, u32 pInstanceID)
 {
 	m_RendererBackend->ReleaseShaderInstanceResources(pShader, pInstanceID);
 }
@@ -564,7 +564,7 @@ void CRenderer::BindShaderPerFrameUniforms(Shader* pShader)
 //			hInstanceID - The instance to be bound.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
+void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, u32 hInstanceID)
 {
 	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
 }
@@ -579,9 +579,9 @@ void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hIns
 //			pOutBuffer - Stores the newly created renderbuffer.
 // Output:	Returns true on successful creation, otherwise false.
 //-------------------------------------------------------------------------
-RenderBuffer* CRenderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName)
+RenderBuffer* CRenderer::CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName)
 {
-	size_t iNewBuffer = m_RenderBuffers.Count();
+	u64 iNewBuffer = m_RenderBuffers.Count();
 	m_RenderBuffers.PushBack(RenderBuffer{});
 	RenderBuffer* pNewBuffer = &m_RenderBuffers.Back();
 
@@ -616,7 +616,7 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
+bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
 {
 	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
 
@@ -643,7 +643,7 @@ RenderBuffer* CRenderer::GetRenderBufferByName(const char* pszBufferName) const
 		return nullptr;
 	}
 
-	for (uint32_t iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	for (u32 iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
 	{
 		if (Utl::StringCompare(pszBufferName, m_RenderBuffers[iBuffer].pszBufferName))
 			return &m_RenderBuffers[iBuffer];
@@ -662,7 +662,7 @@ RenderBuffer* CRenderer::GetRenderBufferByName(const char* pszBufferName) const
 //			pData - An opaque pointer to the value to be set in the uniform.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
+void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
 }
@@ -718,7 +718,7 @@ void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 // 
 // TODO: Find a way to combine this and the above method.
 //-------------------------------------------------------------------------
-void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
 }

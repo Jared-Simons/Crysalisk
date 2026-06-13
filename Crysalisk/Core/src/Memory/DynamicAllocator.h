@@ -12,8 +12,8 @@
 // Stores metadata about heap allocations made by freelist allocators.
 struct AllocHeader_t
 {
-	size_t	Size{ 0 };
-	size_t	Offset{ 0 };
+	u64	Size{ 0 };
+	u64	Offset{ 0 };
 };
 
 const int kAllocHeaderSize = sizeof(AllocHeader_t);
@@ -30,16 +30,16 @@ namespace Utl
 
 		// Initialize internal state for the allocator. This MUST be called before this allocator can do any allocations.
 		// NOTE: 'pMemoryBlock' is to be allocated and freed by client code.
-		void InitAllocatorInternals(size_t sizeInBytes, void* pMemoryBlock, bool bStoreFreelistInMemoryBlock);
+		void InitAllocatorInternals(u64 sizeInBytes, void* pMemoryBlock, bool bStoreFreelistInMemoryBlock);
 
 		// Called after 'InitAllocatorInternals()', this sets up the internal freelist.
 		void InitFreelist(void* pMemoryBlock);
 
 		// Get the size in bytes required for the internal freelist.
-		inline size_t GetInternalFreelistMemoryRequirement() const { return m_FreeList.GetInternalMemoryRequirement(); }
+		inline u64 GetInternalFreelistMemoryRequirement() const { return m_FreeList.GetInternalMemoryRequirement(); }
 
 		// Allocates a block of memory.
-		void* Allocate(size_t size);
+		void* Allocate(u64 size);
 
 		// Free a block of memory.
 		int Free(void* pMemoryBlock);
@@ -50,7 +50,7 @@ namespace Utl
 
 	private:
 		// The number of bytes that this allocator is tracking/can allocate from.
-		size_t		m_SizeInBytes;
+		u64		m_SizeInBytes;
 		// A pointer to the base of the memory block this allocator is allocating from.
 		void*		m_pMemoryBlock;
 		// The freelist this allocator is using to track allocations.

@@ -69,5 +69,5 @@ public:
 // Global interface to the engine context.
 extern IEngine* g_pEngine;
 
-ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
+ENGINE_API bool WindowResizeHandler(u32 width, u32 height);
 void WindowClosedHandler();

@@ -54,7 +54,7 @@ struct JobResults_t
 	// Indicates if the job was successfully completed.
 	bool	bWasJobSuccessful{ false };
 	// The size of the user data in bytes.
-	size_t	iUserDataSize{ 0 };
+	u64	iUserDataSize{ 0 };
 	// An opaque to the job-specific data.
 	void*	pUserData{ nullptr };
 };
@@ -67,13 +67,13 @@ struct JobDeclaration_t
 	// The entry point of the job. Required.
 	PFN_Job_Entry_Point	pfnEntryPoint{ nullptr };
 	// The size in bytes of the params passed in the pParams pointer.
-	size_t				iParamSize{ 0 };
+	u64				iParamSize{ 0 };
 	// An opaque pointer to parameters to be passed to the job.
 	void*				pParams{ nullptr };
 	// Holds the job's results.
 	JobResults_t		pJobResults{};
 	// The type of job to be executed (corresponds to the eWorkerThreadType enum).
-	uint32_t			iJobType{ WORKER_THREAD_TYPE_GENERAL };
+	u32			iJobType{ WORKER_THREAD_TYPE_GENERAL };
 	// The job's priority.
 	eJobPriority		ePriority{ eJobPriority::NORMAL };
 
@@ -98,8 +98,8 @@ struct JobDeclaration_t
 //-------------------------------------------------------------------------
 struct JobSystemConfig_t
 {
-	size_t		iNumJobThreads{ 0 };
-	uint32_t	iWorkerThreadTypes[15];
+	u64		iNumJobThreads{ 0 };
+	u32	iWorkerThreadTypes[15];
 };
 
 //-------------------------------------------------------------------------

@@ -29,8 +29,8 @@ public:
 	bool IsClockActive() { return m_IsActive; }
 
 private:
-	double	m_StartTime;
-	double	m_ElapsedTime;
+	f64	m_StartTime;
+	f64	m_ElapsedTime;
 	bool	m_IsActive;
 };
 

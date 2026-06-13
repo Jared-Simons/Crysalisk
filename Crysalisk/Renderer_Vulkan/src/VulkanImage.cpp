@@ -18,7 +18,7 @@
 //			pOutImage - The structure that will hold the created image.
 // Output:	Returns true on successful image creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* pszImageName, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
+bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* pszImageName, u32 width, u32 height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.pNext = nullptr;
@@ -163,7 +163,7 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer& pRenderingContext, VkIm
 //			pPixelData - An array of the pixels to be written to the image.
 // Output:	Returns true on successful data write operation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData)
+bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, u32 width, u32 height, u8 numChannels, byte* pPixelData)
 {
 	// Put the image data into a nice staging buffer.
 	VulkanBuffer stagingBuffer;

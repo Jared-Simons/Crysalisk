@@ -19,7 +19,7 @@
 //			pOutBuffer - The structure that will hold the created buffer.
 // Output:	bool - Returns true on successful buffer creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer)
+bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, u64 bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer)
 {
 	if (bufferSize <= 0)
 	{
@@ -55,8 +55,8 @@ bool VulkanBuffer::CreateBuffer(CVulkanRenderer& pRenderingContext, size_t buffe
 	{
 		// Set up our freelist.
 		pOutBuffer.m_Freelist.SetNumBytesToTrack(bufferSize);
-		size_t freelistMemoryRequirement = pOutBuffer.m_Freelist.GetInternalMemoryRequirement();
-		pOutBuffer.m_pFreelistMemory = new uint8_t[freelistMemoryRequirement];
+		u64 freelistMemoryRequirement = pOutBuffer.m_Freelist.GetInternalMemoryRequirement();
+		pOutBuffer.m_pFreelistMemory = new u8[freelistMemoryRequirement];
 		pOutBuffer.m_Freelist.InitFreelist(pOutBuffer.m_pFreelistMemory);
 	}
 
@@ -94,7 +94,7 @@ void VulkanBuffer::DestroyBuffer(CVulkanRenderer& pRenderingContext, VulkanBuffe
 //			iNewBufferSize - The new size of the buffer in bytes.
 // Output:	none.
 //-------------------------------------------------------------------------
-void VulkanBuffer::Resize(CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, size_t iNewBufferSize)
+void VulkanBuffer::Resize(CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, u64 iNewBufferSize)
 {
 	if (pBuffer->m_BufferSize >= iNewBufferSize || iNewBufferSize < 1)
 	{
@@ -156,7 +156,7 @@ void VulkanBuffer::Resize(CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuf
 //			pData - An opaque pointer to the data to be uploaded.
 // Output:	The offset in the buffer that this data was placed.
 //-------------------------------------------------------------------------
-size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData)
+u64 VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, u64 dataSize, void* pData)
 {
 	if (dataSize <= 0)
 	{
@@ -164,7 +164,7 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 		return kInvalidID_U64;
 	}
 
-	size_t dataOffset = m_BytesAllocated;
+	u64 dataOffset = m_BytesAllocated;
 
 	// If we're tracking memory via a freelist, get the memory range from there.
 	if (m_bUsesFreelist)
@@ -177,7 +177,7 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 	memcpy(pBufferData, pData, dataSize);
 	vkUnmapMemory(pRenderingContext.m_Device.m_Device, m_Memory);
 
-	size_t outOffset = m_BytesAllocated;
+	u64 outOffset = m_BytesAllocated;
 	m_BytesAllocated += dataSize;
 
 	return outOffset;
@@ -190,7 +190,7 @@ size_t VulkanBuffer::UploadDataRange(CVulkanRenderer& pRenderingContext, size_t 
 //			dataSize - The size of data in bytes to be freed.
 // Output:	none.
 //-------------------------------------------------------------------------
-void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize)
+void VulkanBuffer::FreeDataRange(CVulkanRenderer& pRenderingContext, u64 dataOffset, u64 dataSize)
 {
 	// Deduct the size from the count.
 	m_BytesAllocated -= dataSize;

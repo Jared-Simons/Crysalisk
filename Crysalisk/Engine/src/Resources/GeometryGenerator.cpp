@@ -23,7 +23,7 @@
 //			flHeight - The height of the quad.
 // Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
 //-------------------------------------------------------------------------
-GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, float flWidth, float flHeight)
+GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigin, f32 flWidth, f32 flHeight)
 {
 	GeometryConfig_t quadConfig{};
 
@@ -69,14 +69,14 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 //			flDepth - The depth of the cube.
 // Output:	Returns a GeometryConfig_t that can be uploaded and used during rendering.
 //-------------------------------------------------------------------------
-GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, float flWidth, float flHeight, float flDepth)
+GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, f32 flWidth, f32 flHeight, f32 flDepth)
 {
 	GeometryConfig_t cubeConfig{};
 	int faceIdx = 0;
 
-	const float halfWidth = flWidth / 2;
-	const float halfHeight = flHeight / 2;
-	const float halfDepth = flDepth / 2;
+	const f32 halfWidth = flWidth / 2;
+	const f32 halfHeight = flHeight / 2;
+	const f32 halfDepth = flDepth / 2;
 
 	cubeConfig.Vertices.Resize(36);
 
@@ -233,7 +233,7 @@ GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigi
 //-------------------------------------------------------------------------
 void MeshGenerator::GenerateTangentData(GeometryConfig_t& pAppConfig)
 {
-	size_t triCount = pAppConfig.Vertices.Count() / 3;
+	u64 triCount = pAppConfig.Vertices.Count() / 3;
 	{
 		for (int triIdx = 0; triIdx < triCount; triIdx++)
 		{
@@ -246,8 +246,8 @@ void MeshGenerator::GenerateTangentData(GeometryConfig_t& pAppConfig)
 			Vector2D dUV1 = pAppConfig.Vertices[(triIdx * 3) + 1].TexCoord - pAppConfig.Vertices[(triIdx * 3) + 0].TexCoord;
 			Vector2D dUV2 = pAppConfig.Vertices[(triIdx * 3) + 2].TexCoord - pAppConfig.Vertices[(triIdx * 3) + 0].TexCoord;
 
-			float dividend = (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
-			float f = 1.0f / dividend;
+			f32 dividend = (dUV1.x * dUV2.y - dUV2.x * dUV1.y);
+			f32 f = 1.0f / dividend;
 
 			if (dividend < 0.001f && dividend > -0.001f)
 			{

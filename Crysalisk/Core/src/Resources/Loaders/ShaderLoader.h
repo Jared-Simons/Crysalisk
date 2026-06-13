@@ -25,7 +25,7 @@ namespace ShaderLoader
 			// A string representing this stage (e.g. 'vert' or 'frag').
 			char*				pszStageString{ nullptr };
 			// The size in bytes of this module's bytecode.
-			size_t				CodeDataSize{ 0 };
+			u64				CodeDataSize{ 0 };
 			// The bytecode for this shader stage.
 			Utl::CVector<byte>	pShaderModuleBytecode{};
 			// The name of the shader module.

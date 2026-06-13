@@ -23,7 +23,7 @@ struct DebugGeometry_t
 {
 	Vector4D			color{};
 	GeometryInstance_t	geometryInstance{};
-	float				flTimeToRemove{ 0.0f };
+	f32				flTimeToRemove{ 0.0f };
 };
 
 //-------------------------------------------------------------------------
@@ -31,19 +31,19 @@ struct DebugGeometry_t
 //-------------------------------------------------------------------------
 struct DebugLineShaderUniformLocations
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 struct DebugTextShaderUniformLocations
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	fontAtlas{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	fontAtlas{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 //-------------------------------------------------------------------------
@@ -59,15 +59,15 @@ public:
 	virtual void	Update() override;
 	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) override;
 
-	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) override;
-	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
-	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
-	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
+	virtual int		AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
+	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration) override;
+	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration) override;
+	virtual int		AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
+	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration) override;
+	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, f32 flDuration) override;
 	virtual void	RemoveDebugGeometry(int debugGeoHandle) override;
 
-	virtual void	UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matrix4x4 matTransform) override;
+	virtual void	UpdateDebugGeometryTransform(u32 debugGeoHandle, Matrix4x4 matTransform) override;
 
 private:
 	int				GetFirstFreeGeometryDataIndex() const;
@@ -84,11 +84,11 @@ private:
 	ShaderHandle_t					m_hDebugTextShader{ kInvalidID_U32 };
 	DebugTextShaderUniformLocations	m_DebugTextShaderUniforms{};
 
-	unsigned int		m_iActiveGeometryInstances{ 0 };
+	u32		m_iActiveGeometryInstances{ 0 };
 	DebugGeometry_t*	m_GeometryData{ nullptr };
 
 	// NOTE: This gets updated from the main renderer's clock.
-	float			m_flRendererTime{ 0.0f };
+	f32			m_flRendererTime{ 0.0f };
 };
 
 //-------------------------------------------------------------------------
@@ -124,7 +124,7 @@ bool CDebugGeometrySystem::Initialize(DebugRendererConfig_t& pConfig)
 		return false;
 	}
 
-	m_pDebugIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer");
+	m_pDebugIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(u32) * 1024, eRenderBufferUsage::INDEX, true, "Debug_Renderer_Line_Index_Buffer");
 	if (m_pDebugIndexBuffer == nullptr)
 	{
 		LOG_ERROR("Failed to create debug index buffer!");
@@ -174,8 +174,8 @@ void CDebugGeometrySystem::Shutdown()
 void CDebugGeometrySystem::Update()
 {
 	m_flRendererTime = m_Config.pRenderer->GetRendererTime();
-	uint32_t numGeoFound = 0;
-	for (uint32_t iGeo = 0; numGeoFound < m_iActiveGeometryInstances && iGeo < m_Config.uMaxDebugGeometries; iGeo++)
+	u32 numGeoFound = 0;
+	for (u32 iGeo = 0; numGeoFound < m_iActiveGeometryInstances && iGeo < m_Config.uMaxDebugGeometries; iGeo++)
 	{
 		DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
 		if (pCurGeo.geometryInstance.hShaderInstance == kInvalidID_U32)
@@ -200,8 +200,8 @@ void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*
 	*pOutVertexBuffer = m_pDebugVertexBuffer;
 	*pOutIndexBuffer = m_pDebugIndexBuffer;
 
-	uint32_t numGeoFound = 0;
-	for (uint32_t iGeo = 0; iGeo < m_Config.uMaxDebugGeometries && numGeoFound < m_iActiveGeometryInstances; iGeo++)
+	u32 numGeoFound = 0;
+	for (u32 iGeo = 0; iGeo < m_Config.uMaxDebugGeometries && numGeoFound < m_iActiveGeometryInstances; iGeo++)
 	{
 		if (m_GeometryData[iGeo].geometryInstance.hShaderInstance != kInvalidID_U32)
 		{
@@ -214,7 +214,7 @@ void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*
 //-------------------------------------------------------------------------
 // Purpose: Adds a point (provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -241,7 +241,7 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector
 	ptVerts[2].y += flRadius;
 	ptVerts[3].z += flRadius;
 
-	uint32_t indices[6] = { 0, 1, 0, 2, 0, 3 };
+	u32 indices[6] = { 0, 1, 0, 2, 0, 3 };
 
 	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, 4, sizeof(Vector), 0, ptVerts, 6, indices, &pNewGeometry.geometryInstance);
 
@@ -257,7 +257,7 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector
 //-------------------------------------------------------------------------
 // Purpose: Adds a line (endpoints provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -291,7 +291,7 @@ int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector
 //-------------------------------------------------------------------------
 // Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -320,7 +320,7 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 	Vector ptVertices[iNumVertices]{};
 
 	const int iNumIndices = 24;
-	uint32_t indices[iNumIndices] = { 0, 1, 2, 3 };
+	u32 indices[iNumIndices] = { 0, 1, 2, 3 };
 
 	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
 	ptVertices[0] = vecLocalMins;
@@ -373,7 +373,7 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 //-------------------------------------------------------------------------
 // Purpose: Adds a sphere (origin provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -397,24 +397,24 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 	const int iNumVertices = 72;
 	Vector3D ptVertices[iNumVertices]{};
 
-	const float fl2PI = 2.0f * kPI_F;
+	const f32 fl2PI = 2.0f * kPI_F;
 	int iCurrentVert = 0;
 
-	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	for (f32 flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
 	{
 		ptVertices[iCurrentVert].x = flRadius * M_COS_F(flAngle);
 		ptVertices[iCurrentVert].y = flRadius * M_SIN_F(flAngle);
 		iCurrentVert += 1;
 	}
 
-	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	for (f32 flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
 	{
 		ptVertices[iCurrentVert].x = flRadius * M_COS_F(flAngle);
 		ptVertices[iCurrentVert].z = flRadius * M_SIN_F(flAngle);
 		iCurrentVert += 1;
 	}
 
-	for (float flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
+	for (f32 flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
 	{
 		ptVertices[iCurrentVert].y = flRadius * M_COS_F(flAngle);
 		ptVertices[iCurrentVert].z = flRadius * M_SIN_F(flAngle);
@@ -422,7 +422,7 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 	}
 
 	const int iNumIndices = 144;
-	uint32_t indices[iNumIndices]{};
+	u32 indices[iNumIndices]{};
 	iCurrentVert = 1;
 	// Setup index data.
 	for (int iIndex = 0; iIndex < iNumIndices; iIndex += 2)
@@ -452,7 +452,7 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 //-------------------------------------------------------------------------
 // Purpose: Adds a piece of text to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration)
 {
 	// TODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
@@ -496,7 +496,7 @@ int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, Fon
 //-------------------------------------------------------------------------
 // Purpose: Adds a camera frustum to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, float flDuration)
+int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, f32 flDuration)
 {
 	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
@@ -523,7 +523,7 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, fl
 	Vector ptVertices[iNumVertices]{};
 
 	const int iNumIndices = 24;
-	uint32_t indices[iNumIndices];
+	u32 indices[iNumIndices];
 
 	Vector vecCameraPosition = pCamera.vecPosition;
 
@@ -598,7 +598,7 @@ void CDebugGeometrySystem::RemoveDebugGeometry(int debugGeoHandle)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-void CDebugGeometrySystem::UpdateDebugGeometryTransform(uint32_t debugGeoHandle, Matrix4x4 matTransform)
+void CDebugGeometrySystem::UpdateDebugGeometryTransform(u32 debugGeoHandle, Matrix4x4 matTransform)
 {
 	if (debugGeoHandle == kInvalidID_U32)
 		return;
@@ -613,7 +613,7 @@ void CDebugGeometrySystem::UpdateDebugGeometryTransform(uint32_t debugGeoHandle,
 //-------------------------------------------------------------------------
 int CDebugGeometrySystem::GetFirstFreeGeometryDataIndex() const
 {
-	for (unsigned int idx = 0; idx < m_Config.uMaxDebugGeometries; idx++)
+	for (u32 idx = 0; idx < m_Config.uMaxDebugGeometries; idx++)
 	{
 		if (m_GeometryData[idx].geometryInstance.hShaderInstance == kInvalidID_U32)
 		{

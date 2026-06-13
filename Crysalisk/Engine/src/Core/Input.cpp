@@ -240,7 +240,7 @@ void API_ProcessKeyInput(int processedKeyInput, bool pressed)
 	s_InputSystem->ProcessKeyInput(processedKeyInput, pressed);
 }
 
-void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed)
+void API_ProcessMouseButtonInput(u32 mouseButtonFlags, bool bPressed)
 {
 	s_InputSystem->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
 }

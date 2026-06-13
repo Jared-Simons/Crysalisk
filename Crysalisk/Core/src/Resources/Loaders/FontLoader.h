@@ -14,22 +14,22 @@
 namespace FontLoader
 {
 	// Attempts to load an existing font asset from disk (NOTE: This currently only supports True-Type fonts!)
-	CORE_API bool LoadFontResource(const char* pszFontPath, size_t iFontSize, struct FontResource_t& pOutResource);
+	CORE_API bool LoadFontResource(const char* pszFontPath, u64 iFontSize, struct FontResource_t& pOutResource);
 
 	struct FontCharData_t
 	{
-		unsigned short	xMin;
-		unsigned short	xMax;
-		unsigned short	yMin;
-		unsigned short	yMax;
-		float			xOffset;
-		float			yOffset;
-		float			flAdvance;
+		u16	xMin;
+		u16	xMax;
+		u16	yMin;
+		u16	yMax;
+		f32			xOffset;
+		f32			yOffset;
+		f32			flAdvance;
 		
-		float			sMin;
-		float			tMin;
-		float			sMax;
-		float			tMax;
+		f32			sMin;
+		f32			tMin;
+		f32			sMax;
+		f32			tMax;
 	};
 
 	// A font resource generated from a file on disk.
@@ -37,11 +37,11 @@ namespace FontLoader
 	struct FontResource_t
 	{
 		// The number of fonts in this resource.
-		size_t							FontCount{ 0 };
+		u64							FontCount{ 0 };
 		// The size of this font.
-		float							FontSize{ 0.0f };
+		f32							FontSize{ 0.0f };
 		// The scale of the font, for scaling to surface resolution.
-		float							flFontScale{ 0.0f };
+		f32							flFontScale{ 0.0f };
 		// The unit height between lines.
 		u32								lineHeight{ 0 };
 

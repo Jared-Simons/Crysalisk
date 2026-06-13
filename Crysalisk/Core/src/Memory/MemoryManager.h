@@ -12,7 +12,7 @@
 // Some configuration parameters for the application-wide memory manager.
 struct ApplicationMemoryConfiguration_t
 {
-	size_t totalMemoryBudget;	// The amount of memory to request from the OS on initialization.
+	u64 totalMemoryBudget;	// The amount of memory to request from the OS on initialization.
 };
 
 //-------------------------------------------------------------------------
@@ -32,12 +32,12 @@ public:
 	virtual void		Shutdown() = 0;
 
 	// Allocate/free memory from the application-wide memory manager.
-	virtual void*		Allocate(size_t sizeInBytes) = 0;
+	virtual void*		Allocate(u64 sizeInBytes) = 0;
 	virtual void		Free(void* pMemBlock) = 0;
 
 	virtual bool		IsInitialized() const = 0;
 	virtual void		PrintMemoryStats() = 0;
-	virtual float		GetPercentAllocated() const = 0;
+	virtual f32		GetPercentAllocated() const = 0;
 };
 
 // A global interface pointer to the application's memory manager.

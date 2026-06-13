@@ -16,8 +16,8 @@
 #include <Strings/String_Utils.h>
 
 // A unique identifier for a texture.
-using TextureHandle_t = uint32_t;
-using TextureFlags = uint8_t;
+using TextureHandle_t = u32;
+using TextureFlags = u8;
 
 // Bit-flags for specific texture attributes.
 enum TextureFlags_t
@@ -47,30 +47,30 @@ enum class eTextureType
 struct Texture
 {
 	// The width of the texture.
-	int32_t			width;
+	i32			width;
 	// The height of the texture.
-	int32_t			height;
+	i32			height;
 	// The number of channels this texture contains.
-	int32_t			numChannels;
+	i32			numChannels;
 	// The name of this texture.
 	char*			pszTextureName{ nullptr };
 	// Indicates the amount of changes made to the texture.
-	uint8_t			generation{ kInvalidID_U8 };
+	u8			generation{ kInvalidID_U8 };
 	// Texture flags.
 	TextureFlags	textureFlags{ 0 };
 	// The internal handle for the texture.
-	uint32_t		internalHandle{ kInvalidID_U32 };
+	u32		internalHandle{ kInvalidID_U32 };
 };
 
 // A unique identifier for a font.
-using FontHandle_t = uint32_t;
+using FontHandle_t = u32;
 
 // The internal representation of a font.
 struct Font
 {
 public:
 	// The internal shader instance ID used for rendering this font.
-	uint32_t		m_InternalInstanceID{ kInvalidID_U32 };
+	u32		m_InternalInstanceID{ kInvalidID_U32 };
 	// The font atlas texture map.
 	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
 	// The height between lines in this font.
@@ -80,7 +80,7 @@ public:
 };
 
 // A unique identifier for a shader.
-using ShaderHandle_t = uint32_t;
+using ShaderHandle_t = u32;
 
 // Different shader stage/module types.
 enum class eShaderStage
@@ -114,7 +114,7 @@ struct ShaderModuleConfig_t
 	// The type of shader module this config contains (e.g. Vertex, Fragment, etc.).
 	eShaderStage		eStage{ eShaderStage::UNDEFINED };
 	// The size in bytes of this module's bytecode.
-	size_t				iCodeSize{ 0 };
+	u64				iCodeSize{ 0 };
 	// The module's bytecode.
 	Utl::CVector<byte>	byteCode{};
 	// The shader module's name, only really used for debugging.
@@ -139,7 +139,7 @@ struct ShaderConfig_t
 	// An array of shader module configs.
 	Utl::CVector<ShaderModuleConfig_t>	moduleConfigs{};
 	// The types of topology rendering this shader will support.
-	unsigned int						eTopologyTypes{ SHADER_TOPOLOGY_TYPE_UNDEFINED };
+	u32						eTopologyTypes{ SHADER_TOPOLOGY_TYPE_UNDEFINED };
 	// Indicates if this shader will support depth-testing.
 	bool								bDepthTestingEnabled{ false };
 	// Indicates if this shader will support color-blending.
@@ -147,15 +147,15 @@ struct ShaderConfig_t
 	// An array of vertex attribute configs.
 	Utl::CVector<VertexAttribute_t>		vertexAttributes{};
 	// The stride of a vertex used by this shader.
-	uint32_t							vertexStride{};
+	u32							vertexStride{};
 	// An array of uniform configs.
 	Utl::CVector<ShaderUniformConfig_t> uniformConfigs{};
 	// The length of this shader's per-frame data buffer.
-	uint32_t							perFrameUBOStride{ 0 };
+	u32							perFrameUBOStride{ 0 };
 	// The length of this shader's per-instance data buffer.
-	uint32_t							perInstanceUBOStride{ 0 };
+	u32							perInstanceUBOStride{ 0 };
 	// The length of this shader's per-draw data buffer.
-	uint32_t							perDrawUBOStride{ 0 };
+	u32							perDrawUBOStride{ 0 };
 	// A pointer to the renderer view used by this shader.
 	RendererView						m_pRendererView{};
 };
@@ -164,9 +164,9 @@ struct ShaderConfig_t
 struct ShaderUniform_t
 {
 	// The offset into the data buffer that this uniform's data lives.
-	uint32_t			Offset{ 0 };
+	u32			Offset{ 0 };
 	// The length in bytes of this uniform's data.
-	uint32_t			Stride{ 0 };
+	u32			Stride{ 0 };
 	// The type of data this uniform uses.
 	ShaderAttribute_t	eType{ ShaderAttribute_t::Undefined };
 	// The group/update frequency of this uniform (e.g. per-frame, per-instance, per-draw).
@@ -180,28 +180,28 @@ public:
 	// This shader's name.
 	const char*					m_pszShaderName{ nullptr };
 	// This shader's internal handle (should be the same for this shader's ShaderHandle_t).
-	unsigned int				m_iInternalHandle{ kInvalidID_U32 };
+	u32				m_iInternalHandle{ kInvalidID_U32 };
 	// The current renderer frame (updated on shader bind).
-	size_t						m_iRendererFrame{ kInvalidID_U64 };
+	u64						m_iRendererFrame{ kInvalidID_U64 };
 	// A hashmap to store off indices for uniform indices.
 	Utl::CStringHashMap<int>	m_UniformLookup{};
 	// The number of uniforms in this shader.
-	size_t						m_iUniformCount{ 0 };
+	u64						m_iUniformCount{ 0 };
 	// An array of uniforms used by this shader.
 	ShaderUniform_t*			m_pUniforms{ nullptr };
 
 	// The length of this shader's per-frame data buffer.
-	size_t						m_iPerFrameUBOSize{ 0 };
+	u64						m_iPerFrameUBOSize{ 0 };
 	// The length of this shader's per-instance data buffer.
-	size_t						m_iPerInstanceUBOSize{ 0 };
+	u64						m_iPerInstanceUBOSize{ 0 };
 	// The alignment requirement for this shader's uniform buffers.
-	size_t						m_iUniformBufferAlignmentRequirement{ 0 };
+	u64						m_iUniformBufferAlignmentRequirement{ 0 };
 	// The number of textures this shader uses at the instance level.
-	size_t						m_iPerInstanceTextureCount{ 0 };
+	u64						m_iPerInstanceTextureCount{ 0 };
 };
 
 // A unique identifier for a material.
-using MaterialHandle_t = uint32_t;
+using MaterialHandle_t = u32;
 
 enum eMaterialFlags
 {
@@ -215,13 +215,13 @@ public:
 	// This material's name.
 	char*			m_pszMaterialName{ nullptr };
 	// The internal handle of this material.
-	unsigned int	m_iInternalHandle{ kInvalidID_U32 };
+	u32	m_iInternalHandle{ kInvalidID_U32 };
 	// The shader used to render this material.
 	ShaderHandle_t	m_hShaderHandle{ kInvalidID_U32 };
 	// Material flags.
-	uint8_t			m_iMaterialFlags{ 0 };
+	u8			m_iMaterialFlags{ 0 };
 	// The shininess exponent used to control the concentration of specular highlights.
-	unsigned int	m_iShininess{ kInvalidID_U32 };
+	u32	m_iShininess{ kInvalidID_U32 };
 	// Indicates if this material is transparent.
 	bool			m_bIsTransparent{ false };
 	// This material's diffuse texture.
@@ -238,7 +238,7 @@ struct GeometryConfig2D_t
 	// An array of vertices for this geometry.
 	Utl::CVector<Vertex2D> Vertices{};
 	// An array of indices for this geomtry.
-	Utl::CVector<uint32_t> Indices{};
+	Utl::CVector<u32> Indices{};
 };
 
 // Represents the configuration of a piece of 3D geometry.
@@ -247,7 +247,7 @@ struct GeometryConfig_t
 	// An array of vertices for this geometry.
 	Utl::CVector<Vertex3D> Vertices{};
 	// An array of indices for this geomtry.
-	Utl::CVector<uint32_t> Indices{};
+	Utl::CVector<u32> Indices{};
 
 	// The name of this piece of geometry - typically used for debugging purposes.
 	char* pszDebugName{ nullptr };
@@ -266,17 +266,17 @@ struct GeometryConfig_t
 struct GeometryInstance_t
 {
 	// The number of vertices in this mesh.
-	size_t vertexCount{ kInvalidID_U64 };
+	u64 vertexCount{ kInvalidID_U64 };
 	// The offset into the relevant vertex buffer that this mesh's vertex data begins.
-	size_t vertexDataOffset{ kInvalidID_U64 };
+	u64 vertexDataOffset{ kInvalidID_U64 };
 	// The length in bytes of a single vertex used by this mesh.
-	size_t vertexDataStride{ kInvalidID_U64 };
+	u64 vertexDataStride{ kInvalidID_U64 };
 	// The number of indices in this mesh.
-	size_t indexCount{ kInvalidID_U64 };
+	u64 indexCount{ kInvalidID_U64 };
 	// The offset into the relevant index buffer that this mesh's index data begins.
-	size_t indexDataOffset{ kInvalidID_U64 };
+	u64 indexDataOffset{ kInvalidID_U64 };
 	// The length in bytes of a single index used by this mesh.
-	size_t indexDataStride{ kInvalidID_U64 };
+	u64 indexDataStride{ kInvalidID_U64 };
 
 	// The shader to be used in rendering this geometry.
 	ShaderHandle_t		hShader{ kInvalidID_U32 };
@@ -284,7 +284,7 @@ struct GeometryInstance_t
 	u32					hShaderInstance{ kInvalidID_U32 };
 
 	// A unique identifier for the mesh resource this instance is tied to.
-	uint32_t			m_MeshID{ kInvalidID_U32 };
+	u32			m_MeshID{ kInvalidID_U32 };
 	// The model->world transform matrix.
 	Matrix4x4			matLocalToWorldTransform{};
 	// The center of the mesh relative to it's AABB in local space.
@@ -296,13 +296,13 @@ struct GeometryInstance_t
 };
 
 // A unique identifier for a mesh.
-using MeshHandle_t = uint32_t;
+using MeshHandle_t = u32;
 
 // Represents a mesh/model, made up of numerous submeshes.
 struct Mesh
 {
 	// A unique identifier per mesh.
-	uint32_t							m_MeshID{ kInvalidID_U32 };
+	u32							m_MeshID{ kInvalidID_U32 };
 	// The path of the mesh.
 	char*								m_pszMeshPath{ nullptr };
 	// An array of submeshes that make up this mesh.

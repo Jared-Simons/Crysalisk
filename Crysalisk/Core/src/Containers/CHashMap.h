@@ -35,7 +35,7 @@ namespace Utl
 			// Default constructor allocates nothing.
 		}
 
-		CStringHashMap(size_t initialCapacity)
+		CStringHashMap(u64 initialCapacity)
 			: m_Capacity{ initialCapacity }
 			, m_ValueStride{ sizeof(Value) }
 			, m_KeyStride{ sizeof(const char*) }
@@ -127,7 +127,7 @@ namespace Utl
 			return &m_pValues[hashedKey];
 		}
 
-		void Resize(size_t nNewCapacity)
+		void Resize(u64 nNewCapacity)
 		{
 			// Only resize if we're trying to grow.
 			if (nNewCapacity < m_Capacity)
@@ -200,9 +200,9 @@ namespace Utl
 		}
 
 	private:
-		size_t			m_Capacity;
-		size_t			m_KeyStride;
-		size_t			m_ValueStride;
+		u64			m_Capacity;
+		u64			m_KeyStride;
+		u64			m_ValueStride;
 		const char**	m_pKeys;
 		Value*			m_pValues;
 	};

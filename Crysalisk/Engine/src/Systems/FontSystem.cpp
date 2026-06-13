@@ -20,20 +20,20 @@
 //-------------------------------------------------------------------------
 struct UIShaderLocations_t
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	texture_maps{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	texture_maps{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 // UI Shader Locations
 static UIShaderLocations_t s_UIShaderLocations{};
 
 // The codepoint of the first character we include in our font atlases.
-const uint32_t kCodePointOfFirstChar = 32;
+const u32 kCodePointOfFirstChar = 32;
 // The number of characters we include in our font atlases.
-const uint32_t kCharsToIncludeInFontAtlas = 95;
+const u32 kCharsToIncludeInFontAtlas = 95;
 
 // This is the resolution we are expecting when creating new text geometry.
 // The font system will take care of scaling these appropriately to the current surface resolution.
@@ -56,8 +56,8 @@ class CFontSystem : public IFontSystem
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize) override;
-	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize) override;
+	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -135,7 +135,7 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 		return false;
 	}
 
-	m_pUIIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer");
+	m_pUIIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(u32) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer");
 	if (m_pUIVertexBuffer == nullptr)
 	{
 		LOG_ERROR("UI View failed to initialize!");
@@ -258,18 +258,18 @@ TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont) const
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize)
 {
 	GeometryConfig2D_t			newConfig{};
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
-	size_t						iStringLength = Utl::StringLength(pTextObject.m_pszText);
+	u64						iStringLength = Utl::StringLength(pTextObject.m_pszText);
 	int							iCurNonWhitespaceCharCount = 0; 
 
 	// Geometry data.
 	Vector2D					vecCurPos = pTextObject.m_vecPos;
-	float						width, height;
+	f32						width, height;
 	Vector2D					vecGlyphBottomLeftPos = {};
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
@@ -305,15 +305,15 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		width = pCurGlyph->xMax - pCurGlyph->xMin;
 		height = pCurGlyph->yMax - pCurGlyph->yMin;
 		
-		float flMinX = (vecCurPos.x + pCurGlyph->xOffset) * flTextSize;
-		float flMinY = (vecCurPos.y + pCurGlyph->yOffset) * flTextSize;
-		float flMaxX = (flMinX + width) * flTextSize;
-		float flMaxY = (flMinY + height) * flTextSize;
-		float flTexMinX = pCurGlyph->sMin;
-		float flTexMaxX = pCurGlyph->sMax;
+		f32 flMinX = (vecCurPos.x + pCurGlyph->xOffset) * flTextSize;
+		f32 flMinY = (vecCurPos.y + pCurGlyph->yOffset) * flTextSize;
+		f32 flMaxX = (flMinX + width) * flTextSize;
+		f32 flMaxY = (flMinY + height) * flTextSize;
+		f32 flTexMinX = pCurGlyph->sMin;
+		f32 flTexMaxX = pCurGlyph->sMax;
 		// Flip the y-coord around.
-		float flTexMinY = 1.0f - pCurGlyph->tMin;
-		float flTexMaxY = 1.0f - pCurGlyph->tMax;
+		f32 flTexMinY = 1.0f - pCurGlyph->tMin;
+		f32 flTexMaxY = 1.0f - pCurGlyph->tMax;
 
 		// Vertices:
 		vecCharVertices[0] = { flMinX, flMinY };
@@ -360,18 +360,18 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 //			pszText - The text to acquire geometry for.
 // Output:	Returns a new geometry config to use in rendering the new text.
 //-------------------------------------------------------------------------
-GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText)
+GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText)
 {
 	GeometryConfig_t				newConfig{};
 	InternalFontAtlasData_t*		pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t*		pCurGlyph = pInternalAtlas->glyphs.Data();
 
-	size_t						iStringLength = Utl::StringLength(pszText);
+	u64						iStringLength = Utl::StringLength(pszText);
 	int							iCurNonWhitespaceCharCount = 0;
 	Vector3D					vecCurPos{ 0.0f, 0.0f, 0.0f };
 
 	// TODO: Isn't this kinda arbitrary?
-	float						flTextScale = flTextSize / 128.0f;
+	f32						flTextScale = flTextSize / 128.0f;
 
 	// Geometry data.
 	Vector2D					vecGlyphSize = {};

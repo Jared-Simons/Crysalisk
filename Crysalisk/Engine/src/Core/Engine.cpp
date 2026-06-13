@@ -68,7 +68,7 @@ private:
 	CMap			m_CurrentMap{};
 
 	Clock			m_UpdateClock{};
-	double			m_LastUpdateTime{ 0.0f };
+	f64			m_LastUpdateTime{ 0.0f };
 
 	// These need access to our members.
 	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
@@ -340,8 +340,8 @@ bool CEngine::Run()
 		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled)
 		{
 			// Calculate our update delta time.
-			double currentFrameTime = m_UpdateClock.GetElapsedTime();
-			double deltaTime = currentFrameTime - m_LastUpdateTime;
+			f64 currentFrameTime = m_UpdateClock.GetElapsedTime();
+			f64 deltaTime = currentFrameTime - m_LastUpdateTime;
 			m_LastUpdateTime = currentFrameTime;
 
 			m_EngineInterfaces.pInputSystem->Update();
@@ -541,7 +541,7 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };
-		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
+		u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
 		Vector4D vecPosClip{};
 
 		// First, get the mouse coordinates in viewport-space.
@@ -600,8 +600,8 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 
 bool Event_MouseMoved(void* pEventListener, EventData_t data)
 {
-	float mouseXPos = data.f32[0];
-	float mouseYPos = data.f32[1];
+	f32 mouseXPos = data.f32[0];
+	f32 mouseYPos = data.f32[1];
 
 	//LOG_DEBUG("Mouse Pos: X:%f Y:%f", mouseXPos, mouseYPos);
 	return true;
@@ -653,7 +653,7 @@ void ReturnInterfacesToRegistry()
 //-------------------------------------------------------------------------
 // An callback that is exported so other libraries can call window resize events.
 //-------------------------------------------------------------------------
-bool WindowResizeHandler(unsigned int width, unsigned int height)
+bool WindowResizeHandler(u32 width, u32 height)
 {
 	EventData_t data{};
 	data.u32[0] = width;

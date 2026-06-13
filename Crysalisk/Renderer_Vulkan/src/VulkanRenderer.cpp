@@ -79,7 +79,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	LOG_DEBUG("Vulkan validation layers found!");
 
-	instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.Count());
+	instanceInfo.enabledLayerCount = static_cast<u32>(validationLayers.Count());
 	instanceInfo.ppEnabledLayerNames = validationLayers.Data();
 #else
 	instanceInfo.enabledLayerCount = 0;
@@ -101,7 +101,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	instanceInfo.enabledExtensionCount = static_cast<uint32_t>(instanceExtensions.Count());
+	instanceInfo.enabledExtensionCount = static_cast<u32>(instanceExtensions.Count());
 	instanceInfo.ppEnabledExtensionNames = instanceExtensions.Data();
 
 	VK_CHECK(vkCreateInstance(&instanceInfo, m_Allocator, &m_Instance));
@@ -186,7 +186,7 @@ bool CVulkanRenderer::RendererBackend_Initialize(RendererConfig_t& pConfig)
 
 	// Allocate Graphics Command Buffers
 	m_GraphicsCommandBuffers.Resize(m_MaxImagesInFlight);
-	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		if (!VulkanCommandBuffer::CreateCommandBuffer(s_VulkanContext, true, m_GraphicsCommandBuffers[idx]))
 		{
@@ -445,7 +445,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.inputAttachmentCount = 0;
-	subpass.colorAttachmentCount = (uint32_t)colorAttachmentReferences.Count();
+	subpass.colorAttachmentCount = (u32)colorAttachmentReferences.Count();
 	subpass.pColorAttachments = colorAttachmentReferences.Data();
 	subpass.pDepthStencilAttachment = depthAttachmentReferences.Data();
 	subpass.preserveAttachmentCount = 0;
@@ -468,7 +468,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 		dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	VkRenderPassCreateInfo renderpassInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
-	renderpassInfo.attachmentCount = (uint32_t)attachmentDescriptions.Count();
+	renderpassInfo.attachmentCount = (u32)attachmentDescriptions.Count();
 	renderpassInfo.pAttachments = attachmentDescriptions.Data();
 	renderpassInfo.subpassCount = 1;
 	renderpassInfo.pSubpasses = &subpass;
@@ -524,7 +524,7 @@ bool CVulkanRenderer::BeginRenderpass(Renderpass* pRenderpass)
 	{
 		VkDebugUtilsLabelEXT labelDetails{ VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT };
 		labelDetails.pLabelName = pRenderpass->pszName;
-		float color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
+		f32 color[4]{ 0.3f, 0.0f, 0.7f, 1.0f };
 		// TODO: Make this dynamic.
 		labelDetails.color[0] = 0.4f;
 		labelDetails.color[1] = 0.0f;
@@ -628,8 +628,8 @@ bool CVulkanRenderer::BeginFrame(Platform::IPlatformWindow* pTargetWindow, Rende
 	VkViewport viewport{};
 	viewport.x = 0;
 	viewport.y = 0;
-	viewport.width = static_cast<float>(pWindowState->m_Swapchain.m_SwapchainExtent.width);
-	viewport.height = static_cast<float>(pWindowState->m_Swapchain.m_SwapchainExtent.height);
+	viewport.width = static_cast<f32>(pWindowState->m_Swapchain.m_SwapchainExtent.width);
+	viewport.height = static_cast<f32>(pWindowState->m_Swapchain.m_SwapchainExtent.height);
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -767,11 +767,11 @@ void CVulkanRenderer::DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pI
 	// Issue the draw.
 	if (pGeometry.indexDataOffset != kInvalidID_U64)
 	{
-		vkCmdDrawIndexed(commandBuffer, (uint32_t)pGeometry.indexCount, 1, 0, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, (u32)pGeometry.indexCount, 1, 0, 0, 0);
 	}
 	else
 	{
-		vkCmdDraw(commandBuffer, (uint32_t)pGeometry.vertexCount, 1, 0, 0);
+		vkCmdDraw(commandBuffer, (u32)pGeometry.vertexCount, 1, 0, 0);
 	}
 }
 
@@ -806,7 +806,7 @@ static VkBufferUsageFlags ConvertGenericBufferUsageToVulkanFormat(eRenderBufferU
 //			pOutBuffer - The generic buffer structure that will hold this buffer.
 // Output:	Returns true on successful buffer creation, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
+bool CVulkanRenderer::CreateRenderBufferInternal(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
 {
 	// Allocate our internal buffer.
 	pOutBuffer.m_pInternalData = new VulkanBuffer;
@@ -874,7 +874,7 @@ static VkFormat ConvertChannelNumberToVulkanFormat(int iChannelCount)
 //			pPixelData - The pixel array for this image.
 // Output:	Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool CVulkanRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData)
 {
 	// The internal data for a Vulkan texture is the image data.
 	pTexture->internalHandle = internalIndex;
@@ -946,7 +946,7 @@ static bool CreateShaderModule(CVulkanRenderer& pRenderingContext, VulkanShaderI
 {
 	VkShaderModuleCreateInfo shaderModuleInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	shaderModuleInfo.codeSize = pConfig.iCodeSize;
-	shaderModuleInfo.pCode = (uint32_t*)pConfig.byteCode.Data();
+	shaderModuleInfo.pCode = (u32*)pConfig.byteCode.Data();
 
 	VulkanShaderModule_t newModule{};
 	if (vkCreateShaderModule(pRenderingContext.m_Device.m_Device, &shaderModuleInfo, pRenderingContext.m_Allocator, &newModule.hModule) != VK_SUCCESS)
@@ -970,7 +970,7 @@ static bool CreateShaderModule(CVulkanRenderer& pRenderingContext, VulkanShaderI
 // Input:	inStage - The generic shader topology type.
 // Output:	The Vulkan-specific shader topology type flag.
 //-------------------------------------------------------------------------
-static VkPrimitiveTopology GetVulkanTopologyType(unsigned int inType)
+static VkPrimitiveTopology GetVulkanTopologyType(u32 inType)
 {
 	switch (inType)
 	{
@@ -1051,8 +1051,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 	// Parse the vertex attributes from the config.
-	size_t	attribCount = pConfig.vertexAttributes.Count();
-	size_t	runningOffset{ 0 };
+	u64	attribCount = pConfig.vertexAttributes.Count();
+	u64	runningOffset{ 0 };
 	Utl::CVector<VkVertexInputAttributeDescription> vertexAttributes(attribCount);
 	for (int attribIdx = 0; attribIdx < attribCount; attribIdx++)
 	{
@@ -1060,7 +1060,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		newAttribute.binding = 0;
 		newAttribute.location = attribIdx;
 		newAttribute.format = GetVertexFormatFromType(pConfig.vertexAttributes[attribIdx].type);
-		newAttribute.offset = (uint32_t)runningOffset;
+		newAttribute.offset = (u32)runningOffset;
 
 		vertexAttributes.PushBack(newAttribute);
 		runningOffset += pConfig.vertexAttributes[attribIdx].stride;
@@ -1068,7 +1068,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-	vertexInputInfo.vertexAttributeDescriptionCount = (uint32_t)attribCount;
+	vertexInputInfo.vertexAttributeDescriptionCount = (u32)attribCount;
 	vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.Data();
 
 	// Input assembly
@@ -1090,8 +1090,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VkViewport viewport{};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)pWindowState->m_Swapchain.m_SwapchainExtent.width;
-	viewport.height = (float)pWindowState->m_Swapchain.m_SwapchainExtent.height;
+	viewport.width = (f32)pWindowState->m_Swapchain.m_SwapchainExtent.width;
+	viewport.height = (f32)pWindowState->m_Swapchain.m_SwapchainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
@@ -1149,11 +1149,11 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	colorBlendState.pAttachments = &colorBlendAttachment;
 
 	// Setup uniform resources
-	uint32_t iPerFrameUniformCount{ 0 };	// NOTE: Does not include images/textures.
-	uint32_t iPerFrameImageCount{ 0 };
-	uint32_t iPerMaterialUniformCount{ 0 };	// NOTE: Does not include images/textures.
-	uint32_t iPerMaterialImageCount{ 0 };
-	uint32_t iPerDrawUniformCount{ 0 };
+	u32 iPerFrameUniformCount{ 0 };	// NOTE: Does not include images/textures.
+	u32 iPerFrameImageCount{ 0 };
+	u32 iPerMaterialUniformCount{ 0 };	// NOTE: Does not include images/textures.
+	u32 iPerMaterialImageCount{ 0 };
+	u32 iPerDrawUniformCount{ 0 };
 
 	for (int idx = 0; idx < pConfig.uniformConfigs.Count(); idx++)
 	{
@@ -1190,7 +1190,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Descriptor pool
 	VkDescriptorPoolSize descriptorPoolSizes[3]{};
-	uint32_t			 descriptorPoolsNeeded{ 1 };
+	u32			 descriptorPoolsNeeded{ 1 };
 
 	// Uniform buffer.
 	descriptorPoolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1198,7 +1198,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Image samplers.
 	descriptorPoolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLER;
-	descriptorPoolSizes[1].descriptorCount = (uint32_t)eSamplerTypes::MAX_TYPES;
+	descriptorPoolSizes[1].descriptorCount = (u32)eSamplerTypes::MAX_TYPES;
 
 	// Images.
 	descriptorPoolSizes[2].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -1240,7 +1240,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 		// Create the per-frame descriptor set layout.
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		descriptorSetLayoutInfo.bindingCount = (uint32_t)perFrameDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.bindingCount = (u32)perFrameDescriptorLayoutBindings.Count();
 		descriptorSetLayoutInfo.pBindings = perFrameDescriptorLayoutBindings.Data();
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[0].m_Layout));
 		pInternalShader->m_DescriptorSetLayouts[0].m_FrequencyLevel = eShaderUniformGroup::PER_FRAME;
@@ -1285,7 +1285,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 		// Create the per-material descriptor set layout.
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		descriptorSetLayoutInfo.bindingCount = (uint32_t)perMaterialDescriptorLayoutBindings.Count();
+		descriptorSetLayoutInfo.bindingCount = (u32)perMaterialDescriptorLayoutBindings.Count();
 		descriptorSetLayoutInfo.pBindings = perMaterialDescriptorLayoutBindings.Data();
 		VK_CHECK(vkCreateDescriptorSetLayout(m_Device.m_Device, &descriptorSetLayoutInfo, m_Allocator, &pInternalShader->m_DescriptorSetLayouts[1].m_Layout));
 		pInternalShader->m_DescriptorSetLayouts[1].m_FrequencyLevel = eShaderUniformGroup::PER_MATERIAL;
@@ -1293,7 +1293,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Setup uniform buffers.
 	pInternalShader->m_UniformBuffers.Resize(m_MaxImagesInFlight);
-	size_t iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perInstanceUBOStride * kMaxVulkanInstances);
+	u64 iUBOSize = (pConfig.perFrameUBOStride) + (pConfig.perInstanceUBOStride * kMaxVulkanInstances);
 	bool bUseFreelist = true;
 
 	if (pConfig.perInstanceUBOStride == 0)
@@ -1301,7 +1301,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	if (iUBOSize > 0)
 	{
-		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 		{
 			if (!VulkanBuffer::CreateBuffer(s_VulkanContext, iUBOSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bUseFreelist, pInternalShader->m_UniformBuffers[idx]))
 			{
@@ -1315,12 +1315,12 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	// Setup per-instance samplers.
 	if (iPerMaterialImageCount > 0)
 	{
-		pInternalShader->m_ImageSamplers.Resize((uint32_t)eSamplerTypes::MAX_TYPES);
+		pInternalShader->m_ImageSamplers.Resize((u32)eSamplerTypes::MAX_TYPES);
 
 		static VkFilter	s_FilterModes[2]				= { VK_FILTER_LINEAR, VK_FILTER_NEAREST };
 		static VkSamplerAddressMode	s_AddressModes[]	= { VK_SAMPLER_ADDRESS_MODE_REPEAT };
 
-		for (int totalIdx = 0, filterIdx = 0, repeatModeIdx = 0; totalIdx < (uint32_t)eSamplerTypes::MAX_TYPES; totalIdx++)
+		for (int totalIdx = 0, filterIdx = 0, repeatModeIdx = 0; totalIdx < (u32)eSamplerTypes::MAX_TYPES; totalIdx++)
 		{
 			VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 			samplerInfo.magFilter = samplerInfo.minFilter = s_FilterModes[filterIdx];
@@ -1359,7 +1359,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Pipeline layout
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.setLayoutCount = (uint32_t)pInternalShader->m_DescriptorSetLayouts.Capacity();
+	pipelineLayoutInfo.setLayoutCount = (u32)pInternalShader->m_DescriptorSetLayouts.Capacity();
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
@@ -1370,7 +1370,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 
 	// Graphics pipeline object
 	VkGraphicsPipelineCreateInfo graphicsPipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-	graphicsPipelineInfo.stageCount = (uint32_t)shaderStageInfos.Count();
+	graphicsPipelineInfo.stageCount = (u32)shaderStageInfos.Count();
 	graphicsPipelineInfo.pStages = shaderStageInfos.Data();
 	graphicsPipelineInfo.pVertexInputState = &vertexInputInfo;
 	graphicsPipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -1413,7 +1413,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 		return true;
 	}
 
-	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 		allocInfo.descriptorPool = pInternalShader->m_DescriptorPool;
@@ -1439,7 +1439,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	// Bind the descriptor sets to our uniform buffer.
 	if (pConfig.perFrameUBOStride > 0)
 	{
-		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 		{
 			VkDescriptorBufferInfo bufferInfo{};
 			bufferInfo.buffer = pInternalShader->m_UniformBuffers[idx].m_Handle;
@@ -1494,7 +1494,7 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 	}
 
 	// Uniform buffers
-	for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+	for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 	{
 		VulkanBuffer::DestroyBuffer(s_VulkanContext, pInternalShader->m_UniformBuffers[idx]);
 	}
@@ -1517,7 +1517,7 @@ void CVulkanRenderer::DestroyShader(Shader* pShader)
 //			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
+void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, u32* pOutInstanceID, const char* pszResourceName)
 {
 	CAssert(pShader->m_iInternalHandle != kInvalidID_U32 && pOutInstanceID);
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
@@ -1535,7 +1535,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 	}
 
 	// Bind resources once per image in flight.
-	for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+	for (u32 frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 	{
 		// Allocate the descriptor set.
 		VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -1570,7 +1570,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 			if (uboDescriptor.offset % pShader->m_iUniformBufferAlignmentRequirement != 0)
 			{
 				// We need to move forward some to align properly.
-				size_t bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uboDescriptor.offset % pShader->m_iUniformBufferAlignmentRequirement);
+				u64 bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uboDescriptor.offset % pShader->m_iUniformBufferAlignmentRequirement);
 				uboDescriptor.offset += bytesToMoveForward;
 			}
 
@@ -1625,7 +1625,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 		}
 
 		// Update the descriptor sets.
-		vkUpdateDescriptorSets(m_Device.m_Device, (uint32_t)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
+		vkUpdateDescriptorSets(m_Device.m_Device, (u32)descriptorWrites.Count(), descriptorWrites.Data(), 0, nullptr);
 	}
 
 	// Bump up the next available descriptor set index.
@@ -1639,7 +1639,7 @@ void CVulkanRenderer::AcquireShaderInstanceResources(Shader* pShader, unsigned i
 //			pInstanceID - The instance to be released.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+void CVulkanRenderer::ReleaseShaderInstanceResources(Shader* pShader, u32 pInstanceID)
 {
 	// Make sure none of our resources are in use.
 	vkDeviceWaitIdle(m_Device.m_Device);
@@ -1677,7 +1677,7 @@ void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
 
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
-	uint8_t descriptorSetIndex{ 0 };	// Per-frame descriptors are always first.
+	u8 descriptorSetIndex{ 0 };	// Per-frame descriptors are always first.
 
 	vkCmdBindDescriptorSets(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pInternalShader->m_PipelineLayout, 0, 1, &pInternalShader->m_DescriptorSets[descriptorSetIndex].m_DescriptorSets[m_ImageIndex], 0, nullptr);
 }
@@ -1688,7 +1688,7 @@ void CVulkanRenderer::BindPerFrameShaderDescriptors(Shader* pShader)
 //			hInstanceID - The instance to be bound.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned int hInstanceID)
+void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, u32 hInstanceID)
 {
 	CAssert(m_bCurrentlyRendering[m_ImageIndex]); // This operation can only happen during renderpasses.
 
@@ -1705,7 +1705,7 @@ void CVulkanRenderer::BindPerInstanceShaderDescriptors(Shader* pShader, unsigned
 //			pData - An opaque pointer to the value to be set.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
+void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData)
 {
 	VulkanShaderInternal* pInternalShader = &m_pInternalShaderData[pShader->m_iInternalHandle];
 	VkDeviceSize uniformOffset{ 0 };
@@ -1727,7 +1727,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			if (uniformOffset % pShader->m_iUniformBufferAlignmentRequirement != 0)
 			{
 				// We need to move forward some to align properly.
-				size_t bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uniformOffset % pShader->m_iUniformBufferAlignmentRequirement);
+				u64 bytesToMoveForward = pShader->m_iUniformBufferAlignmentRequirement - (uniformOffset % pShader->m_iUniformBufferAlignmentRequirement);
 				uniformOffset += bytesToMoveForward;
 			}
 			uniformOffset += pUniform->Offset;
@@ -1738,7 +1738,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			// Push-constants!
 			uniformOffset = pUniform->Offset;
 			uniformStride = pUniform->Stride;
-			vkCmdPushConstants(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, pInternalShader->m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, (uint32_t)uniformOffset, (uint32_t)uniformStride, pData);
+			vkCmdPushConstants(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, pInternalShader->m_PipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, (u32)uniformOffset, (u32)uniformStride, pData);
 
 			return;	// We need to early-out here because this data is not going to get copied to a buffer.
 
@@ -1749,7 +1749,7 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 		//CAssert(uniformOffset != 256);
 
 		// Copy data over to the GPU.
-		for (unsigned int idx = 0; idx < m_MaxImagesInFlight; idx++)
+		for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)
 		{
 			void* pUniformData{};
 			vkMapMemory(m_Device.m_Device, pInternalShader->m_UniformBuffers[idx].m_Memory, uniformOffset, uniformStride, 0, &pUniformData);
@@ -1760,10 +1760,10 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 	else
 	{
 		// The opaque data is just a handle to the specific texture data.
-		unsigned int imageIndex = *(int*)pData;
+		u32 imageIndex = *(int*)pData;
 
 		// Point the appropriate descriptor to the texture's image data.
-		for (unsigned int frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
+		for (u32 frameIdx = 0; frameIdx < m_MaxImagesInFlight; frameIdx++)
 		{
 			VkDescriptorImageInfo imageInfo{};
 			if (imageIndex == kInvalidID_U32)
@@ -1815,7 +1815,7 @@ static VkFormat VertexAttributeToVulkanType(ShaderAttribute_t inAttribute)
 // Input:	inAttribute - The generic shader attribute type.
 // Output:	The stride of the attribute.
 //-------------------------------------------------------------------------
-static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
+static u32 GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 {
 	switch (inAttribute)
 	{
@@ -1845,7 +1845,7 @@ static uint32_t GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 //			pOutInstance - A structure that holds the instance of geometry after acquisition.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, uint64_t iVertexBase, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = nullptr;
@@ -1874,7 +1874,7 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 
 	stagingBuffer.UploadDataRange(s_VulkanContext, iVertexCount * iVertexStride, pVertices);
 
-	size_t finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
+	u64 finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
 	// Use the device local buffer's freelist to get the dstOffset.
 	if (pInternalVertexBuffer->m_bUsesFreelist)
 	{
@@ -1898,8 +1898,8 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 	{
 		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
 
-		VulkanBuffer::CreateBuffer(s_VulkanContext, iIndexCount * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
-		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexCount * sizeof(uint32_t), pIndices);
+		VulkanBuffer::CreateBuffer(s_VulkanContext, iIndexCount * sizeof(u32), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexCount * sizeof(u32), pIndices);
 		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
 		if (pInternalIndexBuffer->m_bUsesFreelist)
 		{
@@ -1924,11 +1924,11 @@ void CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, Rend
 	pInternalVertexBuffer->m_BytesAllocated += iVertexCount * iVertexStride;
 
 	if (pInternalIndexBuffer)
-		pInternalIndexBuffer->m_BytesAllocated += iIndexCount * sizeof(uint32_t);
+		pInternalIndexBuffer->m_BytesAllocated += iIndexCount * sizeof(u32);
 
 	// Copy over element strides.
 	pOutInstance.vertexDataStride = iVertexStride;
-	pOutInstance.indexDataStride = sizeof(uint32_t);
+	pOutInstance.indexDataStride = sizeof(u32);
 }
 
 //-------------------------------------------------------------------------
@@ -1971,8 +1971,8 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 	VulkanCommandBuffer	commandBuffer{};
 
 	VulkanBuffer		stagingBuffer{};
-	size_t				iVertexDataSize = pNewGeometryConfig.Vertices.Count() * pNewGeometryConfig.Vertices.Stride();
-	size_t				iIndexDataSize = pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
+	u64				iVertexDataSize = pNewGeometryConfig.Vertices.Count() * pNewGeometryConfig.Vertices.Stride();
+	u64				iIndexDataSize = pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
 
 	bool				bVertexReallocRequired = pGeometry.vertexCount != pNewGeometryConfig.Vertices.Count();
 	bool				bIndexReallocRequired = (iIndexDataSize > 0) && pGeometry.indexCount != pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
@@ -2106,8 +2106,8 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 	VulkanCommandBuffer	commandBuffer{};
 
 	VulkanBuffer		stagingBuffer{};
-	size_t				iVertexDataSize = pNewGeometryConfig.Vertices.Count() * pNewGeometryConfig.Vertices.Stride();
-	size_t				iIndexDataSize = pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
+	u64				iVertexDataSize = pNewGeometryConfig.Vertices.Count() * pNewGeometryConfig.Vertices.Stride();
+	u64				iIndexDataSize = pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
 
 	bool				bVertexReallocRequired = pGeometry.vertexCount != pNewGeometryConfig.Vertices.Count();
 	bool				bIndexReallocRequired = (iIndexDataSize > 0) && pGeometry.indexCount != pNewGeometryConfig.Indices.Count() * pNewGeometryConfig.Indices.Stride();
@@ -2233,7 +2233,7 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, Rende
 // Output:	none.
 // TODO: Combine this with the above methods!
 //-------------------------------------------------------------------------
-void CVulkanRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+void CVulkanRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	VulkanBuffer* pInternalVertexBuffer = reinterpret_cast<VulkanBuffer*>(pVertexBuffer->m_pInternalData);
 	VulkanBuffer* pInternalIndexBuffer = nullptr;
@@ -2243,8 +2243,8 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, Rende
 	VulkanCommandBuffer	commandBuffer{};
 
 	VulkanBuffer		stagingBuffer{};
-	size_t				iVertexDataSize = iVertexCount * iVertexStride;
-	size_t				iIndexDataSize = iIndexCount * sizeof(uint32_t);
+	u64				iVertexDataSize = iVertexCount * iVertexStride;
+	u64				iIndexDataSize = iIndexCount * sizeof(u32);
 
 	bool				bVertexReallocRequired = iVertexCount != pOutInstance.vertexCount;
 	bool				bIndexReallocRequired = (iIndexDataSize > 0) && iIndexCount != pOutInstance.indexCount;
@@ -2334,7 +2334,7 @@ void CVulkanRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, Rende
 			}
 
 			pOutInstance.indexCount = iIndexCount;
-			pOutInstance.indexDataStride = sizeof(uint32_t);
+			pOutInstance.indexDataStride = sizeof(u32);
 		}
 
 		// Copy the data to the device-local buffer.
@@ -2373,7 +2373,7 @@ static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expecte
 {
 	LOG_DEBUG("Querying Vulkan validation layer support");
 
-	unsigned int layerCount = 0;
+	u32 layerCount = 0;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 	Utl::CVector<VkLayerProperties> availableLayers(layerCount);
 	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.Data());
@@ -2383,7 +2383,7 @@ static bool QueryValidationLayerSupport(const Utl::CVector<const char*>& expecte
 		bool bLayerFound = false;
 		LOG_VERBOSE("Searching for '%s'...", expectedLayers[expectedIndex]);
 
-		for (unsigned int layerIndex = 0; layerIndex < layerCount; layerIndex++)
+		for (u32 layerIndex = 0; layerIndex < layerCount; layerIndex++)
 		{
 			if (Utl::StringCompare(expectedLayers[expectedIndex], availableLayers[layerIndex].layerName))
 			{
@@ -2412,7 +2412,7 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 {
 	LOG_DEBUG("Querying Vulkan instance extension support");
 
-	unsigned int extensionCount = 0;
+	u32 extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	Utl::CVector<VkExtensionProperties> availableExtensions(extensionCount);
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.Data());
@@ -2422,7 +2422,7 @@ static bool QueryInstanceExtensionSupport(const Utl::CVector<const char*>& expec
 		bool bExtensionFound = false;
 		LOG_VERBOSE("Searching for '%s'...", expectedExtensions[currentExt]);
 
-		for (unsigned int availableExt = 0; availableExt < extensionCount; availableExt++)
+		for (u32 availableExt = 0; availableExt < extensionCount; availableExt++)
 		{
 			if (Utl::StringCompare(expectedExtensions[currentExt], availableExtensions[availableExt].extensionName))
 			{

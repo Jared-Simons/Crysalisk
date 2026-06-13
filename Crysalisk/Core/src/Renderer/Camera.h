@@ -17,7 +17,7 @@
 struct Plane
 {
 	Vector3D	vecNormal{};
-	float		flDistance{};
+	f32		flDistance{};
 
 	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
 	{
@@ -27,7 +27,7 @@ struct Plane
 		return outPlane;
 	}
 
-	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
+	inline f32 GetSignedDistanceToPlane(Vector3D& pPoint)
 	{
 		return Vector3D::Dot(vecNormal, pPoint) - flDistance;
 	}
@@ -60,7 +60,7 @@ struct Frustum
 	{
 		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
 		{
-			float r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
+			f32 r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
 				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +
 				pVecExtents.z * M_ABS_F(m_Faces[iFrustumFace].vecNormal.z);
 
@@ -89,15 +89,15 @@ struct Camera_t
 	// The absolute up vector in world space.
 	Vector vecWorldUp{ 0, 1, 0 };
 
-	float	Yaw{ -90.0f };
-	float	Pitch{ 0.0f };
-	float	MoveSpeed{ 6.0f };
-	float	TurnSpeed{ 0.5f };
+	f32	Yaw{ -90.0f };
+	f32	Pitch{ 0.0f };
+	f32	MoveSpeed{ 6.0f };
+	f32	TurnSpeed{ 0.5f };
 
-	float	flFOV{ 75.0f };
-	float	flZNear{ 0.0f };
-	float	flZFar{ 10000.0f };
-	float	flAspectRatio{ 16 / 9.0f };
+	f32	flFOV{ 75.0f };
+	f32	flZNear{ 0.0f };
+	f32	flZFar{ 10000.0f };
+	f32	flAspectRatio{ 16 / 9.0f };
 
 	// The window this camera is associated with, used to automatically update aspect ratio.
 	class Platform::IPlatformWindow*	pWindow{ nullptr };
@@ -110,7 +110,7 @@ struct Camera_t
 	CORE_API void RecalculateCameraVectors();
 
 	// A simple update function.
-	CORE_API void UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime);
+	CORE_API void UpdateCameraData(class IInputSystem* pInputSystem, f64 deltaTime);
 
 	// Creates and returns a frustum based on the camera's internal state.
 	CORE_API Frustum CreateFrustumFromCamera() const;

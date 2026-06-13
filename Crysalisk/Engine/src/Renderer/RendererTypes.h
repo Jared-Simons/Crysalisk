@@ -28,8 +28,8 @@ struct RendererConfig_t
 	// A pointer to the loaded backend module.
 	Platform::ISysModule* pRendererBackendDLL;
 
-	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
-	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
+	u64	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
+	u64	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
 };
 
 enum eRenderViewType
@@ -48,9 +48,9 @@ enum eRenderViewType
 struct RenderPacket_t
 {
 	// The time elapsed between frames.
-	double	DeltaTime;
+	f64	DeltaTime;
 
-	unsigned int								iCulledGeometries{ 0 };
+	u32								iCulledGeometries{ 0 };
 	int											iDebugRendererMode{ 0 };
 
 	Matrix4x4									matProjection{};
@@ -68,17 +68,17 @@ struct RenderPacket_t
 struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
-	double	FrameTime{ 0.0 };
+	f64	FrameTime{ 0.0 };
 	// The time in seconds since the last metrics update.
-	double	TimeSinceLastMetricsUpdate{ 0.0 };
+	f64	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
-	unsigned int		NumDrawCalls{ 0 };
+	u32		NumDrawCalls{ 0 };
 	// The number of meshes frustum culled in the previous frame
-	unsigned int		NumGeometriesFrustumCulled{ 0 };
+	u32		NumGeometriesFrustumCulled{ 0 };
 	// Number of frames rendered in the previous frame.
-	unsigned int		PreviousFrameFPS{ 0 };
+	u32		PreviousFrameFPS{ 0 };
 	// Number of frames rendered in the current frame.
-	unsigned int		CurrentFrameFPS{ 0 };
+	u32		CurrentFrameFPS{ 0 };
 };
 
 //-------------------------------------------------------------------------
@@ -107,7 +107,7 @@ struct VertexAttribute_t
 	// The attribute's type.
 	ShaderAttribute_t	type{ ShaderAttribute_t::Undefined };
 	// The length of the attribute's data.
-	uint32_t			stride{ 0 };
+	u32			stride{ 0 };
 
 	VertexAttribute_t()
 		: szName{ nullptr }
@@ -164,7 +164,7 @@ struct ShaderUniformConfig_t
 	// The uniform's update group.
 	eShaderUniformGroup				eFrequency;
 	// The length of a single element in bytes (does not account for a whole array).
-	uint32_t						iStride;	
+	u32						iStride;	
 	// The size of the uniform's array.
 	int								iArraySize;
 
@@ -234,7 +234,7 @@ enum class eRenderBufferUsage
 	STORAGE
 };
 
-typedef uint8_t BufferVertexFlags_t;
+typedef u8 BufferVertexFlags_t;
 
 enum eVertexBufferDataFlags
 {
@@ -256,7 +256,7 @@ public:
 	// The types of vertex data stored in this buffer.
 	BufferVertexFlags_t	uBufferDataFlags{ 0 };
 
-	size_t				m_CurrentBoundOffset{ kInvalidID_U64 };
+	u64				m_CurrentBoundOffset{ kInvalidID_U64 };
 
 	// A pointer to the internal data of the buffer.
 	void* m_pInternalData{ nullptr };
@@ -327,7 +327,7 @@ public:
 //-------------------------------------------------------------------------
 // Purpose: TODO Documentation!
 //-------------------------------------------------------------------------
-typedef unsigned char RenderpassClearFlags_t;
+typedef u8 RenderpassClearFlags_t;
 
 enum eRenderpassClearFlags
 {

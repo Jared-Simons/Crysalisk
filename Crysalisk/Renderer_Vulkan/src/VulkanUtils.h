@@ -14,7 +14,7 @@
 	#define VULKAN_RENDERER_NAME_OBJECT(pRenderingContext, pszObjectName, pObjectType, pObjectHandle)	\
 		VkDebugUtilsObjectNameInfoEXT nameInfo{ VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };	\
 		nameInfo.objectType = pObjectType;																\
-		nameInfo.objectHandle = (uint64_t)pObjectHandle;												\
+		nameInfo.objectHandle = (u64)pObjectHandle;												\
 		nameInfo.pObjectName = pszObjectName;															\
 		if (pRenderingContext.m_pfnSetDebugObjectName)													\
 			pRenderingContext.m_pfnSetDebugObjectName(pRenderingContext.m_Device.m_Device, &nameInfo);	

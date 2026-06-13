@@ -40,8 +40,8 @@ public:
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
 
 	// Returns a texture's width/height.
-	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const override;
-	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureWidth(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureHeight(TextureHandle_t hTexture) const override;
 
 	// Use this to convert a texture handle to a texture pointer. This is necessary so the renderer can get at texture resources without relying on the texture system.
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
@@ -448,7 +448,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 // Input:	hTexture - The texture whose width to return.
 // Output:	Returns the texture's width.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].width;
 }
@@ -458,7 +458,7 @@ int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 // Input:	hTexture - The texture whose height to return.
 // Output:	Returns the texture's height.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].height;
 }

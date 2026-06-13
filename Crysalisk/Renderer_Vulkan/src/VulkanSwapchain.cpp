@@ -29,17 +29,17 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &swapchainSupport.SurfaceCapabilities);
 
-	unsigned int numFormats{ 0 };
+	u32 numFormats{ 0 };
 	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numFormats, nullptr);
 	swapchainSupport.Formats.Resize(numFormats);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numFormats, swapchainSupport.Formats.Data());
 
-	unsigned int numPresentModes{ 0 };
+	u32 numPresentModes{ 0 };
 	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numPresentModes, nullptr);
 	swapchainSupport.PresentModes.Resize(numPresentModes);
 	vkGetPhysicalDeviceSurfacePresentModesKHR(pRenderingContext.m_Device.m_PhysicalDevice, pSurface, &numPresentModes, swapchainSupport.PresentModes.Data());
 
-	unsigned int imageCount = swapchainSupport.SurfaceCapabilities.minImageCount;
+	u32 imageCount = swapchainSupport.SurfaceCapabilities.minImageCount;
 	if (imageCount < pRenderingContext.m_MaxImagesInFlight && pRenderingContext.m_MaxImagesInFlight < swapchainSupport.SurfaceCapabilities.maxImageCount)
 	{
 		// Bump up the min image count in the case that MaxImagesInFlight is higher than the minImageCount returned from the device query.
@@ -99,7 +99,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	pOutSwapchain.m_SwapchainExtent = swapchainCreateInfo.imageExtent;
 
 	// Obtain the swapchain images.
-	unsigned int swapImageCount{ 0 };
+	u32 swapImageCount{ 0 };
 	vkGetSwapchainImagesKHR(pRenderingContext.m_Device.m_Device, pOutSwapchain.m_Handle, &swapImageCount, nullptr);
 	pOutSwapchain.m_SwapchainImages.Resize(imageCount);
 	pOutSwapchain.m_SwapchainImages.SetCount(imageCount);
@@ -117,7 +117,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 
 	// Create the swapchain image views.
 	pOutSwapchain.m_SwapchainImageViews.Resize(imageCount);
-	for (unsigned int imageIdx = 0; imageIdx < imageCount; imageIdx++)
+	for (u32 imageIdx = 0; imageIdx < imageCount; imageIdx++)
 	{
 		VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 		viewInfo.image = pOutSwapchain.m_SwapchainImages[imageIdx];
@@ -189,7 +189,7 @@ bool VulkanSwapchain::CreateFramebuffers(CVulkanRenderer& pRenderingContext, Vul
 	// Create our framebuffers
 	pSwapchain.m_Framebuffers.Resize(pRenderingContext.m_MaxImagesInFlight);
 	// TODO: Make this configurable.
-	for (unsigned int imageIdx = 0; imageIdx < pRenderingContext.m_MaxImagesInFlight; imageIdx++)
+	for (u32 imageIdx = 0; imageIdx < pRenderingContext.m_MaxImagesInFlight; imageIdx++)
 	{
 		VkImageView attachmentViews[2] = { pSwapchain.m_SwapchainImageViews[imageIdx], pSwapchain.m_DepthImage.m_View };
 
