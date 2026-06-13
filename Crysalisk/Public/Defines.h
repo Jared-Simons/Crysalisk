@@ -103,7 +103,7 @@ const float kFLT_MIN = 1.175494351e-38f;
 
 static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
 
-static void intClamp(i32* val, i32* min, i32* max)
+static inline void IntClamp(i32* val, i32* min, i32* max)
 {
 	if (val < min)
 	{

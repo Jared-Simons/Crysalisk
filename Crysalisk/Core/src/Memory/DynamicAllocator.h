@@ -44,8 +44,7 @@ namespace Utl
 		// Free a block of memory.
 		int Free(void* pMemoryBlock);
 
-		// FIXME: Put a message here.
-		virtual void FreeAll() override { CAssert(0); }
+		virtual void FreeAll() override { CASSERTMSG(0, "DynamicAllocator currently does not support FreeAll(), use Free instead."); }
 
 		virtual eAllocatorType	GetAllocatorType() const override { return ALLOCATOR_TYPE_DYNAMIC; }
 

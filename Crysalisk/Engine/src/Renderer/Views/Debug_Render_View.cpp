@@ -129,6 +129,12 @@ void CDebugRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 	if (!pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG])
 	{
 		pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG] = new DebugRenderView_ExtendedData_t;
+		DebugRenderView_ExtendedData_t* pViewData = (DebugRenderView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_DEBUG];
+
+		pViewData->pGeometries.SetAllocator(pRenderData->pFrameAllocator);
+
+		// TODO: Make this more dynamic.
+		pViewData->pGeometries.Resize(64);
 	}
 
 	// Get any geometry data from the debug geo system.
@@ -146,8 +152,6 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 
 		for (int iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
 		{
-			// FIXME: Remove anything hardcoded.
-			// FIXME: Make shader selection logic better here.
 			GeometryInstance_t& pCurGeo = *pViewData->pGeometries[iGeo];
 
 			if (pCurGeo.hShader == m_hDebugLineShader)
@@ -163,7 +167,7 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 				}
 
 				m_pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.model, 0, 0, &pCurGeo.matLocalToWorldTransform);
-				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
+				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hShaderInstance);
 				m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
 			}
 			else  // Text shader
@@ -181,17 +185,19 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 				Matrix4x4 matTransform = pCurGeo.matLocalToWorldTransform;
 
 				// The text needs to be rotated to always face the camera
-				Vector vecTextPos{ matTransform.flData[12], matTransform.flData[13], matTransform.flData[14] };	// FIXME: Add a matrix method to get the transform from a matrix.
+				Vector vecTextPos = matTransform.GetTranslation();
 				Vector vecCameraPos = pRenderData->pCamera->vecPosition;
 				float flAngle = M_ATAN2_F(vecTextPos.x - vecCameraPos.x, vecTextPos.z - vecCameraPos.z) * (180.0f / kPI_F);
 				matTransform = Matrix4x4::RotateAboutYAxis(pCurGeo.matLocalToWorldTransform, M_DEG2RAD_F(flAngle + 180.0f)); // NOTE: The +180 degrees is to flip the text to face the right way.
 
 				m_pShaderSystem->SetShaderUniform(pCurGeo.hShader, m_DebugTextShaderUniforms.model, 0, 0, &matTransform);
-				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hMaterial);
+				m_pShaderSystem->BindPerInstanceUniforms(pCurGeo.hShaderInstance);
 				m_pRenderer->DrawGeometry(pCurGeo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
 			}			
 		}
 		m_pRenderer->EndRenderpass();
+
+		pViewData->pGeometries.Clear();
 	}
 }
 

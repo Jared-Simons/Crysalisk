@@ -288,12 +288,12 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		// Acquire material resources.
 		if (pResource.pMaterialNames.Count() > 0 && pResource.pMeshes[iSubmesh].iMaterialNameIndex != kInvalidID_U32)
 		{
-			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialNameIndex]);
+			pNewSubmesh.hShaderInstance = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialNameIndex]);
 		}
 		else
 		{
 			// Just grab the default if no materials were provided.
-			pNewSubmesh.hMaterial = m_Config.pMaterialSystem->GetDefaultMaterialReference();
+			pNewSubmesh.hShaderInstance = m_Config.pMaterialSystem->GetDefaultMaterialReference();
 		}
 
 		pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
@@ -302,7 +302,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 		pNewSubmesh.vecMaxExtents = pCurSubmesh.vecMaxExtents;
 		pNewSubmesh.vecCenter = (pNewSubmesh.vecMinExtents + pNewSubmesh.vecMaxExtents) * 0.5f;
 		m_Config.pRenderer->AcquireGeometryResources(*m_pWorldVertexBuffer, *m_pWorldIndexBuffer,
-													pCurSubmesh.iVertexCount, 44, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData,	// FIXME: Hardcoded vertex stride.
+													pCurSubmesh.iVertexCount, pCurSubmesh.iVertexStride, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData,
 													pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}
 
@@ -375,7 +375,7 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 		{
 			// TODO: Fix this
 			//m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
-			m_Config.pMaterialSystem->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
+			m_Config.pMaterialSystem->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hShaderInstance, false);
 		}
 		ClearMeshDictionaryEntry(pMesh->m_pszMeshPath);
 	}

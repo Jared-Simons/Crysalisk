@@ -76,9 +76,6 @@ public:
 	virtual float			GetRendererTime() const = 0;
 	virtual const char*		GetRendererDebugVisModeName() const = 0;
 
-	// Temp geometry stuff
-	virtual void	DestroyTempGeometry() = 0;
-
 	virtual void	SetMinimized(bool bMinimized) = 0;
 	virtual void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) = 0;
 

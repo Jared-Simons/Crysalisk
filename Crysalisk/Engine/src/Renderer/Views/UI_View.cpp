@@ -133,8 +133,7 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 		m_TestText.SetText(m_pRenderer, m_pFontSystem, szMetricsString);
 	}
 
-	// FIXME: Why does text get clipped if the near plane is > 0?
-	Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, -1000.0f, 1000.0f);
+	Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, 0.1f, 1000.0f);
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		if (m_bUIOverlayEnabled)

@@ -175,6 +175,8 @@ namespace MeshLoader
 			pOutResource.pMeshes[iMesh].iMaterialNameIndex = pMeshHeaders[iMesh].iMaterialNameIndex;
 			pOutResource.pMeshes[iMesh].vecMinExtents = pMeshHeaders[iMesh].vecMinExtents;
 			pOutResource.pMeshes[iMesh].vecMaxExtents = pMeshHeaders[iMesh].vecMaxExtents;
+			pOutResource.pMeshes[iMesh].iVertexStride = pFileHeader->iVertexStride;
+			pOutResource.pMeshes[iMesh].iIndexStride = pFileHeader->iIndexStride;
 		}
 
 		currOffset += sizeof(MeshSerializer::CModel_MeshHeader_t) * pFileHeader->iMeshDataCount;

@@ -179,7 +179,7 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 			if (bIsInCameraFrustum)
 			{
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
-				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
+				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hShaderInstance))
 				{
 					pOpaqueGeometries.PushBack(pCurrentSubmesh);
 					pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;

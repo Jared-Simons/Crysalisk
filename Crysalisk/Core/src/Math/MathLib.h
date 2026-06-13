@@ -896,17 +896,17 @@ public:
 	{
 		Matrix4x4 projMat{ 1.0f };
 
-		float lr = 1.0f / (flLeft - flRight);
-		float bt = 1.0f / (flBottom - flTop);
-		float nf = 1.0f / (flNear - flFar);
+		float flLR = 1.0f / (flLeft - flRight);
+		float flBT = 1.0f / (flBottom - flTop);
+		float flNF = 1.0f / (flNear - flFar);
 
-		projMat.flData[0] = -2.0f * lr;
-		projMat.flData[5] = -2.0f * bt;
-		projMat.flData[10] = 2.0f * nf;
+		projMat.flData[0] = -2.0f * flLR;
+		projMat.flData[5] = -2.0f * flBT;
+		projMat.flData[10] = flNF;
 
-		projMat.flData[12] = (flLeft + flRight) * lr;
-		projMat.flData[13] = (flTop + flBottom) * bt;
-		projMat.flData[14] = (flFar + flNear) * nf;
+		projMat.flData[12] = (flLeft + flRight) * flLR;
+		projMat.flData[13] = (flTop + flBottom) * flBT;
+		projMat.flData[14] = -flNear * flNF;
 
 		return projMat;
 	}
@@ -931,6 +931,11 @@ public:
 		outMat.flData[10] = 1 - 2 * (inQuat.x * inQuat.x) - 2 * (inQuat.y * inQuat.y);
 
 		return outMat;
+	}
+
+	inline Vector GetTranslation() const
+	{
+		return Vector{ flData[12], flData[13], flData[14] };
 	}
 
 	// ------------------

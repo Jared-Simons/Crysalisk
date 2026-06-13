@@ -54,13 +54,13 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
 
-	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) override;
+	virtual void				ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease) override;
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
-	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
+	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const override;
 
 	// Applies a given material.
-	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
+	virtual void				ApplyMaterialInstance(MaterialHandle_t hShaderInstance) override;
 
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
@@ -414,9 +414,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 //									regardless of it's reference count.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease)
+void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease)
 {
-	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32 || pMaterial.m_pszMaterialName == nullptr)
 	{
@@ -455,12 +455,12 @@ void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceRes
 // Input:	hMaterial - The material whose transparency to check for.
 // Output:	Returns true if the material is transparent in any way, otherwise false.
 //-------------------------------------------------------------------------
-uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
+uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hShaderInstance) const
 {
-	if (hMaterial == kInvalidID_U32)
+	if (hShaderInstance == kInvalidID_U32)
 		//hMaterial = m_DefaultMaterialLookup.MaterialIndex;
-		hMaterial = 0; // TODO: Use the default material here.
-	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hMaterial];
+		hShaderInstance = 0; // TODO: Use the default material here.
+	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 	//CAssert(hMaterial != kInvalidID_U32 && pMaterial && pMaterial->m_iInternalHandle != kInvalidID_U32);
 
 	return pMaterial->m_bIsTransparent;
@@ -472,16 +472,16 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 // Output:	none.
 // TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
+void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hShaderInstance)
 {
-	if (hMaterial == kInvalidID_U32)
-		hMaterial = 0; // TODO: This is not elegant
+	if (hShaderInstance == kInvalidID_U32)
+		hShaderInstance = 0; // TODO: This is not elegant
 
 	// Don't do any extra work!
-	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
+	if (m_hCurrentlyBoundMaterialInstance == hShaderInstance)
 		return;
 
-	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 
 	// If the instance is invalid, then we can't draw!
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
@@ -523,7 +523,7 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 		}
 
 		// Bind the appropriate shader.
-		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_hShaderHandle);
 
 		// Bind the appropriate material instance.
 		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[m_DefaultMaterialLookup.MaterialIndex].m_iInternalHandle);
@@ -533,12 +533,12 @@ void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
 	else
 	{
 		// Bind the appropriate shader.
-		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_hShaderHandle);
 
 		// Bind the appropriate material instance.
-		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle);
+		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_iInternalHandle);
 
-		m_hCurrentlyBoundMaterialInstance = hMaterial;
+		m_hCurrentlyBoundMaterialInstance = hShaderInstance;
 	}
 }
 

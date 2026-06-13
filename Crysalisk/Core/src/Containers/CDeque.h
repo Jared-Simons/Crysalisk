@@ -22,7 +22,6 @@ namespace Utl
 		{
 			m_pData = nullptr;
 			m_iElementCapacity = 0;
-			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
 		}
 
 		//--------------------------------------------------
@@ -31,8 +30,15 @@ namespace Utl
 		CDeque(size_t initialCapacity)
 		{
 			// Allocate new memory and place the objects in there.
-			m_Allocator = g_pMemoryManager->GetMemoryAllocator();
-			void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * sizeof(T)));
+			void* pNewMemory = nullptr;
+			if (m_Allocator != nullptr)
+			{
+				pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * sizeof(T)));
+			}
+			else
+			{
+				pNewMemory = new T[initialCapacity];
+			}
 			m_pData = new (pNewMemory) T[initialCapacity];
 			m_iElementCapacity = initialCapacity;
 		}
@@ -51,7 +57,15 @@ namespace Utl
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -71,7 +85,15 @@ namespace Utl
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -92,7 +114,15 @@ namespace Utl
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -106,7 +136,14 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator->Free(m_pData);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pData);
+				}
+				else
+				{
+					delete[] m_pData;
+				}
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -119,7 +156,14 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator->Free(m_pData);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pData);
+				}
+				else
+				{
+					delete[] m_pData;
+				}
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -137,7 +181,16 @@ namespace Utl
 			}
 
 			// Allocate a new block.
-			void* pNewMemory = m_Allocator->Allocate(iNewCapacity * sizeof(T));
+			void* pNewMemory = nullptr;
+			if (m_Allocator != nullptr)
+			{
+				pNewMemory = m_Allocator->Allocate(iNewCapacity * sizeof(T));
+			}
+			else
+			{
+				pNewMemory = new T[iNewCapacity];
+			}
+			
 			m_pData = new (pNewMemory) T[iNewCapacity];
 
 			// Copy over the existing data.
@@ -149,7 +202,14 @@ namespace Utl
 			// Free the old block.
 			if (pOldBlock)
 			{
-				m_Allocator->Free(pOldBlock);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(pOldBlock);
+				}
+				else
+				{
+					delete[] pOldBlock;
+				}
 			}
 			m_iElementCapacity = iNewCapacity;
 		}

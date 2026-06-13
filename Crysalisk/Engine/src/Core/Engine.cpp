@@ -7,14 +7,9 @@
 #include "Engine.h"
 
 #include "Application.h"
-#include <Containers/CHashMap.h>
-#include <Containers/CVector.h>
-#include <Core/Clock.h>
 #include <Core/Event.h>
-#include <Core/Input.h>
 #include <Core/Logging.h>
 #include <Memory/MemoryManager.h>
-#include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
 #include "Renderer/Renderer.h"
@@ -158,9 +153,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		LOG_FATAL("Failed to load Renderer_Vulkan.dll! Application cannot continue.");
 		return false;
 	}
-
-	// The Core.dll gets it's interfaces separately because it is linked at link-time (TODO: Maybe this should work like every other lib?)
-	Platform::SetupExternalInterfaces();
 
 	// Input System.
 	IInputSystem::AllocateInputSystemState(&m_EngineInterfaces.pInputSystem);
@@ -458,7 +450,6 @@ void CEngine::Shutdown()
 		m_pEngineWindow = nullptr;
 	}
 
-	Platform::CleanupInterfaceRegistry();
 	Platform::ShutdownPlatformLayer();
 
 	m_EngineInterfaces.pInputSystem->Shutdown();

@@ -278,17 +278,10 @@ struct GeometryInstance_t
 	// The length in bytes of a single index used by this mesh.
 	size_t indexDataStride{ kInvalidID_U64 };
 
-	// The shader to be used in rendering this mesh.
-	// FIXME: This should not be here. Only temp.
-	ShaderHandle_t		hShader;
-	// The material used in rendering this mesh.
-	MaterialHandle_t	hMaterial;
-	// Indicates if the material used by this mesh is transparent.
-	bool				bIsTransparent;
-
-	// The handle to this mesh's geometry buffers.
-	uint8_t				hVertexBuffer{ kInvalidID_U8 };
-	uint8_t				hIndexBuffer{ kInvalidID_U8 };
+	// The shader to be used in rendering this geometry.
+	ShaderHandle_t		hShader{ kInvalidID_U32 };
+	// The shader instance used in rendering this geometry.
+	u32					hShaderInstance{ kInvalidID_U32 };
 
 	// A unique identifier for the mesh resource this instance is tied to.
 	uint32_t			m_MeshID{ kInvalidID_U32 };

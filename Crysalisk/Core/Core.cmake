@@ -35,8 +35,6 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Memory/MemoryManager.h
 	${CORE_ROOT}/Platform/FileSystem.cpp
 	${CORE_ROOT}/Platform/FileSystem.h
-	${CORE_ROOT}/Platform/InterfaceRegistry.cpp
-	${CORE_ROOT}/Platform/InterfaceRegistry.h
 	${CORE_ROOT}/Platform/Platform.h
 	${CORE_ROOT}/Platform/Platform_Win32.cpp
 	${CORE_ROOT}/Renderer/Camera.cpp

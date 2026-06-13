@@ -79,12 +79,10 @@ namespace Platform
 	class ISysModule
 	{
 	public:
-		virtual void* ConnectInterface(void* pInterfaceState) = 0;
 		virtual void* GetFuncAddr(const char* pFuncName) = 0;
 	};
 
 	CORE_API ISysModule*	LoadSysModule(const char* pModulePath);
-	CORE_API void			SetupExternalInterfaces();
 
 	//-------------------------------------------------------------------------
 	// Threads

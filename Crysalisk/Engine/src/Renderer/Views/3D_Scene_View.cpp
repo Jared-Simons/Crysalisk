@@ -112,7 +112,6 @@ void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 		// Get the frustum from the camera.
 		Frustum frustum = pRenderData->pCamera->CreateFrustumFromCamera();
 
-		// FIXME: Figure out how to split out these matrices per model.
 		pMap->GetRenderablesFromScene(g_pEngine->GetEngineInterfaces()->pMaterialSystem, frustum,
 									  pViewData->pOpaqueGeometries, pViewData->pTransparentGeometries,
 									  &pRenderData->iCulledGeometries);
@@ -136,7 +135,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			m_pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[iGeo]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			m_pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[iGeo]->hMaterial);
+			m_pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[iGeo]->hShaderInstance);
 
 			// Draw the sucker!
 			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
@@ -151,7 +150,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 			m_pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[iGeo]->matLocalToWorldTransform);
 
 			// Bind the appropriate material.
-			m_pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[iGeo]->hMaterial);
+			m_pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[iGeo]->hShaderInstance);
 
 			// Draw the sucker!
 			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);

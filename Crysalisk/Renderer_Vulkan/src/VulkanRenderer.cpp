@@ -14,7 +14,6 @@
 #include <Math/MathLib.h>
 #include <Math/VertexTypes.h>
 #include <Platform/FileSystem.h>
-#include <Platform/InterfaceRegistry.h>
 #include <Renderer/Camera.h>
 #include <Renderer/RendererTypes.h>
 #include <Resources/GeometryGenerator.h>
@@ -387,7 +386,7 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 			{
 				// Otherwise, just load as is.
 				description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-				description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;	// Should we use this or COLOR_ATTACHMENT_OPTIMAL?
+				description.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			}
 
 			if (pConfig->bPresentsAfter)
@@ -591,10 +590,7 @@ bool CVulkanRenderer::BeginFrame(Platform::IPlatformWindow* pTargetWindow, Rende
 	// Wait for the prior frame to finish it's work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
-	//s_MainCamera.UpdateCameraData(pRenderData.DeltaTime);
-
 	// Acquire the next swapchain image.
-	//VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)m_pMainWindow->m_pRendererState;
 	VulkanWindowState_t* pWindowState = (VulkanWindowState_t*)pTargetWindow->m_pRendererState;
 	VkResult imageAcquireResult = vkAcquireNextImageKHR(m_Device.m_Device, pWindowState->m_Swapchain.m_Handle, UINT64_MAX, m_ImageAvailableSemaphore, VK_NULL_HANDLE, &m_ImageIndex);
 

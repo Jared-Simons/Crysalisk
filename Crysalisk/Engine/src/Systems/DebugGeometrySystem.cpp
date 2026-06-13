@@ -16,31 +16,13 @@
 #include "Systems/ShaderSystem.h"
 
 //-------------------------------------------------------------------------
-// Purpose: Defines different types of geometry that require different rendering behaviors.
-//-------------------------------------------------------------------------
-enum class DebugGeometryType
-{
-	UNDEFINED = 0,
-	// Geometry is rendered with lines.
-	LINE,
-	// Geometry is also rendered with lines, but needs to follow the camera.
-	CAMERA_FRUSTUM,
-	// Geometry is rendered as 2D glyphs in the 3D scene.
-	TEXT,
-
-	MAX_TYPES
-};
-
-//-------------------------------------------------------------------------
 // Purpose: An instance of debug geometry, contains all of the
 //			data/resources necessary to render debug geometry.
 //-------------------------------------------------------------------------
 struct DebugGeometry_t
 {
-	unsigned int		iInstanceID{ kInvalidID_U32 };
 	Vector4D			color{};
 	GeometryInstance_t	geometryInstance{};
-	DebugGeometryType	eType{ DebugGeometryType::UNDEFINED };
 	float				flTimeToRemove{ 0.0f };
 };
 
@@ -80,7 +62,6 @@ public:
 	virtual int		AddPoint(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, float flDuration) override;
 	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, float flDuration) override;
-	virtual int		AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration) override;
 	virtual int		AddSphere(Vector& pOrigin, const float flRadius, Vector4D color, float flDuration) override;
 	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, float flDuration) override;
 	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, float flDuration) override;
@@ -197,7 +178,7 @@ void CDebugGeometrySystem::Update()
 	for (uint32_t iGeo = 0; numGeoFound < m_iActiveGeometryInstances && iGeo < m_Config.uMaxDebugGeometries; iGeo++)
 	{
 		DebugGeometry_t& pCurGeo = m_GeometryData[iGeo];
-		if (pCurGeo.iInstanceID == kInvalidID_U32)
+		if (pCurGeo.geometryInstance.hShaderInstance == kInvalidID_U32)
 			continue;
 
 		if (pCurGeo.flTimeToRemove < 0.0f)
@@ -214,20 +195,15 @@ void CDebugGeometrySystem::Update()
 
 void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer)
 {
-	// FIXME: Frame allocator
-	pGeometries.Clear();
-	// FIXME: Better check here.
-	pGeometries.Resize(m_iActiveGeometryInstances < m_Config.uMaxDebugGeometries ? m_iActiveGeometryInstances : m_Config.uMaxDebugGeometries);
-	pGeometries.SetCount(m_iActiveGeometryInstances < m_Config.uMaxDebugGeometries ? m_iActiveGeometryInstances : m_Config.uMaxDebugGeometries);
+	pGeometries.SetCount(IntMin(m_iActiveGeometryInstances, m_Config.uMaxDebugGeometries));
 
 	*pOutVertexBuffer = m_pDebugVertexBuffer;
 	*pOutIndexBuffer = m_pDebugIndexBuffer;
 
-	// FIXME: This isn't great.
 	uint32_t numGeoFound = 0;
 	for (uint32_t iGeo = 0; iGeo < m_Config.uMaxDebugGeometries && numGeoFound < m_iActiveGeometryInstances; iGeo++)
 	{
-		if (m_GeometryData[iGeo].iInstanceID != kInvalidID_U32)
+		if (m_GeometryData[iGeo].geometryInstance.hShaderInstance != kInvalidID_U32)
 		{
 			pGeometries[numGeoFound] = &m_GeometryData[iGeo].geometryInstance;
 			numGeoFound++;
@@ -247,7 +223,6 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::LINE;
 	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
 
 	if (flDuration < 0.0f)
@@ -257,8 +232,8 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector
 	}
 
 	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugPointInstance");
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugPointInstance");
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
 	// Create a 3D cross at the point that extends out from the origin by the given radius.
 	Vector ptVerts[4]{};
@@ -274,7 +249,6 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const float flRadius, Vector
 	Matrix4x4 matTransform{ 1.0f };
 	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -292,7 +266,6 @@ int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::LINE;
 	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
 
 	if (flDuration < 0.0f)
@@ -302,15 +275,14 @@ int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector
 	}
 
 	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugLineInstance");
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugLineInstance");
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
 	Vector3D vecPositions[2] = { ptStartPos, ptEndPos };
 	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, 4, sizeof(Vector), 0, vecPositions, 0, nullptr, &pNewGeometry.geometryInstance);
 
 	// Just use an identity matrix for the transform (this shouldn't ever move around).
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -328,7 +300,6 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::LINE;
 	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
 
 	if (flDuration < 0.0f)
@@ -338,8 +309,8 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 	}
 
 	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugBBoxInstance");
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
 	Vector3D& vecLocalCenter = pGeometry.vecCenter;
 	Vector3D& vecLocalMins = pGeometry.vecMinExtents;
@@ -394,92 +365,6 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 
 	// Store off the transform index.
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = pGeometry.matLocalToWorldTransform;
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
-	m_iActiveGeometryInstances++;
-
-	return iDebugGeometryIndex;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
-//-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddBBox(Vector vecMins, Vector vecMaxs, Vector4D color, float flDuration)
-{
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
-	if (iDebugGeometryIndex == kInvalidID_U32)
-		return kInvalidID_U32;
-
-	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
-	pNewGeometry.color = color;
-	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::LINE;
-	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
-
-	if (flDuration < 0.0f)
-	{
-		// A negative duration means 'never remove this geometry'.
-		pNewGeometry.flTimeToRemove = -1.0f;
-	}
-
-	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugBBoxInstance");
-
-	const int iNumVertices = 24;
-	Vector3D ptVertices[iNumVertices]{};
-
-	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
-	ptVertices[0] = vecMins;
-	ptVertices[1] = vecMins;
-	ptVertices[1].z = vecMaxs.z;
-
-	ptVertices[2] = vecMins;
-	ptVertices[2].x = vecMaxs.x;
-	ptVertices[3] = vecMins;
-	ptVertices[3].x = vecMaxs.x;
-	ptVertices[3].z = vecMaxs.z;
-
-	ptVertices[4] = vecMins;
-	ptVertices[5] = vecMins;
-	ptVertices[5].x = vecMaxs.x;
-
-	ptVertices[6] = vecMins;
-	ptVertices[6].z = vecMaxs.z;
-	ptVertices[7] = vecMins;
-	ptVertices[7].x = vecMaxs.x;
-	ptVertices[7].z = vecMaxs.z;
-
-	// Directly copy the verts and raise them all up to max Y to form the horizontal square along the top of the geometry.
-	Platform::MemoryCopy(&ptVertices[8], &ptVertices[0], sizeof(Vector3D) * 8);
-	for (int idx = 8; idx < 16; idx++)
-	{
-		ptVertices[idx].y = vecMaxs.y;
-	}
-
-	// Now for the four corners of the box.
-	ptVertices[16] = vecMins;
-	ptVertices[17] = vecMins;
-	ptVertices[17].y = vecMaxs.y;
-
-	ptVertices[18] = vecMins;
-	ptVertices[18].x = vecMaxs.x;
-	ptVertices[19] = vecMins;
-	ptVertices[19].x = vecMaxs.x;
-	ptVertices[19].y = vecMaxs.y;
-
-	ptVertices[20] = vecMins;
-	ptVertices[20].z = vecMaxs.z;
-	ptVertices[21] = vecMins;
-	ptVertices[21].z = vecMaxs.z;
-	ptVertices[21].y = vecMaxs.y;
-
-	ptVertices[22] = vecMaxs;
-	ptVertices[22].y = vecMins.y;
-	ptVertices[23] = vecMaxs;
-
-	// TODO: Fix this
-	//m_Config.pRenderer->AcquireGeometryResources(&m_DebugVertexBuffer, nullptr, iNumVertices, sizeof(Vector3D), ptVertices, 0, nullptr, pNewGeometry.geometryInstance);
-
-	pNewGeometry.geometryInstance.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -496,7 +381,6 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::LINE;
 	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
 
 	if (flDuration < 0.0f)
@@ -507,8 +391,8 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 
 	pNewGeometry.color = color;
 
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "DebugTest_Sphere");
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugTest_Sphere");
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
 	const int iNumVertices = 72;
 	Vector3D ptVertices[iNumVertices]{};
@@ -560,7 +444,6 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const float flRadius, Vecto
 	Matrix4x4 matTransform{ 1.0f };
 	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -579,7 +462,6 @@ int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, Fon
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::TEXT;
 	pNewGeometry.geometryInstance.hShader = m_hDebugTextShader;
 
 	if (flDuration < 0.0f)
@@ -595,19 +477,17 @@ int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, Fon
 												 textConfig.Indices.Count(), textConfig.Indices.Data(), &pNewGeometry.geometryInstance);
 
 	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.iInstanceID, "DebugTextInstance");
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugTextShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugTextInstance");
 
 	// Apply the font atlas.
 	TextureHandle_t hTexture = pFontSystem->AcquireFontAtlasTexture(hFont);
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.iInstanceID, &hTexture);
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugTextShader, m_DebugTextShaderUniforms.fontAtlas, 0, pNewGeometry.geometryInstance.hShaderInstance, &hTexture);
 
 	// Create a new transform matrix.
 	Matrix4x4 matTransform{ 1.0f };
 	matTransform = Matrix4x4::Translate(matTransform, pOrigin);
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matTransform;
-
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 	m_iActiveGeometryInstances++;
 
 	return iDebugGeometryIndex;
@@ -625,7 +505,6 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, fl
 	DebugGeometry_t& pNewGeometry = m_GeometryData[iDebugGeometryIndex];
 	pNewGeometry.color = color;
 	pNewGeometry.flTimeToRemove = m_flRendererTime + flDuration;
-	pNewGeometry.eType = DebugGeometryType::CAMERA_FRUSTUM;
 	pNewGeometry.geometryInstance.hShader = m_hDebugLineShader;
 
 	if (flDuration < 0.0f)
@@ -635,8 +514,8 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, fl
 	}
 
 	// Acquire new shader instance resources.
-	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.iInstanceID, "CameraFrustum");
-	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.iInstanceID, &color);
+	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "CameraFrustum");
+	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
 	// Define the frustum vertices in clip-space.
 	// Then unproject into world-space.
@@ -692,7 +571,6 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, fl
 	matClipToWorld = matClipToWorld * g_pEngine->GetEngineWindow()->GetViewport().matProjection.Inverse();
 	matClipToWorld = matClipToWorld * pCamera.GetViewMatrix().Inverse();
 	pNewGeometry.geometryInstance.matLocalToWorldTransform = matClipToWorld;
-	pNewGeometry.geometryInstance.hMaterial = pNewGeometry.iInstanceID;	// FIXME: We need a better way to pass instance IDs around.
 
 	m_Config.pRenderer->AcquireGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, iNumVertices, sizeof(Vector), 0, ptVertices, iNumIndices, indices, &pNewGeometry.geometryInstance);
 	m_iActiveGeometryInstances++;
@@ -708,13 +586,12 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, fl
 void CDebugGeometrySystem::RemoveDebugGeometry(int debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
-	CAssert(pGeoToRemove.iInstanceID != kInvalidID_U32);
+	CAssert(pGeoToRemove.geometryInstance.hShaderInstance != kInvalidID_U32);
 
-	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.eType == DebugGeometryType::TEXT ? m_hDebugTextShader : m_hDebugLineShader, pGeoToRemove.iInstanceID);
+	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pGeoToRemove.geometryInstance.hShader, pGeoToRemove.geometryInstance.hShaderInstance);
 	m_Config.pRenderer->ReleaseGeometryResources(*m_pDebugVertexBuffer, *m_pDebugIndexBuffer, pGeoToRemove.geometryInstance);
 
-	pGeoToRemove.iInstanceID = kInvalidID_U32;
-	pGeoToRemove.eType = DebugGeometryType::UNDEFINED;
+	pGeoToRemove.geometryInstance.hShaderInstance = kInvalidID_U32;
 	m_iActiveGeometryInstances--;
 }
 
@@ -738,7 +615,7 @@ int CDebugGeometrySystem::GetFirstFreeGeometryDataIndex() const
 {
 	for (unsigned int idx = 0; idx < m_Config.uMaxDebugGeometries; idx++)
 	{
-		if (m_GeometryData[idx].iInstanceID == kInvalidID_U32)
+		if (m_GeometryData[idx].geometryInstance.hShaderInstance == kInvalidID_U32)
 		{
 			// Found an unused index!
 			return idx;

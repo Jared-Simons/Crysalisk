@@ -39,7 +39,7 @@ static const char* szRendererVisualizationModesLabels[10] =
 	"DIFFUSE LIGHTING",
 	"SPECULAR LIGHTING",
 	"NORMAL MAPS - TANGENT-SPACE",
-	"NORMAL MAPS - WORLD SPACE-SPACE",
+	"NORMAL MAPS - WORLD-SPACE",
 	"GEOMETRIC NORMALS",
 	"GEOMETRIC TANGENTS",
 	"GEOMETRIC BITANGENTS",
@@ -100,9 +100,6 @@ public:
 	virtual float	GetRendererTime() const { return (float)m_flLastFrameTime; }
 	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
 
-	// Temp geometry stuff
-	void	DestroyTempGeometry() override;
-
 	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
 	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
@@ -114,6 +111,9 @@ private:
 	bool				m_bMinimized{ false };
 	Clock				m_RendererClock{};
 	double				m_flLastFrameTime{};
+
+	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
+	uint8_t				m_iRendererDebugMode{ 0 };
 
 	RenderMetrics_t		m_Metrics{};
 
@@ -128,21 +128,14 @@ private:
 
 	Utl::CVector<RenderBuffer>	m_RenderBuffers{};
 
-	// FIXME: Make private.
-public:
-	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
-	uint8_t				m_iRendererDebugMode{ 0 };
+	class IDebugGeometrySystem* m_pDebugGeoSystem{ nullptr };
 
 	// A pointer to the window we're rendering to.
 	Platform::IPlatformWindow* m_pMainWindow;
 
-	class IDebugGeometrySystem* m_pDebugGeoSystem{ nullptr };
+	// These need access to our members.
+	friend static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
 };
-
-// Internal pointer to the renderer system.
-// Needed for internal code.
-// TODO: maybe there's a better way to pass this around?
-static CRenderer* s_RenderSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose - TODO: Documentation.
@@ -155,8 +148,7 @@ void IRenderer::AllocateRenderSystemState(IRenderer** ppSystemState)
 		return;
 	}
 
-	s_RenderSystem = new CRenderer;
-	*ppSystemState = s_RenderSystem;
+	*ppSystemState = new CRenderer;
 }
 
 //-------------------------------------------------------------------------
@@ -198,8 +190,8 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{
 		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
-		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
-		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, this, RendererEvent_WindowResized);
+		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, this, RendererEvent_KeyPressed);
 	}
 
 	// Grab window dimensions.
@@ -302,7 +294,6 @@ void CRenderer::Shutdown()
 	m_RendererBackend->RendererBackend_Shutdown();
 
 	m_RendererBackend = nullptr;
-	s_RenderSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -733,34 +724,26 @@ void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffe
 }
 
 //-------------------------------------------------------------------------
-// Purpose: Releases all temp geometry resources.
-// Input:	none.
-// Output:	none.
-//-------------------------------------------------------------------------
-void CRenderer::DestroyTempGeometry()
-{
-	// TODO: Remove me!
-}
-
-//-------------------------------------------------------------------------
 // Purpose: An event handler for window resizes.
 // Input:	data - Event-specific data (this contains the new dimensions of the window).
 // Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
 //-------------------------------------------------------------------------
 static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 {
+	CRenderer* pRenderer = (CRenderer*)pEventListener;
+
 	// Handle minimized contexts.
 	if (data.u32[0] == 0 || data.u32[1] == 0)
 	{
-		s_RenderSystem->SetMinimized(true);
+		pRenderer->SetMinimized(true);
 	}
 	else
 	{
-		s_RenderSystem->SetMinimized(false);
+		pRenderer->SetMinimized(false);
 	}
 
 	// Cache off the new dimensions.
-	s_RenderSystem->SetWindowDimensions(data.u32[0], data.u32[1]);
+	pRenderer->SetWindowDimensions(data.u32[0], data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;
@@ -773,9 +756,10 @@ static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 //-------------------------------------------------------------------------
 static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 {
+	CRenderer* pRenderer = (CRenderer*)pEventListener;
 	if (data.c[0] >= 0 && data.c[0] <= 9)
 	{
-		s_RenderSystem->m_iRendererDebugMode = data.c[0];
+		pRenderer->m_iRendererDebugMode = data.c[0];
 	}
 
 	// Let other listeners handle this event.

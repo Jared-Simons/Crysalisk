@@ -747,6 +747,7 @@ namespace MeshSerializer
 		char	szValue[512];
 
 		Utl::CVector<MaterialLoader::MaterialResource_t> processedMaterialEntries{};
+		processedMaterialEntries.Resize(512); // FIXME: Don't hardcode this!! We need to fix how string memory is managed instead.
 
 		while (FileSystem::ReadLine(szCurrentLine, 2048, &iBytesRead, &hMtlFile))
 		{
@@ -771,6 +772,7 @@ namespace MeshSerializer
 				processedMaterialEntries.PushBack(MaterialLoader::MaterialResource_t{});
 				processedMaterialEntries.Back().pszMaterialName = Utl::StringDuplicate(szValue);
 				processedMaterialEntries.Back().pszShaderName = Utl::StringDuplicate("Core.Phong");		// Default hardcoded shader.
+				processedMaterialEntries.Back().textureMapConfigs.Resize(3);
 			}
 			else if (Utl::StringCompare(pszTrimmedKey, "map_Kd"))	// Diffuse map.
 			{
@@ -795,9 +797,8 @@ namespace MeshSerializer
 			}
 			else if (Utl::StringCompare(pszTrimmedKey, "Ns"))	// Specular exponent.
 			{
-				processedMaterialEntries.Back().pszCustomKeys.PushBack("specular_shininess");
-				processedMaterialEntries.Back().pszCustomValues.PushBack((char*)0);
-				processedMaterialEntries.Back().pszCustomValues.Back() = Utl::StringDuplicate(szValue);
+				processedMaterialEntries.Back().pszCustomKeys.PushBack(Utl::StringDuplicate("specular_shininess"));
+				processedMaterialEntries.Back().pszCustomValues.PushBack(Utl::StringDuplicate(szValue));
 			}
 
 			Utl::StringFree(pszTrimmedKey);

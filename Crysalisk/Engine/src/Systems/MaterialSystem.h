@@ -41,14 +41,14 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(struct MaterialLoader::MaterialResource_t& pInResource) = 0;
 
-	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) = 0;
+	virtual void				ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease) = 0;
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
 	// TODO: Make this return flags instead.
-	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const = 0;
+	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const = 0;
 
 	// Applies a given material.
-	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) = 0;
+	virtual void				ApplyMaterialInstance(MaterialHandle_t hShaderInstance) = 0;
 
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;

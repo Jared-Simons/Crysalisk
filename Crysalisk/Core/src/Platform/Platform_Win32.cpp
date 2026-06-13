@@ -10,15 +10,13 @@
 
 #include "Platform.h"
 
+#include "Containers/CVector.h"
 #include "Core/InputTypes.h"
 #include "Core/Logging.h"
-//#include "Interfaces.h"
-#include "InterfaceRegistry.h"
 #include "Strings/String_Utils.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <malloc.h>
 
 namespace Platform 
 {
@@ -141,9 +139,6 @@ namespace Platform
 		delete s_pWin32PlatformData;
 		s_pWin32PlatformData = nullptr;
 
-		// Hitting this means our entire process is shutting down,
-		// so clear out our interface registry now.
-		CleanupInterfaceRegistry();
 		s_ModuleRegistry.Clear();
 	}
 
@@ -758,8 +753,6 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Interface and factory methods for code modules (.dlls)
 	//-------------------------------------------------------------------------
-	typedef void (*PFN_ObtainInterfaces)(Utl::CVector<SystemInterface_t>& pOutInterfaces);
-	typedef void* (*PFN_ConnectInterface)(Utl::CVector<SystemInterface_t>& pInterfaceState);
 	class CSysModule : public ISysModule
 	{
 	public:
@@ -773,14 +766,6 @@ namespace Platform
 			m_szModuleName = nullptr;
 		}
 
-		virtual void* ConnectInterface(void* pInterfaceState) override
-		{
-			if (!m_ConnectInterfaceFunc)
-				return false;
-
-			return m_ConnectInterfaceFunc(GetRegisteredInterfaces());
-		}
-
 		void* GetFuncAddr(const char* pFuncName) override
 		{
 			return GetProcAddress(m_Module, pFuncName);
@@ -791,10 +776,8 @@ namespace Platform
 
 	public:
 		// These can be public, they can't be touched by another file w/o the windows headers anyways ¯\_(ツ)_/¯
-		HMODULE	m_Module;
-		PFN_ObtainInterfaces m_ObtainInterfacesFunc;
-		PFN_ConnectInterface m_ConnectInterfaceFunc;
-		char* m_szModuleName;
+		HMODULE	m_Module{ 0 };
+		char* m_szModuleName{ nullptr };
 	};
 
 	//-------------------------------------------------------------------------
@@ -836,54 +819,6 @@ namespace Platform
 		s_ModuleRegistry.PushBack(pNewModule);
 
 		return pNewModule;
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Assigns our interfaces obtained from external libraries.
-	//-------------------------------------------------------------------------
-	void SetupExternalInterfaces()
-	{
-		// CRYS_STD_LIB TODO: Fix how this is handled.
-		//::AssignInterfaces(GetRegisteredInterfaces());
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Stores off pointers to all exposed interfaces within all loaded .dlls.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ObtainLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ObtainInterfacesFunc)
-			{
-				Utl::CVector<SystemInterface_t> incomingInterfaces{};
-				s_ModuleRegistry[idx].m_ObtainInterfacesFunc(incomingInterfaces);
-				for (int iface = 0; iface < incomingInterfaces.Count(); iface++)
-				{
-					RegisterInterface(incomingInterfaces[iface]);
-				}
-			}
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Connects all previously-obtained interface pointers for all registered .dlls.
-	//				After 'ObtainLibraryInterfaces()' and this, each registered .dll should have
-	//				access to all registered interfaces.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ConnectLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ConnectInterfaceFunc)
-			{
-				s_ModuleRegistry[idx].m_ConnectInterfaceFunc(GetRegisteredInterfaces());
-			}
-		}
 	}
 
 	//-----------------------------------------------------------------------------
