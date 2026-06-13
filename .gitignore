@@ -17,3 +17,5 @@ console.log
 /Crysalisk/Assets/Models
 /CMakeFiles
 /Build
+/Crysalisk/Vulkan-App-Framework/bin
+/Crysalisk/Assets/Maps
