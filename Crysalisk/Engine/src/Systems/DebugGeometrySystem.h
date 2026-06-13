@@ -49,13 +49,13 @@ public:
 	virtual void	Update() = 0; 
 	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) = 0;
 
-	virtual int		AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) = 0;
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration) = 0;
-	virtual int		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration) = 0;
-	virtual int		AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) = 0;
-	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration) = 0;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, f32 flDuration) = 0;
-	virtual void	RemoveDebugGeometry(int debugGeoHandle) = 0;
+	virtual i32		AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) = 0;
+	virtual i32		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration) = 0;
+	virtual i32		AddBBox(struct GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration) = 0;
+	virtual i32		AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) = 0;
+	virtual i32		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration) = 0;
+	virtual i32		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, f32 flDuration) = 0;
+	virtual void	RemoveDebugGeometry(i32 debugGeoHandle) = 0;
 
 	virtual void	UpdateDebugGeometryTransform(u32 debugGeoHandle, Matrix4x4 matTransform) = 0;
 };

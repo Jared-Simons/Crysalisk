@@ -70,7 +70,7 @@ public:
 	bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
 	void			EndRenderpass() override;
 
-	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
+	bool			AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
 	void			ReleaseTextureResources(struct Texture* pTexture) override;
 
 	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) override;
@@ -247,7 +247,7 @@ bool CRenderer::PostInitialize(RenderPacket_t& pRenderPacket)
 //-------------------------------------------------------------------------
 void CRenderer::ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews)
 {
-	for (int iView = 0; iView < pRenderViews.Count(); iView++)
+	for (i32 iView = 0; iView < pRenderViews.Count(); iView++)
 	{
 		if (!pRenderViews[iView]->Initialize(m_Config.pEngine->GetEngineInterfaces()))
 		{
@@ -277,13 +277,13 @@ void CRenderer::Shutdown()
 	m_FrameAllocator.Destroy();
 
 	// Release render-views.
-	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
 	{
 		m_pRenderViews[iView]->Shutdown(this);
 	}
 
 	// Release render-buffers.
-	for (int iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	for (i32 iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
 	{
 		DestroyRenderBuffer(m_RenderBuffers[iBuffer]);
 	}
@@ -311,7 +311,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 		return true;
 	}
 
-	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
 	{
 		m_pRenderViews[iView]->BuildRenderPacket(&pRenderData);
 	}
@@ -356,7 +356,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	{		
-		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+		for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
 			m_pRenderViews[iView]->Render(&pRenderData);
 		}
@@ -440,7 +440,7 @@ IRenderView* CRenderer::GetRenderView(const char* pszRenderViewName)
 {
 	CAssert(pszRenderViewName != nullptr);
 
-	for (int iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
+	for (i32 iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
 	{
 		if (Utl::StringCompareInsensitive(pszRenderViewName, m_pRenderViews[iPass]->GetViewName()))
 		{
@@ -478,7 +478,7 @@ void CRenderer::EndRenderpass()
 //			pPixelData - An array of the texture's pixel data.
 // Output:	bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool CRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData)
+bool CRenderer::AcquireTextureResources(Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData)
 {
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
@@ -518,7 +518,7 @@ void CRenderer::DestroyShader(Shader* pShader)
 // Purpose: Acquires instance-level resources for a shader.
 //				Typically called when setting up a material or similar scenarios.
 // Input:	pShader - The shader to get set up an instance for.
-//			pOutInstanceID - A pointer to an int to hold the ID of the instance.
+//			pOutInstanceID - A pointer to an i32 to hold the ID of the instance.
 //			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------

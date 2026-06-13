@@ -18,7 +18,7 @@ namespace Utl
 	// Purpose: Gets the length of a zero-terminated string.
 	// 
 	// Input:	pszString - The string's path to return.
-	// Output:	int - The size of the string.
+	// Output:	i32 - The size of the string.
 	//-------------------------------------------------------------------------
 	u64 StringLength(const char* pszString)
 	{
@@ -76,7 +76,7 @@ namespace Utl
 			return false;
 		}
 
-		int result = strcmp(pszStr1, pszStr2);
+		i32 result = strcmp(pszStr1, pszStr2);
 		return result == 0;
 	}
 
@@ -88,7 +88,7 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	bool StringCompareInsensitive(const char* pszStr1, const char* pszStr2)
 	{
-		int result = _strcmpi(pszStr1, pszStr2);
+		i32 result = _strcmpi(pszStr1, pszStr2);
 		return result == 0;
 	}
 
@@ -97,12 +97,12 @@ namespace Utl
 	// 
 	// Input:	pszString - The string to search.
 	//			charToFind - The character to search for.
-	// Output:	int - Returns the index of 'charToFind', or kInvalidID_U32 if not found.
+	// Output:	i32 - Returns the index of 'charToFind', or kInvalidID_U32 if not found.
 	//-------------------------------------------------------------------------
 	u32 StringIndexOf(const char* pszString, char charToFind)
 	{
 		u64 len = StringLength(pszString);
-		for (int idx = 0; idx < len; idx++)
+		for (i32 idx = 0; idx < len; idx++)
 		{
 			if (pszString[idx] == charToFind)
 				return idx;
@@ -260,7 +260,7 @@ namespace Utl
 		u64 endIndex = -1;
 		u64 numWhitespaceCharacters = 0;
 
-		for (int idx = 0; idx < strLength; idx++)
+		for (i32 idx = 0; idx < strLength; idx++)
 		{
 			if (pszStr[idx] != ' ' && startIndex == -1)
 			{
@@ -288,7 +288,7 @@ namespace Utl
 		char* pTrimmedString = new char[newStringLength];
 
 		// Step through the string again, this time copying over all the characters BUT the whitespace characters.
-		for (int idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
+		for (i32 idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
 		{
 			// Ignore all whitespace tokens.
 			while (pszStr[oldIdx] == ' ' || pszStr[oldIdx] == '\t')
@@ -320,7 +320,7 @@ namespace Utl
 		u64 len = StringLength(pszStr);
 		u64 numInstances = 0;
 
-		for (int idx = 0; idx < len; idx++)
+		for (i32 idx = 0; idx < len; idx++)
 		{
 			if (pszStr[idx] == c)
 				numInstances++;
@@ -328,7 +328,7 @@ namespace Utl
 
 		char* newString = new char[(len - numInstances) + 1];
 		numInstances = 0;
-		for (int idx = 0; idx < (len - numInstances); idx++)
+		for (i32 idx = 0; idx < (len - numInstances); idx++)
 		{
 			if (pszStr[idx] == c)
 			{
@@ -360,12 +360,12 @@ namespace Utl
 		u64 len = StringLength(pszStr);
 		u64 numInstances = 0;
 
-		for (int idx = 0; idx < len; idx++)
+		for (i32 idx = 0; idx < len; idx++)
 		{
 			if (pszStr[idx] == c)
 			{
 				// Strip this character and pull the rest of the string back.
-				for (int inIdx = idx; inIdx < len; inIdx++)
+				for (i32 inIdx = idx; inIdx < len; inIdx++)
 				{
 					pszStr[inIdx] = pszStr[inIdx + 1];
 				}
@@ -378,9 +378,9 @@ namespace Utl
 	// Purpose: Converts an ascii value to an integer.
 	// 
 	// Input:	c - The character to convert to an integer.
-	// Output:	int - The converted character.
+	// Output:	i32 - The converted character.
 	//-------------------------------------------------------------------------
-	int String_ATOI(const char* c)
+	i32 String_ATOI(const char* c)
 	{
 		return atoi(c);
 	}
@@ -405,7 +405,7 @@ namespace Utl
 	//-------------------------------------------------------------------------
 	void String_ToVector3(const char* c, Vector3D* pOutVec)
 	{
-		int numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
+		i32 numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
 		CAssert(numElements == 3);
 	}
 

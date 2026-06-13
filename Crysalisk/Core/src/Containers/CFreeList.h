@@ -43,7 +43,7 @@ namespace Utl
 			m_pNodeArray = (FreeListNode_t*)pMemory;
 
 			// Invalidate all nodes.
-			for (int nodeIdx = 0; nodeIdx < m_iNumFreelistNodes; nodeIdx++)
+			for (i32 nodeIdx = 0; nodeIdx < m_iNumFreelistNodes; nodeIdx++)
 			{
 				m_pNodeArray[nodeIdx].Size = 0;
 				m_pNodeArray[nodeIdx].Offset = 0;
@@ -225,7 +225,7 @@ namespace Utl
 			FreeListNode_t* pDebugCurNode = m_HeadNode;
 			FreeListNode_t* pDebugNextNode = nullptr;
 
-			int nDebugIterations = 0;
+			i32 nDebugIterations = 0;
 			while (pDebugCurNode)
 			{
 				pDebugNextNode = pDebugCurNode->pNextNode;
@@ -272,7 +272,7 @@ namespace Utl
 
 		FreeListNode_t* GetNewNode()
 		{
-			for (int idx = 0; idx < m_iNumFreelistNodes; idx++)
+			for (i32 idx = 0; idx < m_iNumFreelistNodes; idx++)
 			{
 				if (m_pNodeArray[idx].Size == 0)	// If the node has a size of zero, then it hasn't been touched yet.
 				{

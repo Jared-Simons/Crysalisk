@@ -91,7 +91,7 @@ namespace Utl
 	//				allocated by Allocate(). Must not be nullptr!
 	// Output: none.
 	//-------------------------------------------------------------------------
-	int DynamicAllocator::Free(void* pMemoryBlock)
+	i32 DynamicAllocator::Free(void* pMemoryBlock)
 	{
 		CAssert(pMemoryBlock != nullptr);
 
@@ -100,6 +100,6 @@ namespace Utl
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);
 
-		return (int)pHeader->Size;
+		return (i32)pHeader->Size;
 	}
 }

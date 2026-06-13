@@ -40,7 +40,7 @@ public:
 	virtual bool	CreateRenderBufferInternal(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) = 0;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) = 0;
 
-	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) = 0;
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) = 0;

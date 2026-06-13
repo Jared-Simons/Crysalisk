@@ -72,7 +72,7 @@ GeometryConfig_t MeshGenerator::CreateDefaultQuadConfiguration(Vector3D vecOrigi
 GeometryConfig_t MeshGenerator::CreateDefaultCubeConfiguration(Vector3D vecOrigin, f32 flWidth, f32 flHeight, f32 flDepth)
 {
 	GeometryConfig_t cubeConfig{};
-	int faceIdx = 0;
+	i32 faceIdx = 0;
 
 	const f32 halfWidth = flWidth / 2;
 	const f32 halfHeight = flHeight / 2;
@@ -235,7 +235,7 @@ void MeshGenerator::GenerateTangentData(GeometryConfig_t& pAppConfig)
 {
 	u64 triCount = pAppConfig.Vertices.Count() / 3;
 	{
-		for (int triIdx = 0; triIdx < triCount; triIdx++)
+		for (i32 triIdx = 0; triIdx < triCount; triIdx++)
 		{
 			Vector3D position1 = pAppConfig.Vertices[(triIdx * 3) + 0].Pos;
 			Vector3D position2 = pAppConfig.Vertices[(triIdx * 3) + 1].Pos;
@@ -254,7 +254,7 @@ void MeshGenerator::GenerateTangentData(GeometryConfig_t& pAppConfig)
 				LOG_WARN("Invalid tangent data detected.");
 			}
 
-			for (int vertIdx = 0; vertIdx < 3; vertIdx++)
+			for (i32 vertIdx = 0; vertIdx < 3; vertIdx++)
 			{
 				pAppConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.x = f * (dUV2.y * edge1.x - dUV1.y * edge2.x);
 				pAppConfig.Vertices[(triIdx * 3) + vertIdx].Tangent.y = f * (dUV2.y * edge1.y - dUV1.y * edge2.y);

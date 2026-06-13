@@ -130,7 +130,7 @@ namespace FontLoader
 			stbtt_PackEnd(&packContext);
 
 			// Make sure to get our quad texcoords as well.
-			for (int charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
+			for (i32 charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
 			{
 				f32 flUnusedX, flUnusedY;
 				stbtt_GetPackedQuad(
@@ -143,7 +143,7 @@ namespace FontLoader
 			}
 
 			// Save out all of our glyph data to the resource.
-			for (int charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
+			for (i32 charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
 			{
 				FontCharData_t&		pCurrGlyph = pOutResource.charGlyphs[charIdx];
 				stbtt_packedchar&	pCurrChar = packedChars[charIdx];

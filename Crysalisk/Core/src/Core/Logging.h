@@ -25,13 +25,13 @@ enum class eLogLevel
 class CORE_API LogSystem
 {
 public:
-	bool	Init(int iLogVerbosity);
+	bool	Init(i32 iLogVerbosity);
 	void	Shutdown();
 
 	void	LogMessage(eLogLevel level, const char* message, ...);
 
 private:
-	static int m_LogVerbosity;
+	static i32 m_LogVerbosity;
 };
 
 // Logging system context.

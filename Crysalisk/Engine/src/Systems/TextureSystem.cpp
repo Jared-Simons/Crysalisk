@@ -34,7 +34,7 @@ public:
 	virtual bool				IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const override;
 
 	// TODO: Implement this and comment.
-	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData) override;
+	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, i32 iTexWidth, i32 iTexHeight, byte* pPixelData) override;
 
 			// This variant exists to free textures in the array without having to access the hashmap from the calling function. This really only exists to easily clear the textures on shutdown.
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
@@ -79,7 +79,7 @@ private:
 		// The internal handle for the texture.
 		TextureHandle_t	TextureIndex{ kInvalidID_U32 };
 		// The current reference count of the texture.
-		int				ReferenceCount{ 0 };
+		i32				ReferenceCount{ 0 };
 		// Indicates if this texture should automatically release it's resources when it's reference count reaches 0.
 		// NOTE: This can only be set when first acquiring the texture.
 		bool			AutoRelease{ false };
@@ -108,7 +108,7 @@ static CTextureSystem* s_TextureSystem{ nullptr };
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async texture-loading job.
 //-------------------------------------------------------------------------
-static int OnTextureLoadJob_Success(JobResults_t& pResults)
+static i32 OnTextureLoadJob_Success(JobResults_t& pResults)
 {
 	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
 
@@ -129,7 +129,7 @@ static int OnTextureLoadJob_Success(JobResults_t& pResults)
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon texture loading job failed.
 //-------------------------------------------------------------------------
-static int OnTextureLoadJob_Fail(JobResults_t& pResults)
+static i32 OnTextureLoadJob_Fail(JobResults_t& pResults)
 {
 	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
 
@@ -195,7 +195,7 @@ bool CTextureSystem::Initialize(TextureSystemConfig_t config)
 void CTextureSystem::Shutdown()
 {
 	// Free any texture resources in use by the renderer.
-	for (int idx = 0; idx < m_Config.MaxTextures; idx++)
+	for (i32 idx = 0; idx < m_Config.MaxTextures; idx++)
 	{
 		if (m_TextureDictionary.m_TextureArray[idx].internalHandle != kInvalidID_U32)
 		{
@@ -413,7 +413,7 @@ bool CTextureSystem::IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t f
 // Takes already created pixel data and wraps it in a texture object.
 // This returns a handle to that texture.
 //-------------------------------------------------------------------------
-TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData)
+TextureHandle_t CTextureSystem::WrapTextureInternal(const char* pszTextureName, i32 iTexWidth, i32 iTexHeight, byte* pPixelData)
 {
 	// TODO: IMPLEMENT THIS!
 	CAssert(0);
@@ -476,7 +476,7 @@ TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 		return kInvalidID_U32;
 	}
 
-	for (int texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
+	for (i32 texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 	{
 		if (m_TextureDictionary.m_TextureArray[texIdx].internalHandle == kInvalidID_U32)
 		{
@@ -531,7 +531,7 @@ bool CTextureSystem::CreateDefaultTextures()
 	// Default diffuse texture
 	{
 		Texture* defaultDiffuseTexture = nullptr;
-		int texIdx = 0;
+		i32 texIdx = 0;
 
 		// Get an entry into the hashmap.
 		TextureLookup* newTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultTextureName);
@@ -546,9 +546,9 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		byte	defaultTexturePixels[8][8][4];
 		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		for (i32 rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
-			for (int colIdx = 0; colIdx < 8; colIdx++)
+			for (i32 colIdx = 0; colIdx < 8; colIdx++)
 			{
 				defaultTexturePixels[rowIdx][colIdx][0] = 0;
 				defaultTexturePixels[rowIdx][colIdx][1] = 0;
@@ -576,7 +576,7 @@ bool CTextureSystem::CreateDefaultTextures()
 	// Default white texture
 	{
 		Texture* defaultWhiteTexture = nullptr;
-		int texIdx = 0;
+		i32 texIdx = 0;
 
 		// Get an entry into the hashmap.
 		TextureLookup* defaultWhiteTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultWhiteTextureName);
@@ -590,9 +590,9 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		byte	defaultTexturePixels[8][8][4];
 		Platform::MemorySet(defaultTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		for (i32 rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
-			for (int colIdx = 0; colIdx < 8; colIdx++)
+			for (i32 colIdx = 0; colIdx < 8; colIdx++)
 			{
 				defaultTexturePixels[rowIdx][colIdx][0] = 255;
 				defaultTexturePixels[rowIdx][colIdx][1] = 255;
@@ -620,7 +620,7 @@ bool CTextureSystem::CreateDefaultTextures()
 	// Default specular texture
 	{
 		Texture* pDefaultSpecularTexture = nullptr;
-		int texIdx = 0;
+		i32 texIdx = 0;
 
 		// Get an entry into the hashmap.
 		TextureLookup* defaultSpecularTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultSpecularTextureName);
@@ -634,9 +634,9 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		byte	defaultSpecularTexturePixels[8][8][4];
 		Platform::MemorySet(defaultSpecularTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		for (i32 rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
-			for (int colIdx = 0; colIdx < 8; colIdx++)
+			for (i32 colIdx = 0; colIdx < 8; colIdx++)
 			{
 				defaultSpecularTexturePixels[rowIdx][colIdx][0] = 0;
 				defaultSpecularTexturePixels[rowIdx][colIdx][1] = 0;
@@ -664,7 +664,7 @@ bool CTextureSystem::CreateDefaultTextures()
 	// Default normal texture
 	{
 		Texture* pDefaultNormalTexture = nullptr;
-		int texIdx = 0;
+		i32 texIdx = 0;
 
 		// Get an entry into the hashmap.
 		TextureLookup* defaultNormalTextureLookup = m_TextureDictionary.m_TextureHashmap.Insert(kszDefaultNormalTextureName);
@@ -678,9 +678,9 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		byte	defaultNormalTexturePixels[8][8][4];
 		Platform::MemorySet(defaultNormalTexturePixels, 0, sizeof(byte) * 8 * 8 * 4);
-		for (int rowIdx = 0; rowIdx < 8; rowIdx++)
+		for (i32 rowIdx = 0; rowIdx < 8; rowIdx++)
 		{
-			for (int colIdx = 0; colIdx < 8; colIdx++)
+			for (i32 colIdx = 0; colIdx < 8; colIdx++)
 			{
 				defaultNormalTexturePixels[rowIdx][colIdx][0] = 128;
 				defaultNormalTexturePixels[rowIdx][colIdx][1] = 128;

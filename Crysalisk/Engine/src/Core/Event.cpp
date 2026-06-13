@@ -23,7 +23,7 @@ public:
 
 private:
 	Event m_RegisteredEvents[kNumEventCategories][kMaxEventsPerCategory];
-	int m_numRegisteredEvents[kNumEventCategories];
+	i32 m_numRegisteredEvents[kNumEventCategories];
 };
 
 //-------------------------------------------------------------------------
@@ -48,9 +48,9 @@ void IEventSystem::AllocateEventSystemState(IEventSystem** ppSystemState)
 bool EventSystem::Initialize()
 {
 	// Loop through and invalidate event entries.
-	for (int i = 0; i < kNumEventCategories; i++)
+	for (i32 i = 0; i < kNumEventCategories; i++)
 	{
-		for (int j = 0; j < kMaxEventsPerCategory; j++)
+		for (i32 j = 0; j < kMaxEventsPerCategory; j++)
 		{
 			m_RegisteredEvents[i][j].m_EventCategory = eEventCategory::UNKNOWN;
 			m_RegisteredEvents[i][j].m_EventID = -1;
@@ -86,11 +86,11 @@ bool EventSystem::EventRegister(eEventCategory eventCategory, void* pListenerIns
 		return false;
 	}
 
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* newEvent = nullptr;
 
 	// Iterate through the registered events (of the same category) until a free slot is found
-	for (int i = 0; i < kMaxEventsPerCategory;i++)
+	for (i32 i = 0; i < kMaxEventsPerCategory;i++)
 	{
 		newEvent = &m_RegisteredEvents[intEventCategory][i];
 
@@ -141,10 +141,10 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* pListenerI
 		return false;
 	}
 
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* eventToBeFreed = &m_RegisteredEvents[intEventCategory][0];
 
-	for (int i = 0; i < kMaxEventsPerCategory; i++)
+	for (i32 i = 0; i < kMaxEventsPerCategory; i++)
 	{
 		if (eventToBeFreed[i].m_EventCategory == eventCategory && eventToBeFreed[i].m_PFNEventCallback == PFN_Callback)
 		{
@@ -174,10 +174,10 @@ bool EventSystem::EventUnregister(eEventCategory eventCategory, void* pListenerI
 //-------------------------------------------------------------------------
 void EventSystem::EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data)
 {
-	int intEventCategory = static_cast<int>(eventCategory);
+	i32 intEventCategory = static_cast<i32>(eventCategory);
 	Event* currEvent = m_RegisteredEvents[intEventCategory];
 
-	for (int i = 0; i < kMaxEventsPerCategory; i++)
+	for (i32 i = 0; i < kMaxEventsPerCategory; i++)
 	{
 		if (currEvent[i].m_EventID != -1)
 		{

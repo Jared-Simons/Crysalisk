@@ -58,7 +58,7 @@ namespace Utl
 
 		Value& operator[](const char* pKey)
 		{
-			int hashedKey = SimpleHash_StringToInt(pKey, m_Capacity);
+			i32 hashedKey = SimpleHash_StringToInt(pKey, m_Capacity);
 			// Handle collisions here.
 			if (pKey && m_pKeys[hashedKey] && Utl::StringCompare(m_pKeys[hashedKey], pKey))
 			{
@@ -68,7 +68,7 @@ namespace Utl
 			else
 			{
 				// Perform linear probing to attempt to find the right key.
-				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				for (i32 iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
 				{
 					if (m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] && Utl::StringCompare(m_pKeys[(hashedKey + iProbeIdx) % m_Capacity], pKey))
 					{
@@ -92,7 +92,7 @@ namespace Utl
 
 		Value* Insert(const char* key)
 		{
-			int hashedKey = ::SimpleHash_StringToInt(key, m_Capacity);
+			i32 hashedKey = ::SimpleHash_StringToInt(key, m_Capacity);
 			CAssert(hashedKey >= 0 && hashedKey < m_Capacity);
 
 			if (m_pKeys[hashedKey] == nullptr)
@@ -108,7 +108,7 @@ namespace Utl
 			{
 				// Perform linear probing.
 				// This method should be fast enough since we typically store off hashed data for quick lookups anyways.
-				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				for (i32 iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
 				{
 					if (m_pKeys[(hashedKey + iProbeIdx) % m_Capacity] && Utl::StringCompare(m_pKeys[(hashedKey + iProbeIdx) % m_Capacity], key))
 					{
@@ -161,14 +161,14 @@ namespace Utl
 		}
 
 		// This allows us to access our elements in an array like manner.
-		Value& ValueElementAt(int index)
+		Value& ValueElementAt(i32 index)
 		{
 			return m_pValues[index];
 		}
 
 		bool IsValueInTable(char* pszKey) const
 		{
-			int hashedValue = ::SimpleHash_StringToInt(pszKey, m_Capacity);
+			i32 hashedValue = ::SimpleHash_StringToInt(pszKey, m_Capacity);
 			CAssert(hashedValue >= 0 && hashedValue < m_Capacity);
 			
 			if (m_pKeys[hashedValue] == nullptr)
@@ -181,7 +181,7 @@ namespace Utl
 			}
 			else
 			{
-				for (int iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
+				for (i32 iProbeIdx = 1; iProbeIdx < m_Capacity; iProbeIdx++)
 				{
 					if (m_pKeys[(hashedValue + iProbeIdx) % m_Capacity] == nullptr)
 					{

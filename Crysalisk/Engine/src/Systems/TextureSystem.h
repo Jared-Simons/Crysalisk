@@ -39,7 +39,7 @@ public:
 
 	virtual bool				IsTextureFlagSet(TextureHandle_t hTexture, TextureFlags_t flagsToCheck) const = 0;
 
-	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, int iTexWidth, int iTexHeight, byte* pPixelData) = 0;
+	virtual TextureHandle_t		WrapTextureInternal(const char* pszTextureName, i32 iTexWidth, i32 iTexHeight, byte* pPixelData) = 0;
 
 	virtual i32				GetTextureWidth(TextureHandle_t hTexture) const = 0;
 	virtual i32				GetTextureHeight(TextureHandle_t hTexture) const = 0;

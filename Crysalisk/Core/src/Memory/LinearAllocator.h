@@ -19,7 +19,7 @@ namespace Utl
 
 		virtual void*	Allocate(u64 numBytes) override;
 
-		virtual int		Free(void* pMemBlock) override;
+		virtual i32		Free(void* pMemBlock) override;
 		virtual void	FreeAll() override;
 
 		virtual eAllocatorType	GetAllocatorType() const override { return ALLOCATOR_TYPE_LINEAR; }

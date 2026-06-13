@@ -59,18 +59,18 @@ public:
 	virtual void	Update() override;
 	virtual void	PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer) override;
 
-	virtual int		AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
-	virtual int		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration) override;
-	virtual int		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration) override;
-	virtual int		AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
-	virtual int		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration) override;
-	virtual int		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, f32 flDuration) override;
-	virtual void	RemoveDebugGeometry(int debugGeoHandle) override;
+	virtual i32		AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
+	virtual i32		AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration) override;
+	virtual i32		AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration) override;
+	virtual i32		AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration) override;
+	virtual i32		AddText(class IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration) override;
+	virtual i32		AddCameraFrustum(struct Camera_t& pCamera, Vector4D color, f32 flDuration) override;
+	virtual void	RemoveDebugGeometry(i32 debugGeoHandle) override;
 
 	virtual void	UpdateDebugGeometryTransform(u32 debugGeoHandle, Matrix4x4 matTransform) override;
 
 private:
-	int				GetFirstFreeGeometryDataIndex() const;
+	i32				GetFirstFreeGeometryDataIndex() const;
 
 private:
 	DebugRendererConfig_t		m_Config{};
@@ -214,9 +214,9 @@ void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*
 //-------------------------------------------------------------------------
 // Purpose: Adds a point (provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
 {
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -257,9 +257,9 @@ int CDebugGeometrySystem::AddPoint(Vector& pOrigin, const f32 flRadius, Vector4D
 //-------------------------------------------------------------------------
 // Purpose: Adds a line (endpoints provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector4D color, f32 flDuration)
 {
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -291,9 +291,9 @@ int CDebugGeometrySystem::AddLine(Vector3D ptStartPos, Vector3D ptEndPos, Vector
 //-------------------------------------------------------------------------
 // Purpose: Adds a bounding box of a piece of geometry to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color, f32 flDuration)
 {
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -316,10 +316,10 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 	Vector3D& vecLocalMins = pGeometry.vecMinExtents;
 	Vector3D& vecLocalMaxs = pGeometry.vecMaxExtents;
 
-	const int iNumVertices = 8;
+	const i32 iNumVertices = 8;
 	Vector ptVertices[iNumVertices]{};
 
-	const int iNumIndices = 24;
+	const i32 iNumIndices = 24;
 	u32 indices[iNumIndices] = { 0, 1, 2, 3 };
 
 	// This first set of verts/edges form the horizontal square along the bottom of the geometry.
@@ -343,19 +343,19 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 	indices[7] = 3;
 
 	// Directly copy the verts and raise them all up to the max Y to form the horizontal square along the top of the geometry.
-	for (int idx = 4; idx < 8; idx++)
+	for (i32 idx = 4; idx < 8; idx++)
 	{
 		ptVertices[idx] = ptVertices[idx - 4];
 		ptVertices[idx].y = vecLocalMaxs.y;
 	}
 
-	for (int idx = 8; idx < 16; idx++)
+	for (i32 idx = 8; idx < 16; idx++)
 	{
 		indices[idx] = indices[idx - 8] + 4;
 	}
 
 	// Now for the four corners of the box.
-	for (int idx = 16, i = 0; idx < iNumIndices; idx += 2, i++)
+	for (i32 idx = 16, i = 0; idx < iNumIndices; idx += 2, i++)
 	{
 		indices[idx + 0] = i;
 		indices[idx + 1] = i + 4;
@@ -373,9 +373,9 @@ int CDebugGeometrySystem::AddBBox(GeometryInstance_t& pGeometry, Vector4D color,
 //-------------------------------------------------------------------------
 // Purpose: Adds a sphere (origin provided in worldspace) to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4D color, f32 flDuration)
 {
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -394,11 +394,11 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4
 	m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDebugLineShader, &pNewGeometry.geometryInstance.hShaderInstance, "DebugTest_Sphere");
 	m_Config.pShaderSystem->SetShaderUniform(m_hDebugLineShader, m_DebugLineShaderUniforms.color, 0, pNewGeometry.geometryInstance.hShaderInstance, &color);
 
-	const int iNumVertices = 72;
+	const i32 iNumVertices = 72;
 	Vector3D ptVertices[iNumVertices]{};
 
 	const f32 fl2PI = 2.0f * kPI_F;
-	int iCurrentVert = 0;
+	i32 iCurrentVert = 0;
 
 	for (f32 flAngle = (kPI_F / 12.0f); flAngle < fl2PI; (flAngle += kPI_F / 12.0f))
 	{
@@ -421,11 +421,11 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4
 		iCurrentVert += 1;
 	}
 
-	const int iNumIndices = 144;
+	const i32 iNumIndices = 144;
 	u32 indices[iNumIndices]{};
 	iCurrentVert = 1;
 	// Setup index data.
-	for (int iIndex = 0; iIndex < iNumIndices; iIndex += 2)
+	for (i32 iIndex = 0; iIndex < iNumIndices; iIndex += 2)
 	{
 		indices[iIndex] = iCurrentVert - 1;
 		indices[iIndex + 1] = iCurrentVert;
@@ -452,10 +452,10 @@ int CDebugGeometrySystem::AddSphere(Vector& pOrigin, const f32 flRadius, Vector4
 //-------------------------------------------------------------------------
 // Purpose: Adds a piece of text to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, FontHandle_t hFont, const char* pszText, Vector4D color, f32 flDuration)
 {
 	// TODO: Make the text center-justified (i.e. the 'origin' of the text is at the center of the geometry).
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -496,9 +496,9 @@ int CDebugGeometrySystem::AddText(IFontSystem* pFontSystem, Vector& pOrigin, Fon
 //-------------------------------------------------------------------------
 // Purpose: Adds a camera frustum to the debug geometries.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, f32 flDuration)
+i32 CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, f32 flDuration)
 {
-	int iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
+	i32 iDebugGeometryIndex = GetFirstFreeGeometryDataIndex();
 	if (iDebugGeometryIndex == kInvalidID_U32)
 		return kInvalidID_U32;
 
@@ -519,10 +519,10 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, f3
 
 	// Define the frustum vertices in clip-space.
 	// Then unproject into world-space.
-	const int iNumVertices = 8;
+	const i32 iNumVertices = 8;
 	Vector ptVertices[iNumVertices]{};
 
-	const int iNumIndices = 24;
+	const i32 iNumIndices = 24;
 	u32 indices[iNumIndices];
 
 	Vector vecCameraPosition = pCamera.vecPosition;
@@ -583,7 +583,7 @@ int CDebugGeometrySystem::AddCameraFrustum(Camera_t& pCamera, Vector4D color, f3
 // Input:   debugGeoHandle - A handle to the debug geometry to release.
 // Output:  none.
 //-------------------------------------------------------------------------
-void CDebugGeometrySystem::RemoveDebugGeometry(int debugGeoHandle)
+void CDebugGeometrySystem::RemoveDebugGeometry(i32 debugGeoHandle)
 {
 	DebugGeometry_t& pGeoToRemove = m_GeometryData[debugGeoHandle];
 	CAssert(pGeoToRemove.geometryInstance.hShaderInstance != kInvalidID_U32);
@@ -611,7 +611,7 @@ void CDebugGeometrySystem::UpdateDebugGeometryTransform(u32 debugGeoHandle, Matr
 // Input:   none.
 // Output:  The new index, if one was found, otherwise an invalid ID.
 //-------------------------------------------------------------------------
-int CDebugGeometrySystem::GetFirstFreeGeometryDataIndex() const
+i32 CDebugGeometrySystem::GetFirstFreeGeometryDataIndex() const
 {
 	for (u32 idx = 0; idx < m_Config.uMaxDebugGeometries; idx++)
 	{

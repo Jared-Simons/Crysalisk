@@ -78,7 +78,7 @@ private:
 	Platform::ISystemMutex*			m_pJobResultMutex{ nullptr };
 	Utl::CVector<JobResults_t>		m_JobResults{};
 
-	friend static int JobThread_Main(void* pParams);
+	friend static i32 JobThread_Main(void* pParams);
 };
 
 // Job System context.
@@ -90,12 +90,12 @@ static CJobSystem* s_JobSystem;
 //			or a job becomes available.
 // 
 // Input:	pParams - An opaque pointer to be cast to a u8 containing the thread's index in the job system.
-// Output:	int - 0 indicates the thread shutdown successfully, otherwise nonzero.
+// Output:	i32 - 0 indicates the thread shutdown successfully, otherwise nonzero.
 //-------------------------------------------------------------------------
-static int JobThread_Main(void* pParams)
+static i32 JobThread_Main(void* pParams)
 {
 	u8 iThreadIdx = *(u8*)pParams;
-	int iThreadID = Platform::GetCurrentThreadID();
+	i32 iThreadID = Platform::GetCurrentThreadID();
 
 	LOG_DEBUG("Spawning job thread ID: %d", iThreadIdx);
 	CWorkerThread& pThisThread = s_JobSystem->m_pWorkerThreads[iThreadIdx];
@@ -234,7 +234,7 @@ void CJobSystem::Update()
 
 	// First, process high priority jobs.
 	ProcessJobQueue(m_HighPriorityJobs);
-	int iHighJobHead = m_HighPriorityJobs.HeadIndex();
+	i32 iHighJobHead = m_HighPriorityJobs.HeadIndex();
 	
 	// Next, the normal priority jobs.
 	ProcessJobQueue(m_NormalPriorityJobs);
@@ -336,7 +336,7 @@ void CJobSystem::WaitForWorkerThreadsToFinish() const
 	{
 		bWorkDone = true;
 
-		for (int iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
+		for (i32 iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
 		{
 			CWorkerThread& pThread = m_pWorkerThreads[iThread];
 			if (pThread.m_CurrentWorkData.pfnEntryPoint != nullptr) // There's some work happening here!
@@ -368,7 +368,7 @@ void CJobSystem::WaitForWorkerThreadsToShutdown()
 	{
 		bThreadsClosed = true;
 
-		for (int iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
+		for (i32 iThread = 0; iThread < m_pWorkerThreads.Count(); iThread++)
 		{
 			CWorkerThread& pThread = m_pWorkerThreads[iThread];
 			if (pThread.m_iThreadIdx != kInvalidID_U8)
@@ -389,14 +389,14 @@ void CJobSystem::WaitForWorkerThreadsToShutdown()
 //-------------------------------------------------------------------------
 void CJobSystem::ProcessJobQueue(Utl::CDeque<JobDeclaration_t>& pJobQueue)
 {
-	int iJobHeadIdx = pJobQueue.HeadIndex();
-	for (int iJob = iJobHeadIdx; iJob < (pJobQueue.Count() + iJobHeadIdx); iJob++)
+	i32 iJobHeadIdx = pJobQueue.HeadIndex();
+	for (i32 iJob = iJobHeadIdx; iJob < (pJobQueue.Count() + iJobHeadIdx); iJob++)
 	{
 		if (pJobQueue.PeekFront()->pfnEntryPoint)
 		{
 			CWorkerThread* pThread = &m_pWorkerThreads[0];
 			// There's a job here, try to find a worker thread and assign it.
-			for (int iThread = 0; iThread < m_Config.iNumJobThreads; iThread++)
+			for (i32 iThread = 0; iThread < m_Config.iNumJobThreads; iThread++)
 			{
 				pThread = &m_pWorkerThreads[iThread];
 				if (pThread->m_iThreadType != pJobQueue[iJob].iJobType || pThread->m_CurrentWorkData.pfnEntryPoint)
@@ -426,7 +426,7 @@ void CJobSystem::ProcessJobQueue(Utl::CDeque<JobDeclaration_t>& pJobQueue)
 //-------------------------------------------------------------------------
 void CJobSystem::ProcessJobResults()
 {
-	for (int iJob = 0; iJob < m_JobResults.Count(); iJob++)
+	for (i32 iJob = 0; iJob < m_JobResults.Count(); iJob++)
 	{
 		if (m_JobResults[iJob].pfnOnJobCompleted_Success_Callback)
 		{

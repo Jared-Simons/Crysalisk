@@ -239,7 +239,7 @@ namespace Utl
 		// Adds an element to the end of the deque.
 		// Returns the index of the new element.
 		//--------------------------------------------------
-		int PushBack(const T& pElement)
+		i32 PushBack(const T& pElement)
 		{
 			m_iTailElement = (m_iTailElement + 1) % m_iElementCapacity;
 			Platform::MemoryCopy(&m_pData[m_iTailElement], &pElement, sizeof(T));
@@ -288,7 +288,7 @@ namespace Utl
 			return pElementToReturn;
 		}
 
-		int		HeadIndex() const { return m_iHeadElement; }
+		i32		HeadIndex() const { return m_iHeadElement; }
 
 		u64	Count() const { return m_iElementCount; }
 		u64	Capacity() const { return m_iElementCapacity; }

@@ -9,10 +9,10 @@
 #include "Containers/CVector.h"
 #include <vector>
 
-int UTLCVector_CreateAndDestroy()
+i32 UTLCVector_CreateAndDestroy()
 {
 	// Create an empty vector.
-	Utl::CVector<int> vec;
+	Utl::CVector<i32> vec;
 
 	if (vec.Capacity() != 0)
 		return FAIL;
@@ -24,9 +24,9 @@ int UTLCVector_CreateAndDestroy()
 	return PASS;
 }
 
-int STDVector_CreateAndDestroy()
+i32 STDVector_CreateAndDestroy()
 {
-	std::vector<int> vec;
+	std::vector<i32> vec;
 
 	if (vec.capacity() != 0)
 		return FAIL;
@@ -38,9 +38,9 @@ int STDVector_CreateAndDestroy()
 	return PASS;
 }
 
-int UTLCVector_CreateAndAddElements()
+i32 UTLCVector_CreateAndAddElements()
 {
-	Utl::CVector<int> vec;
+	Utl::CVector<i32> vec;
 	vec.PushBack(1);
 	vec.PushBack(2);
 	vec.PushBack(3);
@@ -57,9 +57,9 @@ int UTLCVector_CreateAndAddElements()
 	return PASS;
 }
 
-int STDVector_CreateAndAddElements()
+i32 STDVector_CreateAndAddElements()
 {
-	std::vector<int> vec;
+	std::vector<i32> vec;
 	vec.push_back(1);
 	vec.push_back(2);
 	vec.push_back(3);

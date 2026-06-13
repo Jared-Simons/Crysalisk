@@ -43,8 +43,8 @@ namespace Platform
 			RECT rect;
 			if (GetClientRect(m_HWND, &rect))
 			{
-				int width = rect.right - rect.left;
-				int height = rect.bottom - rect.top;
+				i32 width = rect.right - rect.left;
+				i32 height = rect.bottom - rect.top;
 
 				pOutWidth = width;
 				pOutHeight = height;
@@ -78,7 +78,7 @@ namespace Platform
 		// NOTE: These are exposed to our private data because the input handlers need to
 		// be able to call our callbacks into the engine's input system.
 		friend static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-		friend static int ProcessWin32Input_MouseMove(LPARAM lParam);
+		friend static i32 ProcessWin32Input_MouseMove(LPARAM lParam);
 	};
 
 	//-------------------------------------------------------------------------
@@ -103,9 +103,9 @@ namespace Platform
 	static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 	static void InitializeWin32Clock();
-	static int ProcessWin32Input_Key(WPARAM wParam);
-	static int ProcessWin32Input_MouseButton(UINT uMsg);
-	static int ProcessWin32Input_MouseMove(LPARAM lParam);
+	static i32 ProcessWin32Input_Key(WPARAM wParam);
+	static i32 ProcessWin32Input_MouseButton(UINT uMsg);
+	static i32 ProcessWin32Input_MouseMove(LPARAM lParam);
 
 	//-------------------------------------------------------------------------
 	// Purpose: Initialize the platform-specific state.
@@ -173,10 +173,10 @@ namespace Platform
 		u32 windowExStyle = WS_EX_APPWINDOW;
 
 		// Do some fixup on the window dimensions to account for the window border.
-		int windowX = pNewWindow->GetParams().X;
-		int windowY = pNewWindow->GetParams().Y;
-		int windowWidth = pNewWindow->GetParams().Width;
-		int windowHeight = pNewWindow->GetParams().Height;
+		i32 windowX = pNewWindow->GetParams().X;
+		i32 windowY = pNewWindow->GetParams().Y;
+		i32 windowWidth = pNewWindow->GetParams().Width;
+		i32 windowHeight = pNewWindow->GetParams().Height;
 
 		RECT borderRect = { 0 };
 		AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
@@ -295,7 +295,7 @@ namespace Platform
 		case WM_SYSKEYUP:
 			{
 				// Prepare message data for input processing
-				int processedKeyCode = ProcessWin32Input_Key(wParam);
+				i32 processedKeyCode = ProcessWin32Input_Key(wParam);
 				bool pressed = (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN);
 
 				// Send it to our listeners.
@@ -313,7 +313,7 @@ namespace Platform
 		case WM_RBUTTONDOWN:
 		case WM_MBUTTONDOWN:
 			{
-				int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
+				i32 processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 				bool pressed = (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN);
 
 				if (s_pWin32PlatformData->activeWindow && s_pWin32PlatformData->activeWindow->m_MouseButtonEventCallback)
@@ -332,7 +332,7 @@ namespace Platform
 				break;
 
 			// Find and assign the active window.
-			for (int iWindow = 0; iWindow < s_pWin32PlatformData->windows.Count(); iWindow++)
+			for (i32 iWindow = 0; iWindow < s_pWin32PlatformData->windows.Count(); iWindow++)
 			{
 				CWindowsWindow& pWindow = *s_pWin32PlatformData->windows[iWindow];
 				bool isActive = (LOWORD(wParam) == WA_ACTIVE) || (LOWORD(wParam) == WA_CLICKACTIVE);
@@ -361,7 +361,7 @@ namespace Platform
 	// ============================================================================
 	//  WIN32 Input Processing
 	// ============================================================================
-	int ProcessWin32Input_Key(WPARAM wParam)
+	i32 ProcessWin32Input_Key(WPARAM wParam)
 	{
 		switch (wParam)
 		{
@@ -505,7 +505,7 @@ namespace Platform
 		}
 	}
 
-	int ProcessWin32Input_MouseButton(UINT uMsg)
+	i32 ProcessWin32Input_MouseButton(UINT uMsg)
 	{
 		switch (uMsg)
 		{
@@ -527,10 +527,10 @@ namespace Platform
 		}
 	}
 
-	int ProcessWin32Input_MouseMove(LPARAM lParam)
+	i32 ProcessWin32Input_MouseMove(LPARAM lParam)
 	{
-		int mouseXPos = 0;
-		int mouseYPos = 0;
+		i32 mouseXPos = 0;
+		i32 mouseYPos = 0;
 
 		if (lParam)
 		{
@@ -549,7 +549,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Threads
 	//-------------------------------------------------------------------------
-	int GetCurrentThreadID()
+	i32 GetCurrentThreadID()
 	{
 		return GetCurrentThreadId();
 	}
@@ -685,7 +685,7 @@ namespace Platform
 	//			pszMessage - The message to be logged.
 	// Output:	none.
 	//-------------------------------------------------------------------------
-	void LogMessage(int iLevel, const char* pszMessage)
+	void LogMessage(i32 iLevel, const char* pszMessage)
 	{
 		HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -708,7 +708,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	bool DisplayMessageBox(IPlatformWindow* pWindow, const char* pszMessageText, const char* pszMessageBoxTitle, bool bIsErrorRecoverable)
 	{
-		int messageBoxResult = 0;
+		i32 messageBoxResult = 0;
 		if (pWindow)
 		{
 			messageBoxResult = MessageBoxExA((HWND)pWindow->GetInternalHandle(), pszMessageText, pszMessageBoxTitle, (bIsErrorRecoverable ? MB_CANCELTRYCONTINUE : MB_OK), 0);
@@ -891,7 +891,7 @@ namespace Platform
 	//			size - The size of memory in bytes to be set.
 	// Output:	A pointer to the block of memory.
 	//-------------------------------------------------------------------------
-	void* MemorySet(void* memory, int value, u64 size)
+	void* MemorySet(void* memory, i32 value, u64 size)
 	{
 		if (memory)
 			return memset(memory, value, size);

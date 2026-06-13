@@ -66,7 +66,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 
 		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources.Count());
 
-		for (int iMesh = 0; iMesh < pNewMapResource.MeshResources.Count(); iMesh++)
+		for (i32 iMesh = 0; iMesh < pNewMapResource.MeshResources.Count(); iMesh++)
 		{
 			MapLoader::MapResource_t::MeshDeclaration_t& pCurMeshDec = pNewMapResource.MeshResources[iMesh];
 
@@ -134,7 +134,7 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 	}
 
 	// Release all mesh/material references.
-	for (int iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
+	for (i32 iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
 		pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
@@ -147,12 +147,12 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 
-	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
+	for (i32 iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
  		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
 
-		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		for (i32 iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);
@@ -210,12 +210,12 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) c
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
 	u32 iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
-	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
+	for (i32 iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
 		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
 
-		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		for (i32 iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
 			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
 			CAssert(pCurrentSubmesh);

@@ -13,7 +13,7 @@
 // Cryaslisk Engine entry point.
 extern "C"
 {
-	__declspec(dllimport) int Crysalisk_Main(ApplicationConfig_t& pAppConfig);
+	__declspec(dllimport) i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig);
 }
 
 typedef bool (*PFN_Tool_Initialize)();
@@ -25,9 +25,9 @@ PFN_Tool_Run pfnRun = nullptr;
 
 bool LoadTool(const char* pszToolName);
 
-int main(int argc, char** argv)
+i32 main(i32 argc, char** argv)
 {
-	// Load up the editor dll.
+	// Load up the editor library.
 	Platform::ISysModule* pEditorHubDLL = Platform::LoadSysModule("EditorHub");
 	PFN_Get_Application_State pfnGetAppState = (PFN_Get_Application_State)pEditorHubDLL->GetFuncAddr("GetApplicationState");
 	CAssert(pfnGetAppState);
@@ -39,31 +39,7 @@ int main(int argc, char** argv)
 
 	Crysalisk_Main(appConfig);
 
-	// Launch the tool specified by the command-line arguments.
-	/*if (argc < 2)
-	{
-		printf("Error! Crysalisk tools requires an argument for the tool to launch!\n");
-		return -1;
-	}
-
-	if (Utl::StringCompareInsensitive(argv[1], "-map_editor"))
-	{
-		printf("Launching Crysalisk Map Editor!\n");
-		LoadTool("Tools_LevelEditor");
-	}
-	else
-	{
-		printf("Error: Unrecognized tool parameter: '%s'.\n", argv[1]);
-		return -2;
-	}
-
-	pfnRun = (PFN_Tool_Run)pToolModule->GetFuncAddr("Tools_Run");
-	CAssert(pfnRun);
-
-	while (pfnRun())
-	{
-		
-	}*/
+	// EDITORTODO: Launch the tool specified by some argument (command-line? tool-selector menu?)
 
 	return 0;
 }

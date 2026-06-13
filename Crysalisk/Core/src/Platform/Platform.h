@@ -17,13 +17,13 @@ namespace Platform
 	struct WindowParams_t
 	{
 		// The starting X position of the window.
-		int X;
+		i32 X;
 		// The starting Y position of the window.
-		int Y;
+		i32 Y;
 		// The starting width of the window.
-		int Width;
+		i32 Width;
 		// The starting height of the window.
-		int Height;
+		i32 Height;
 		// The name of the window.
 		const char* pszName;
 	};
@@ -31,9 +31,9 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Platform Layer Message Callbacks.
 	//-------------------------------------------------------------------------
-	typedef void (*Platform_KeyboardEventCallback)(const int processedKeyInput, bool pressed);
+	typedef void (*Platform_KeyboardEventCallback)(const i32 processedKeyInput, bool pressed);
 	typedef void (*Platform_MouseButtonEventCallback)(u32 mouseButtonFlags, bool bPressed);
-	typedef void (*Platform_MouseMoveEventCallback)(const int mouseXPos, const int mouseYPos);
+	typedef void (*Platform_MouseMoveEventCallback)(const i32 mouseXPos, const i32 mouseYPos);
 	typedef bool (*Platform_WindowResizedCallback)(u32 width, u32 height);
 	typedef void (*Platform_WindowCloseCallback)();
 
@@ -42,10 +42,10 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	struct Viewport_t
 	{
-		int			X{};
-		int			Y{};
-		int			Width{};
-		int			Height{};
+		i32			X{};
+		i32			Y{};
+		i32			Width{};
+		i32			Height{};
 		f32		flFOVDegrees{};
 		Matrix4x4	matProjection{};
 	};
@@ -87,7 +87,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Threads
 	//-------------------------------------------------------------------------
-	CORE_API int		GetCurrentThreadID();
+	CORE_API i32		GetCurrentThreadID();
 	CORE_API u64		GetNumberOfSystemProcessors();
 
 	class ISystemThread
@@ -97,7 +97,7 @@ namespace Platform
 	};
 
 	// Function pointer signature for thread entry points.
-	typedef int (*PFN_Thread_Entry_Point)(void* pParams);
+	typedef i32 (*PFN_Thread_Entry_Point)(void* pParams);
 
 	CORE_API ISystemThread* CreateSystemThread(PFN_Thread_Entry_Point pEntryPoint, void* pParams);
 	CORE_API void			DestroySystemThread(ISystemThread* pThread);
@@ -121,7 +121,7 @@ namespace Platform
 	CORE_API void	ObtainLibraryInterfaces();
 	CORE_API void	ConnectLibraryInterfaces();
 
-	CORE_API void	LogMessage(int level, const char* message);
+	CORE_API void	LogMessage(i32 level, const char* message);
 
 	CORE_API f64	GetAbsoluteTime();
 	CORE_API void	ThreadSleep(f64 msToSleep);
@@ -135,7 +135,7 @@ namespace Platform
 	CORE_API void  MemoryFree(void* pMemoryBlock);
 	CORE_API void* MemoryReallocate(void* pMemBlock, u64 newSize);
 	CORE_API void* MemoryCopy(void* pDest, const void* pSource, u64 size);
-	CORE_API void* MemorySet(void* pMemBlock, int value, u64 size);
+	CORE_API void* MemorySet(void* pMemBlock, i32 value, u64 size);
 
 	CORE_API IPlatformWindow* CreatePlatformWindow(WindowParams_t params, bool bShow);
 }

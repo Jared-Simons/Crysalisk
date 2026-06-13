@@ -39,7 +39,7 @@ public:
 	virtual bool	CreateRenderBufferInternal(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
-	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
@@ -107,7 +107,7 @@ public:
 	// The number of frames that can be processed at once.
 	u32 m_MaxImagesInFlight{ 3 };
 	bool		m_bCurrentlyRendering[3]{ false };
-	int			m_RenderMode{ 0 };
+	i32			m_RenderMode{ 0 };
 	f64		m_flDeltaTime{ 0.0f };
 	f64		m_flLastFrameTime{ 0.0f };
 	u32	m_ImageIndex{ 0 };

@@ -3,7 +3,7 @@
 #include <UIContext.h>
 #include <iostream>
 
-int main()
+i32 main()
 {
 /*	Platform::WindowParams_t windowParams{};
 	windowParams.pszName = "Example Application";

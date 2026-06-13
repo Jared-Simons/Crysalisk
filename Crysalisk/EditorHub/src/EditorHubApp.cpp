@@ -32,7 +32,6 @@ public:
 	virtual bool Render() override;
 	virtual void Shutdown() override;	
 
-	// NOTE: No camera here for now.
 	virtual Camera_t* GetMainCamera() override { return &m_Camera; }
 
 	virtual bool LoadTool(const char* pszToolLibraryName);
@@ -67,35 +66,9 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	LOG_INFO("Launching Crysalisk Tools");
 	m_pTools.Resize(1);
 
-	// Load the App Framework module.
-	Platform::ISysModule* pUIModule = Platform::LoadSysModule("AppFramework");
-	if (!pUIModule)
-	{
-		LOG_FATAL("Failed to load AppFramework.dll! Application cannot continue.");
-		return false;
-	}
-
-	PFN_GetAppFrameworkState pfnGetAppFramework = (PFN_GetAppFrameworkState)pUIModule->GetFuncAddr("GetAppFrameworkState");
-	if (!pfnGetAppFramework)
-	{
-		LOG_ERROR("Failed to get a pointer to the app framework state. Initialization failed.");
-		return false;
-	}
-	m_pAppFramework = (AppFramework::IAppFramework*)pfnGetAppFramework();
-	CAssert(m_pAppFramework != nullptr);
-
 	// Init camera data.
 	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_Camera.RecalculateCameraVectors();
-
-	// Initialize the framework.
-	AppFramework::AppFrameworkConfig_t appConfig{};
-	appConfig.pEngine = pAppConfig->pEngine;
-	/*if (!m_pAppFramework->Initialize(appConfig))
-	{
-		LOG_ERROR("Failed to initialize app framework! Application cannot continue.");
-		return false;
-	}*/
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
@@ -107,12 +80,10 @@ bool CEditorHubApp::Run()
 {
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
-	for (int iTool = 0; iTool < m_pTools.Count(); iTool++)
+	for (i32 iTool = 0; iTool < m_pTools.Count(); iTool++)
 	{
 		m_pTools[iTool]->Tool_Run();
 	}
-
-	m_pAppFramework->Run();
 
 	//RenderPacket_t packet{};
 	//m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
@@ -132,11 +103,6 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
-	// Clean up lingering memory.
-	m_pApplicationConfig->renderViewConfigs.Clear();
-	m_pTools.Clear();
-
-	//m_pAppFramework->Shutdown();
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)

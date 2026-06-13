@@ -97,7 +97,7 @@ namespace ShaderLoader
 				{
 					// Number of stages this shader will have.
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
-					int iNumStages = Utl::String_ATOI(szValue);
+					i32 iNumStages = Utl::String_ATOI(szValue);
 					pOutResource.ShaderStages.Resize(iNumStages);
 					continue;
 				}
@@ -130,7 +130,7 @@ namespace ShaderLoader
 				if (Utl::StringCompare(szCurrentLine, "stages"))
 				{
 					// Shader stage modules.
-					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
+					i32		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
 					u64	subBlockBytesRead{ 0 };
 
@@ -165,7 +165,7 @@ namespace ShaderLoader
 				{
 					// Vertex attributes.
 					pOutResource.ShaderAttributes.Resize(32);
-					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
+					i32		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
 					u64	subBlockBytesRead{ 0 };
 
@@ -200,7 +200,7 @@ namespace ShaderLoader
 				{
 					// Shader uniforms.
 					pOutResource.ShaderUniforms.Resize(32);
-					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
+					i32		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
 					u64	subBlockBytesRead{ 0 };
 					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);

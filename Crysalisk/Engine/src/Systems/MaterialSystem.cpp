@@ -66,13 +66,13 @@ public:
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
 
 	// Applies global render data for the frame.
-	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, int renderDebugMode) override;
+	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, i32 renderDebugMode) override;
 	// Applies per-draw render data for the following draw calls.
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
 	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength) override;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic) override;
+	virtual void				SetPointLightData(i32 lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic) override;
 	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff) override;
 	virtual void				ApplyLightData() override;
 
@@ -99,7 +99,7 @@ private:
 		// The internal handle of the material.
 		MaterialHandle_t MaterialIndex{ kInvalidID_U32 };
 		// The current reference count of the material.
-		int				 ReferenceCount{ 0 };
+		i32				 ReferenceCount{ 0 };
 		// Indicates if this material should automatically release it's resources when it's reference count reaches 0.
 		// NOTE: This can only be set when first acquiring the material.
 		bool			 AutoRelease{ false };
@@ -225,7 +225,7 @@ void CMaterialSystem::PostInitialize()
 //-------------------------------------------------------------------------
 void CMaterialSystem::Shutdown()
 {
-	for (int matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx++)
+	for (i32 matIdx = 0; matIdx < m_Config.MaxMaterials; matIdx++)
 	{
 		ReleaseMaterial(matIdx, true);	// Force release of resources.
 	}
@@ -345,7 +345,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		textureHandles.PushBack(hDefaultSpecular);
 		textureHandles.PushBack(hDefaultNormal);
 
-		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
+		for (i32 texIdx = 0; texIdx < textureMapCount; texIdx++)
 		{
 			TextureHandle_t hTexture = m_Config.pTextureSystem->AcquireTexture(pInResource.textureMapConfigs[texIdx].pszTextureName, true);
 			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
@@ -377,7 +377,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 
 		// Set any instance-level uniform data.
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
-		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
+		for (i32 idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
 		{
 			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "specular_shininess"))
 			{
@@ -555,7 +555,7 @@ MaterialHandle_t CMaterialSystem::GetDefaultMaterialReference()
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, int renderDebugMode)
+void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, i32 renderDebugMode)
 {
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 
@@ -600,7 +600,7 @@ void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D ve
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic)
+void CMaterialSystem::SetPointLightData(i32 lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic)
 {
 	pointLights[lightIndex].vecPosition = vecPoint;
 	pointLights[lightIndex].lightColor = vecLightColor;
@@ -683,10 +683,10 @@ void CMaterialSystem::CreateDefaultMaterial()
 	textureHandles.PushBack(pNewMaterial->m_hNormalTextureHandle);
 
 	// Bind the texture maps to the shader instance.
-	for (int texIdx = 0; texIdx < textureHandles.Count(); texIdx++)
+	for (i32 texIdx = 0; texIdx < textureHandles.Count(); texIdx++)
 	{
 		// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
-		int iTextureArrayIndex = texIdx;
+		i32 iTextureArrayIndex = texIdx;
 		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
@@ -748,7 +748,7 @@ void CMaterialSystem::ClearMaterialDictionaryEntry(const char* pszMaterialName)
 //-------------------------------------------------------------------------
 MaterialHandle_t CMaterialSystem::FindFirstFreeMaterialHandle() const
 {
-	for (int idx = 0; idx < m_Config.MaxMaterials; idx++)
+	for (i32 idx = 0; idx < m_Config.MaxMaterials; idx++)
 	{
 		if (m_MaterialDictionary.m_MaterialArray[idx].m_iInternalHandle == kInvalidID_U32)
 			return idx;

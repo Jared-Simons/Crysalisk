@@ -118,7 +118,7 @@ namespace MaterialLoader
 
 			textureMapConfigs.Clear();
 
-			for (int idx = 0; idx < pszCustomKeys.Count(); idx++)
+			for (i32 idx = 0; idx < pszCustomKeys.Count(); idx++)
 			{
 				if (pszCustomKeys[idx])
 				{
@@ -128,7 +128,7 @@ namespace MaterialLoader
 			}
 			pszCustomKeys.Clear();
 			
-			for (int idx = 0; idx < pszCustomValues.Count(); idx++)
+			for (i32 idx = 0; idx < pszCustomValues.Count(); idx++)
 			{
 				if (pszCustomValues[idx])
 				{

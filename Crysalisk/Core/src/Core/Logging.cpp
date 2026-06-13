@@ -14,7 +14,7 @@
 // Logging System context.
 LogSystem* g_pLog;
 
-int LogSystem::m_LogVerbosity = 6;
+i32 LogSystem::m_LogVerbosity = 6;
 
 // File to write logging entries out to.
 FileHandle_t s_LoggerFile{};
@@ -35,7 +35,7 @@ static const char* logLevelStrings[6] =
 // Input - none.
 // Output - bool: Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
-bool LogSystem::Init(int iLogVerbosity)
+bool LogSystem::Init(i32 iLogVerbosity)
 {
 	m_LogVerbosity = iLogVerbosity;
 
@@ -66,7 +66,7 @@ void LogSystem::Shutdown()
 //-------------------------------------------------------------------------
 void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 {
-	int logLevel = static_cast<int>(level);
+	i32 logLevel = static_cast<i32>(level);
 
 	if (logLevel > LogSystem::m_LogVerbosity || logLevel < 0) // Just checking for an invalid index...
 	{

@@ -173,7 +173,7 @@ VkFormat VulkanDevice::FindSupportedDepthFormat()
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT_S8_UINT);
 	formatCandidates.PushBack(VK_FORMAT_D24_UNORM_S8_UINT);
 
-	for (int idx = 0; idx < formatCandidates.Count(); idx++)
+	for (i32 idx = 0; idx < formatCandidates.Count(); idx++)
 	{
 		VkFormatProperties formatProps{};
 		vkGetPhysicalDeviceFormatProperties(m_PhysicalDevice, formatCandidates[idx], &formatProps);
@@ -204,8 +204,8 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 	Utl::CVector<const char*> requiredExtensions(1);
 	requiredExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-	int extensionsToQuery = static_cast<u32>(requiredExtensions.Count());
-	for (int i = 0; i < requiredExtensions.Count(); i++)
+	i32 extensionsToQuery = static_cast<u32>(requiredExtensions.Count());
+	for (i32 i = 0; i < requiredExtensions.Count(); i++)
 	{
 		LOG_VERBOSE("Searching for device extension: '%s'...", requiredExtensions[i]);
 		for (u32 j = 0; j < deviceExtensionCount; j++)

@@ -25,12 +25,12 @@ public:
 	void		Update() override;
 
 	// Input processing.
-	void		ProcessKeyInput(const int processedKeyInput, bool pressed) override;
+	void		ProcessKeyInput(const i32 processedKeyInput, bool pressed) override;
 	void		ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) override;
-	void		ProcessMousePositionInput(const int mouseXPos, const int mouseYPos) override;
+	void		ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos) override;
 
-	bool			IsKeyPressed(const int key) const override;
-	virtual void	GetCurrentMousePos(int& iX, int& iY) override;
+	bool			IsKeyPressed(const i32 key) const override;
+	virtual void	GetCurrentMousePos(i32& iX, i32& iY) override;
 
 private:
 	// Keyboard state this frame.
@@ -85,7 +85,7 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSy
 	m_pEventSystem = pEngineEventHandler;
 
 	// setup m_KeysState table
-	for (int i = 0; i < MAX_INPUT_KEYS; i++)
+	for (i32 i = 0; i < MAX_INPUT_KEYS; i++)
 	{
 		m_KeysState[i].m_Char = i + 65;	// +65 so that array 0 lines up with 'A'
 		m_KeysState[i].m_bPressed = false;
@@ -138,9 +138,9 @@ void CInputSystem::Update()
 //		   pressed: True if the key was pressed, otherwise false.
 // Output - void.
 //-------------------------------------------------------------------------
-void CInputSystem::ProcessKeyInput(const int processedKeyInput, bool pressed)
+void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed)
 {
-	if (processedKeyInput != static_cast<int>(eKeyTable::KEY_UNDEFINED))
+	if (processedKeyInput != static_cast<i32>(eKeyTable::KEY_UNDEFINED))
 	{
 		EventData_t eventData;
 		eventData.c[0] = processedKeyInput;
@@ -194,7 +194,7 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 	}
 }
 
-void CInputSystem::ProcessMousePositionInput(const int mouseXPos, const int mouseYPos)
+void CInputSystem::ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos)
 {
 	m_MouseState.m_XPos = mouseXPos;
 	m_MouseState.m_YPos = mouseYPos;
@@ -213,7 +213,7 @@ void CInputSystem::ProcessMousePositionInput(const int mouseXPos, const int mous
 // Input - key: The ordinal value of the key to check for.
 // Output - True if the key is currently pressed, otherwise false.
 //-------------------------------------------------------------------------
-bool CInputSystem::IsKeyPressed(const int key) const
+bool CInputSystem::IsKeyPressed(const i32 key) const
 {
 	if (m_KeysState[key].m_bPressed)
 		return true;
@@ -226,7 +226,7 @@ bool CInputSystem::IsKeyPressed(const int key) const
 // Input - iX/iY - References to ints that store the current mouse coordinates.
 // Output - none.
 //-------------------------------------------------------------------------
-void CInputSystem::GetCurrentMousePos(int& iX, int& iY)
+void CInputSystem::GetCurrentMousePos(i32& iX, i32& iY)
 {
 	iX = m_MouseState.m_XPos;
 	iY = m_MouseState.m_YPos;
@@ -235,7 +235,7 @@ void CInputSystem::GetCurrentMousePos(int& iX, int& iY)
 //-----------------------------------------------------------------------------
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
-void API_ProcessKeyInput(int processedKeyInput, bool pressed) 
+void API_ProcessKeyInput(i32 processedKeyInput, bool pressed) 
 { 
 	s_InputSystem->ProcessKeyInput(processedKeyInput, pressed);
 }
@@ -245,7 +245,7 @@ void API_ProcessMouseButtonInput(u32 mouseButtonFlags, bool bPressed)
 	s_InputSystem->ProcessMouseButtonInput(mouseButtonFlags, bPressed);
 }
 
-void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos)
+void API_ProcessMouseMoveInput(const i32 mouseXPos, const i32 mouseYPos)
 {
 	s_InputSystem->ProcessMousePositionInput(mouseXPos, mouseYPos);
 }

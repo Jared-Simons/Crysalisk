@@ -51,7 +51,7 @@ struct RenderPacket_t
 	f64	DeltaTime;
 
 	u32								iCulledGeometries{ 0 };
-	int											iDebugRendererMode{ 0 };
+	i32											iDebugRendererMode{ 0 };
 
 	Matrix4x4									matProjection{};
 	struct Camera_t*							pCamera{ nullptr };
@@ -166,7 +166,7 @@ struct ShaderUniformConfig_t
 	// The length of a single element in bytes (does not account for a whole array).
 	u32						iStride;	
 	// The size of the uniform's array.
-	int								iArraySize;
+	i32								iArraySize;
 
 	ShaderUniformConfig_t()
 		: szName{ nullptr }

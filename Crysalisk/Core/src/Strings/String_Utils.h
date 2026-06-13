@@ -54,7 +54,7 @@ namespace Utl
 	DLL_EXPORT void StringStripInPlace(char* pStr, char c);
 
 	// Converts an ascii value to an integer.
-	DLL_EXPORT int String_ATOI(const char* c);
+	DLL_EXPORT i32 String_ATOI(const char* c);
 	// Converts an ascii value to a floating-point value.
 	DLL_EXPORT f32 String_ATOF(const char* c);
 

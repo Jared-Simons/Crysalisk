@@ -9,9 +9,9 @@
 #include <Defines.h>
 
 // Signature for the entrypoint of a job.
-typedef int (*PFN_Job_Entry_Point)(void* pParams, void** pJobResults);
+typedef i32 (*PFN_Job_Entry_Point)(void* pParams, void** pJobResults);
 // Signature for a successful/failed job callback.
-typedef int (*PFN_Job_Completed_Callback)(struct JobResults_t& pResults);
+typedef i32 (*PFN_Job_Completed_Callback)(struct JobResults_t& pResults);
 
 //-------------------------------------------------------------------------
 // Job Priorities

@@ -58,18 +58,18 @@ namespace MaterialSerializer
 												"normal" };	// NOTE: This maps directly to the MaterialLoader::MaterialResource_t::eTextureType enum!
 
 		// Next are texture maps.
-		for (int texIdx = 0; texIdx < pInResource.textureMapConfigs.Count(); texIdx++)
+		for (i32 texIdx = 0; texIdx < pInResource.textureMapConfigs.Count(); texIdx++)
 		{
 			tempDataBuffer[0] = 0;
 			CAssert(pInResource.textureMapConfigs[texIdx].eType != MaterialLoader::MaterialResource_t::eTextureType::UNDEFINED);
 
-			Utl::StringFormat_V("map_%s=%s\n", tempDataBuffer, pszTexTypeStrings[(int)pInResource.textureMapConfigs[texIdx].eType], pInResource.textureMapConfigs[texIdx].pszTextureName);
+			Utl::StringFormat_V("map_%s=%s\n", tempDataBuffer, pszTexTypeStrings[(i32)pInResource.textureMapConfigs[texIdx].eType], pInResource.textureMapConfigs[texIdx].pszTextureName);
 			FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
 		}
 
 		// Finally, write out any other key-value pairs.
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
-		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
+		for (i32 idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
 		{
 			tempDataBuffer[0] = 0;
 

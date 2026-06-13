@@ -41,7 +41,7 @@ private:
 	struct MeshLookup
 	{
 		MeshHandle_t	MeshHandle{ kInvalidID_U32 };
-		int				iReferenceCount{ 0 };
+		i32				iReferenceCount{ 0 };
 		bool			bAutoRelease{ false };
 	};
 
@@ -61,7 +61,7 @@ static CMeshSystem* s_MeshSystem{ nullptr };
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async mesh-loading job.
 //-------------------------------------------------------------------------
-static int OnMeshLoadJob_Success(JobResults_t& pResults)
+static i32 OnMeshLoadJob_Success(JobResults_t& pResults)
 {
 	// LEFTOFF: Make this work with the new mesh format.
 	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
@@ -85,7 +85,7 @@ static int OnMeshLoadJob_Success(JobResults_t& pResults)
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon mesh loading job failed.
 //-------------------------------------------------------------------------
-static int OnMeshLoadJob_Fail(JobResults_t& pResults)
+static i32 OnMeshLoadJob_Fail(JobResults_t& pResults)
 {
 	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
 
@@ -277,7 +277,7 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 	pMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pMesh->m_matLocalToWorldTransform, pMesh->m_vecPosition);
 
 	// Acquire renderer resources and upload to the GPU.
-	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes.Count(); iSubmesh++)
+	for (i32 iSubmesh = 0; iSubmesh < pResource.pMeshes.Count(); iSubmesh++)
 	{
 		MeshLoader::MeshResource_t::GeometryObject_t& pCurSubmesh = pResource.pMeshes[iSubmesh];
 
@@ -371,7 +371,7 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 		// Time to release the mesh.
 		LOG_VERBOSE("Releasing mesh '%s'.", pMesh->m_pszMeshPath);
 		
-		for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
+		for (i32 iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
 		{
 			// TODO: Fix this
 			//m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
@@ -394,7 +394,7 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 		return kInvalidID_U32;
 	}
 
-	for (int meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
+	for (i32 meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
 	{
 		if (s_MeshSystem->m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
 		{

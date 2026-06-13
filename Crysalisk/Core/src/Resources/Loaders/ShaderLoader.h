@@ -119,7 +119,7 @@ namespace ShaderLoader
 			// The frequency at which the uniform is updated (per-frame, per-instance, per-draw).
 			char*	pszFreq{ nullptr };
 			// The array size of this uniform.
-			int		iArraySize{ 1 };
+			i32		iArraySize{ 1 };
 
 			ShaderUniformConfig_t() {}
 

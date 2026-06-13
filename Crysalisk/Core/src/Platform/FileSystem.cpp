@@ -183,7 +183,7 @@ bool FileSystem::ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, Fil
 	Platform::MemorySet(pBuffer, 0, bufferSize);
 
 	// Read the contents of the line into the buffer
-	if (fgets(pBuffer, (int)bufferSize, reinterpret_cast<FILE*>(pFileHandle->pInternalData)) == 0)
+	if (fgets(pBuffer, (i32)bufferSize, reinterpret_cast<FILE*>(pFileHandle->pInternalData)) == 0)
 	{
 		return false;
 	}

@@ -66,7 +66,7 @@ namespace Utl
 		return pMemToReturn;
 	}
 	
-	int LinearAllocator::Free(void* pMemBlock)
+	i32 LinearAllocator::Free(void* pMemBlock)
 	{
 		//CASSERTMSG(0, "LinearAllocator does not support Free(), call FreeAll()!");
 		FreeAll();

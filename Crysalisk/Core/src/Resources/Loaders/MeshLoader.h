@@ -25,7 +25,7 @@ namespace MeshLoader
 	CORE_API bool LoadMeshResource(char* pszMeshFileName, struct MeshResource_t& pOutResource);
 	CORE_API void UnloadMeshResource(struct MeshResource_t& pResource);
 
-	CORE_API int LoadMesh_Threaded(void* pParams, void** pJobResults);
+	CORE_API i32 LoadMesh_Threaded(void* pParams, void** pJobResults);
 
 	// A mesh resource generated from a file on disk.
 	// Can be used by the engine at runtime for rendering.

@@ -18,7 +18,7 @@ namespace Utl
 	{
 	public:
 		virtual void*	Allocate(u64 numBytes) = 0;
-		virtual int		Free(void* pMemBlock) = 0;
+		virtual i32		Free(void* pMemBlock) = 0;
 		virtual void	FreeAll() = 0;
 
 		virtual eAllocatorType	GetAllocatorType() const = 0;

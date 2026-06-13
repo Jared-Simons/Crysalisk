@@ -184,7 +184,7 @@ public:
 	// The current renderer frame (updated on shader bind).
 	u64						m_iRendererFrame{ kInvalidID_U64 };
 	// A hashmap to store off indices for uniform indices.
-	Utl::CStringHashMap<int>	m_UniformLookup{};
+	Utl::CStringHashMap<i32>	m_UniformLookup{};
 	// The number of uniforms in this shader.
 	u64						m_iUniformCount{ 0 };
 	// An array of uniforms used by this shader.

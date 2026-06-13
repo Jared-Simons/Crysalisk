@@ -19,7 +19,7 @@ namespace ImageLoader
 	// Attempts to load an existing image asset from disk.
 	CORE_API bool LoadImage(const char* pszImagePath, struct ImageResource_t& pOutResource);
 
-	CORE_API int LoadImage_Threaded(void* pParams, void** pJobResults);
+	CORE_API i32 LoadImage_Threaded(void* pParams, void** pJobResults);
 	
 	// Releases resources allocated during image resource acquisition.
 	CORE_API void ReleaseImageResource(struct ImageResource_t& pResource);
@@ -28,8 +28,8 @@ namespace ImageLoader
 	// Can be used by the engine at runtime for rendering.
 	struct ImageResource_t
 	{
-		int		Width{ 0 };
-		int		Height{ 0 };
+		i32		Width{ 0 };
+		i32		Height{ 0 };
 		u8	NumChannels{ 0 };
 		bool	bIsTransparent{ false };
 		byte*	pPixelData{ nullptr };

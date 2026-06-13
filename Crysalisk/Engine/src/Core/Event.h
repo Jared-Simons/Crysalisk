@@ -27,8 +27,8 @@ enum class eEventCategory
 	MAX_EVENTS
 };
 
-const int kMaxEventsPerCategory = 32;
-const int kNumEventCategories = static_cast<int>(eEventCategory::MAX_EVENTS);
+const i32 kMaxEventsPerCategory = 32;
+const i32 kNumEventCategories = static_cast<i32>(eEventCategory::MAX_EVENTS);
 
 //-------------------------------------------------------------------------
 // A somewhat generic structure to store event data.
@@ -68,7 +68,7 @@ struct Event
 	// A pointer to the event listener.
 	void* pEventListener;
 	// An event ID that is maintained internally by the event system.
-	int m_EventID;
+	i32 m_EventID;
 	// The event category that this event is listening to.
 	eEventCategory m_EventCategory;
 };

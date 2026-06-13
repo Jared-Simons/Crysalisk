@@ -22,9 +22,9 @@ namespace ImageLoader
 	// Input:	pParams - An opaque pointer to be cast to an ImageLoaderParams_t struct.
 	//			pJobResults - An opaque pointer that will hold the results of this job. 
 	//				(In this case, the results are held in the same struct as the params).
-	// Output:	int - 0 indicates the job failed, 1 indicates the job completed successfully.
+	// Output:	i32 - 0 indicates the job failed, 1 indicates the job completed successfully.
 	//-------------------------------------------------------------------------
-	int LoadImage_Threaded(void* pParams, void** pJobResults)
+	i32 LoadImage_Threaded(void* pParams, void** pJobResults)
 	{
 		if (!pParams)
 		{
@@ -54,7 +54,7 @@ namespace ImageLoader
 	//-------------------------------------------------------------------------
 	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
 	{
-		const int kRequiredChannelCount = 4;
+		const i32 kRequiredChannelCount = 4;
 		stbi_set_flip_vertically_on_load_thread(true);
 		if (!FileSystem::FileExists(pszImagePath))
 		{
@@ -83,7 +83,7 @@ namespace ImageLoader
 
 		// Load the image data into our buffer. (This must be freed by the caller).
 		// NOTE: We are forcing each image to be loaded as 4 channels because support for R8G8B8 images on some hardware is dodgy, whereas R8G8B8A8 is seemingly universal.
-		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), (int)bytesRead, &pOutResource.Width, &pOutResource.Height, (int*)&pOutResource.NumChannels, kRequiredChannelCount);
+		pOutResource.pPixelData = stbi_load_from_memory(rawImageData.Data(), (i32)bytesRead, &pOutResource.Width, &pOutResource.Height, (i32*)&pOutResource.NumChannels, kRequiredChannelCount);
 
 		// Check the image for transparency.
 		// We (currently) only care about this if there is an alpha channel.
@@ -91,13 +91,13 @@ namespace ImageLoader
 		{
 			byte* pCurrentPixel = pOutResource.pPixelData;
 
-			for (int x = 0; x < pOutResource.Width; x++)
+			for (i32 x = 0; x < pOutResource.Width; x++)
 			{
 				// If we're already marked as transparent, break out now.
 				if (pOutResource.bIsTransparent)
 					break;
 
-				for (int y = 0; y < pOutResource.Height; y++)
+				for (i32 y = 0; y < pOutResource.Height; y++)
 				{
 					byte alpha = pCurrentPixel[3];
 					if (alpha < 255)

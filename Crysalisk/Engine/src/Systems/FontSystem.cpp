@@ -37,8 +37,8 @@ const u32 kCharsToIncludeInFontAtlas = 95;
 
 // This is the resolution we are expecting when creating new text geometry.
 // The font system will take care of scaling these appropriately to the current surface resolution.
-const int kUIInputWidth = 640;
-const int kUIInputHeight = 480;
+const i32 kUIInputWidth = 640;
+const i32 kUIInputHeight = 480;
 
 //-------------------------------------------------------------------------
 // Font System Implementation.
@@ -265,7 +265,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
 	u64						iStringLength = Utl::StringLength(pTextObject.m_pszText);
-	int							iCurNonWhitespaceCharCount = 0; 
+	i32							iCurNonWhitespaceCharCount = 0; 
 
 	// Geometry data.
 	Vector2D					vecCurPos = pTextObject.m_vecPos;
@@ -274,7 +274,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
 
-	for (int ch = 0; ch < iStringLength; ch++)
+	for (i32 ch = 0; ch < iStringLength; ch++)
 	{
 		// If a space, just push the position forward by some amount.
 		if (pTextObject.m_pszText[ch] == ' ')
@@ -333,10 +333,10 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
 
-		int indexOrder[6] = { 2, 1, 0, 3, 0, 1 };
+		i32 indexOrder[6] = { 2, 1, 0, 3, 0, 1 };
 
 		// Fill up the index buffer as well.
-		for (int idx = 0; idx < 6; idx++)
+		for (i32 idx = 0; idx < 6; idx++)
 		{
 			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
 		}
@@ -367,7 +367,7 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flT
 	FontLoader::FontCharData_t*		pCurGlyph = pInternalAtlas->glyphs.Data();
 
 	u64						iStringLength = Utl::StringLength(pszText);
-	int							iCurNonWhitespaceCharCount = 0;
+	i32							iCurNonWhitespaceCharCount = 0;
 	Vector3D					vecCurPos{ 0.0f, 0.0f, 0.0f };
 
 	// TODO: Isn't this kinda arbitrary?
@@ -379,7 +379,7 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flT
 	Vector3D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
 
-	for (int ch = 0; ch < iStringLength; ch++)
+	for (i32 ch = 0; ch < iStringLength; ch++)
 	{
 		pCurGlyph = &pInternalAtlas->glyphs[pszText[ch] - kCodePointOfFirstChar];
 
@@ -390,7 +390,7 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flT
 		vecCharVertices[3] = Vector{ (100.0f * ch) + 50.0f, 0.0f, 0.0f };
 
 		// Scale all our vertex positions.
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			vecCharVertices[idx] *= flTextScale;
 		}
@@ -407,10 +407,10 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flT
 		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[2], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[2] });
 		newConfig.Vertices.PushBack(Vertex3D{ vecCharVertices[3], Vector3D(1.0, 1.0, 1.0), vecCharTexCoords[3] });
 
-		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
+		i32 indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
 
 		// Fill up the index buffer as well.
-		for (int idx = 0; idx < 6; idx++)
+		for (i32 idx = 0; idx < 6; idx++)
 		{
 			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
 		}
@@ -435,7 +435,7 @@ GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flT
 FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 {
 	// Get the first free font slot.
-	for (int fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
+	for (i32 fontIdx = 0; fontIdx < m_Config.MaxFonts; fontIdx++)
 	{
 		if (!m_FontDictionary.m_FontArray[fontIdx].m_pInternalFontAtlasData)
 		{

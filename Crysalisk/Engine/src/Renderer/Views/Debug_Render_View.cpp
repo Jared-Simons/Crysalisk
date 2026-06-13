@@ -150,7 +150,7 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 		bool bLineShaderGlobalsSetThisFrame = false;
 		bool bTextShaderGlobalsSetThisFrame = false;
 
-		for (int iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
+		for (i32 iGeo = 0; iGeo < pViewData->pGeometries.Count(); iGeo++)
 		{
 			GeometryInstance_t& pCurGeo = *pViewData->pGeometries[iGeo];
 

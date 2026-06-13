@@ -104,7 +104,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Logger.
 	m_EngineInterfaces.pLogger = new LogSystem;
 	g_pLog = m_EngineInterfaces.pLogger;	// We need this global var for our logging macros.
-	if (!m_EngineInterfaces.pLogger->Init((int)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
+	if (!m_EngineInterfaces.pLogger->Init((i32)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
@@ -192,7 +192,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	jobSysConfig.iNumJobThreads = Platform::GetNumberOfSystemProcessors() - 1;	// - 1 to account for the main thread.
 
 	// NOTE: Currently, we will just use one thread for resource loading.
-	for (int iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
+	for (i32 iThread = 0; iThread < jobSysConfig.iNumJobThreads; iThread++)
 	{
 		jobSysConfig.iWorkerThreadTypes[iThread] = WORKER_THREAD_TYPE_GENERAL;
 	}
@@ -372,7 +372,7 @@ bool CEngine::Run()
 		}
 	}
 
-	for (int iView = 0; iView < RENDER_VIEW_MAX_TYPES; iView++)
+	for (i32 iView = 0; iView < RENDER_VIEW_MAX_TYPES; iView++)
 	{
 		if (m_FrameRenderData.pRenderViewExtendedData[iView])
 		{
@@ -540,7 +540,7 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 	{
 		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
 
-		int iMouseX{ 0 }, iMouseY{ 0 };
+		i32 iMouseX{ 0 }, iMouseY{ 0 };
 		u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
 		Vector4D vecPosClip{};
 

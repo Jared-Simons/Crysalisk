@@ -23,7 +23,7 @@
 // Cryaslisk Engine entry point.
 extern "C"
 {
-	__declspec(dllimport) int Crysalisk_Main(ApplicationConfig_t& pAppConfig);
+	__declspec(dllimport) i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig);
 }
 
 class CGameApp : public ICrysApplication
@@ -51,7 +51,7 @@ static CGameApp s_GameApp{};
 
 static bool Event_WindowResized(void* pEventListener, EventData_t data);
 
-int main(int argc, char** argv)
+i32 main(i32 argc, char** argv)
 {
 	ApplicationConfig_t appConfig{};
 	appConfig.pApplication = &s_GameApp;

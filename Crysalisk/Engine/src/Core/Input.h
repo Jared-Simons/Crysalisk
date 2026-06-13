@@ -27,8 +27,8 @@ struct KeyState_t
 struct MouseState_t
 {
 	// The position of the cursor on the screen.
-	int m_XPos;
-	int m_YPos;
+	i32 m_XPos;
+	i32 m_YPos;
 	u32 m_bitsMouseButtons;
 };
 
@@ -44,17 +44,17 @@ public:
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
-	virtual void	ProcessKeyInput(const int processedKeyInput, bool pressed) = 0;
+	virtual void	ProcessKeyInput(const i32 processedKeyInput, bool pressed) = 0;
 	virtual void	ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) = 0;
-	virtual void	ProcessMousePositionInput(const int mouseXPos, const int mouseYPos) = 0;
+	virtual void	ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos) = 0;
 
-	virtual bool	IsKeyPressed(const int key) const = 0;
-	virtual void	GetCurrentMousePos(int& iX, int& iY) = 0;
+	virtual bool	IsKeyPressed(const i32 key) const = 0;
+	virtual void	GetCurrentMousePos(i32& iX, i32& iY) = 0;
 };
 
 //-----------------------------------------------------------------------------
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
-void API_ProcessKeyInput(int processedKeyInput, bool pressed);
+void API_ProcessKeyInput(i32 processedKeyInput, bool pressed);
 void API_ProcessMouseButtonInput(u32 mouseButtonFlags, bool bPressed);
-void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos);
+void API_ProcessMouseMoveInput(const i32 mouseXPos, const i32 mouseYPos);

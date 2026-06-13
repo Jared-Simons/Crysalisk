@@ -129,7 +129,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 		m_pMaterialSystem->ApplyGlobalRenderData(pRenderData->matProjection, pRenderData->pCamera->GetViewMatrix(), pRenderData->pCamera->vecPosition, pRenderData->iDebugRendererMode);
 
 		// Render opaque geometries.
-		for (int iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
+		for (i32 iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
 		{
 			// Apply transformations.
 			m_pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[iGeo]->matLocalToWorldTransform);
@@ -144,7 +144,7 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 		}
 
 		// Render transparent geometries.
-		for (int iGeo = 0; iGeo < pTransparentGeometries.Count(); iGeo++)
+		for (i32 iGeo = 0; iGeo < pTransparentGeometries.Count(); iGeo++)
 		{
 			// Apply transformations.
 			m_pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[iGeo]->matLocalToWorldTransform);

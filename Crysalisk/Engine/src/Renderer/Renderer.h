@@ -45,7 +45,7 @@ public:
 	virtual bool			BeginRenderpass(struct Renderpass* pRenderpass) = 0;
 	virtual void			EndRenderpass() = 0;
 
-	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
+	virtual bool			AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
 	virtual void			ReleaseTextureResources(struct Texture* pTexture) = 0;
 
 	virtual bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) = 0;

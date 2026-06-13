@@ -191,13 +191,13 @@ namespace MeshSerializer
 				u32	normalIndices[3];
 				u32	texCoordIndices[3];
 
-				int elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
+				i32 elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
 
 				CAssert(elements == 9);
 
 				// Write the elements out to the mesh header.
 				CModel_MeshFaceData_t newFace{};
-				for (int iVert = 0; iVert < 3; iVert++)
+				for (i32 iVert = 0; iVert < 3; iVert++)
 				{
 					// NOTE: OBJ files are 1-indexed so we need to bump down by one to store as a zero index.
 					newFace.iPositionIndices[iVert] = positionIndices[iVert] - 1;
@@ -231,7 +231,7 @@ namespace MeshSerializer
 				bMatFound = false;
 
 				// Check to see if we've seen this material yet.
-				for (int iMat = 0; iMat < materialNames.Count(); iMat++)
+				for (i32 iMat = 0; iMat < materialNames.Count(); iMat++)
 				{
 					if (Utl::StringCompare(pszMaterialName, materialNames[iMat]))
 					{
@@ -268,7 +268,7 @@ namespace MeshSerializer
 					case ' ':	// Vertex position.
 					{
 						Vector newPosition{};
-						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newPosition.x, &newPosition.y, &newPosition.z);
+						i32 numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newPosition.x, &newPosition.y, &newPosition.z);
 						CAssert(numElements == 3);
 
 						// Add it to the table.
@@ -279,7 +279,7 @@ namespace MeshSerializer
 					case 'n':	// Vertex normals.
 					{
 						Vector newNormal{};
-						int numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
+						i32 numElements = sscanf_s(&szCurrentLine[2], "%f %f %f", &newNormal.x, &newNormal.y, &newNormal.z);
 						CAssert(numElements == 3);
 
 						// When we serialize these, we're gonna quantize with -1.0 and 1.0 being our bounds.
@@ -295,7 +295,7 @@ namespace MeshSerializer
 					case 't':	// Vertex texture coordinates.
 					{
 						Vector2D newTexCoord{};
-						int numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
+						i32 numElements = sscanf_s(&szCurrentLine[2], "%f %f", &newTexCoord.x, &newTexCoord.y);
 						CAssert(numElements == 2);
 
 						// When we serialize these, we're gonna quantize with -512.0 and 512.0 being our bounds. (We're being VERY generous with repeated textures).
@@ -472,7 +472,7 @@ namespace MeshSerializer
 		FileSystem::WriteBytes(&kModelResourceSubmeshHeader, sizeof(u32), &hNewOutputMesh);
 		iTotalBytesWritten += sizeof(u32);
 
-		for (int iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
+		for (i32 iMesh = 0; iMesh < meshHeaders.Count(); iMesh++)
 		{
 			FileSystem::WriteBytes(&meshHeaders[iMesh], sizeof(CModel_MeshHeader_t), &hNewOutputMesh);
 			iTotalBytesWritten += sizeof(CModel_MeshHeader_t);
@@ -508,7 +508,7 @@ namespace MeshSerializer
 		FileSystem::WriteBytes(&kModelResourceStringDataHeader, sizeof(u32), &hNewOutputMesh);
 		iTotalBytesWritten += sizeof(u32);
 
-		for (int idx = 0; idx < outputStringTable.Count(); idx++)
+		for (i32 idx = 0; idx < outputStringTable.Count(); idx++)
 		{
 			u64 len = Utl::StringLength(outputStringTable[idx]);
 			FileSystem::WriteBytes(outputStringTable[idx], len + 1, &hNewOutputMesh);
@@ -522,7 +522,7 @@ namespace MeshSerializer
 		FileSystem::CloseFile(&hOBJFile);
 
 		// Clean up strings.
-		for (int i = 0; i < outputStringTable.Count(); i++)
+		for (i32 i = 0; i < outputStringTable.Count(); i++)
 		{
 			Utl::StringFree(outputStringTable[i]);
 			outputStringTable[i] = nullptr;
@@ -560,7 +560,7 @@ namespace MeshSerializer
 			pCurHeader.iIndexOffset += indexAlignmentOffset;
 		}
 
-		for (int idx = 0; idx < indexAlignmentOffset; idx++)
+		for (i32 idx = 0; idx < indexAlignmentOffset; idx++)
 		{
 			// Fill in some blank data to the index buffer to make sure we're aligned.
 			finalIndexData.PushBack((u32)0);
@@ -623,9 +623,9 @@ namespace MeshSerializer
 		u32 iNormIdxBase = pFaces[0].iNormalIndices[0];
 		u32 iTexCoordIdxBase = pFaces[0].iTexCoordIndices[0];
 
-		for (int iFace = 0; iFace < pFaces.Count(); iFace++)
+		for (i32 iFace = 0; iFace < pFaces.Count(); iFace++)
 		{
-			for (int iVert = 0; iVert < 3; iVert++)
+			for (i32 iVert = 0; iVert < 3; iVert++)
 			{
 				bool bUnique = true;
 
@@ -644,7 +644,7 @@ namespace MeshSerializer
 						iTexCoordIdxBase = currentVert.iTexCoordIdx;
 				}
 
-				int iUniqueVert = 0;
+				i32 iUniqueVert = 0;
 				for (iUniqueVert = 0; iUniqueVert < uniqueVertices.Count(); iUniqueVert++)
 				{
 					if (uniqueVertices[iUniqueVert].iPositionIdx == currentVert.iPositionIdx &&
@@ -673,7 +673,7 @@ namespace MeshSerializer
 		}
 
 		// At this point, the index buffer is properly setup, now just write out the unique vertices.
-		for (int iVert = 0; iVert < uniqueVertices.Count(); iVert++)
+		for (i32 iVert = 0; iVert < uniqueVertices.Count(); iVert++)
 		{
 			pOutVertices.PushBack(uniqueVertices[iVert]);
 		}
@@ -683,7 +683,7 @@ namespace MeshSerializer
 	{
 		pOutTangents.Resize(pVertexIndices.Count());
 		pOutTangents.SetCount(pVertexIndices.Count());
-		for (int idx = 0; idx < pIndices.Count(); idx += 3)
+		for (i32 idx = 0; idx < pIndices.Count(); idx += 3)
 		{
 			u32& pIdx0 = pIndices[idx + 0];
 			u32& pIdx1 = pIndices[idx + 1];
@@ -722,7 +722,7 @@ namespace MeshSerializer
 		}
 
 		// Normalize all the new tangent data
-		for (int idx = 0; idx < pOutTangents.Count(); idx++)
+		for (i32 idx = 0; idx < pOutTangents.Count(); idx++)
 		{
 			pOutTangents[idx].NormalizeInPlace();
 		}
@@ -808,7 +808,7 @@ namespace MeshSerializer
 		FileSystem::CloseFile(&hMtlFile);
 
 		// Write out all of these materials.
-		for (int iMat = 0; iMat < processedMaterialEntries.Count(); iMat++)
+		for (i32 iMat = 0; iMat < processedMaterialEntries.Count(); iMat++)
 		{
 			LOG_INFO("Saving material '%s'.", processedMaterialEntries[iMat].pszMaterialName);
 			if (!MaterialSerializer::SerializeMaterialResources(processedMaterialEntries[iMat].pszMaterialName, processedMaterialEntries[iMat]))

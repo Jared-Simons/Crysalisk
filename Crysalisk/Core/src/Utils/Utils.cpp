@@ -12,20 +12,20 @@
 #include "Strings/String_Utils.h"
 
 // Hashing function borrowed from "https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/HashFuncExamp.html"
-int SimpleHash_StringToInt(const char* pInput, u64 numElements)
+i32 SimpleHash_StringToInt(const char* pInput, u64 numElements)
 {
-	int sum = 0;
-	int mul = 1;
+	i32 sum = 0;
+	i32 mul = 1;
 
 	u64 len = Utl::StringLength(pInput);
 
-	for (int idx = 0; idx < len; idx++)
+	for (i32 idx = 0; idx < len; idx++)
 	{
 		mul = (idx % 4 == 0) ? 1 : mul * 256;
 		sum += pInput[idx] * mul;
 	}
 
-	return static_cast<int>((u64)M_ABS(sum) % numElements);
+	return static_cast<i32>((u64)M_ABS(sum) % numElements);
 }
 
 u16 PackF32ToUint16(const f32 flUnitFloat)
@@ -35,7 +35,7 @@ u16 PackF32ToUint16(const f32 flUnitFloat)
 	// Scale the unit value to fit within this range.
 	f32 flScaledFloat = flUnitFloat * (numIntervals - 1U);
 
-	// Round and truncate to an int.
+	// Round and truncate to an i32.
 	u16 nRounded = (u16)(flScaledFloat + 0.5f);
 
 	// Make sure we don't go outside of our valid range.

@@ -115,7 +115,7 @@ bool CShaderSystem::Initialize(ShaderSystemConfig_t config)
 	m_ShaderDictionary.m_ShaderArray = (Shader*)new Shader[m_Config.MaxShaders];
 
 	// Invalidate our shader lookup table.
-	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	for (i32 idx = 0; idx < m_Config.MaxShaders; idx++)
 	{
 		m_ShaderDictionary.m_ShaderLookup.ValueElementAt(idx).ShaderIndex = kInvalidID_U32;
 	}
@@ -130,7 +130,7 @@ bool CShaderSystem::Initialize(ShaderSystemConfig_t config)
 void CShaderSystem::Shutdown()
 {
 	// Release internal resources
-	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	for (i32 idx = 0; idx < m_Config.MaxShaders; idx++)
 	{
 		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle != kInvalidID_U32)
 		{
@@ -201,7 +201,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		u64 shaderStageCount = newShaderResource.ShaderStages.Count();
 		newShaderConfig.moduleConfigs.Resize(shaderStageCount);
 
-		for (int stageIdx = 0; stageIdx < shaderStageCount; stageIdx++)
+		for (i32 stageIdx = 0; stageIdx < shaderStageCount; stageIdx++)
 		{
 			ShaderModuleConfig_t newConfig{};
 			newConfig.eStage = GetShaderStageFromString(newShaderResource.ShaderStages[stageIdx].pszStageString);
@@ -216,7 +216,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Parse the vertex attribute data and stride.
 		newShaderConfig.vertexAttributes.Resize(newShaderResource.ShaderAttributes.Count());
-		for (int attribIdx = 0; attribIdx < newShaderResource.ShaderAttributes.Count(); attribIdx++)
+		for (i32 attribIdx = 0; attribIdx < newShaderResource.ShaderAttributes.Count(); attribIdx++)
 		{
 			VertexAttribute_t newAttribute = GetVertexAttributeDataFromString(newShaderResource.ShaderAttributes[attribIdx].pszType);
 			newAttribute.szName = Utl::StringDuplicate(newShaderResource.ShaderAttributes[attribIdx].pszName);
@@ -228,7 +228,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 
 		// Parse the uniform configs.
 		newShaderConfig.uniformConfigs.Resize(newShaderResource.ShaderUniforms.Count());
-		for (int uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
+		for (i32 uniformIdx = 0; uniformIdx < newShaderResource.ShaderUniforms.Count(); uniformIdx++)
 		{
 			ShaderUniformConfig_t newUniform = GetShaderAttributeFromString(newShaderResource.ShaderUniforms[uniformIdx].pszType, newShaderResource.ShaderUniforms[uniformIdx].pszFreq);
 			newUniform.szName = Utl::StringDuplicate(newShaderResource.ShaderUniforms[uniformIdx].pszName);
@@ -258,7 +258,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 		pShader->m_pUniforms = new ShaderUniform_t[uniformCount];
 		u32	iRunningPerFrameOffset{ 0 };
 		u32	iRunningPerMaterialOffset{ 0 };
-		for (int idx = 0; idx < uniformCount; idx++)
+		for (i32 idx = 0; idx < uniformCount; idx++)
 		{
 			ShaderUniformConfig_t& pCurrentConfig = newShaderConfig.uniformConfigs[idx];
 			// Find all our buffer offsets and save off our groups.
@@ -292,7 +292,7 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 			pShader->m_pUniforms[idx].eType = pCurrentConfig.eType;
 			
 			// Store off the location.
-			int* pUniform = pShader->m_UniformLookup.Insert(pCurrentConfig.szName);
+			i32* pUniform = pShader->m_UniformLookup.Insert(pCurrentConfig.szName);
 			*pUniform = idx;
 		}
 
@@ -525,7 +525,7 @@ static VertexAttribute_t GetVertexAttributeDataFromString(const char* pszString)
 {
 	VertexAttribute_t attrib{};
 
-	if (Utl::StringCompareInsensitive(pszString, "int") || Utl::StringCompareInsensitive(pszString, "int32"))
+	if (Utl::StringCompareInsensitive(pszString, "i32") || Utl::StringCompareInsensitive(pszString, "int32"))
 	{
 		attrib.type = ShaderAttribute_t::Int32;
 		attrib.stride = sizeof(i32);
@@ -575,7 +575,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	ShaderUniformConfig_t newUniformConfig{};
 
 	// Get the type and stride.
-	if (Utl::StringCompareInsensitive(pszAttributeStr, "int"))
+	if (Utl::StringCompareInsensitive(pszAttributeStr, "i32"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Int32;
 		newUniformConfig.iStride = sizeof(i32);
@@ -777,7 +777,7 @@ static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderCon
 	u64 uniformCount = pShader->m_iUniformCount;
 	u64 currentStride = 0;
 	ShaderUniform_t* pCurrentUniform = nullptr;
-	for (int idx = 0; idx < uniformCount; idx++)
+	for (i32 idx = 0; idx < uniformCount; idx++)
 	{
 		pCurrentUniform = &pShader->m_pUniforms[idx];
 
@@ -822,7 +822,7 @@ static void AlignUniformBufferLayout(Shader* pShader, ShaderConfig_t* pShaderCon
 //-------------------------------------------------------------------------
 ShaderHandle_t CShaderSystem::FindFirstFreeShaderHandle() const
 {
-	for (int idx = 0; idx < m_Config.MaxShaders; idx++)
+	for (i32 idx = 0; idx < m_Config.MaxShaders; idx++)
 	{
 		if (m_ShaderDictionary.m_ShaderArray[idx].m_iInternalHandle == kInvalidID_U32)
 			return idx;

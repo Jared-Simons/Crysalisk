@@ -9,7 +9,7 @@
 #include "Defines.h"
 
 // String buffers should be this wide when copying into them.
-const int kScratchStringBufferLength = 10000;
+const i32 kScratchStringBufferLength = 10000;
 
 //-------------------------------------------------------------------------
 // File access modes.

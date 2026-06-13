@@ -49,7 +49,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	VkSwapchainCreateInfoKHR swapchainCreateInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 
 	// Select image format and color space
-	for (int i = 0; i < swapchainSupport.Formats.Count(); i++)
+	for (i32 i = 0; i < swapchainSupport.Formats.Count(); i++)
 	{
 		if ((swapchainSupport.Formats[i].format == VK_FORMAT_B8G8R8A8_SRGB) && (swapchainSupport.Formats[i].colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR))
 		{
@@ -68,7 +68,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	}
 
 	// Select present mode
-	for (int i = 0; i < swapchainSupport.PresentModes.Count(); i++)
+	for (i32 i = 0; i < swapchainSupport.PresentModes.Count(); i++)
 	{
 		if (swapchainSupport.PresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
 		{
@@ -106,7 +106,7 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	vkGetSwapchainImagesKHR(pRenderingContext.m_Device.m_Device, pOutSwapchain.m_Handle, &swapImageCount, pOutSwapchain.m_SwapchainImages.Data());
 
 	// Setup swapchain image tags.
-	for (int iImage = 0; iImage < pOutSwapchain.m_SwapchainImages.Count(); iImage++)
+	for (i32 iImage = 0; iImage < pOutSwapchain.m_SwapchainImages.Count(); iImage++)
 	{
 #ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
 		char szSwapchainImageNameBuffer[2048];
@@ -159,14 +159,14 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 //-------------------------------------------------------------------------
 void VulkanSwapchain::DestroySwapchain(CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain)
 {
-	for (int imageIdx = 0; imageIdx < pSwapchain.m_Framebuffers.Capacity(); imageIdx++)
+	for (i32 imageIdx = 0; imageIdx < pSwapchain.m_Framebuffers.Capacity(); imageIdx++)
 	{
 		vkDestroyFramebuffer(pRenderingContext.m_Device.m_Device, pSwapchain.m_Framebuffers[imageIdx], pRenderingContext.m_Allocator);
 	}
 
 	VulkanImage::DestroyImage(pRenderingContext, pSwapchain.m_DepthImage);
 
-	for (int imageIdx = 0; imageIdx < pSwapchain.m_SwapchainImageViews.Capacity(); imageIdx++)
+	for (i32 imageIdx = 0; imageIdx < pSwapchain.m_SwapchainImageViews.Capacity(); imageIdx++)
 	{
 		vkDestroyImageView(pRenderingContext.m_Device.m_Device, pSwapchain.m_SwapchainImageViews[imageIdx], pRenderingContext.m_Allocator);
 	}

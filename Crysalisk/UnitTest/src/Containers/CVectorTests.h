@@ -9,10 +9,10 @@
 #include "UnitTestType.h"
 
 // Test declarations.
-int UTLCVector_CreateAndDestroy();
-int STDVector_CreateAndDestroy();
-int UTLCVector_CreateAndAddElements();
-int STDVector_CreateAndAddElements();
+i32 UTLCVector_CreateAndDestroy();
+i32 STDVector_CreateAndDestroy();
+i32 UTLCVector_CreateAndAddElements();
+i32 STDVector_CreateAndAddElements();
 
 class CVectorUnitTests : public UnitTestGroup
 {

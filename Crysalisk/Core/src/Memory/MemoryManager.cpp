@@ -157,7 +157,7 @@ void CMemoryManager::Free(void* pMemBlock)
 	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
 	{
 		CAssert(pMemBlock != nullptr);
-		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+		i32 bytesFreed = m_MemoryAllocator.Free(pMemBlock);
 		m_iNumBytesAllocated -= bytesFreed;
 		m_pAllocMutex->Unlock();
 		return;

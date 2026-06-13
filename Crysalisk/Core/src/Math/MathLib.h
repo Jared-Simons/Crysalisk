@@ -74,7 +74,7 @@ public:
 	inline Vector2D(const Vector2D& pOtherVec)
 		: flElements{ 0.0f }
 	{
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] = pOtherVec.flElements[idx];
 		}
@@ -86,7 +86,7 @@ public:
 	inline Vector2D Add(const Vector2D& pOtherVector) const
 	{
 		Vector2D outVector{ *this };
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] += pOtherVector.flElements[idx];
 		}
@@ -96,7 +96,7 @@ public:
 	inline Vector2D Subtract(const Vector2D& pOtherVector) const
 	{
 		Vector2D outVector{ *this };
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] -= pOtherVector.flElements[idx];
 		}
@@ -115,7 +115,7 @@ public:
 
 	inline void NegateInPlace()
 	{
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] = -flElements[idx];
 		}
@@ -127,7 +127,7 @@ public:
 	inline Vector2D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector2D outVector{ *this };
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] = flElements[idx] * flScalar;
 		}
@@ -136,7 +136,7 @@ public:
 
 	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] *= flScalar;
 		}
@@ -149,7 +149,7 @@ public:
 	{
 		Vector2D outVector{ *this };
 		f32 flLength = outVector.Length();
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
 		}
@@ -159,7 +159,7 @@ public:
 	inline void NormalizeInPlace()
 	{
 		f32 flLength = Length();
-		for (int idx = 0; idx < 2; idx++)
+		for (i32 idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] /= flLength;
 		}
@@ -237,7 +237,7 @@ public:
 	inline Vector3D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] = pOtherVec.flElements[idx];
 		}
@@ -249,7 +249,7 @@ public:
 	inline Vector3D Add(const Vector3D& pOtherVector) const
 	{
 		Vector3D outVector{ *this };
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] += pOtherVector.flElements[idx];
 		}
@@ -259,7 +259,7 @@ public:
 	inline Vector3D Subtract(const Vector3D& pOtherVector) const
 	{
 		Vector3D outVector{ *this };
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] -= pOtherVector.flElements[idx];
 		}
@@ -278,7 +278,7 @@ public:
 
 	inline void NegateInPlace()
 	{
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] = -flElements[idx];
 		}
@@ -290,7 +290,7 @@ public:
 	inline Vector3D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector3D outVector{ *this };
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] = flElements[idx] * flScalar;
 		}
@@ -299,7 +299,7 @@ public:
 
 	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] *= flScalar;
 		}
@@ -311,7 +311,7 @@ public:
 	inline Vector3D Divide(const Vector3D& pOtherVector) const
 	{
 		Vector3D outVector{ *this };
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= pOtherVector.flElements[idx];
 		}
@@ -326,7 +326,7 @@ public:
 	{
 		Vector3D outVector{ *this };
 		f32 flLength = outVector.Length();
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
 		}
@@ -336,7 +336,7 @@ public:
 	inline void NormalizeInPlace()
 	{
 		f32 flLength = Length();
-		for (int idx = 0; idx < 3; idx++)
+		for (i32 idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] /= flLength;
 		}
@@ -436,7 +436,7 @@ public:
 	inline Vector4D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] = pOtherVec.flElements[idx];
 		}
@@ -448,7 +448,7 @@ public:
 	inline Vector4D Add(const Vector3D& pOtherVector) const
 	{
 		Vector4D outVector{ *this };
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] += pOtherVector.flElements[idx];
 		}
@@ -458,7 +458,7 @@ public:
 	inline Vector4D Subtract(const Vector3D& pOtherVector) const
 	{
 		Vector4D outVector{ *this };
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] -= pOtherVector.flElements[idx];
 		}
@@ -477,7 +477,7 @@ public:
 
 	inline void NegateInPlace()
 	{
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] = -flElements[idx];
 		}
@@ -489,7 +489,7 @@ public:
 	inline Vector4D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector4D outVector{ *this };
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] = flElements[idx] * flScalar;
 		}
@@ -498,7 +498,7 @@ public:
 
 	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] *= flScalar;
 		}
@@ -511,7 +511,7 @@ public:
 	{
 		Vector4D outVector{ *this };
 		f32 flLength = outVector.Length();
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
 		}
@@ -521,7 +521,7 @@ public:
 	inline void NormalizeInPlace()
 	{
 		f32 flLength = Length();
-		for (int idx = 0; idx < 4; idx++)
+		for (i32 idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] /= flLength;
 		}
@@ -634,7 +634,7 @@ public:
 	inline Matrix4x4(const Matrix4x4& pOtherMatrix)
 		: flData{ 0.0f }
 	{
-		for (int idx = 0; idx < 16; idx++)
+		for (i32 idx = 0; idx < 16; idx++)
 		{
 			flData[idx] = pOtherMatrix.flData[idx];
 		}
@@ -646,7 +646,7 @@ public:
 	inline Matrix4x4 MultiplyByScalar(const f32 flScalar) const
 	{
 		Matrix4x4 outMatrix{ *this };
-		for (int idx = 0; idx < 16; idx++)
+		for (i32 idx = 0; idx < 16; idx++)
 		{
 			outMatrix.flData[idx] *= flScalar;
 		}
@@ -684,9 +684,9 @@ public:
 		const f32* mat1Ptr = &flData[0];
 		const f32* mat2Ptr = &pOtherMatrix.flData[0];
 
-		for (int firstMat = 0; firstMat < 4; firstMat++)
+		for (i32 firstMat = 0; firstMat < 4; firstMat++)
 		{
-			for (int secondMat = 0; secondMat < 4; secondMat++)
+			for (i32 secondMat = 0; secondMat < 4; secondMat++)
 			{
 				outMatrix.flData[(firstMat * 4) + secondMat] =
 					(mat1Ptr[(firstMat * 4)] * mat2Ptr[secondMat])
@@ -761,9 +761,9 @@ public:
 		flTempMatrix[15] = (flData[0] * flT21 - flData[1] * flT23 + flData[2] * flT24);
 
 		// Transpose the co-factor matrix and write it to the output.
-		for (int i = 0; i < 4; i++)
+		for (i32 i = 0; i < 4; i++)
 		{
-			for (int j = 0; j < 4; j++)
+			for (i32 j = 0; j < 4; j++)
 			{
 				outMatrix.flData[(i * 4) + j] = flTempMatrix[(j * 4) + i];
 			}

@@ -16,7 +16,7 @@ struct AllocHeader_t
 	u64	Offset{ 0 };
 };
 
-const int kAllocHeaderSize = sizeof(AllocHeader_t);
+const i32 kAllocHeaderSize = sizeof(AllocHeader_t);
 
 namespace Utl
 {
@@ -42,7 +42,7 @@ namespace Utl
 		void* Allocate(u64 size);
 
 		// Free a block of memory.
-		int Free(void* pMemoryBlock);
+		i32 Free(void* pMemoryBlock);
 
 		virtual void FreeAll() override { CASSERTMSG(0, "DynamicAllocator currently does not support FreeAll(), use Free instead."); }
 

@@ -58,7 +58,7 @@ struct Frustum
 
 	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
 	{
-		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
+		for (i32 iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
 		{
 			f32 r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
 				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +

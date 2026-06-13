@@ -26,9 +26,9 @@ namespace MeshLoader
 	// Input:	pParams - An opaque pointer to be cast to an MeshLoaderParams_t struct.
 	//			pJobResults - An opaque pointer that will hold the results of this job. 
 	//				(In this case, the results are held in the same struct as the params).
-	// Output:	int - 0 indicates the job failed, 1 indicates the job completed successfully.
+	// Output:	i32 - 0 indicates the job failed, 1 indicates the job completed successfully.
 	//-------------------------------------------------------------------------
-	int LoadMesh_Threaded(void* pParams, void** pJobResults)
+	i32 LoadMesh_Threaded(void* pParams, void** pJobResults)
 	{
 		if (!pParams)
 		{

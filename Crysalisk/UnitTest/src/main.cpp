@@ -15,7 +15,7 @@ bool PerformUnitTests()
 	return true;
 }
 
-int main()
+i32 main()
 {
 	PerformUnitTests();
 

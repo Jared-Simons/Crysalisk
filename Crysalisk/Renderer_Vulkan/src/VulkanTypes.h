@@ -22,8 +22,8 @@
 	expr
 #endif
 
-const int kMaxGlobalTextures = 32;
-const int kMaxVulkanInstances = 2048;
+const i32 kMaxGlobalTextures = 32;
+const i32 kMaxVulkanInstances = 2048;
 
 class VulkanDevice
 {
@@ -44,8 +44,8 @@ public:
 
 	struct DeviceQueueFamilyIndices
 	{
-		int	GraphicsQueueFamilyIndex{ -1 };
-		int PresentQueueFamilyIndex{ -1 };
+		i32	GraphicsQueueFamilyIndex{ -1 };
+		i32 PresentQueueFamilyIndex{ -1 };
 	};
 
 	DeviceQueueFamilyIndices	m_QueueFamilyIndices{};
@@ -174,7 +174,7 @@ public:
 	VkDescriptorSetLayout	m_InstanceDescriptorLayout{};
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
-	int						m_NextFreeDescriptorSetIndex{ 0 };
+	i32						m_NextFreeDescriptorSetIndex{ 0 };
 	u64					m_CurrentRendererFrame{ 0 };
 
 	Utl::CVector<VkSampler>		m_ImageSamplers{};

@@ -9,12 +9,12 @@
 #include "Application.h"
 #include "Core/Engine.h"
 
-DLL_EXPORT int Crysalisk_Main(ApplicationConfig_t& pAppConfig);
+DLL_EXPORT i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig);
 
 //-------------------------------------------------------------------------
 // Purpose: The engine entry point.
 //-------------------------------------------------------------------------
-int Crysalisk_Main(ApplicationConfig_t& pAppConfig)
+i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig)
 {
 	EngineConfig_t engineConfig;
 	engineConfig.isHeadless = false;
