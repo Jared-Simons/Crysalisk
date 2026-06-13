@@ -40,8 +40,6 @@ public:
 	virtual Camera_t* GetMainCamera() override { return &m_MainCamera; }
 
 private:
-	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
-
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
 	Camera_t				m_MainCamera{};
 	
@@ -66,9 +64,6 @@ int main(int argc, char** argv)
 bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
 	m_pApplicationConfig = pAppConfig;
-
-	// Setup the render views.
-	ConfigureRenderViews(pAppConfig);
 
 	// Setup our render-views.
 	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
@@ -121,52 +116,6 @@ bool CGameApp::Render()
 	CAssert(pRenderer);
 	
 	return true;
-}
-
-void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
-{
-	pAppConfig->renderViewConfigs.Resize(2);
-
-	// 3D Scene View.
-	{
-		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = "3D_Scene_View";
-
-		// This view has 2 attachments: color and depth.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-
-		// Add them to the config.
-		sceneViewConfig.attachmentConfigs.Resize(2);
-		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		sceneViewConfig.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
-		pAppConfig->renderViewConfigs.PushBack(sceneViewConfig);
-	}
-
-	// UI View.
-	{
-		RendererViewConfig_t UIViewConfig{};
-		UIViewConfig.m_pszViewName = "UI_View";
-
-		// This pass has 1 attachment: color.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-
-		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-
-		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		UIViewConfig.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
-		pAppConfig->renderViewConfigs.PushBack(UIViewConfig);
-	}
 }
 
 static bool Event_WindowResized(void* pEventListener, EventData_t data)

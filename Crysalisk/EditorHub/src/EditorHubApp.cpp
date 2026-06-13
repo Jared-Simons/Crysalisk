@@ -8,8 +8,14 @@
 #include <Containers/CVector.h>
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
+#include <Renderer/Camera.h>
 #include <Renderer/Renderer.h>
 #include <Strings/String_Utils.h>
+
+// Render views.
+#include <Renderer/Views/3D_Scene_View.h>
+#include <Renderer/Views/Debug_Render_View.h>
+#include <Renderer/Views/UI_View.h>
 
 // Framework includes.
 #include <AppFramework.h>
@@ -27,9 +33,7 @@ public:
 	virtual void Shutdown() override;	
 
 	// NOTE: No camera here for now.
-	virtual Camera_t* GetMainCamera() override { CAssert(0); return nullptr; }
-private:
-	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
+	virtual Camera_t* GetMainCamera() override { return &m_Camera; }
 
 	virtual bool LoadTool(const char* pszToolLibraryName);
 
@@ -37,6 +41,7 @@ private:
 	ApplicationConfig_t*			m_pApplicationConfig{ nullptr };
 	AppFramework::IAppFramework*	m_pAppFramework{ nullptr };
 	Utl::CVector<IToolApp*>			m_pTools{};
+	Camera_t						m_Camera{};
 };
 
 CEditorHubApp s_EditorHubApp{};
@@ -47,8 +52,10 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
 	m_pApplicationConfig = pAppConfig;
 
-	// Setup the render views.
-	ConfigureRenderViews(pAppConfig);
+	// Setup our render-views.
+	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
 	return true;
 }
@@ -77,14 +84,18 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	m_pAppFramework = (AppFramework::IAppFramework*)pfnGetAppFramework();
 	CAssert(m_pAppFramework != nullptr);
 
+	// Init camera data.
+	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
+	m_Camera.RecalculateCameraVectors();
+
 	// Initialize the framework.
 	AppFramework::AppFrameworkConfig_t appConfig{};
 	appConfig.pEngine = pAppConfig->pEngine;
-	if (!m_pAppFramework->Initialize(appConfig))
+	/*if (!m_pAppFramework->Initialize(appConfig))
 	{
 		LOG_ERROR("Failed to initialize app framework! Application cannot continue.");
 		return false;
-	}
+	}*/
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
@@ -103,14 +114,15 @@ bool CEditorHubApp::Run()
 
 	m_pAppFramework->Run();
 
-	RenderPacket_t packet{};
-	m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
+	//RenderPacket_t packet{};
+	//m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
 
 	return true;
 }
 
 void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
+	pRenderPacket->pCamera = &m_Camera;
 }
 
 bool CEditorHubApp::Render()
@@ -124,57 +136,7 @@ void CEditorHubApp::Shutdown()
 	m_pApplicationConfig->renderViewConfigs.Clear();
 	m_pTools.Clear();
 
-	m_pAppFramework->Shutdown();
-}
-
-void CEditorHubApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
-{
-	pAppConfig->renderViewConfigs.Resize(2);
-
-	// 3D Scene View.
-	{
-		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = Utl::StringDuplicate("3D_Scene_View");
-
-		// This view has 2 attachments: color and depth.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
-
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		// Add them to the config.
-		sceneViewConfig.attachmentConfigs.Resize(2);
-		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		sceneViewConfig.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
-		pAppConfig->renderViewConfigs.PushBack(sceneViewConfig);
-	}
-
-	// UI View.
-	{
-		RendererViewConfig_t UIViewConfig{};
-		UIViewConfig.m_pszViewName = "UI_View";
-
-		// This pass has 1 attachment: color.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = false;
-
-		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		UIViewConfig.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
-		pAppConfig->renderViewConfigs.PushBack(UIViewConfig);
-	}
+	//m_pAppFramework->Shutdown();
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)

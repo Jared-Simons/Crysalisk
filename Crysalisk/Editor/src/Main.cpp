@@ -4,8 +4,6 @@
 // 
 // Purpose: The entry point for the main editor executable.
 //=============================================================================
-#include <stdio.h> // EDITORTODO: Remove Me!
-
 #include <Application.h>
 #include <Core/Assertions.h>
 #include <Core/Logging.h>
