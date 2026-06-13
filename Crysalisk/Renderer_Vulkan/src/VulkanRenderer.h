@@ -21,44 +21,46 @@ public:
 	virtual bool	RendererBackend_Initialize(RendererConfig_t& pConfig) override;
 	virtual void	RendererBackend_Shutdown() override;
 
+	virtual bool	RegisterWindow(Platform::IPlatformWindow& pWindow) override;
+	virtual void	ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
+
 	virtual bool	CreateSwapchainFramebuffers(class RendererView& pMainView) override;
 
-	virtual bool	BeginFrame(struct RenderPacket_t& pRenderData) override;
-	virtual void	EndFrame(struct RenderPacket_t& pRenderData) override;
+	virtual bool	BeginFrame(class Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) override;
+	virtual void	EndFrame(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData) override;
 
-	virtual bool	BeginRenderpass(RendererView& pRendererView) override;
+	virtual bool	CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
+	virtual void	DestroyRenderpass(struct Renderpass* pRenderpass) override;
+	virtual bool	BeginRenderpass(struct Renderpass* pRenderpass) override;
 	virtual void	EndRenderpass() override;
 
 	virtual void	DrawGeometry(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, struct GeometryInstance_t& pGeometry) override;
 
-	virtual bool	CreateRenderBufferInternal(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
+	virtual bool	CreateRenderBufferInternal(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer) override;
 	virtual void	DestroyRenderBufferInternal(RenderBuffer& pRenderBuffer) override;
 
-	virtual bool	CreateRendererViewInternal(RendererViewConfig_t& pViewConfig, RendererView& pOutView) override;
-	virtual void	DestroyRendererViewInternal(RendererView& pView) override;
-
-	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData) override;
+	virtual bool	AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
 	virtual void	ReleaseTextureResources(struct Texture* pTexture) override;
 
 	virtual bool	CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig) override;
 	virtual void	DestroyShader(class Shader* pShader) override;
 
-	virtual void	AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName) override;
-	virtual void	ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID) override;
+	virtual void	AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) override;
+	virtual void	ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) override;
 
 	virtual void	BindShader(class Shader* pShader) override;
 
 	virtual void	BindPerFrameShaderDescriptors(class Shader* pShader) override;
-	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, unsigned int hInstanceID) override;
+	virtual void	BindPerInstanceShaderDescriptors(class Shader* pShader, u32 hInstanceID) override;
 
-	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData) override;
+	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
 
-	virtual void	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
+	virtual void	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 
 	virtual void	UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
 	virtual void	UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
-	virtual void	UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
+	virtual void	UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
 	// All this stuff can be public because nothing outside of this module should be accessing the backend...
 	// Any outside contact with the Vulkan Renderer should go through an IRenderer interface.
@@ -72,14 +74,11 @@ public:
 	// Debug Messenger
 	VkDebugUtilsMessengerEXT	m_DebugMessenger{ VK_NULL_HANDLE };
 
-	// Surface
-	VkSurfaceKHR	m_Surface{ VK_NULL_HANDLE };
-
 	// Device
 	VulkanDevice m_Device{};
 
-	// Swapchain
-	VulkanSwapchain m_Swapchain{};
+	// Main application window.
+	Platform::IPlatformWindow*	m_pMainWindow{ nullptr };
 
 	// Command Buffers
 	VkCommandPool	m_GraphicsCommandPool{ VK_NULL_HANDLE };
@@ -95,7 +94,7 @@ public:
 
 	// Internal shader data
 	VulkanShaderInternal* m_pInternalShaderData{ nullptr };
-	unsigned int			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
+	u32			m_CurrentlyBoundShaderIndex{ kInvalidID_U32 };
 	VulkanShaderInternal* m_pCurrentlyBoundShader{ nullptr };
 
 #ifdef VULKAN_RENDERER_RESOURCE_DEBUGGING_ENABLED
@@ -106,13 +105,13 @@ public:
 #endif
 
 	// The number of frames that can be processed at once.
-	unsigned int m_MaxImagesInFlight{ 3 };
+	u32 m_MaxImagesInFlight{ 3 };
 	bool		m_bCurrentlyRendering[3]{ false };
 	int			m_RenderMode{ 0 };
-	double		m_flDeltaTime{ 0.0f };
-	double		m_flLastFrameTime{ 0.0f };
-	unsigned int	m_ImageIndex{ 0 };
-	size_t		m_CurrentRendererFrame{ 0 };
+	f64		m_flDeltaTime{ 0.0f };
+	f64		m_flLastFrameTime{ 0.0f };
+	u32	m_ImageIndex{ 0 };
+	u64		m_CurrentRendererFrame{ 0 };
 	bool		m_bWindowResized{ false };
 	bool		m_bResizingFramebuffer{ false };
 	RendererConfig_t	m_RendererConfig{};
@@ -124,5 +123,6 @@ extern IRendererBackend* g_pRendererBackend;
 namespace Platform 
 {
 	const char* GetVulkanPlatformExtension();
-	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, void* pMainWindow);
+	bool CreateVulkanWindowSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
+	bool CreateVulkanSurface(CVulkanRenderer& pRenderingContext, Platform::IPlatformWindow& pWindow);
 }

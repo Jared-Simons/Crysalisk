@@ -11,7 +11,36 @@
 #include <Containers/CFreeList.h>
 #include <Containers/CVector.h>
 #include <Math/MathLib.h>
+#include <Memory/LinearAllocator.h>
 #include <Strings/String_Utils.h>
+
+//-------------------------------------------------------------------------
+// Renderer configuration, to be set by the application.
+//-------------------------------------------------------------------------
+struct RendererConfig_t
+{
+	// The application's name.
+	const char* szApplicationName;
+	// A pointer to the main engine state.
+	class IEngine* pEngine;
+	// An opaque pointer to the window we'll be rendering to.
+	Platform::IPlatformWindow* pMainWindow;
+	// A pointer to the loaded backend module.
+	Platform::ISysModule* pRendererBackendDLL;
+
+	u64	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
+	u64	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
+};
+
+enum eRenderViewType
+{
+	RENDER_VIEW_TYPE_UNDEFINED = -1,
+	RENDER_VIEW_TYPE_3D_SCENE = 0,
+	RENDER_VIEW_TYPE_DEBUG,
+	RENDER_VIEW_TYPE_UI,
+
+	RENDER_VIEW_MAX_TYPES,
+};
 
 //-------------------------------------------------------------------------
 // Purpose: Frame-specific data to be used in rendering operations.
@@ -19,7 +48,18 @@
 struct RenderPacket_t
 {
 	// The time elapsed between frames.
-	double DeltaTime;
+	f64	DeltaTime;
+
+	u32								iCulledGeometries{ 0 };
+	int											iDebugRendererMode{ 0 };
+
+	Matrix4x4									matProjection{};
+	struct Camera_t*							pCamera{ nullptr };
+
+	struct RenderMetrics_t* pMetrics{ nullptr };
+	Utl::LinearAllocator* pFrameAllocator{ nullptr };
+
+	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
 };
 
 //-------------------------------------------------------------------------
@@ -28,17 +68,17 @@ struct RenderPacket_t
 struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
-	double	FrameTime{ 0.0 };
+	f64	FrameTime{ 0.0 };
 	// The time in seconds since the last metrics update.
-	double	TimeSinceLastMetricsUpdate{ 0.0 };
+	f64	TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
-	int		NumDrawCalls{ 0 };
+	u32		NumDrawCalls{ 0 };
 	// The number of meshes frustum culled in the previous frame
-	int		NumGeometriesFrustumCulled{ 0 };
+	u32		NumGeometriesFrustumCulled{ 0 };
 	// Number of frames rendered in the previous frame.
-	int		PreviousFrameFPS{ 0 };
+	u32		PreviousFrameFPS{ 0 };
 	// Number of frames rendered in the current frame.
-	int		CurrentFrameFPS{ 0 };
+	u32		CurrentFrameFPS{ 0 };
 };
 
 //-------------------------------------------------------------------------
@@ -67,7 +107,7 @@ struct VertexAttribute_t
 	// The attribute's type.
 	ShaderAttribute_t	type{ ShaderAttribute_t::Undefined };
 	// The length of the attribute's data.
-	uint32_t			stride{ 0 };
+	u32			stride{ 0 };
 
 	VertexAttribute_t()
 		: szName{ nullptr }
@@ -124,7 +164,7 @@ struct ShaderUniformConfig_t
 	// The uniform's update group.
 	eShaderUniformGroup				eFrequency;
 	// The length of a single element in bytes (does not account for a whole array).
-	uint32_t						iStride;	
+	u32						iStride;	
 	// The size of the uniform's array.
 	int								iArraySize;
 
@@ -194,12 +234,30 @@ enum class eRenderBufferUsage
 	STORAGE
 };
 
+typedef u8 BufferVertexFlags_t;
+
+enum eVertexBufferDataFlags
+{
+	VERTEX_BUFFER_DATA_UNDEFINED = 0x00,
+	VERTEX_BUFFER_DATA_POSITION = 0x01,
+	VERTEX_BUFFER_DATA_TEXCOORD = 0x02,
+	VERTEX_BUFFER_DATA_NORMAL = 0x04,
+	VERTEX_BUFFER_DATA_TANGENT = 0x08,
+};
+
 //-------------------------------------------------------------------------
 // Purpose: A generic buffer used for storing data.
 //-------------------------------------------------------------------------
 class RenderBuffer
 {
 public:
+	char*			pszBufferName{ nullptr };
+
+	// The types of vertex data stored in this buffer.
+	BufferVertexFlags_t	uBufferDataFlags{ 0 };
+
+	u64				m_CurrentBoundOffset{ kInvalidID_U64 };
+
 	// A pointer to the internal data of the buffer.
 	void* m_pInternalData{ nullptr };
 	// TODO: Store the type off here as well?
@@ -225,8 +283,6 @@ struct RendererViewAttachmentConfig_t
 {
 	// The type of attachment.
 	eRendererViewAttachmentType	eAttachmentType{ eRendererViewAttachmentType::UNDEFINED };
-	// Whether or not this attachment should be cleared prior to rendering.
-	bool						bShouldClear{ false };
 };
 
 //-------------------------------------------------------------------------
@@ -238,6 +294,18 @@ struct RendererViewConfig_t
 	char*											m_pszViewName{ nullptr };
 	// A list of attachments associated with this view.
 	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
+	// A color used for debugging tools. Otherwise does nothing.
+	Vector3D										m_debuggingColor{};
+
+	// TODO: This needs to work!
+	~RendererViewConfig_t()
+	{
+		if (m_pszViewName)
+		{
+			/*Utl::StringFree(m_pszViewName);
+			m_pszViewName = nullptr;*/
+		}
+	}
 };
 
 //-------------------------------------------------------------------------
@@ -250,70 +318,56 @@ public:
 	char* m_pszViewName{ nullptr };
 	// Indicates if the renderer view should clear it's render target before rendering.
 	bool	m_bShouldClear{ false };
-	// A pointer to the internal data of the buffer.
+	// A pointer to the internal data of the pass.
 	void*	m_pInternalData{ nullptr };
 	// A color used for debugging tools. Otherwise does nothing.
 	Vector3D m_debuggingColor{};
 };
 
 //-------------------------------------------------------------------------
-// Purpose: A geometric plane.
+// Purpose: TODO Documentation!
 //-------------------------------------------------------------------------
-struct Plane
+typedef u8 RenderpassClearFlags_t;
+
+enum eRenderpassClearFlags
 {
-	Vector3D	vecNormal{};
-	float		flDistance{};
+	RENDERPASS_CLEAR_NONE = 0x00,
+	RENDERPASS_CLEAR_COLOR = 0x01,
+	RENDERPASS_CLEAR_DEPTH = 0x02,
+	RENDERPASS_CLEAR_STENCIL = 0x04,
+};
 
-	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
-	{
-		Plane outPlane{};
-		outPlane.vecNormal = pVecNormal.Normalize();
-		outPlane.flDistance = Vector3D::Dot(outPlane.vecNormal, pVecPoint);
-		return outPlane;
-	}
+struct RenderpassConfig_t
+{
+	char*											pszName{ nullptr };
+	Utl::CVector<RendererViewAttachmentConfig_t>	attachmentConfigs{};
 
-	inline float GetSignedDistanceToPlane(Vector3D& pPoint)
-	{
-		return Vector3D::Dot(vecNormal, pPoint) - flDistance;
-	}
+	RenderpassClearFlags_t							clearFlags{ 0 };
+	bool											bPresentsAfter{ false };
 };
 
 //-------------------------------------------------------------------------
-// Purpose: The different faces of a frustum.
+// Purpose: TODO Documentation!
 //-------------------------------------------------------------------------
-enum eFrustumPlanes
+struct Renderpass
 {
-	TOP_FACE = 0,
-	BOTTOM_FACE,
-	RIGHT_FACE,
-	LEFT_FACE,
-	FAR_FACE,
-	NEAR_FACE,
-
-	MAX_FRUSTUM_PLANES
+	char* pszName{ nullptr };
+	void* pInternalData{ nullptr };
 };
 
 //-------------------------------------------------------------------------
-// Purpose: A frustum, typically created by a camera and used for frustum-culling.
+// Purpose: TODO Documentation!
+// TODO: Replace the above RendererView class with this!
 //-------------------------------------------------------------------------
-struct Frustum
+class IRenderView
 {
-	// Can be indexed using the eFrustumPlanes enum.
-	Plane	m_Faces[MAX_FRUSTUM_PLANES];
+public:
+	virtual bool	Initialize(const struct EngineInterfaces_t* pEngineSystems) = 0;
+	virtual void	Shutdown(class IRenderer* pRenderer) = 0;
 
-	inline bool	FrustumIntersectsAABB(Vector3D& pVecCenter, Vector3D& pVecExtents)
-	{
-		for (int iFrustumFace = 0; iFrustumFace < MAX_FRUSTUM_PLANES; iFrustumFace++)
-		{
-			float r = pVecExtents.x * M_ABS_F(m_Faces[iFrustumFace].vecNormal.x) +
-				pVecExtents.y * M_ABS_F(m_Faces[iFrustumFace].vecNormal.y) +
-				pVecExtents.z * M_ABS_F(m_Faces[iFrustumFace].vecNormal.z);
-			
-			//if (!(-r <= m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter)))
-			if (m_Faces[iFrustumFace].GetSignedDistanceToPlane(pVecCenter) <= -r)
-				return false;
-		}
+	virtual void	BuildRenderPacket(RenderPacket_t* pRenderData) = 0;
+	virtual void	Render(RenderPacket_t* pRenderData) = 0;
 
-		return true;
-	}
+	virtual const char*			GetViewName() const = 0;
+	virtual const Renderpass*	GetRenderpass() const = 0;
 };

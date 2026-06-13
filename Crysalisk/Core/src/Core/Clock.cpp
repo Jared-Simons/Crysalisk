@@ -43,7 +43,7 @@ void Clock::Update()
 //-------------------------------------------------------------------------
 // Purpose: Returns the elapsed time.
 //-------------------------------------------------------------------------
-double Clock::GetElapsedTime()
+f64 Clock::GetElapsedTime()
 {
 	if (!m_IsActive)
 	{

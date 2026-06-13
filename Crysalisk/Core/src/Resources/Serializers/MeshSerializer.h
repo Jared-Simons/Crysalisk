@@ -12,45 +12,62 @@
 namespace MeshSerializer
 {
 	// A Crysalisk-specific model asset (.cmodel_c file) must start with this magic number to be considered a valid resource.
-	static const uint64_t	kModelResourceMagicNumber = 0xCABED;
+	static const u64	kModelResourceMagicNumber = 0xCABEF;
+	
+	// Some file sub-headers.
+	static const u32	kModelResourceSubmeshHeader = 0xCABEA;
+	static const u32	kModelResourceVertexDataHeader = 0xCABEB;
+	static const u32	kModelResourceIndexDataHeader = 0xCABEC;
+	static const u32	kModelResourceMaterialDataHeader = 0xCABED;
+	static const u32	kModelResourceStringDataHeader = 0xCABEE;
 
-	// Takes an existing mesh resource imported from another file type, and write it out to disk
-	// in our own binary format.
-	CORE_API bool SerializeMeshResource(const char* pszModelName, struct MeshLoader::MeshResource_t& pInResource);
+	// Writes out a model in our own binary format directly from a source file.
+	CORE_API bool SerializeOBJMesh(const char* pszOBJMeshPath, const char* pszOutMeshFileName, MeshLoader::MeshResource_t& pOutResource);
 
 	// File header for a CModel.
 	struct CModel_FileHeader_t
 	{
 		// The file version of this asset.
-		uint32_t	iFileVersion{ 0 };
+		u32	iFileVersion{ 0 };
 
-		// The offset from the start of the file in bytes where the submesh data begins.
-		uint64_t	iSubmeshDataOffset{ 0 };
-		// The number of submeshes contained in this file.
-		uint64_t	iSubmeshDataSize{ 0 };
-		// The stride of each submesh element.
-		uint64_t	iSubmeshDataStride{ 0 };
+		u32	iMeshDataCount{ 0 };
+		u8		iMeshDataStride{ 0 };
+
+		u32	iVertexCount{ 0 };
+		u32	iVertexStride{ 0 };
+		u32	iIndexCount{ 0 };
+		u32	iIndexStride{ 0 };
+
+		u64	iMaterialCount{ 0 };
+
+		// The extents of the whole mesh.
+		Vector		vecMinExtents{};
+		Vector		vecMaxExtents{};
 	};
 
-	// Contains data specific to each submesh.
-	struct CModel_SubmeshHeader_t
+	// Holds indices specific to each face.
+	struct CModel_MeshFaceData_t
 	{
-		// A random magic number that identifies the start of a block as containing submesh data.
-		uint64_t	iSubmeshMagic{ 0xBC };
+		u32	iPositionIndices[3]{};
+		u32	iNormalIndices[3]{};
+		u32	iTexCoordIndices[3]{};
+		u32	iTangentIndices[3]{};
+	};
 
-		// The length in bytes of each vertex.
-		uint64_t	iVertexStride{ 0 };
-		// The number of vertices in this submesh.
-		uint64_t	iVertexCount{ 0 };
+	// Contains data specific to each mesh/submesh.
+	struct CModel_MeshHeader_t
+	{
+		u32				iMeshNameIndex{ kInvalidID_U32 };
+		// The index of this mesh's material in the model's material table.
+		u32				iMaterialNameIndex{ kInvalidID_U32 };
 
-		// The length in bytes of each index.
-		uint64_t	iIndexStride{ 0 };
-		// The number of indices in this submesh.
-		uint64_t	iIndexCount{ 0 };
+		u32				iVertexCount{ 0 };
+		u64				iVertexOffset{ 0 };
+		u32				iIndexCount{ 0 };
+		u64				iIndexOffset{ 0 };
 
-		// The length of the submesh name (does not include a null-terminator).
-		uint64_t	iSubmeshNameLength{ 0 };
-		// The length of the submesh's material name (does not include a null-terminator).
-		uint64_t	iMaterialNameLength{ 0 };
+		// The extents of this submesh.
+		Vector					vecMinExtents{};
+		Vector					vecMaxExtents{};
 	};
 }

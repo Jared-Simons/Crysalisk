@@ -22,12 +22,12 @@ public:
 	bool			Initialize(ApplicationMemoryConfiguration_t config, void* pMemBlock);
 	virtual void	Shutdown() override;
 
-	virtual void*	Allocate(size_t sizeInBytes) override;
+	virtual void*	Allocate(u64 sizeInBytes) override;
 	virtual void	Free(void* pMemBlock) override;
 
 	virtual bool	IsInitialized() const override { return m_bInitialized; }
 	virtual void	PrintMemoryStats() override;
-	virtual float	GetPercentAllocated() const override;
+	virtual f32	GetPercentAllocated() const override;
 
 private:
 	// The configuration for the memory manager.
@@ -35,7 +35,7 @@ private:
 	// Has the memory manager been initialized?
 	bool								m_bInitialized{ false };
 	// How many bytes have been allocated through here?
-	size_t								m_iNumBytesAllocated{ 0 };
+	u64								m_iNumBytesAllocated{ 0 };
 	// A freelist allocator used to track allocations.
 	Utl::DynamicAllocator				m_MemoryAllocator;
 
@@ -49,6 +49,8 @@ private:
 // Memory manager context.
 static CMemoryManager s_pMemoryManager;
 IMemoryManager* g_pMemoryManager = &s_pMemoryManager;
+
+static const u16 kPlatformMemoryMarker = 5929U;
 
 //-------------------------------------------------------------------------
 // Purpose: A static method to 'stand up' the global instance of the memory system.
@@ -117,15 +119,20 @@ void CMemoryManager::Shutdown()
 //				Must be > 0!
 // Output: A pointer to the allocated memory.
 //-------------------------------------------------------------------------
-void* CMemoryManager::Allocate(size_t sizeInBytes)
+void* CMemoryManager::Allocate(u64 sizeInBytes)
 {
 	CAssert(sizeInBytes > 0);
 
 	if (!m_bInitialized)
 	{
 		// NOTE: No mutex here because it isn't available until the memory system has been initialized.
-		m_iNumBytesAllocated += sizeInBytes;
-		return Platform::MemoryAllocate(sizeInBytes);
+		void* pMemBlock = Platform::MemoryAllocate(sizeInBytes + kAllocHeaderSize);
+
+		// Set the header of the block to a unique ID so we know how to free it properly.
+		u16* pHeader = (u16*)pMemBlock;
+		*pHeader = kPlatformMemoryMarker;
+
+		return (u8*)pMemBlock + kAllocHeaderSize;
 	}
 
 	if (m_pAllocMutex->Lock())
@@ -151,14 +158,28 @@ void* CMemoryManager::Allocate(size_t sizeInBytes)
 //-------------------------------------------------------------------------
 void CMemoryManager::Free(void* pMemBlock)
 {
-	m_pAllocMutex->Lock();
-	if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
+	if (m_pAllocMutex->Lock())
 	{
-		CAssert(pMemBlock != nullptr);
-		int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
-		m_iNumBytesAllocated -= bytesFreed;
-		m_pAllocMutex->Unlock();
-		return;
+		if (pMemBlock && m_bInitialized)	// If the memory system is not initialized, then most likely the application is shutting down and we can't free through this path.
+		{
+			CAssert(pMemBlock != nullptr);
+			int bytesFreed = m_MemoryAllocator.Free(pMemBlock);
+			if (bytesFreed < 1)
+			{
+				// Check the header to see if we need to go through the platform layer.
+				if (*((u16*)pMemBlock + kAllocHeaderSize) == kPlatformMemoryMarker)
+				{
+					Platform::MemoryFree(pMemBlock);
+					pMemBlock = nullptr;
+					return;
+				}
+				return;
+			}
+
+			m_iNumBytesAllocated -= bytesFreed;
+			m_pAllocMutex->Unlock();
+			return;
+		}
 	}
 
 	Platform::MemoryFree(pMemBlock);
@@ -181,7 +202,7 @@ void CMemoryManager::PrintMemoryStats()
 	LOG_INFO("Bytes Allocated: %d", m_iNumBytesAllocated);
 }
 
-float CMemoryManager::GetPercentAllocated() const
+f32 CMemoryManager::GetPercentAllocated() const
 {
-	return m_iNumBytesAllocated / (float)m_MemoryConfig.totalMemoryBudget;
+	return m_iNumBytesAllocated / (f32)m_MemoryConfig.totalMemoryBudget;
 }

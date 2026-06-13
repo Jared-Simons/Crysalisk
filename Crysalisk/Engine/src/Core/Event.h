@@ -59,12 +59,14 @@ union EventData_t
 // 'handled', and will not propagate to other listeners, returning false means
 // that the event will continue to pass through to all listeners.
 //-------------------------------------------------------------------------
-typedef bool (*Event_Callback)(EventData_t data);
+typedef bool (*Event_Callback)(void* pEventListener, EventData_t data);
 
 struct Event
 {
 	// The callback function to handle the event.
 	Event_Callback m_PFNEventCallback;
+	// A pointer to the event listener.
+	void* pEventListener;
 	// An event ID that is maintained internally by the event system.
 	int m_EventID;
 	// The event category that this event is listening to.
@@ -77,6 +79,8 @@ struct Event
 class IEventSystem
 {
 public:
+	static void			AllocateEventSystemState(IEventSystem** ppSystemState);
+
 	// Initialization, shutdown.
 	virtual bool		Initialize() = 0;
 	virtual void		Shutdown() = 0;
@@ -85,9 +89,3 @@ public:
 	virtual bool		EventUnregister(eEventCategory eventCategory, void* listenerInst, Event_Callback PFN_Callback) = 0;
 	virtual void		EventFire(eEventCategory eventCategory, void* senderInst, EventData_t data) = 0;
 };
-
-// A note on interfaces:
-// Any code that wants to access the engine's event system from within the engine.dll can include this file and use g_pEngineEvents_Internal.
-// Any code in another library must link with Interfaces.lib to get access to the engine's shared interfaces. Then include both Event.h AND Interfaces.h,
-// to get access to the g_pEngineEvents interface.
-ENGINE_API extern IEventSystem* g_pEngineEvents_Internal;

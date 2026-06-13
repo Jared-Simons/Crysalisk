@@ -50,9 +50,9 @@ namespace ShaderLoader
 		while (!FileSystem::IsEOF(&hShaderCfgFile))
 		{
 			char	szCurrentLine[1000];
-			size_t	currentLineLength{ 0 };
-			size_t	bytesRead{ 0 };
-			size_t	equalIndex{ 0 };
+			u64	currentLineLength{ 0 };
+			u64	bytesRead{ 0 };
+			u64	equalIndex{ 0 };
 			char	szKey[500];
 			char	szValue[500];
 
@@ -84,6 +84,13 @@ namespace ShaderLoader
 					// The name of the shader.
 					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
 					pOutResource.pszShaderName = Utl::StringStrip(szValue, '\"');	// Strip the quotes out of the string.
+					continue;
+				}
+				else if (Utl::StringCompare(szKey, "renderview"))
+				{
+					// The name of the renderpass this shader is associated with.
+					VERIFY_EQUAL_TOKEN_FOUND(szCurrentLine, equalIndex);
+					pOutResource.pszRenderViewName = Utl::StringStrip(szValue, '\"');	// Strip the quotes out of the string.
 					continue;
 				}
 				else if (Utl::StringCompare(szKey, "num_shader_stages"))
@@ -125,7 +132,7 @@ namespace ShaderLoader
 					// Shader stage modules.
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
-					size_t	subBlockBytesRead{ 0 };
+					u64	subBlockBytesRead{ 0 };
 
 					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
 
@@ -157,9 +164,10 @@ namespace ShaderLoader
 				else if (Utl::StringCompare(szCurrentLine, "attributes"))
 				{
 					// Vertex attributes.
+					pOutResource.ShaderAttributes.Resize(32);
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
-					size_t	subBlockBytesRead{ 0 };
+					u64	subBlockBytesRead{ 0 };
 
 					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
 
@@ -191,12 +199,13 @@ namespace ShaderLoader
 				else if (Utl::StringCompare(szCurrentLine, "uniforms"))
 				{
 					// Shader uniforms.
+					pOutResource.ShaderUniforms.Resize(32);
 					int		nIterations = 0;	// Just a failsafe so a malformed file doesn't get us stuck in an infinite loop.
 					char	pszDataBlockLine[1000];
-					size_t	subBlockBytesRead{ 0 };
+					u64	subBlockBytesRead{ 0 };
 					FileSystem::ReadLine(pszDataBlockLine, 1000, &subBlockBytesRead, &hShaderCfgFile);
 
-					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 vertex attributes to one shader.
+					while (pszDataBlockLine && pszDataBlockLine[0] != '}' && nIterations <= 101)	// We currently only support 100 uniforms to one shader.
 					{
 						// Doing a second line read here is okay because the one above should simply be a '{'.
 						// If this is not the case, then the file is formatted wrong.
@@ -240,7 +249,7 @@ namespace ShaderLoader
 	//-------------------------------------------------------------------------
 	static bool ProcessShaderModule(char* pszConfigData, ShaderResource_t& pOutResource)
 	{
-		size_t									commaIndex{ 0 };
+		u64									commaIndex{ 0 };
 		char									szFormattedPathBuffer[512];
 		char*									pszTrimmedModulePath{ nullptr };
 		char*									pszTypeString{ nullptr };
@@ -294,7 +303,7 @@ namespace ShaderLoader
 
 		newShaderModule.CodeDataSize = FileSystem::FileSize(&hShaderModule);
 		newShaderModule.pShaderModuleBytecode.Resize(newShaderModule.CodeDataSize);
-		size_t outBytesRead{ 0 };
+		u64 outBytesRead{ 0 };
 
 		if (!FileSystem::ReadWholeBinaryFile(newShaderModule.pShaderModuleBytecode.Data(), newShaderModule.CodeDataSize, &outBytesRead, &hShaderModule))
 		{
@@ -356,7 +365,7 @@ namespace ShaderLoader
 		ShaderResource_t::ShaderVertexAttributeConfig_t newAttribute{};
 		char*											pszTrimmedData{ nullptr };
 		char*											pszTempStringBuffer{ nullptr };
-		size_t											commaIndex{ 0 };
+		u64											commaIndex{ 0 };
 
 		// We're assuming that the config data passed in here will be in the format of:
 		// "attribute name", "attribute type".
@@ -398,9 +407,9 @@ namespace ShaderLoader
 		ShaderResource_t::ShaderUniformConfig_t newUniform{};
 		char*									pszTrimmedData{ nullptr };
 		char*									pszTempStringBuffer{ nullptr };
-		size_t									commaIndex{ 0 };
-		size_t									commaIndex2{ 0 };
-		size_t									commentIndex{ 0 };
+		u64									commaIndex{ 0 };
+		u64									commaIndex2{ 0 };
+		u64									commentIndex{ 0 };
 
 		// We're assuming that the config data passed in here will be in the format of:
 		// "uniform name", "uniform type", "uniform group".
@@ -428,8 +437,8 @@ namespace ShaderLoader
 		}
 
 		// Check the uniform type to see if it's an array.
-		size_t arrayBracketIndex = Utl::StringIndexOf(pszTrimmedData, '[');
-		size_t arrayEndBracketIndex = Utl::StringIndexOf(pszTrimmedData, ']');
+		u64 arrayBracketIndex = Utl::StringIndexOf(pszTrimmedData, '[');
+		u64 arrayEndBracketIndex = Utl::StringIndexOf(pszTrimmedData, ']');
 
 		if (arrayBracketIndex != kInvalidID_U32)
 		{
@@ -460,7 +469,7 @@ namespace ShaderLoader
 		{
 			// If the type is an array type, strip the array piece out of the string, as that was already processed.
 			pszTempStringBuffer = Utl::StringDuplicate_N(&pszTrimmedData[commaIndex + 1], arrayBracketIndex - commaIndex);
-			size_t typeLength = Utl::StringLength(pszTempStringBuffer);
+			u64 typeLength = Utl::StringLength(pszTempStringBuffer);
 			pszTempStringBuffer[typeLength - 1] = '\"';		// Make sure to add the '"' back to the end of the type string so we match the formatting of the other types.
 			pszTempStringBuffer[typeLength] = 0;
 		}

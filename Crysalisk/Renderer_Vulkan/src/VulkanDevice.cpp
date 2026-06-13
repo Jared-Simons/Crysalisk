@@ -20,7 +20,7 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice);
 bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice& pOutDevice)
 {
 	// Select physical device.
-	unsigned int physicalDeviceCount{ 0 };
+	u32 physicalDeviceCount{ 0 };
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, nullptr);
 	Utl::CVector<VkPhysicalDevice> availableDevices(physicalDeviceCount);
 	vkEnumeratePhysicalDevices(pRenderingContext.m_Instance, &physicalDeviceCount, availableDevices.Data());
@@ -28,7 +28,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	// For now, just grab the first discrete GPU.
 	VkPhysicalDevice selectedDevice{ VK_NULL_HANDLE };
 	VkPhysicalDeviceProperties properties{};
-	for (unsigned int deviceIndex = 0; deviceIndex < physicalDeviceCount; deviceIndex++)
+	for (u32 deviceIndex = 0; deviceIndex < physicalDeviceCount; deviceIndex++)
 	{
 		vkGetPhysicalDeviceProperties(availableDevices[deviceIndex], &properties);
 		
@@ -53,12 +53,12 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	}
 
 	// Query physical device queue information.
-	unsigned int deviceQueueFamilyCount{ 0 };
+	u32 deviceQueueFamilyCount{ 0 };
 	vkGetPhysicalDeviceQueueFamilyProperties(selectedDevice, &deviceQueueFamilyCount, nullptr);
 	Utl::CVector<VkQueueFamilyProperties> queueFamilyProperties(deviceQueueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(selectedDevice, &deviceQueueFamilyCount, queueFamilyProperties.Data());
 
-	for (unsigned int queueFamilyIndex = 0; queueFamilyIndex < deviceQueueFamilyCount; queueFamilyIndex++)
+	for (u32 queueFamilyIndex = 0; queueFamilyIndex < deviceQueueFamilyCount; queueFamilyIndex++)
 	{
 		if ((queueFamilyProperties[queueFamilyIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT) && (pOutDevice.m_QueueFamilyIndices.GraphicsQueueFamilyIndex < 1)) // Don't change indices if this has already been assigned.
 		{
@@ -68,7 +68,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 
 		// Check for present support as well
 		VkBool32 presentSupport = VK_FALSE;
-		vkGetPhysicalDeviceSurfaceSupportKHR(pOutDevice.m_PhysicalDevice, queueFamilyIndex, pRenderingContext.m_Surface, &presentSupport);
+		vkGetPhysicalDeviceSurfaceSupportKHR(pOutDevice.m_PhysicalDevice, queueFamilyIndex, ((VulkanWindowState_t*)pRenderingContext.m_pMainWindow->m_pRendererState)->m_WindowSurface, &presentSupport);
 
 		if (presentSupport && (pOutDevice.m_QueueFamilyIndices.PresentQueueFamilyIndex < 1))
 		{
@@ -87,7 +87,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	Utl::CVector<const char*> requiredExtensions(1);
 	requiredExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-	const float queuePriority = 1.0f;
+	const f32 queuePriority = 1.0f;
 
 	VkDeviceQueueCreateInfo queueCreateInfos[2];	// [0] = Graphics queue, [1] = Present queue
 	queueCreateInfos[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -110,7 +110,7 @@ bool VulkanDevice::CreateDevice(CVulkanRenderer& pRenderingContext, VulkanDevice
 	deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 	deviceCreateInfo.flags = 0;
 	deviceCreateInfo.pNext = nullptr;
-	deviceCreateInfo.enabledExtensionCount = static_cast<unsigned int>(requiredExtensions.Count());
+	deviceCreateInfo.enabledExtensionCount = static_cast<u32>(requiredExtensions.Count());
 	deviceCreateInfo.ppEnabledExtensionNames = requiredExtensions.Data();
 
 	VK_CHECK(vkCreateDevice(pOutDevice.m_PhysicalDevice, &deviceCreateInfo, pRenderingContext.m_Allocator, &pOutDevice.m_Device));
@@ -147,9 +147,9 @@ void VulkanDevice::DestroyDevice(CVulkanRenderer& pRenderingContext, VulkanDevic
 // Input:	typeFilter && properties - The criteria for selecting an index.
 // Output:	Returns the selected index.
 //-------------------------------------------------------------------------
-uint32_t VulkanDevice::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+u32 VulkanDevice::FindMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties)
 {
-	for (uint32_t typeIndex = 0; typeIndex < m_MemoryProperties.memoryTypeCount; typeIndex++)
+	for (u32 typeIndex = 0; typeIndex < m_MemoryProperties.memoryTypeCount; typeIndex++)
 	{
 		if ((typeFilter & (1 << typeIndex)) && (m_MemoryProperties.memoryTypes[typeIndex].propertyFlags & properties) == properties)
 		{
@@ -196,7 +196,7 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 {
 	// Check for required device extensions.
 	// Currently we are only looking for the swapchain extension.
-	unsigned int deviceExtensionCount{ 0 };
+	u32 deviceExtensionCount{ 0 };
 	vkEnumerateDeviceExtensionProperties(pDevice, nullptr, &deviceExtensionCount, nullptr);
 	Utl::CVector<VkExtensionProperties> availableExtensions(deviceExtensionCount);
 	vkEnumerateDeviceExtensionProperties(pDevice, nullptr, &deviceExtensionCount, availableExtensions.Data());
@@ -204,11 +204,11 @@ static bool QueryDeviceExtensionSupport(VkPhysicalDevice pDevice)
 	Utl::CVector<const char*> requiredExtensions(1);
 	requiredExtensions.PushBack(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
-	int extensionsToQuery = static_cast<uint32_t>(requiredExtensions.Count());
+	int extensionsToQuery = static_cast<u32>(requiredExtensions.Count());
 	for (int i = 0; i < requiredExtensions.Count(); i++)
 	{
 		LOG_VERBOSE("Searching for device extension: '%s'...", requiredExtensions[i]);
-		for (unsigned int j = 0; j < deviceExtensionCount; j++)
+		for (u32 j = 0; j < deviceExtensionCount; j++)
 		{
 			if (Utl::StringCompare(availableExtensions[j].extensionName, requiredExtensions[i]))
 			{

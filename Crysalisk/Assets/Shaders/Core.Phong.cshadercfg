@@ -1,5 +1,6 @@
 name="Core.Phong"
 num_shader_stages=2
+renderview="3D Scene View"
 
 stages
 {
@@ -15,8 +16,8 @@ enable_blending="true"
 attributes
 {
 	"position", "vec3"
-	"texcoord", "vec2"
 	"normal", "vec3"
+	"texcoord", "vec2"
 	"tangent", "vec3"
 }
 

@@ -9,82 +9,82 @@
 
 #include <math.h>
 
-float M_SQRT_F(float x)
+f32 M_SQRT_F(f32 x)
 {
 	return sqrtf(x);
 }
 
-double M_SQRT(double x)
+f64 M_SQRT(f64 x)
 {
 	return sqrt(x);
 }
 
-float M_SIN_F(float x)
+f32 M_SIN_F(f32 x)
 {
 	return sinf(x);
 }
 
-double M_SIN(double x)
+f64 M_SIN(f64 x)
 {
 	return sin(x);
 }
 
-float M_COS_F(float x)
+f32 M_COS_F(f32 x)
 {
 	return cosf(x);
 }
 
-double M_COS(double x)
+f64 M_COS(f64 x)
 {
 	return cos(x);
 }
 
-float M_TAN_F(float x)
+f32 M_TAN_F(f32 x)
 {
 	return tanf(x);
 }
 
-double M_TAN(double x)
+f64 M_TAN(f64 x)
 {
 	return tan(x);
 }
 
-float M_ATAN2_F(float x, float y)
+f32 M_ATAN2_F(f32 x, f32 y)
 {
 	return atan2f(x, y);
 }
 
-double M_ATAN2(double x, double y)
+f64 M_ATAN2(f64 x, f64 y)
 {
 	return atan2(x, y);
 }
 
-float M_RAD2DEG_F(float angleInRadians)
+f32 M_RAD2DEG_F(f32 angleInRadians)
 {
 	return angleInRadians * (180.0f / kPI_F);
 }
 
-double M_RAD2DEG(double angleInRadians)
+f64 M_RAD2DEG(f64 angleInRadians)
 {
 	return angleInRadians * (180.0 / kPI);
 }
 
-float M_DEG2RAD_F(float angleInDegrees)
+f32 M_DEG2RAD_F(f32 angleInDegrees)
 {
 	return angleInDegrees * (kPI_F / 180.0f);
 }
 
-double M_DEG2RAD(double angleInDegrees)
+f64 M_DEG2RAD(f64 angleInDegrees)
 {
 	return angleInDegrees * (kPI / 180.0);
 }
 
-float M_ABS_F(float x)
+f32 M_ABS_F(f32 x)
 {
 	return fabsf(x);
 }
 
-double M_ABS(double x)
+f64 M_ABS(f64 x)
 {
 	return fabsl(x);
 }

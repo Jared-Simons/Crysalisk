@@ -28,9 +28,8 @@ layout(push_constant) uniform push_constants
 void main()
 {
 	vsOutput.Color = inColor;
-	vsOutput.TexCoord = inTexCoord;
+	vsOutput.TexCoord = vec2(inTexCoord.x, 1.0 - inTexCoord.y);
 	
 	// Flip the y-coord around
-	gl_Position = global_ubo.projection * vec4(inPosition.x, -inPosition.y, 0.0, 1.0);
-	//gl_Position = vec4(inPosition.x, -inPosition.y, 0.0, 1.0);
+	gl_Position = global_ubo.projection * vec4(inPosition.x, inPosition.y, 0.0, 1.0);
 }

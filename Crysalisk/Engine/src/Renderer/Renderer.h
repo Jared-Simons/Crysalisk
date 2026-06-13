@@ -19,104 +19,65 @@ class Platform::IPlatformWindow;
 struct RenderPacket_t;
 
 //-------------------------------------------------------------------------
-// Renderer configuration, to be set by the application.
-//-------------------------------------------------------------------------
-struct RendererConfig_t
-{
-	// The application's name.
-	const char* szApplicationName;
-	// An opaque pointer to the window we'll be rendering to.
-	Platform::IPlatformWindow* pMainWindow;
-	// A pointer to the loaded backend module.
-	Platform::ISysModule* pRendererBackendDLL;
-
-	size_t	MaxTextures; // The amount of textures that can be loaded at once. Must match the texture system config's amount.
-	size_t	MaxPipelines; // The amount of graphics pipelines that can be loaded at once. Must be greater than the maximum materials.
-};
-
-//-------------------------------------------------------------------------
 // The renderer frontend.
 //-------------------------------------------------------------------------
-class Renderer
+class IRenderer
 {
 public:
-	bool			Initialize(RendererConfig_t& pConfig);
-	void			Shutdown();
-	bool			Update(struct RenderPacket_t& pRenderData, class CMap& pCurrentMap);
+	static void				AllocateRenderSystemState(IRenderer** ppSystemState);
 
-	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData);
-	void			ReleaseTextureResources(struct Texture* pTexture);
+	// Initialize, shutdown.
+	virtual bool			Initialize(RendererConfig_t& pAppConfig) = 0;
+	virtual bool			PostInitialize(RenderPacket_t& pRenderPacket) = 0;
+	virtual void			Shutdown() = 0;
+	virtual bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) = 0;
 
-	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pConfig);
-	void			DestroyShader(class Shader* pShader);
+	virtual bool			RegisterWindow(Platform::IPlatformWindow& pWindow) = 0;
+	virtual void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) = 0;
+	
+	virtual void			ConfigureRenderViews(Utl::CVector<class IRenderView*>& pRenderViews) = 0;
+	virtual void			RegisterRenderView(class IRenderView* pRenderView) = 0;
 
-	void			AcquireShaderInstanceResources(class Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName);
-	void			ReleaseShaderInstanceResources(class Shader* pShader, unsigned int pInstanceID);
+	virtual bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) = 0;
+	virtual void			DestroyRenderpass(struct Renderpass* pRenderpass) = 0;
+	virtual IRenderView*	GetRenderView(const char* pszRenderpassName) = 0;
 
-	void			BindShader(class Shader* pShader);
-	void			BindShaderPerFrameUniforms(class Shader* pShader);
-	void			BindShaderPerInstanceUniforms(class Shader* pShader, unsigned int hInstanceID);
+	virtual bool			BeginRenderpass(struct Renderpass* pRenderpass) = 0;
+	virtual void			EndRenderpass() = 0;
 
-	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData);
+	virtual bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) = 0;
+	virtual void			ReleaseTextureResources(struct Texture* pTexture) = 0;
 
-	bool			CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView);
-	void			DestroyRendererView(RendererView& pView);
+	virtual bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) = 0;
+	virtual void			DestroyShader(class Shader* pShader) = 0;
 
-	bool			BeginRendererView(RendererView& pView);
-	void			EndRendererView();
+	virtual void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) = 0;
+	virtual void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) = 0;
 
-	bool			CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer);
-	void			DestroyRenderBuffer(RenderBuffer& pBuffer);
+	virtual void			BindShader(class Shader* pShader) = 0;
+	virtual void			BindShaderPerFrameUniforms(class Shader* pShader) = 0;
+	virtual void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) = 0;
 
-	void			AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
-	void			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance);
-	void			AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance);
-	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry);
+	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) = 0;
 
-	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer);
+	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
+	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
-	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig);
-	void			UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig);
-	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance);
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
+	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
+	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const = 0;
 
-	const Camera_t&	GetMainCamera() const { return m_Camera; }
+	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
 
-	// Temp geometry stuff
-	bool	CreateTempTextObjects();
-	void	DestroyTempGeometry();
+	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) = 0;
+	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) = 0;
+	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 
-	void	SetMinimized(bool bMinimized) { m_bMinimized = bMinimized; }
-	void	SetWindowDimensions(unsigned int iWidth, unsigned int iHeight) { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
+	virtual f32			GetRendererTime() const = 0;
+	virtual const char*		GetRendererDebugVisModeName() const = 0;
 
-private:
-	IRendererBackend* m_RendererBackend{ nullptr };
-	bool	m_bMinimized{ false };
-	Clock	m_RendererClock{};
-	double	m_flLastFrameTime{};
+	virtual void	SetMinimized(bool bMinimized) = 0;
+	virtual void	SetWindowDimensions(u32 iWidth, u32 iHeight) = 0;
 
-	RenderMetrics_t	m_Metrics{};
-
-	// The current dimensions of the surface we are presenting to (usually a window).
-	unsigned int	m_iWindowWidth{ 0 };
-	unsigned int	m_iWindowHeight{ 0 };
-
-public:
-	Camera_t			m_Camera{};
-
-	RendererView		m_SceneView{};
-	RendererView		m_UIView{};
-
-	RenderBuffer		m_WorldVertexBuffer{};
-	RenderBuffer		m_WorldIndexBuffer{};
-
-	RenderBuffer		m_UIVertexBuffer{};
-	RenderBuffer		m_UIIndexBuffer{};
-
-	size_t				m_iCurrentRendererFrame{ kInvalidID_U64 };
-	uint8_t				m_iRendererDebugMode{ 0 };
-
-	// A pointer to the window we're rendering to.
-	Platform::IPlatformWindow*	m_pMainWindow;
+	virtual inline u64	GetCurrentRenderFrame() const = 0;
 };
-
-extern Renderer* g_pRenderer;

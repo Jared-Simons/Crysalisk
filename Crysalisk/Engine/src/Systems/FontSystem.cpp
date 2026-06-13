@@ -20,57 +20,25 @@
 //-------------------------------------------------------------------------
 struct UIShaderLocations_t
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	texture_maps{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	texture_maps{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 
 // UI Shader Locations
 static UIShaderLocations_t s_UIShaderLocations{};
 
 // The codepoint of the first character we include in our font atlases.
-const uint32_t kCodePointOfFirstChar = 32;
+const u32 kCodePointOfFirstChar = 32;
 // The number of characters we include in our font atlases.
-const uint32_t kCharsToIncludeInFontAtlas = 95;
+const u32 kCharsToIncludeInFontAtlas = 95;
 
 // This is the resolution we are expecting when creating new text geometry.
 // The font system will take care of scaling these appropriately to the current surface resolution.
 const int kUIInputWidth = 640;
 const int kUIInputHeight = 480;
-
-//-------------------------------------------------------------------------
-// Purpose: Sets the actual text to be rendered with this text object.
-// Input:	pszText - The new string to be rendered with this object.
-// Output:	none.
-//-------------------------------------------------------------------------
-void TextObject::SetText(const char* pszText)
-{
-	// Can't render text without text to render!
-	if (!pszText || Utl::StringLength(pszText) < 1)
-		return;
-
-	bool bCreateNewResources = (m_pszText == nullptr);
-
-	if (m_pszText)
-		Utl::StringFree(m_pszText);
-	m_pszText = Utl::StringDuplicate(pszText);
-
-	// Get new geometry for our text.
-	GeometryConfig2D_t newConfig = g_pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
-	
-	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
-	// Otherwise, just update the existing data.
-	if (bCreateNewResources)
-	{
-		g_pRenderer->AcquireGeometryResources(g_pRenderer->m_UIVertexBuffer, g_pRenderer->m_UIIndexBuffer, newConfig, m_Geometry);
-	}
-	else
-	{
-		g_pRenderer->UpdateGeometryResources(m_Geometry, newConfig);
-	}
-}
 
 //-------------------------------------------------------------------------
 // Font System Implementation.
@@ -79,6 +47,7 @@ class CFontSystem : public IFontSystem
 {
 	// Initialization, shutdown.
 	virtual bool				Initialize(FontSystemConfig_t config) override;
+	virtual void				PostInitialize() override;
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for a given font.
@@ -87,8 +56,8 @@ class CFontSystem : public IFontSystem
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
 
 	// Generates the geometry necessary to render a piece of text.
-	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize) override;
-	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText) override;
+	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize) override;
+	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText) override;
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -112,6 +81,9 @@ private:
 		Font*									m_FontArray{ nullptr };
 	};
 
+	RenderBuffer* m_pUIVertexBuffer{ nullptr };
+	RenderBuffer* m_pUIIndexBuffer{ nullptr };
+
 	// The font dictionary.
 	FontDictionary	m_FontDictionary{};
 	// The default UI shader, in case a different shader is not available.
@@ -119,11 +91,10 @@ private:
 
 	// The default font, used in case nothing else is available.
 	FontHandle_t	m_hDefaultFont{ kInvalidID_U32 };
-};
 
-// Font System context.
-static CFontSystem s_FontSystem;
-IFontSystem* g_pFontSystem = &s_FontSystem;
+	// This needs access to our buffers.
+	friend class TextObject;
+};
 
 // The internal font atlas data for a font.
 // Can be accessed through pFont->m_pInternalData.
@@ -131,6 +102,20 @@ struct InternalFontAtlasData_t
 {
 	Utl::CVector<FontLoader::FontCharData_t>	glyphs{};
 };
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IFontSystem::AllocateFontSystemState(IFontSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold font system state was not provided! Font system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CFontSystem;
+}
 
 //-------------------------------------------------------------------------
 // Initialize.
@@ -143,27 +128,46 @@ bool CFontSystem::Initialize(FontSystemConfig_t config)
 	// Allocate memory for our font array
 	m_FontDictionary.m_FontArray = (Font*)new Font[config.MaxFonts];
 
-	// Set up our required shader resources.
-	m_hDefaultUIShader = g_pShaderSystem->AcquireShader("Core.UI");
-	
-	if (m_hDefaultUIShader == kInvalidID_U32)
+	m_pUIVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer");
+	if (m_pUIVertexBuffer == nullptr)
 	{
-		LOG_ERROR("Failed to acquire necessary shader resources for font rendering!");
+		LOG_ERROR("UI View failed to initialize!");
 		return false;
 	}
 
-	// Get all our shader uniform locations
-	s_UIShaderLocations.projection = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
-	s_UIShaderLocations.view = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
-	s_UIShaderLocations.color = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
-	s_UIShaderLocations.texture_maps = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
-	s_UIShaderLocations.model = g_pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
-
-	// Load default font.
-	m_hDefaultFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	m_pUIIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(u32) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer");
+	if (m_pUIVertexBuffer == nullptr)
+	{
+		LOG_ERROR("UI View failed to initialize!");
+		return false;
+	}
 
 	LOG_INFO("Font system initialized! (Max fonts: %d)", config.MaxFonts);
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CFontSystem::PostInitialize()
+{
+	// Set up our required shader resources.
+	m_hDefaultUIShader = m_Config.pShaderSystem->AcquireShader("Core.UI");
+
+	if (m_hDefaultUIShader == kInvalidID_U32)
+	{
+		LOG_ERROR("Failed to acquire necessary shader resources for font rendering!");
+	}
+
+	// Get all our shader uniform locations
+	s_UIShaderLocations.projection = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "projection");
+	s_UIShaderLocations.view = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "view");
+	s_UIShaderLocations.color = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "color");
+	s_UIShaderLocations.texture_maps = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "texture_maps");
+	s_UIShaderLocations.model = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
+
+	// Load default font.
+	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
 }
 
 //-------------------------------------------------------------------------
@@ -198,7 +202,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 	if (pFontLookup->FontIndex == kInvalidID_U32)
 	{
 		// The font is not yet loaded, load it up.
-		if (!FontLoader::LoadFontResource(pszFontName, 25, fontResource))
+		if (!FontLoader::LoadFontResource(pszFontName, 30, fontResource))
 		{
 			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
 			return m_hDefaultFont;
@@ -206,13 +210,14 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 
 		fontHandle = GetFirstFreeFontHandle();
 		pFont = &m_FontDictionary.m_FontArray[fontHandle];
+		pFont->m_iLineHeight = fontResource.lineHeight;
 
 		// Load up the texture data.
-		TextureHandle_t hFontAtlas = g_pTextureSystem_Internal->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
+		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
 
 		// Get our shader instance data and bind the font atlas.
-		g_pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
-		g_pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
+		m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
+		m_Config.pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
 		pFont->m_hFontTexture = hFontAtlas;
 
 		// Setup the font atlas.
@@ -253,35 +258,28 @@ TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont) const
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
 //-------------------------------------------------------------------------
-GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, float flTextSize)
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize)
 {
 	GeometryConfig2D_t			newConfig{};
 	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
 
-	size_t						iStringLength = Utl::StringLength(pTextObject.m_pszText);
+	u64						iStringLength = Utl::StringLength(pTextObject.m_pszText);
 	int							iCurNonWhitespaceCharCount = 0; 
-	
-	unsigned int				iSurfaceWidth, iSurfaceHeight;
-	float						flPixelScaleFactor = 0.0f;
-	Vector2D					vecCurPos = pTextObject.m_vecPos;
 
 	// Geometry data.
-	Vector2D					vecGlyphSize = {};
+	Vector2D					vecCurPos = pTextObject.m_vecPos;
+	f32						width, height;
 	Vector2D					vecGlyphBottomLeftPos = {};
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};
-	
-	// We need to scale the geometry by the rendering surface's dimensions.
-	g_pEngine->GetEngineWindow()->GetWindowSize(iSurfaceWidth, iSurfaceHeight);
-	flPixelScaleFactor = 2.0f / iSurfaceHeight;	// The height of a single pixel with a range of [-1..1]
 
 	for (int ch = 0; ch < iStringLength; ch++)
 	{
 		// If a space, just push the position forward by some amount.
 		if (pTextObject.m_pszText[ch] == ' ')
 		{
-			vecCurPos.x += 6.0f * flPixelScaleFactor * flTextSize;
+			vecCurPos.x += 6.0f * flTextSize;
 			continue;
 		}
 
@@ -292,9 +290,9 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 			// Escape chars!
 			if (pTextObject.m_pszText[ch] == '\n')
 			{
-				// TODO: Handle this properly.
 				vecCurPos.x = pTextObject.m_vecPos.x;
-				vecCurPos.y -= 0.085f * pTextObject.m_flTextSize;
+				vecCurPos.y += m_FontDictionary.m_FontArray[hFont].m_iLineHeight;
+
 				continue;
 			}
 		}
@@ -303,33 +301,39 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		if (pTextObject.m_pszText[ch] < kCodePointOfFirstChar || pTextObject.m_pszText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
 			continue;
 
-		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar];
+		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar]; 
+		width = pCurGlyph->xMax - pCurGlyph->xMin;
+		height = pCurGlyph->yMax - pCurGlyph->yMin;
+		
+		f32 flMinX = (vecCurPos.x + pCurGlyph->xOffset) * flTextSize;
+		f32 flMinY = (vecCurPos.y + pCurGlyph->yOffset) * flTextSize;
+		f32 flMaxX = (flMinX + width) * flTextSize;
+		f32 flMaxY = (flMinY + height) * flTextSize;
+		f32 flTexMinX = pCurGlyph->sMin;
+		f32 flTexMaxX = pCurGlyph->sMax;
+		// Flip the y-coord around.
+		f32 flTexMinY = 1.0f - pCurGlyph->tMin;
+		f32 flTexMaxY = 1.0f - pCurGlyph->tMax;
 
-		vecGlyphSize.x = (pCurGlyph->xMax - pCurGlyph->xMin) * flPixelScaleFactor * flTextSize;
-		vecGlyphSize.y = (pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
+		// Vertices:
+		vecCharVertices[0] = { flMinX, flMinY };
+		vecCharVertices[1] = { flMaxX, flMinY };
+		vecCharVertices[2] = { flMaxX, flMaxY };
+		vecCharVertices[3] = { flMinX, flMaxY };
 
-		vecGlyphBottomLeftPos.x = vecCurPos.x + (pCurGlyph->xOffset * flPixelScaleFactor * flTextSize);
-		vecGlyphBottomLeftPos.y = vecCurPos.y - (pCurGlyph->yOffset + pCurGlyph->yMax - pCurGlyph->yMin) * flPixelScaleFactor * flTextSize;
-
-		// Vertex positions: top-right, top-left, bottom-left, bottom-right.
-		vecCharVertices[0] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
-		vecCharVertices[1] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y + vecGlyphSize.y };
-		vecCharVertices[2] = { vecGlyphBottomLeftPos.x, vecGlyphBottomLeftPos.y };
-		vecCharVertices[3] = { vecGlyphBottomLeftPos.x + vecGlyphSize.x, vecGlyphBottomLeftPos.y };
-
-		// Vertex TexCoords.
-		vecCharTexCoords[0] = { pCurGlyph->sMax, pCurGlyph->tMin };
-		vecCharTexCoords[1] = { pCurGlyph->sMin, pCurGlyph->tMin };
-		vecCharTexCoords[2] = { pCurGlyph->sMin, pCurGlyph->tMax };
-		vecCharTexCoords[3] = { pCurGlyph->sMax, pCurGlyph->tMax };
+		// Vertex texcoords.
+		vecCharTexCoords[0] = { flTexMinX, flTexMinY };
+		vecCharTexCoords[1] = { flTexMaxX, flTexMinY };
+		vecCharTexCoords[2] = { flTexMaxX, flTexMaxY };
+		vecCharTexCoords[3] = { flTexMinX, flTexMaxY };
 
 		// Add these to the geometry config.
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
-		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
 		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
 
-		int indexOrder[6] = { 0, 1, 2, 0, 2, 3 };
+		int indexOrder[6] = { 2, 1, 0, 3, 0, 1 };
 
 		// Fill up the index buffer as well.
 		for (int idx = 0; idx < 6; idx++)
@@ -338,7 +342,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 		}
 
 		// Advance the x-position over.
-		vecCurPos.x += pCurGlyph->flAdvance * flPixelScaleFactor * flTextSize;
+		vecCurPos.x += pCurGlyph->flAdvance * flTextSize;
 
 		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
 		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
@@ -356,18 +360,18 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 //			pszText - The text to acquire geometry for.
 // Output:	Returns a new geometry config to use in rendering the new text.
 //-------------------------------------------------------------------------
-GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, float flTextSize, const char* pszText)
+GeometryConfig_t CFontSystem::Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText)
 {
 	GeometryConfig_t				newConfig{};
 	InternalFontAtlasData_t*		pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
 	FontLoader::FontCharData_t*		pCurGlyph = pInternalAtlas->glyphs.Data();
 
-	size_t						iStringLength = Utl::StringLength(pszText);
+	u64						iStringLength = Utl::StringLength(pszText);
 	int							iCurNonWhitespaceCharCount = 0;
 	Vector3D					vecCurPos{ 0.0f, 0.0f, 0.0f };
 
 	// TODO: Isn't this kinda arbitrary?
-	float						flTextScale = flTextSize / 128.0f;
+	f32						flTextScale = flTextSize / 128.0f;
 
 	// Geometry data.
 	Vector2D					vecGlyphSize = {};
@@ -442,4 +446,39 @@ FontHandle_t CFontSystem::GetFirstFreeFontHandle() const
 
 	LOG_ERROR("No free slot was found in the font dictionary! Returning invalid ID");
 	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Sets the actual text to be rendered with this text object.
+// Input:	pszText - The new string to be rendered with this object.
+// Output:	none.
+//-------------------------------------------------------------------------
+void TextObject::SetText(class IRenderer* pRenderer, class IFontSystem* pFontSystem, const char* pszText)
+{
+	// Can't render text without text to render!
+	if (!pszText || Utl::StringLength(pszText) < 1)
+		return;
+
+	bool bCreateNewResources = (m_pszText == nullptr);
+
+	if (m_pszText)
+		Utl::StringFree(m_pszText);
+	m_pszText = Utl::StringDuplicate(pszText);
+
+	// Get new geometry for our text.
+	GeometryConfig2D_t newConfig = pFontSystem->AcquireConfigForText(*this, m_hFont, m_flTextSize);
+	CFontSystem* pTypedSystem = dynamic_cast<CFontSystem*>(pFontSystem);
+
+	// Acquire new space on the GPU only if there was no text (therefore resources) prior.
+	// Otherwise, just update the existing data.
+	if (bCreateNewResources)
+	{
+		pRenderer->AcquireGeometryResources(*pTypedSystem->m_pUIVertexBuffer, *pTypedSystem->m_pUIIndexBuffer,
+			newConfig.Vertices.Count(), newConfig.Vertices.Stride(), 0, (void*)newConfig.Vertices.Data(),
+			newConfig.Indices.Count(), (void*)newConfig.Indices.Data(), &m_Geometry);
+	}
+	else
+	{
+		pRenderer->UpdateGeometryResources(*pTypedSystem->m_pUIVertexBuffer, *pTypedSystem->m_pUIIndexBuffer, m_Geometry, newConfig);
+	}
 }
