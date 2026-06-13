@@ -8,35 +8,35 @@
 
 #include <Defines.h>
 
-const double kPI = 3.14159265359;
-const float kPI_F = 3.14159265359f;
+const f64 kPI = 3.14159265359;
+const f32 kPI_F = 3.14159265359f;
 
-DLL_EXPORT float M_SQRT_F(float x);
-DLL_EXPORT double M_SQRT(double x);
+DLL_EXPORT f32 M_SQRT_F(f32 x);
+DLL_EXPORT f64 M_SQRT(f64 x);
 
-DLL_EXPORT float M_SIN_F(float x);
-DLL_EXPORT double M_SIN(double x);
+DLL_EXPORT f32 M_SIN_F(f32 x);
+DLL_EXPORT f64 M_SIN(f64 x);
 
-DLL_EXPORT float M_COS_F(float x);
-DLL_EXPORT double M_COS(double x);
+DLL_EXPORT f32 M_COS_F(f32 x);
+DLL_EXPORT f64 M_COS(f64 x);
 
-DLL_EXPORT float M_TAN_F(float x);
-DLL_EXPORT double M_TAN(double x);
+DLL_EXPORT f32 M_TAN_F(f32 x);
+DLL_EXPORT f64 M_TAN(f64 x);
 
-DLL_EXPORT float M_ATAN2_F(float x, float y);
-DLL_EXPORT double M_ATAN2(double x, double y);
+DLL_EXPORT f32 M_ATAN2_F(f32 x, f32 y);
+DLL_EXPORT f64 M_ATAN2(f64 x, f64 y);
 
-DLL_EXPORT float M_RAD2DEG_F(float angleInRadians);
-DLL_EXPORT double M_RAD2DEG(double angleInRadians);
+DLL_EXPORT f32 M_RAD2DEG_F(f32 angleInRadians);
+DLL_EXPORT f64 M_RAD2DEG(f64 angleInRadians);
 
-DLL_EXPORT float M_DEG2RAD_F(float angleInDegrees);
-DLL_EXPORT double M_DEG2RAD(double angleInDegrees);
+DLL_EXPORT f32 M_DEG2RAD_F(f32 angleInDegrees);
+DLL_EXPORT f64 M_DEG2RAD(f64 angleInDegrees);
 
-DLL_EXPORT float M_ABS_F(float x);
-DLL_EXPORT double M_ABS(double x);
+DLL_EXPORT f32 M_ABS_F(f32 x);
+DLL_EXPORT f64 M_ABS(f64 x);
 
 // Vector elements must be within this range to be considered 'equal'.
-const float kVectorElementEpsilon = 1.192092896e-07f;
+const f32 kVectorElementEpsilon = 1.192092896e-07f;
 
 // Forward declarations
 class Vector2D;
@@ -51,27 +51,27 @@ class Vector2D
 public:
 	union
 	{
-		float flElements[2];
+		f32 flElements[2];
 		struct
 		{
-			float x;
-			float y;
+			f32 x;
+			f32 y;
 		};
 	};
 
-	Vector2D()
+	inline Vector2D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector2D(float inX, float inY)
+	inline Vector2D(f32 inX, f32 inY)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
 		flElements[1] = inY;
 	}
 
-	Vector2D(const Vector2D& pOtherVec)
+	inline Vector2D(const Vector2D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 2; idx++)
@@ -124,7 +124,7 @@ public:
 	// ----------------------------
 	// Vector-Scalar Multiplication
 	// ----------------------------
-	inline Vector2D MultiplyByScalar(float flScalar) const
+	inline Vector2D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector2D outVector{ *this };
 		for (int idx = 0; idx < 2; idx++)
@@ -134,7 +134,7 @@ public:
 		return outVector;
 	}
 
-	inline void MultiplyByScalarInPlace(float flScalar)
+	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
 		for (int idx = 0; idx < 2; idx++)
 		{
@@ -148,7 +148,7 @@ public:
 	inline Vector2D Normalize() const
 	{
 		Vector2D outVector{ *this };
-		float flLength = outVector.Length();
+		f32 flLength = outVector.Length();
 		for (int idx = 0; idx < 2; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -158,7 +158,7 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		float flLength = Length();
+		f32 flLength = Length();
 		for (int idx = 0; idx < 2; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -168,15 +168,15 @@ public:
 	// ----------------
 	// Vector Magnitude
 	// ----------------
-	inline float Length() const
+	inline f32 Length() const
 	{
 		return M_SQRT_F((flElements[0] * flElements[0]) + (flElements[1] * flElements[1]));
 	}
 
-	static inline float Distance(const Vector2D& pVector0, const Vector2D& pVector1)
+	static inline f32 Distance(const Vector2D& pVector0, const Vector2D& pVector1)
 	{
-		float flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
-		float flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
+		f32 flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
+		f32 flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
 
 		return M_SQRT_F((flXDiff * flXDiff) + (flYDiff * flYDiff));
 	}
@@ -184,7 +184,7 @@ public:
 	// -----------------
 	// Dot Product
 	// -----------------
-	static inline float Dot(const Vector2D& pVector0, const Vector2D& pVector1)
+	static inline f32 Dot(const Vector2D& pVector0, const Vector2D& pVector1)
 	{
 		return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]);
 	}
@@ -200,8 +200,8 @@ public:
 		return (M_ABS(x - pOther.x) < kVectorElementEpsilon &&
 			M_ABS(y - pOther.y) < kVectorElementEpsilon);
 	}
-	inline Vector2D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
+	inline Vector2D operator*(const f32 flScalar) const { return MultiplyByScalar(flScalar); }
+	inline void operator*=(const f32 flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
 
 //-------------------------------------------------------------------------
@@ -212,21 +212,21 @@ class Vector3D
 public:
 	union
 	{
-		float flElements[3];
+		f32 flElements[3];
 		struct
 		{
-			float x;
-			float y;
-			float z;
+			f32 x;
+			f32 y;
+			f32 z;
 		};
 	};
 
-	Vector3D()
+	inline Vector3D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector3D(float inX, float inY, float inZ)
+	inline Vector3D(f32 inX, f32 inY, f32 inZ)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
@@ -234,7 +234,7 @@ public:
 		flElements[2] = inZ;
 	}
 
-	Vector3D(const Vector3D& pOtherVec)
+	inline Vector3D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 3; idx++)
@@ -287,7 +287,7 @@ public:
 	// ----------------------------
 	// Vector-Scalar Multiplication
 	// ----------------------------
-	inline Vector3D MultiplyByScalar(float flScalar) const
+	inline Vector3D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector3D outVector{ *this };
 		for (int idx = 0; idx < 3; idx++)
@@ -297,7 +297,7 @@ public:
 		return outVector;
 	}
 
-	inline void MultiplyByScalarInPlace(float flScalar)
+	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
 		for (int idx = 0; idx < 3; idx++)
 		{
@@ -325,7 +325,7 @@ public:
 	inline Vector3D Normalize() const
 	{
 		Vector3D outVector{ *this };
-		float flLength = outVector.Length();
+		f32 flLength = outVector.Length();
 		for (int idx = 0; idx < 3; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -335,7 +335,7 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		float flLength = Length();
+		f32 flLength = Length();
 		for (int idx = 0; idx < 3; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -345,16 +345,16 @@ public:
 	// ----------------
 	// Vector Magnitude
 	// ----------------
-	inline float Length() const
+	inline f32 Length() const
 	{
 		return M_SQRT_F((flElements[0] * flElements[0]) + (flElements[1] * flElements[1]) + (flElements[2] * flElements[2]));
 	}
 
-	static inline float Distance(const Vector3D& pVector0, const Vector3D& pVector1)
+	static inline f32 Distance(const Vector3D& pVector0, const Vector3D& pVector1)
 	{
-		float flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
-		float flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
-		float flZDiff = pVector1.flElements[2] - pVector0.flElements[2];
+		f32 flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
+		f32 flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
+		f32 flZDiff = pVector1.flElements[2] - pVector0.flElements[2];
 
 		return M_SQRT_F((flXDiff * flXDiff) + (flYDiff * flYDiff) + (flZDiff * flZDiff));
 	}
@@ -362,7 +362,7 @@ public:
 	// -----------------
 	// Dot/Cross Product
 	// -----------------
-	static inline float Dot(const Vector3D& pVector0, const Vector3D& pVector1)
+	static inline f32 Dot(const Vector3D& pVector0, const Vector3D& pVector1)
 	{
 		return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]) + (pVector0.flElements[2] * pVector1.flElements[2]);
 	}
@@ -392,8 +392,8 @@ public:
 			M_ABS(y - pOther.y) < kVectorElementEpsilon &&
 			M_ABS(z - pOther.z) < kVectorElementEpsilon);
 	}
-	inline Vector3D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
+	inline Vector3D operator*(const f32 flScalar) const { return MultiplyByScalar(flScalar); }
+	inline void operator*=(const f32 flScalar) { MultiplyByScalarInPlace(flScalar); }
 
 	inline Vector4D ToVector4D() const;
 };
@@ -409,22 +409,22 @@ class Vector4D
 public:
 	union
 	{
-		float flElements[4];
+		f32 flElements[4];
 		struct
 		{
-			float x;
-			float y;
-			float z;
-			float w;
+			f32 x;
+			f32 y;
+			f32 z;
+			f32 w;
 		};
 	};
 
-	Vector4D()
+	inline Vector4D()
 		: flElements{ 0.0f }
 	{
 	}
 
-	Vector4D(float inX, float inY, float inZ, float inW)
+	inline Vector4D(f32 inX, f32 inY, f32 inZ, f32 inW)
 		: flElements{ 0.0f }
 	{
 		flElements[0] = inX;
@@ -433,7 +433,7 @@ public:
 		flElements[3] = inW;
 	}
 
-	Vector4D(const Vector3D& pOtherVec)
+	inline Vector4D(const Vector3D& pOtherVec)
 		: flElements{ 0.0f }
 	{
 		for (int idx = 0; idx < 4; idx++)
@@ -486,7 +486,7 @@ public:
 	// ----------------------------
 	// Vector-Scalar Multiplication
 	// ----------------------------
-	inline Vector4D MultiplyByScalar(float flScalar) const
+	inline Vector4D MultiplyByScalar(f32 flScalar) const
 	{
 		Vector4D outVector{ *this };
 		for (int idx = 0; idx < 4; idx++)
@@ -496,7 +496,7 @@ public:
 		return outVector;
 	}
 
-	inline void MultiplyByScalarInPlace(float flScalar)
+	inline void MultiplyByScalarInPlace(f32 flScalar)
 	{
 		for (int idx = 0; idx < 4; idx++)
 		{
@@ -510,7 +510,7 @@ public:
 	inline Vector4D Normalize() const
 	{
 		Vector4D outVector{ *this };
-		float flLength = outVector.Length();
+		f32 flLength = outVector.Length();
 		for (int idx = 0; idx < 4; idx++)
 		{
 			outVector.flElements[idx] /= flLength;
@@ -520,7 +520,7 @@ public:
 
 	inline void NormalizeInPlace()
 	{
-		float flLength = Length();
+		f32 flLength = Length();
 		for (int idx = 0; idx < 4; idx++)
 		{
 			flElements[idx] /= flLength;
@@ -530,17 +530,17 @@ public:
 	// ----------------
 	// Vector Magnitude
 	// ----------------
-	inline float Length() const
+	inline f32 Length() const
 	{
 		return M_SQRT_F((flElements[0] * flElements[0]) + (flElements[1] * flElements[1]) + (flElements[2] * flElements[2]) + (flElements[3] * flElements[3]));
 	}
 
-	static inline float Distance(const Vector4D& pVector0, const Vector4D& pVector1)
+	static inline f32 Distance(const Vector4D& pVector0, const Vector4D& pVector1)
 	{
-		float flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
-		float flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
-		float flZDiff = pVector1.flElements[2] - pVector0.flElements[2];
-		float flWDiff = pVector1.flElements[3] - pVector0.flElements[3];
+		f32 flXDiff = pVector1.flElements[0] - pVector0.flElements[0];
+		f32 flYDiff = pVector1.flElements[1] - pVector0.flElements[1];
+		f32 flZDiff = pVector1.flElements[2] - pVector0.flElements[2];
+		f32 flWDiff = pVector1.flElements[3] - pVector0.flElements[3];
 
 		return M_SQRT_F((flXDiff * flXDiff) + (flYDiff * flYDiff) + (flZDiff * flZDiff) + (flWDiff * flWDiff));
 	}
@@ -548,7 +548,7 @@ public:
 	// -----------------
 	// Dot Product
 	// -----------------
-	static inline float Dot(const Vector4D& pVector0, const Vector4D& pVector1)
+	static inline f32 Dot(const Vector4D& pVector0, const Vector4D& pVector1)
 	{
 		return (pVector0.flElements[0] * pVector1.flElements[0]) + (pVector0.flElements[1] * pVector1.flElements[1]) + (pVector0.flElements[2] * pVector1.flElements[2]) + (pVector0.flElements[3] * pVector1.flElements[3]);
 	}
@@ -564,8 +564,8 @@ public:
 	inline Vector4D operator+(const Vector3D& pOtherVector) const { return Add(pOtherVector); }
 	inline Vector4D operator-(const Vector3D& pOtherVector) const { return Subtract(pOtherVector); }
 	inline Vector4D operator-() const { return Negate(); }
-	inline Vector4D operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
-	inline void operator*=(const float flScalar) { MultiplyByScalarInPlace(flScalar); }
+	inline Vector4D operator*(const f32 flScalar) const { return MultiplyByScalar(flScalar); }
+	inline void operator*=(const f32 flScalar) { MultiplyByScalarInPlace(flScalar); }
 };
 
 //-------------------------------------------------------------------------
@@ -582,25 +582,25 @@ Vector4D Vector3D::ToVector4D() const
 class Quaternion
 {
 public:
-	float x;
-	float y;
-	float z;
-	float w;
-	Quaternion()
+	f32 x;
+	f32 y;
+	f32 z;
+	f32 w;
+	inline Quaternion()
 		: x{ 0 }
 		, y{ 0 }
 		, z{ 0 }
 		, w{ 0 } {
 	}
 
-	Quaternion(float x_, float y_, float z_, float w_)
+	inline Quaternion(f32 x_, f32 y_, f32 z_, f32 w_)
 		: x{ x_ }
 		, y{ y_ }
 		, z{ z_ }
 		, w{ w_ } {
 	}
 
-	Quaternion(Quaternion& pOtherQuat)
+	inline Quaternion(Quaternion& pOtherQuat)
 		: x{ pOtherQuat.x }
 		, y{ pOtherQuat.y }
 		, z{ pOtherQuat.z }
@@ -614,15 +614,15 @@ public:
 class Matrix4x4
 {
 public:
-	float flData[16];
-	Matrix4x4()
+	f32 flData[16];
+	inline Matrix4x4()
 		: flData{ 0.0f }
 	{
 	}
 
 	// Creates an identity matrix scaled by flIdentityValue
 	// (I.E. flIdentityValue == 1 will create an identity matrix).
-	Matrix4x4(float flIdentityValue)
+	inline Matrix4x4(f32 flIdentityValue)
 		: flData{ 0.0f }
 	{
 		flData[0] = flIdentityValue;
@@ -631,7 +631,7 @@ public:
 		flData[15] = flIdentityValue;
 	}
 
-	Matrix4x4(const Matrix4x4& pOtherMatrix)
+	inline Matrix4x4(const Matrix4x4& pOtherMatrix)
 		: flData{ 0.0f }
 	{
 		for (int idx = 0; idx < 16; idx++)
@@ -643,7 +643,7 @@ public:
 	// ----------------------------
 	// Matrix-Scalar Multiplication
 	// ----------------------------
-	inline Matrix4x4 MultiplyByScalar(const float flScalar) const
+	inline Matrix4x4 MultiplyByScalar(const f32 flScalar) const
 	{
 		Matrix4x4 outMatrix{ *this };
 		for (int idx = 0; idx < 16; idx++)
@@ -681,8 +681,8 @@ public:
 	inline Matrix4x4 MultiplyByMatrix(const Matrix4x4& pOtherMatrix) const
 	{
 		Matrix4x4 outMatrix{};
-		const float* mat1Ptr = &flData[0];
-		const float* mat2Ptr = &pOtherMatrix.flData[0];
+		const f32* mat1Ptr = &flData[0];
+		const f32* mat2Ptr = &pOtherMatrix.flData[0];
 
 		for (int firstMat = 0; firstMat < 4; firstMat++)
 		{
@@ -706,33 +706,33 @@ public:
 	{
 		Matrix4x4 outMatrix{ *this };
 
-		float flT1 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
-		float flT2 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
-		float flT3 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
-		float flT4 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
-		float flT5 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
-		float flT6 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
-		float flT7 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
-		float flT8 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
-		float flT9 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
-		float flT10 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
-		float flT11 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
-		float flT12 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
-		float flT13 = ((flData[6] * flData[15]) - (flData[7] * flData[14]));
-		float flT14 = ((flData[5] * flData[15]) - (flData[7] * flData[13]));
-		float flT15 = ((flData[5] * flData[14]) - (flData[6] * flData[13]));
-		float flT16 = ((flData[4] * flData[15]) - (flData[7] * flData[12]));
-		float flT17 = ((flData[4] * flData[14]) - (flData[6] * flData[12]));
-		float flT18 = ((flData[4] * flData[13]) - (flData[5] * flData[12]));
-		float flT19 = ((flData[6] * flData[11]) - (flData[7] * flData[10]));
-		float flT20 = ((flData[5] * flData[11]) - (flData[7] * flData[9]));
-		float flT21 = ((flData[5] * flData[10]) - (flData[6] * flData[9]));
-		float flT22 = ((flData[4] * flData[11]) - (flData[7] * flData[8]));
-		float flT23 = ((flData[4] * flData[10]) - (flData[6] * flData[8]));
-		float flT24 = ((flData[4] * flData[9]) - (flData[5] * flData[8]));
+		f32 flT1 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
+		f32 flT2 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
+		f32 flT3 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
+		f32 flT4 = ((flData[10] * flData[15]) - (flData[11] * flData[14]));
+		f32 flT5 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
+		f32 flT6 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
+		f32 flT7 = ((flData[9] * flData[15]) - (flData[11] * flData[13]));
+		f32 flT8 = ((flData[8] * flData[15]) - (flData[11] * flData[12]));
+		f32 flT9 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
+		f32 flT10 = ((flData[9] * flData[14]) - (flData[10] * flData[13]));
+		f32 flT11 = ((flData[8] * flData[14]) - (flData[10] * flData[12]));
+		f32 flT12 = ((flData[8] * flData[13]) - (flData[9] * flData[12]));
+		f32 flT13 = ((flData[6] * flData[15]) - (flData[7] * flData[14]));
+		f32 flT14 = ((flData[5] * flData[15]) - (flData[7] * flData[13]));
+		f32 flT15 = ((flData[5] * flData[14]) - (flData[6] * flData[13]));
+		f32 flT16 = ((flData[4] * flData[15]) - (flData[7] * flData[12]));
+		f32 flT17 = ((flData[4] * flData[14]) - (flData[6] * flData[12]));
+		f32 flT18 = ((flData[4] * flData[13]) - (flData[5] * flData[12]));
+		f32 flT19 = ((flData[6] * flData[11]) - (flData[7] * flData[10]));
+		f32 flT20 = ((flData[5] * flData[11]) - (flData[7] * flData[9]));
+		f32 flT21 = ((flData[5] * flData[10]) - (flData[6] * flData[9]));
+		f32 flT22 = ((flData[4] * flData[11]) - (flData[7] * flData[8]));
+		f32 flT23 = ((flData[4] * flData[10]) - (flData[6] * flData[8]));
+		f32 flT24 = ((flData[4] * flData[9]) - (flData[5] * flData[8]));
 
 		// Compute the determinant.
-		float flDeterminant = (flData[0] * (flData[5] * flT1 - flData[6] * flT2 + flData[7] * flT3))
+		f32 flDeterminant = (flData[0] * (flData[5] * flT1 - flData[6] * flT2 + flData[7] * flT3))
 							- (flData[1] * (flData[4] * flT4 - flData[6] * flT5 + flData[7] * flT6))
 							+ (flData[2] * (flData[4] * flT7 - flData[5] * flT8 + flData[7] * flT9)
 							- (flData[3] * (flData[4] * flT10 - flData[5] * flT11 + flData[6] * flT12)));
@@ -742,7 +742,7 @@ public:
 			return Matrix4x4::Matrix4x4(1.0f);
 
 		// Create the temp co-factor matrix.
-		float flTempMatrix[16]{ 0.0f };
+		f32 flTempMatrix[16]{ 0.0f };
 		flTempMatrix[0] = (flData[5] * flT1 - flData[6] * flT2 + flData[7] * flT3);
 		flTempMatrix[1] = -1.0f * (flData[4] * flT4 - flData[6] * flT5 + flData[7] * flT6);
 		flTempMatrix[2] = (flData[4] * flT7 - flData[5] * flT8 + flData[7] * flT9);
@@ -802,7 +802,7 @@ public:
 	// ------
 	// Rotate
 	// ------
-	static inline Matrix4x4 RotateAboutXAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	static inline Matrix4x4 RotateAboutXAxis(const Matrix4x4& pInMatrix, const f32 flAngleInRadians)
 	{
 		Matrix4x4 matRotate{ pInMatrix };
 		matRotate.flData[5] = M_COS_F(flAngleInRadians);
@@ -812,7 +812,7 @@ public:
 		return matRotate;
 	}
 
-	static inline Matrix4x4 RotateAboutYAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	static inline Matrix4x4 RotateAboutYAxis(const Matrix4x4& pInMatrix, const f32 flAngleInRadians)
 	{
 		Matrix4x4 matRotate{ pInMatrix };
 		matRotate.flData[0] = M_COS_F(flAngleInRadians);
@@ -822,7 +822,7 @@ public:
 		return matRotate;
 	}
 
-	static inline Matrix4x4 RotateAboutZAxis(const Matrix4x4& pInMatrix, const float flAngleInRadians)
+	static inline Matrix4x4 RotateAboutZAxis(const Matrix4x4& pInMatrix, const f32 flAngleInRadians)
 	{
 		Matrix4x4 matRotate{ pInMatrix };
 		matRotate.flData[0] = M_COS_F(flAngleInRadians);
@@ -832,7 +832,7 @@ public:
 		return matRotate;
 	}
 
-	static inline Matrix4x4 RotateAboutAxisAngles(const Matrix4x4& pInMatrix, const Vector& pInRotationAxis, const float flAngleInRadians)
+	static inline Matrix4x4 RotateAboutAxisAngles(const Matrix4x4& pInMatrix, const Vector& pInRotationAxis, const f32 flAngleInRadians)
 	{
 		Matrix4x4 matRotate{ pInMatrix };
 		matRotate.flData[0] = M_COS_F(flAngleInRadians) + ((pInRotationAxis.x * pInRotationAxis.x)) * (1 - M_COS_F(flAngleInRadians));
@@ -878,11 +878,11 @@ public:
 	// ----------
 	// Projection
 	// ----------
-	static inline Matrix4x4 Perspective(float flFOV, float flAspectRatio, float flNearZ, float flFarZ)
+	static inline Matrix4x4 Perspective(f32 flFOV, f32 flAspectRatio, f32 flNearZ, f32 flFarZ)
 	{
 		Matrix4x4 projMat{ 1.0f };
 
-		float flHalfTanFOV = M_TAN_F(flFOV * 0.5f);
+		f32 flHalfTanFOV = M_TAN_F(flFOV * 0.5f);
 		projMat.flData[0] = 1.0f / (flAspectRatio * flHalfTanFOV);
 		projMat.flData[5] = 1.0f / flHalfTanFOV;
 		projMat.flData[10] = -((flFarZ + flNearZ) / (flFarZ - flNearZ));
@@ -892,30 +892,21 @@ public:
 		return projMat;
 	}
 
-	static inline Matrix4x4 Orthographic(float flLeft, float flRight, float flBottom, float flTop, float flNear, float flFar)
+	static inline Matrix4x4 Orthographic(f32 flLeft, f32 flRight, f32 flBottom, f32 flTop, f32 flNear, f32 flFar)
 	{
 		Matrix4x4 projMat{ 1.0f };
 
-		/*float lr = 1.0f / (flLeft - flRight);
-		float bt = 1.0f / (flBottom - flTop);
-		float nf = 1.0f / (flNear - flFar);
+		f32 flLR = 1.0f / (flLeft - flRight);
+		f32 flBT = 1.0f / (flBottom - flTop);
+		f32 flNF = 1.0f / (flNear - flFar);
 
-		projMat.flData[0] = -2.0f * lr;
-		projMat.flData[5] = -2.0f * bt;
-		projMat.flData[10] = nf;
+		projMat.flData[0] = -2.0f * flLR;
+		projMat.flData[5] = -2.0f * flBT;
+		projMat.flData[10] = flNF;
 
-		projMat.flData[12] = (flLeft + flRight) * lr;
-		projMat.flData[13] = (flTop + flBottom) * bt;
-		projMat.flData[14] = -flNear * nf;
-		projMat.flData[15] = 1.0f;*/
-
-		projMat.flData[0] = 2.0f / (flRight - flLeft);
-		projMat.flData[5] = 2.0f / (flTop - flBottom);
-		projMat.flData[10] = -2.0f / (flFar - flNear);
-		projMat.flData[12] = -(flRight + flLeft) / (flRight - flLeft);
-		projMat.flData[13] = -(flTop + flBottom) / (flTop - flBottom);
-		projMat.flData[14] = -(flFar + flNear) / (flFar - flNear);
-		projMat.flData[15] = 1.0f;
+		projMat.flData[12] = (flLeft + flRight) * flLR;
+		projMat.flData[13] = (flTop + flBottom) * flBT;
+		projMat.flData[14] = -flNear * flNF;
 
 		return projMat;
 	}
@@ -942,17 +933,22 @@ public:
 		return outMat;
 	}
 
+	inline Vector GetTranslation() const
+	{
+		return Vector{ flData[12], flData[13], flData[14] };
+	}
+
 	// ------------------
 	// Operator overloads
 	// ------------------
-	inline Matrix4x4 operator*(const float flScalar) const { return MultiplyByScalar(flScalar); }
+	inline Matrix4x4 operator*(const f32 flScalar) const { return MultiplyByScalar(flScalar); }
 	inline Vector3D operator*(const Vector3D& pInVector) const { return (MultiplyByVector(pInVector.ToVector4D())).AsVector3D(); }	// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Vector4D operator*(const Vector4D& pInVector) const { return MultiplyByVector(pInVector); }								// NOTE: This performs vector PRE-Multiplication, not POST! Post is undefined.
 	inline Matrix4x4 operator*(const Matrix4x4& pMatrix) const { return MultiplyByMatrix(pMatrix); }
 };
 
 // Quaternion operations
-inline Quaternion QuaternionFromAxisAngle(Vector3D& vecAxisOfRotation, float flAngle)
+inline Quaternion QuaternionFromAxisAngle(Vector3D& vecAxisOfRotation, f32 flAngle)
 {
 	Quaternion outQuat{};
 	outQuat.x = M_SIN_F(flAngle / 2.0f) * vecAxisOfRotation.x;
@@ -967,12 +963,12 @@ inline Quaternion QuaternionFromEulerAngles(Vector3D& vecEulerAngles)
 {
 	Quaternion outQuat{};
 
-	float flSinX = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
-	float flCosX = M_COS_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
-	float flSinY = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
-	float flCosY = M_COS_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
-	float flSinZ = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
-	float flCosZ = M_COS_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+	f32 flSinX = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	f32 flCosX = M_COS_F(M_DEG2RAD_F(vecEulerAngles.x) / 2);
+	f32 flSinY = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	f32 flCosY = M_COS_F(M_DEG2RAD_F(vecEulerAngles.y) / 2);
+	f32 flSinZ = M_SIN_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
+	f32 flCosZ = M_COS_F(M_DEG2RAD_F(vecEulerAngles.z) / 2);
 
 	outQuat.x = flCosX * flSinY * flCosZ + flSinX * flCosY * flSinZ;
 	outQuat.y = flSinX * flCosY * flCosZ - flCosX * flSinX * flSinZ;

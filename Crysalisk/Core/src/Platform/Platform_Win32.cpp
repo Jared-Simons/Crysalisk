@@ -10,15 +10,13 @@
 
 #include "Platform.h"
 
+#include "Containers/CVector.h"
 #include "Core/InputTypes.h"
 #include "Core/Logging.h"
-//#include "Interfaces.h"
-#include "InterfaceRegistry.h"
 #include "Strings/String_Utils.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <malloc.h>
 
 namespace Platform 
 {
@@ -40,7 +38,7 @@ namespace Platform
 			}
 		}
 
-		virtual void GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) override
+		virtual void GetWindowSize(u32& pOutWidth, u32& pOutHeight) override
 		{
 			RECT rect;
 			if (GetClientRect(m_HWND, &rect))
@@ -94,7 +92,7 @@ namespace Platform
 		CWindowsWindow*					activeWindow{ nullptr };
 
 		// Clock info
-		inline static double m_ClockFreq = -1.0;
+		inline static f64 m_ClockFreq = -1.0;
 		inline static LARGE_INTEGER m_ClockStartTime;
 	};
 
@@ -141,9 +139,6 @@ namespace Platform
 		delete s_pWin32PlatformData;
 		s_pWin32PlatformData = nullptr;
 
-		// Hitting this means our entire process is shutting down,
-		// so clear out our interface registry now.
-		CleanupInterfaceRegistry();
 		s_ModuleRegistry.Clear();
 	}
 
@@ -241,7 +236,7 @@ namespace Platform
 		pNewWindow->m_Viewport.Width = params.Width;
 		pNewWindow->m_Viewport.Height = params.Height;
 		pNewWindow->m_Viewport.flFOVDegrees = 75.0f; // TODO: Default.
-		pNewWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(pNewWindow->m_Viewport.flFOVDegrees), ((float)pNewWindow->m_Viewport.Width / pNewWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+		pNewWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(pNewWindow->m_Viewport.flFOVDegrees), ((f32)pNewWindow->m_Viewport.Width / pNewWindow->m_Viewport.Height), 0.1f, 1000000.0f);
 
 		LOG_INFO("Window created!");
 		return pNewWindow;
@@ -289,7 +284,7 @@ namespace Platform
 					// This only works because we currently only have one window.
 					s_pWin32PlatformData->activeWindow->m_Viewport.Width = width;
 					s_pWin32PlatformData->activeWindow->m_Viewport.Height = height;
-					s_pWin32PlatformData->activeWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(s_pWin32PlatformData->activeWindow->m_Viewport.flFOVDegrees), ((float)s_pWin32PlatformData->activeWindow->m_Viewport.Width / s_pWin32PlatformData->activeWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+					s_pWin32PlatformData->activeWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(s_pWin32PlatformData->activeWindow->m_Viewport.flFOVDegrees), ((f32)s_pWin32PlatformData->activeWindow->m_Viewport.Width / s_pWin32PlatformData->activeWindow->m_Viewport.Height), 0.1f, 1000000.0f);
 				}
 			}
 			break;
@@ -559,7 +554,7 @@ namespace Platform
 		return GetCurrentThreadId();
 	}
 
-	size_t GetNumberOfSystemProcessors()
+	u64 GetNumberOfSystemProcessors()
 	{
 		SYSTEM_INFO sysInfo{};
 		GetSystemInfo(&sysInfo);
@@ -696,7 +691,7 @@ namespace Platform
 
 		static char levelColor[6] = { 64, 4, 6, 3, 5, 8 };
 		SetConsoleTextAttribute(consoleHandle, levelColor[iLevel]);
-		size_t length = strlen(pszMessage);
+		u64 length = strlen(pszMessage);
 		WriteConsoleA(consoleHandle, pszMessage, (DWORD)length, 0, 0);
 
 		// Clear the console back to light gray after printing the message.
@@ -728,11 +723,11 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Purpose: Returns the current timestamp from platform code.
 	// Input:	none.
-	// Output:	double - The current timestep.
+	// Output:	f64 - The current timestep.
 	//-------------------------------------------------------------------------
-	double GetAbsoluteTime()
+	f64 GetAbsoluteTime()
 	{
-		double elapsedTime = 0.0;
+		f64 elapsedTime = 0.0;
 
 		// If the clock has not yet been initialized.
 		if (s_pWin32PlatformData->m_ClockFreq == -1)
@@ -750,7 +745,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Forces the current thread to sleep for the provided milliseconds.
 	//-------------------------------------------------------------------------
-	void ThreadSleep(double msToSleep)
+	void ThreadSleep(f64 msToSleep)
 	{
 		Sleep((DWORD)msToSleep);
 	}
@@ -758,8 +753,6 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Interface and factory methods for code modules (.dlls)
 	//-------------------------------------------------------------------------
-	typedef void (*PFN_ObtainInterfaces)(Utl::CVector<SystemInterface_t>& pOutInterfaces);
-	typedef void* (*PFN_ConnectInterface)(Utl::CVector<SystemInterface_t>& pInterfaceState);
 	class CSysModule : public ISysModule
 	{
 	public:
@@ -773,14 +766,6 @@ namespace Platform
 			m_szModuleName = nullptr;
 		}
 
-		virtual void* ConnectInterface(void* pInterfaceState) override
-		{
-			if (!m_ConnectInterfaceFunc)
-				return false;
-
-			return m_ConnectInterfaceFunc(GetRegisteredInterfaces());
-		}
-
 		void* GetFuncAddr(const char* pFuncName) override
 		{
 			return GetProcAddress(m_Module, pFuncName);
@@ -791,10 +776,8 @@ namespace Platform
 
 	public:
 		// These can be public, they can't be touched by another file w/o the windows headers anyways ¯\_(ツ)_/¯
-		HMODULE	m_Module;
-		PFN_ObtainInterfaces m_ObtainInterfacesFunc;
-		PFN_ConnectInterface m_ConnectInterfaceFunc;
-		char* m_szModuleName;
+		HMODULE	m_Module{ 0 };
+		char* m_szModuleName{ nullptr };
 	};
 
 	//-------------------------------------------------------------------------
@@ -838,54 +821,6 @@ namespace Platform
 		return pNewModule;
 	}
 
-	//-------------------------------------------------------------------------
-	// Purpose: Assigns our interfaces obtained from external libraries.
-	//-------------------------------------------------------------------------
-	void SetupExternalInterfaces()
-	{
-		// CRYS_STD_LIB TODO: Fix how this is handled.
-		//::AssignInterfaces(GetRegisteredInterfaces());
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Stores off pointers to all exposed interfaces within all loaded .dlls.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ObtainLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ObtainInterfacesFunc)
-			{
-				Utl::CVector<SystemInterface_t> incomingInterfaces{};
-				s_ModuleRegistry[idx].m_ObtainInterfacesFunc(incomingInterfaces);
-				for (int iface = 0; iface < incomingInterfaces.Count(); iface++)
-				{
-					RegisterInterface(incomingInterfaces[iface]);
-				}
-			}
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Connects all previously-obtained interface pointers for all registered .dlls.
-	//				After 'ObtainLibraryInterfaces()' and this, each registered .dll should have
-	//				access to all registered interfaces.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ConnectLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ConnectInterfaceFunc)
-			{
-				s_ModuleRegistry[idx].m_ConnectInterfaceFunc(GetRegisteredInterfaces());
-			}
-		}
-	}
-
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
 	//-----------------------------------------------------------------------------
@@ -896,7 +831,7 @@ namespace Platform
 	// Input:	size - The size in bytes of the allocation to make.
 	// Output:	A pointer to the allocated memory.
 	//-------------------------------------------------------------------------
-	void* MemoryAllocate(size_t size)
+	void* MemoryAllocate(u64 size)
 	{
 		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, size);
 
@@ -924,7 +859,7 @@ namespace Platform
 	//			newSize - The size of the new memory block.
 	// Output:	none.
 	//-------------------------------------------------------------------------
-	void* MemoryReallocate(void* memory, size_t newSize)
+	void* MemoryReallocate(void* memory, u64 newSize)
 	{
 		if (memory && newSize)
 			return realloc(memory, newSize);
@@ -940,7 +875,7 @@ namespace Platform
 	//			size - The size of memory in bytes to be copied.
 	// Output:	A pointer to the new block of memory.
 	//-------------------------------------------------------------------------
-	void* MemoryCopy(void* dest, const void* source, size_t size)
+	void* MemoryCopy(void* dest, const void* source, u64 size)
 	{
 		if (dest && source && size)
 			return memcpy(dest, source, size);
@@ -956,7 +891,7 @@ namespace Platform
 	//			size - The size of memory in bytes to be set.
 	// Output:	A pointer to the block of memory.
 	//-------------------------------------------------------------------------
-	void* MemorySet(void* memory, int value, size_t size)
+	void* MemorySet(void* memory, int value, u64 size)
 	{
 		if (memory)
 			return memset(memory, value, size);

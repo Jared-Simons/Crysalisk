@@ -26,6 +26,8 @@ public:
 	virtual bool Render() override;
 	virtual void Shutdown() override;	
 
+	// NOTE: No camera here for now.
+	virtual Camera_t* GetMainCamera() override { CAssert(0); return nullptr; }
 private:
 	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 
@@ -179,7 +181,7 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 {
 	CAssert(pszToolLibraryName);
 
-	size_t iNameLength = Utl::StringLength(pszToolLibraryName);
+	u64 iNameLength = Utl::StringLength(pszToolLibraryName);
 	CAssert(iNameLength > 0 && iNameLength < 10000);
 	
 	Platform::ISysModule* pToolModule = Platform::LoadSysModule(pszToolLibraryName);

@@ -20,8 +20,12 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Core/Event.h
 	${ENGINE_ROOT}/Core/Input.cpp
 	${ENGINE_ROOT}/Core/Input.h
-	${ENGINE_ROOT}/Renderer/DebugRenderer.cpp
-	${ENGINE_ROOT}/Renderer/DebugRenderer.h
+	${ENGINE_ROOT}/Renderer/Views/3D_Scene_View.cpp
+	${ENGINE_ROOT}/Renderer/Views/3D_Scene_View.h
+	${ENGINE_ROOT}/Renderer/Views/Debug_Render_View.cpp
+	${ENGINE_ROOT}/Renderer/Views/Debug_Render_View.h
+	${ENGINE_ROOT}/Renderer/Views/UI_View.cpp
+	${ENGINE_ROOT}/Renderer/Views/UI_View.h
 	${ENGINE_ROOT}/Renderer/IRendererBackend.h
 	${ENGINE_ROOT}/Renderer/Renderer.cpp
 	${ENGINE_ROOT}/Renderer/Renderer.h
@@ -31,6 +35,8 @@ set(CRYSALISK_ENGINE_SRC_FILES
 	${ENGINE_ROOT}/Resources/Map.cpp
 	${ENGINE_ROOT}/Resources/Map.h
 	${ENGINE_ROOT}/Resources/ResourceTypes.h
+	${ENGINE_ROOT}/Systems/DebugGeometrySystem.cpp
+	${ENGINE_ROOT}/Systems/DebugGeometrySystem.h
 	${ENGINE_ROOT}/Systems/FontSystem.cpp
 	${ENGINE_ROOT}/Systems/FontSystem.h
 	${ENGINE_ROOT}/Systems/IGame.h

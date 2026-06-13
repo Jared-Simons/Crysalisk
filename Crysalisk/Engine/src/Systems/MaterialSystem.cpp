@@ -21,20 +21,20 @@
 //-------------------------------------------------------------------------
 struct PhongShaderLocations_t
 {
-	uint16_t	projection{ kInvalidID_U16 };
-	uint16_t	view{ kInvalidID_U16 };
-	uint16_t	viewPos{ kInvalidID_U16 };
-	uint16_t	dirLight{ kInvalidID_U16 };
-	uint16_t	pointLight1{ kInvalidID_U16 };
-	uint16_t	pointLight2{ kInvalidID_U16 };
-	uint16_t	pointLight3{ kInvalidID_U16 };
-	uint16_t	pointLight4{ kInvalidID_U16 };
-	uint16_t	spotLight{ kInvalidID_U16 };
-	uint16_t	renderMode{ kInvalidID_U16 };
-	uint16_t	shininess{ kInvalidID_U16 };
-	uint16_t	color{ kInvalidID_U16 };
-	uint16_t	textureMaps{ kInvalidID_U16 };
-	uint16_t	model{ kInvalidID_U16 };
+	u16	projection{ kInvalidID_U16 };
+	u16	view{ kInvalidID_U16 };
+	u16	viewPos{ kInvalidID_U16 };
+	u16	dirLight{ kInvalidID_U16 };
+	u16	pointLight1{ kInvalidID_U16 };
+	u16	pointLight2{ kInvalidID_U16 };
+	u16	pointLight3{ kInvalidID_U16 };
+	u16	pointLight4{ kInvalidID_U16 };
+	u16	spotLight{ kInvalidID_U16 };
+	u16	renderMode{ kInvalidID_U16 };
+	u16	shininess{ kInvalidID_U16 };
+	u16	color{ kInvalidID_U16 };
+	u16	textureMaps{ kInvalidID_U16 };
+	u16	model{ kInvalidID_U16 };
 };
 static PhongShaderLocations_t s_PhongShaderLocations{};
 
@@ -46,6 +46,7 @@ class CMaterialSystem : public IMaterialSystem
 public:
 	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) override;
+	virtual void				PostInitialize() override;
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for the provided material.
@@ -53,13 +54,13 @@ public:
 	// Acquires a material given an existing resource.
 	virtual MaterialHandle_t	AcquireMaterialFromResource(MaterialLoader::MaterialResource_t& pInResource) override;
 
-	virtual void				ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease) override;
+	virtual void				ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease) override;
 
 	// Returns true if a given material is transparent in anyway, false if completely opaque.
-	virtual uint32_t			IsMaterialTransparent(MaterialHandle_t hMaterial) const override;
+	virtual u32			IsMaterialTransparent(MaterialHandle_t hShaderInstance) const override;
 
 	// Applies a given material.
-	virtual void				ApplyMaterialInstance(MaterialHandle_t hMaterial) override;
+	virtual void				ApplyMaterialInstance(MaterialHandle_t hShaderInstance) override;
 
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
@@ -70,9 +71,9 @@ public:
 	virtual void				ApplyPerDrawRenderData(Matrix4x4& pMatModel) override;
 
 	// Sets directional light data to be used during rendering.
-	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength) override;
-	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic) override;
-	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff) override;
+	virtual void				SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength) override;
+	virtual void				SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic) override;
+	virtual void				SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff) override;
 	virtual void				ApplyLightData() override;
 
 private:
@@ -127,22 +128,22 @@ private:
 	struct DirectionalLight_t
 	{
 		Vector3D	vecDirection{};
-		float		padding1{};
+		f32		padding1{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 		Vector3D	ambientLightColor{};
-		float		flAmbientStrength{};
+		f32		flAmbientStrength{};
 	} dirLight;
 
 	struct PointLight_t
 	{
 		Vector4D	vecPosition{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 
-		float		flConstant{};
-		float		flLinear{};
-		float		flQuadratic{};
+		f32		flConstant{};
+		f32		flLinear{};
+		f32		flQuadratic{};
 	} pointLights[4];
 
 	struct SpotLight_t
@@ -150,14 +151,14 @@ private:
 		Vector4D	vecPosition{};
 		Vector4D	vecDirection{};
 		Vector3D	lightColor{};
-		float		flBrightness{};
+		f32		flBrightness{};
 
-		float		flConstant{};
-		float		flLinear{};
-		float		flQuadratic{};
+		f32		flConstant{};
+		f32		flLinear{};
+		f32		flQuadratic{};
 
-		float		flInnerCutoff{};
-		float		flOuterCutoff{};
+		f32		flInnerCutoff{};
+		f32		flOuterCutoff{};
 	} spotLight;
 };
 
@@ -186,6 +187,17 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	// Allocate memory for our material array.
 	m_MaterialDictionary.m_MaterialArray = (Material*)new Material[m_Config.MaxMaterials];
 
+	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
+
+	return true;
+}
+
+
+//-------------------------------------------------------------------------
+// TODO: Documentation.
+//-------------------------------------------------------------------------
+void CMaterialSystem::PostInitialize()
+{
 	// Setup shader locations.
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 	m_DefaultMaterialShader = pShaderSystem->AcquireShader("Core.Phong");
@@ -206,10 +218,6 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 
 	// Default material.
 	CreateDefaultMaterial();
-
-	LOG_INFO("Material system initialized! (Max materials: %d)", config.MaxMaterials);
-
-	return true;
 }
 
 //-------------------------------------------------------------------------
@@ -325,7 +333,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		pShaderSystem->AcquireShaderInstanceResources(pMaterial->m_hShaderHandle, &pMaterial->m_iInternalHandle, pInResource.pszMaterialName);
 
 		// Texture maps.
-		size_t							textureMapCount = pInResource.textureMapConfigs.Count();
+		u64							textureMapCount = pInResource.textureMapConfigs.Count();
 		Utl::CVector<TextureHandle_t>	textureHandles(textureMapCount);
 
 		// Set some default textures, just in case.
@@ -340,13 +348,27 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		for (int texIdx = 0; texIdx < textureMapCount; texIdx++)
 		{
 			TextureHandle_t hTexture = m_Config.pTextureSystem->AcquireTexture(pInResource.textureMapConfigs[texIdx].pszTextureName, true);
-			textureHandles[texIdx] = hTexture;
+			if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::DIFFUSE)
+			{
+				textureHandles[0] = hTexture;
+			}
+			else if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::SPECULAR)
+			{
+				textureHandles[1] = hTexture;
+			}
+			else if (pInResource.textureMapConfigs[texIdx].eType == MaterialLoader::MaterialResource_t::eTextureType::NORMAL)
+			{
+				textureHandles[2] = hTexture;
+			}
 		}
 
 		// Bind the default textures for now, the actual textures will get bound after they finish loading.
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial->m_iInternalHandle, &hDefaultDiffuse);
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial->m_iInternalHandle, &hDefaultSpecular);
 		pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial->m_iInternalHandle, &hDefaultNormal);
+
+		// Mark the material so that it will check back on the texture load status.
+		pMaterial->m_iMaterialFlags |= MATERIAL_FLAG_INTERNALS_UPDATED;
 
 		// Save off the texture handles.
 		pMaterial->m_hDiffuseTextureHandle = textureHandles[0];
@@ -357,9 +379,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 		CAssert(pInResource.pszCustomKeys.Count() == pInResource.pszCustomValues.Count());
 		for (int idx = 0; idx < pInResource.pszCustomKeys.Count(); idx++)
 		{
-			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "shininess"))
+			if (Utl::StringCompareInsensitive(pInResource.pszCustomKeys[idx], "specular_shininess"))
 			{
-				float flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
+				f32 flShininess = Utl::String_ATOF(pInResource.pszCustomValues[idx]);
 				// Set the instance uniform.
 				pShaderSystem->SetShaderUniform(pMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pMaterial->m_iInternalHandle, &flShininess);
 			}
@@ -370,7 +392,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 			}
 		}
 
-		pLookup->ReferenceCount = 0;
+		pLookup->ReferenceCount++;
 
 		// Save off the index.
 		pLookup->MaterialIndex = newMaterialHandle;
@@ -379,6 +401,7 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 	{
 		// This material is already loaded, just return the handle.
 		newMaterialHandle = pLookup->MaterialIndex;
+		pLookup->ReferenceCount++;
 	}
 
 	return newMaterialHandle;
@@ -391,9 +414,9 @@ MaterialHandle_t CMaterialSystem::AcquireMaterialFromResource(MaterialLoader::Ma
 //									regardless of it's reference count.
 // Output:	none.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceResourceRelease)
+void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bForceResourceRelease)
 {
-	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	Material&		pMaterial = m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32 || pMaterial.m_pszMaterialName == nullptr)
 	{
@@ -432,24 +455,16 @@ void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hMaterial, bool bForceRes
 // Input:	hMaterial - The material whose transparency to check for.
 // Output:	Returns true if the material is transparent in any way, otherwise false.
 //-------------------------------------------------------------------------
-uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) const
+u32 CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hShaderInstance) const
 {
-	if (hMaterial == kInvalidID_U32)
+	if (hShaderInstance == kInvalidID_U32)
 		//hMaterial = m_DefaultMaterialLookup.MaterialIndex;
-		hMaterial = 0; // TODO: Use the default material here.
-	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hMaterial];
+		hShaderInstance = 0; // TODO: Use the default material here.
+	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 	//CAssert(hMaterial != kInvalidID_U32 && pMaterial && pMaterial->m_iInternalHandle != kInvalidID_U32);
 
 	return pMaterial->m_bIsTransparent;
 }
-
-// Utility macro for making sure texture resources are up-to-date, and binding resources if needed.
-#define BIND_AND_APPLY_TEXTURE(pMaterial, hTexture, iTextureIndex)																											\
-	if (m_Config.pTextureSystem->IsTextureFlagSet(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED))																				\
-	{																																										\
-		m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureIndex, pMaterial.m_iInternalHandle, &hTexture);		\
-		m_Config.pTextureSystem->UnsetTextureFlags(hTexture, TEXTURE_FLAG_INTERNALS_UPDATED);																				\
-	}
 
 //-------------------------------------------------------------------------
 // Purpose:	Binds a given material.
@@ -457,40 +472,74 @@ uint32_t CMaterialSystem::IsMaterialTransparent(MaterialHandle_t hMaterial) cons
 // Output:	none.
 // TODO: Make sure we can assert that a frame is currently being rendered when this function is called.
 //-------------------------------------------------------------------------
-void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hMaterial)
+void CMaterialSystem::ApplyMaterialInstance(MaterialHandle_t hShaderInstance)
 {
-	if (hMaterial == kInvalidID_U32)
-		hMaterial = 0; // TODO: This is not elegant
+	if (hShaderInstance == kInvalidID_U32)
+		hShaderInstance = 0; // TODO: This is not elegant
 
 	// Don't do any extra work!
-	if (m_hCurrentlyBoundMaterialInstance == hMaterial)
+	if (m_hCurrentlyBoundMaterialInstance == hShaderInstance)
 		return;
 
-	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hMaterial];
+	Material& pMaterial = m_MaterialDictionary.m_MaterialArray[hShaderInstance];
 
 	// If the instance is invalid, then we can't draw!
 	if (pMaterial.m_iInternalHandle == kInvalidID_U32)
 		return;
 
-	// If the texture resources were updated, we need to re-check transparency.
-	if (m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_INTERNALS_UPDATED))
+	// See if we need to check internals.
+	if (pMaterial.m_iMaterialFlags & MATERIAL_FLAG_INTERNALS_UPDATED)
 	{
-		// Use the diffuse map to determine material transparency.
-		pMaterial.m_bIsTransparent = m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+		bool bDiffuseLoaded = false;
+		bool bSpecularLoaded = false;
+		bool bNormalLoaded = false;
+
+		// This material is being used but has new textures, update internals to point to the new textures.
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hDiffuseTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 0, pMaterial.m_iInternalHandle, &pMaterial.m_hDiffuseTextureHandle);
+			bDiffuseLoaded = true;
+
+			// Use the diffuse map to determine material transparency.
+			pMaterial.m_bIsTransparent = m_Config.pTextureSystem->IsTextureFlagSet(pMaterial.m_hDiffuseTextureHandle, TEXTURE_FLAG_IS_TRANSPARENT);
+		}
+
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hSpecularTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 1, pMaterial.m_iInternalHandle, &pMaterial.m_hSpecularTextureHandle);
+			bSpecularLoaded = true;
+		}
+
+		if (m_Config.pTextureSystem->IsTextureLoaded(pMaterial.m_hNormalTextureHandle))
+		{
+			m_Config.pShaderSystem->SetShaderUniform(pMaterial.m_hShaderHandle, s_PhongShaderLocations.textureMaps, 2, pMaterial.m_iInternalHandle, &pMaterial.m_hNormalTextureHandle);
+			bNormalLoaded = true;
+		}
+
+		// If all of our textures are loaded, we can stop checking.
+		if (bDiffuseLoaded && bSpecularLoaded && bNormalLoaded)
+		{
+			pMaterial.m_iMaterialFlags &= ~MATERIAL_FLAG_INTERNALS_UPDATED;
+		}
+
+		// Bind the appropriate shader.
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_hShaderHandle);
+
+		// Bind the appropriate material instance.
+		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[m_DefaultMaterialLookup.MaterialIndex].m_iInternalHandle);
+
+		m_hCurrentlyBoundMaterialInstance = m_DefaultMaterialLookup.MaterialIndex;
 	}
+	else
+	{
+		// Bind the appropriate shader.
+		m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_hShaderHandle);
 
-	// Check textures to see if they need to be re-bound.
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hDiffuseTextureHandle, 0);		// Diffuse
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hSpecularTextureHandle, 1);		// Specular
-	BIND_AND_APPLY_TEXTURE(pMaterial, pMaterial.m_hNormalTextureHandle, 2);			// Normal
+		// Bind the appropriate material instance.
+		m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hShaderInstance].m_iInternalHandle);
 
-	// Bind the appropriate shader.
-	m_Config.pShaderSystem->BindShader(m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle);
-
-	// Bind the appropriate material instance.
-	m_Config.pShaderSystem->BindPerInstanceUniforms(m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle);
-
-	m_hCurrentlyBoundMaterialInstance = hMaterial;
+		m_hCurrentlyBoundMaterialInstance = hShaderInstance;
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -537,7 +586,7 @@ void CMaterialSystem::ApplyPerDrawRenderData(Matrix4x4& pMatModel)
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, Vector3D vecAmbientLightColor, float flAmbientStrength)
+void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, Vector3D vecAmbientLightColor, f32 flAmbientStrength)
 {
 	dirLight.vecDirection = Vector3D{ M_DEG2RAD_F(vecDirection.x), M_DEG2RAD_F(vecDirection.y), M_DEG2RAD_F(vecDirection.z) };;
 	dirLight.flBrightness = flBrightness;
@@ -551,7 +600,7 @@ void CMaterialSystem::SetDirectionalLightData(Vector3D vecDirection, Vector3D ve
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic)
+void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic)
 {
 	pointLights[lightIndex].vecPosition = vecPoint;
 	pointLights[lightIndex].lightColor = vecLightColor;
@@ -566,9 +615,9 @@ void CMaterialSystem::SetPointLightData(int lightIndex, Vector3D vecPoint, Vecto
 // NOTE: This lives here and not in the renderer because we need access
 // to Material-Specific shader information.
 //-------------------------------------------------------------------------
-void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, float flBrightness, float flConstant, float flLinear, float flQuadratic, float flInnerCutoff, float flOuterCutoff)
+void CMaterialSystem::SetSpotLightData(Vector3D vecPosition, Vector3D vecDirection, Vector3D vecLightColor, f32 flBrightness, f32 flConstant, f32 flLinear, f32 flQuadratic, f32 flInnerCutoff, f32 flOuterCutoff)
 {
-	CAssert(flInnerCutoff < flOuterCutoff);
+	CAssert(flInnerCutoff <= flOuterCutoff);
 
 	spotLight.vecPosition = vecPosition;
 	// Direction needs to be converted from degrees to radians.
@@ -641,7 +690,7 @@ void CMaterialSystem::CreateDefaultMaterial()
 		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
 	}
 
-	float flShininess = 32;
+	f32 flShininess = 32;
 	// Set the instance uniform.
 	pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
 }

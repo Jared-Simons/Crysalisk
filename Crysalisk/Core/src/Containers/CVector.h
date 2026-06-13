@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Core/Assertions.h"
-#include "Memory/MemoryAllocatorBase.h"
+#include "Memory/IMemoryAllocator.h"
 #include "Memory/MemoryManager.h"
 #include "Platform/Platform.h"
 
@@ -46,7 +46,7 @@ namespace Utl
 		T* m_DataPtr{ nullptr };
 	};
 
-	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
+	template<typename T>
 	class CVector
 	{
 		using Iterator = VectorIterator<T>;
@@ -70,7 +70,7 @@ namespace Utl
 		//--------------------------------------------------
 		// Creates a vector with space for 'initialCapacity' number of elements.
 		//--------------------------------------------------
-		CVector(size_t initialCapacity, size_t resizeFactor = 2)
+		CVector(u64 initialCapacity, u64 resizeFactor = 2)
 			: m_Count{ 0 }
 			, m_Capacity{ initialCapacity }
 			, m_ValueStride{ sizeof(T) }
@@ -84,7 +84,12 @@ namespace Utl
 
 			// Allocate memory for our array.
 			if (initialCapacity > 0)
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * m_ValueStride));
+			{
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(initialCapacity * m_ValueStride));
+				else
+					m_pValues = new T[initialCapacity];
+			}
 		}
 
 		//--------------------------------------------------
@@ -101,12 +106,15 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -126,12 +134,15 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 		}
@@ -143,7 +154,10 @@ namespace Utl
 		{
 			if (m_pValues && m_Capacity > 0)
 			{
-				m_Allocator.Free(m_pValues);
+				if (m_Allocator != nullptr)
+					m_Allocator->Free(m_pValues);
+				else
+					delete[] m_pValues;
 			}
 			m_pValues = nullptr;
 
@@ -166,12 +180,15 @@ namespace Utl
 				m_ResizeFactor = 2; // Never let this be 0!
 			}
 
-			// Make sure to copy over a custom allocator, if we have one!
-			Platform::MemoryCopy(&m_Allocator, &pOtherVector.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_Capacity > 0)
 			{
-				m_pValues = reinterpret_cast<T*>(m_Allocator.Allocate(m_Capacity * m_ValueStride));
+				if (m_Allocator != nullptr)
+					m_pValues = reinterpret_cast<T*>(m_Allocator->Allocate(m_Capacity * m_ValueStride));
+				else
+					m_pValues = new T[m_Capacity];
+				
 				Platform::MemoryCopy(m_pValues, pOtherVector.m_pValues, pOtherVector.m_ValueStride * pOtherVector.m_Capacity);
 			}
 
@@ -179,9 +196,19 @@ namespace Utl
 		}
 
 		//--------------------------------------------------
+		// Sets the allocator this container allocates from
+		//--------------------------------------------------
+		inline void SetAllocator(IBaseMemoryAllocator* pAllocator)
+		{
+			CAssert(pAllocator != nullptr);
+			CAssert(m_Count == 0 && m_Capacity == 0); // We can't change allocators if we already have some memory allocated.
+			m_Allocator = pAllocator;
+		}
+
+		//--------------------------------------------------
 		// Array indexing.
 		//--------------------------------------------------
-		inline T& ElementAt(size_t index) const
+		inline T& ElementAt(u64 index) const
 		{
 			CASSERTMSG(index >= 0 && index < m_Capacity, "Attempted to index CVector data out of bounds!");
 
@@ -196,14 +223,24 @@ namespace Utl
 		//--------------------------------------------------
 		// Same as above, for ease of use.
 		//--------------------------------------------------
-		inline T& operator[](size_t index)
+		inline T& operator[](u64 index)
 		{
 			return ElementAt(index);
 		}
 
-		inline T& operator[](size_t index) const
+		inline T& operator[](u64 index) const
 		{
 			return ElementAt(index);
+		}
+
+		inline T* operator->()
+		{
+			return m_pValues;
+		}
+
+		inline T* operator->() const
+		{
+			return m_pValues;
 		}
 
 		//--------------------------------------------------
@@ -273,14 +310,22 @@ namespace Utl
 		//--------------------------------------------------
 		void Clear()
 		{
-			if (m_pValues)
+			if (m_pValues && m_Allocator != nullptr)
 			{
-				delete m_pValues;
+				if (m_Allocator->GetAllocatorType() != ALLOCATOR_TYPE_LINEAR)	// Don't release memory if this is a linear allocator.
+				{
+					m_Allocator->Free(m_pValues);
+					m_pValues = nullptr;
+					m_Capacity = 0;
+				}
+			}
+			else if (m_Allocator == nullptr && m_pValues)	// no custom allocator
+			{
+				delete[] m_pValues;
+				m_pValues = nullptr;
+				m_Capacity = 0;
 			}
 
-			m_pValues = nullptr;
-
-			m_Capacity = 0;
 			m_Count = 0;
 		}
 
@@ -288,7 +333,7 @@ namespace Utl
 		// Adds an element to the end of the vector, 
 		// (and returns the index to the new element).
 		//--------------------------------------------------
-		size_t PushBack(T element)
+		u64 PushBack(T element)
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
@@ -296,7 +341,7 @@ namespace Utl
 					m_ResizeFactor = 2; // Just a safety in case something got messed up along the way.
 
 				// We need to resize to make space for us.
-				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
+				u64 newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.
 				Resize(newCapacity);
 			}
@@ -312,12 +357,12 @@ namespace Utl
 		// Adds an element to the end of the vector, 
 		// (and returns the index to the new element).
 		//--------------------------------------------------
-		size_t PushBack(T* element)
+		u64 PushBack(T* element)
 		{
 			if (m_Count + 1 > m_Capacity)
 			{
 				// We need to resize to make space for us.
-				size_t newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
+				u64 newCapacity = (m_Capacity == 0) ? 1 : m_Count;	// NOTE: If we happen to have no memory allocated, then 
 				newCapacity *= m_ResizeFactor;						// newCapacity * m_ResizeFactor will == 0. This is just to prevent that.
 				Resize(newCapacity);
 			}
@@ -333,16 +378,24 @@ namespace Utl
 		// Resizes the container to newCapacity elements,
 		// does nothing if newCapacity <= Count().
 		//--------------------------------------------------
-		void Resize(size_t newCapacity)
+		void Resize(u64 newCapacity)
 		{
-			if (newCapacity <= m_Count)
+			if (newCapacity <= m_Capacity)
 			{
 				// No need to even attempt this...
 				return;
 			}
 
 			// Allocate some new memory.
-			void* pNewData = m_Allocator.Allocate(m_ValueStride * newCapacity);
+			void* pNewData = nullptr;
+			if (m_Allocator)
+			{
+				pNewData = m_Allocator->Allocate(m_ValueStride * newCapacity);
+			}
+			else
+			{
+				pNewData = new T[newCapacity];
+			}
 			T* pNewArray = new (pNewData) T[newCapacity];	// This is required so that our allocator is always properly initialized.
 			CAssert(pNewArray);
 
@@ -351,7 +404,16 @@ namespace Utl
 
 			// Free the old memory, and assign the new memory.
 			if (m_pValues && m_Capacity > 0)
-				m_Allocator.Free(m_pValues);
+			{
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pValues);
+				}
+				else
+				{
+					delete[] m_pValues;
+				}
+			}
 			m_pValues = pNewArray;
 
 			// Bump up our capacity!
@@ -362,31 +424,31 @@ namespace Utl
 		inline bool IsEmpty() const { return m_Count == 0; }
 
 		// Returns the current number of elements in the vector.
-		inline size_t Count() const { return m_Count; }
-		inline void	  SetCount(size_t count) { m_Count = count; }
+		inline u64 Count() const { return m_Count; }
+		inline void	  SetCount(u64 count) { m_Count = count; }
 
 		// Returns the number of bytes between elements in the vector.
-		inline size_t Stride() const { return m_ValueStride; }
+		inline u64 Stride() const { return m_ValueStride; }
 
 		// Returns the number of elements able to be stored without resizing the container.
-		inline size_t Capacity() const { return m_Capacity; }
+		inline u64 Capacity() const { return m_Capacity; }
 
 	private:
 		/* The current number of elements in the array (not necessarily the capacity) */
-		size_t m_Count;
+		u64 m_Count;
 
 		/* The maximum number of elements that can be held in the array. (Can be resized, of course) */
-		size_t m_Capacity;
+		u64 m_Capacity;
 
 		/* The stride of the elements (the length in bytes between each element) */
-		size_t m_ValueStride;
+		u64 m_ValueStride;
 
 		/* The multiplier to be used when the vector resizes to make more room. */
-		size_t m_ResizeFactor;
+		u64 m_ResizeFactor;
 
 		/* An allocator that can be used to make memory allocations from.
 		If not provided by the user, then an allocator to the application's heap will be created.*/
-		Allocator m_Allocator{};
+		IBaseMemoryAllocator* m_Allocator{ nullptr };
 
 		/* The data included in the array, can be accessed with the [] operators */
 		T* m_pValues;

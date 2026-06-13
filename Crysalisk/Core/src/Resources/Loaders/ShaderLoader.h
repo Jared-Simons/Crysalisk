@@ -25,7 +25,7 @@ namespace ShaderLoader
 			// A string representing this stage (e.g. 'vert' or 'frag').
 			char*				pszStageString{ nullptr };
 			// The size in bytes of this module's bytecode.
-			size_t				CodeDataSize{ 0 };
+			u64				CodeDataSize{ 0 };
 			// The bytecode for this shader stage.
 			Utl::CVector<byte>	pShaderModuleBytecode{};
 			// The name of the shader module.
@@ -156,18 +156,29 @@ namespace ShaderLoader
 			~ShaderUniformConfig_t()
 			{
 				if (pszName)
+				{
 					Utl::StringFree(pszName);
+					pszName = nullptr;
+				}
 
 				if (pszType)
+				{
 					Utl::StringFree(pszType);
+					pszType = nullptr;
+				}
 
 				if (pszFreq)
+				{
 					Utl::StringFree(pszFreq);
+					pszFreq = nullptr;
+				}
 			}
 		};
 
 		// The name of the shader.
 		char*										pszShaderName{ nullptr };
+		// The name of the renderpass this shader is configured for.
+		char*										pszRenderViewName{ nullptr };
 		// An array of shader stage configurations.
 		Utl::CVector<ShaderStageResource_t>			ShaderStages{};
 		// The type of topology rendering this shader supports.
@@ -184,7 +195,16 @@ namespace ShaderLoader
 		~ShaderResource_t()
 		{
 			if (pszShaderName)
+			{
 				Utl::StringFree(pszShaderName);
+				pszShaderName = nullptr;
+			}
+
+			if (pszRenderViewName)
+			{
+				Utl::StringFree(pszRenderViewName);
+				pszRenderViewName = nullptr;
+			}
 		}
 	};
 }

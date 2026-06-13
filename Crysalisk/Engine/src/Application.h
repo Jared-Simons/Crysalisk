@@ -18,12 +18,13 @@ struct ApplicationConfig_t
 	Platform::ISysModule*				pRendererLibrary{ nullptr };
 	Utl::CVector<RendererViewConfig_t>	renderViewConfigs{};
 
+	Utl::CVector<IRenderView*>			pViews{};
+
 	// TODO: This shouldn't happen here.
 	Platform::IPlatformWindow*			pWindowToRegisterWithRenderer{ nullptr };
 
 	~ApplicationConfig_t()
 	{
-		renderViewConfigs.Clear();
 	}
 };
 
@@ -36,4 +37,6 @@ public:
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 	virtual bool	Render() = 0;
 	virtual void	Shutdown() = 0;
+
+	virtual Camera_t*	GetMainCamera() = 0;
 };

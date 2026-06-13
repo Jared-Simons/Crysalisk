@@ -144,7 +144,7 @@ bool FileSystem::FileExists(const char* pszFileName)
 //							of the project.
 // Output: bool - Returns true if the file exists, otherwise false.
 //-------------------------------------------------------------------------
-size_t FileSystem::FileSize(FileHandle_t* pFileHandle)
+u64 FileSystem::FileSize(FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->bIsValid)
 	{
@@ -155,7 +155,7 @@ size_t FileSystem::FileSize(FileHandle_t* pFileHandle)
 
 	fseek(pInternalData, 0, SEEK_END);
 
-	size_t fileSize = ftell((FILE*)pFileHandle->pInternalData);
+	u64 fileSize = ftell((FILE*)pFileHandle->pInternalData);
 
 	// Return the file pointer back to the top of the file... else all further file reads will fail.
 	rewind(pInternalData);
@@ -171,7 +171,7 @@ size_t FileSystem::FileSize(FileHandle_t* pFileHandle)
 //		   pFileHandle - A pointer to the file handle to read from.
 // Output: bool - Returns true on successful read, otherwise false.
 //-------------------------------------------------------------------------
-bool FileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadLine(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -201,7 +201,7 @@ bool FileSystem::ReadLine(char* pBuffer, size_t bufferSize, size_t* pOutBytesRea
 //		   pFileHandle - A pointer to the file handle to read from.
 // Output: bool - Returns true on successful read, otherwise false.
 //-------------------------------------------------------------------------
-bool FileSystem::ReadWholeFile(char* pBuffer, size_t bufferSize, size_t* pOutBytesRead, FileHandle_t* pFileHandle)
+bool FileSystem::ReadWholeFile(char* pBuffer, u64 bufferSize, u64* pOutBytesRead, FileHandle_t* pFileHandle)
 {
 	if (!pFileHandle || !pFileHandle->bIsValid || !pBuffer || !bufferSize || !pOutBytesRead)
 	{
@@ -254,6 +254,16 @@ bool FileSystem::IsEOF(FileHandle_t* pFileHandle)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void FileSystem::ReturnFilePointerToHead(FileHandle_t* pFileHandle)
+{
+	CAssert(pFileHandle);
+	FILE* pInternalData = reinterpret_cast<FILE*>(pFileHandle->pInternalData);
+	rewind(pInternalData);
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Writes the text data in pBuffer to the provided file.
 // Input:  pBuffer - The buffer to write to the file.  
 //		   pFileHandle - A pointer to the file handle to write to.
@@ -274,7 +284,7 @@ void FileSystem::WriteLine(char* pBuffer, FileHandle_t* pFileHandle)
 //		   pFileHandle - A pointer to the file handle to write to.
 // Output: none.
 //-------------------------------------------------------------------------
-void FileSystem::WriteBytes(const void* pBytes, size_t dataSize, FileHandle_t* pFileHandle)
+void FileSystem::WriteBytes(const void* pBytes, u64 dataSize, FileHandle_t* pFileHandle)
 {
 	if (pBytes && pFileHandle)
 	{

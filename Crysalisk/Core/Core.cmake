@@ -29,14 +29,12 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Memory/DynamicAllocator.cpp
 	${CORE_ROOT}/Memory/DynamicAllocator.h
 	${CORE_ROOT}/Memory/IMemoryAllocator.h
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.cpp
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.h
+	${CORE_ROOT}/Memory/LinearAllocator.cpp
+	${CORE_ROOT}/Memory/LinearAllocator.h
 	${CORE_ROOT}/Memory/MemoryManager.cpp
 	${CORE_ROOT}/Memory/MemoryManager.h
 	${CORE_ROOT}/Platform/FileSystem.cpp
 	${CORE_ROOT}/Platform/FileSystem.h
-	${CORE_ROOT}/Platform/InterfaceRegistry.cpp
-	${CORE_ROOT}/Platform/InterfaceRegistry.h
 	${CORE_ROOT}/Platform/Platform.h
 	${CORE_ROOT}/Platform/Platform_Win32.cpp
 	${CORE_ROOT}/Renderer/Camera.cpp

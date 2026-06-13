@@ -10,11 +10,6 @@
 
 namespace MaterialSerializer
 {
-	// Specific file extension for the Crysalisk material file format (CMaterials).
-	static const char*	kMaterialFileExtension = ".cmat";
-	// The default asset path to store material in.
-	static const char*	kDefaultMaterialAssetPath = "Assets/Materials/";
-
 	//-------------------------------------------------------------------------
 	// Purpose: Takes an existing material resource imported from another file type, 
 	// and writes it out to disk in our own material format.
@@ -28,11 +23,11 @@ namespace MaterialSerializer
 		// Create and setup the file.
 
 		// Chop off the file extension.
-		size_t nameLength = Utl::StringLength(pszMaterialName);
-		size_t pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
-		size_t extensionLength = Utl::StringLength(kMaterialFileExtension);
+		u64 nameLength = Utl::StringLength(pszMaterialName);
+		u64 pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
+		u64 extensionLength = Utl::StringLength(kMaterialFileExtension);
 
-		char* pTempNameBuffer = new char[nameLength + pathLength + extensionLength + 1];
+		char pTempNameBuffer[512];
 		Utl::StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);
 
 		FileHandle_t hCMaterialFile{};
@@ -43,16 +38,11 @@ namespace MaterialSerializer
 
 		char tempDataBuffer[512];
 
-		// Write out the material data.
-		// First the name - this is required.
-		Utl::StringFormat_V("name=%s\n", tempDataBuffer, pInResource.pszMaterialName);
-		FileSystem::WriteLine(tempDataBuffer, &hCMaterialFile);
-
-		// Next up the shader - this is also required.
+		// First up the shader - this is also required.
 		if (pInResource.pszShaderName == nullptr)
 		{
 			// Don't spew warnings but just state this once.
-			LOG_WARN("No shader provided for material '%s'. Defaulting to 'Core.Phong'.", pInResource.pszMaterialName);
+			LOG_WARN("No shader provided for material '%s'. Defaulting to 'Core.Phong'.", pszMaterialName);
 
 			// Default hardcoded shader.
 			pInResource.pszShaderName = "Core.Phong";
@@ -89,8 +79,6 @@ namespace MaterialSerializer
 
 		// Close the file
 		FileSystem::CloseFile(&hCMaterialFile);
-
-		delete[] pTempNameBuffer;
 
 		return true;
 	}

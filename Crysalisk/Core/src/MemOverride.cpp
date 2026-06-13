@@ -11,7 +11,7 @@
 // Input:	size - The number of bytes to allocate.
 // Output:	A pointer to the new memory block.
 //-------------------------------------------------------------------------
-void* operator new(size_t size)
+void* operator new(u64 size)
 {
 	void* pMemBlock = g_pMemoryManager->Allocate(size);
 	return pMemBlock;
@@ -33,7 +33,7 @@ void operator delete(void* pMemBlock)
 // Input:	size - The number of bytes to allocate.
 // Output:	A pointer to the new memory block.
 //-------------------------------------------------------------------------
-void* operator new[](size_t size)
+void* operator new[](u64 size)
 {
 	void* pMemBlock = g_pMemoryManager->Allocate(size);
 	return pMemBlock;

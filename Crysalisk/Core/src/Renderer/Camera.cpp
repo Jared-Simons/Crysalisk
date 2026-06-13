@@ -6,8 +6,8 @@
 //=============================================================================
 #include "Camera.h"
 
-#include <Core/Engine.h>
 #include <Core/Input.h>
+#include "Platform/Platform.h"
 #include <Defines.h>
 
 //-------------------------------------------------------------------------
@@ -29,12 +29,6 @@ void Camera_t::RecalculateCameraVectors()
 
 	Vector3D newUp = Vector3D::Cross(vecRight, vecFront);
 	vecUp = newUp.Normalize();
-
-	// Recalculate the aspect ratio in case the resolution changed.
-	// TODO: This should probably be triggered any time the screen size changes.
-	unsigned int iWindowWidth, iWindowHeight;
-	//g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
-	//flAspectRatio = (iWindowWidth / (float)iWindowHeight);
 }
 
 //-------------------------------------------------------------------------
@@ -42,11 +36,20 @@ void Camera_t::RecalculateCameraVectors()
 // Input:	deltaTime - The time elapsed since this function was last called.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, double deltaTime)
+void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, f64 deltaTime)
 {
-	float velocity = (float)(2.5f * deltaTime);
-	const float cameraSpeedMultiplier = 100.0;
-	const float cameraRotationSpeedMultipler = 50.0f;
+	// Recalculate the aspect ratio in case the resolution changed.
+	if (bAspectRatioChanged && pWindow != nullptr)
+	{
+		u32 iWindowWidth, iWindowHeight;
+		pWindow->GetWindowSize(iWindowWidth, iWindowHeight);
+		flAspectRatio = (iWindowWidth / (f32)iWindowHeight);
+		bAspectRatioChanged = false;
+	}
+
+	f32 velocity = (f32)(2.5f * deltaTime);
+	const f32 cameraSpeedMultiplier = 100.0;
+	const f32 cameraRotationSpeedMultipler = 50.0f;
 
 	if (pInputSystem->IsKeyPressed(KEY_W))
 	{
@@ -110,8 +113,8 @@ void Camera_t::UpdateCameraData(class IInputSystem* pInputSystem, double deltaTi
 Frustum Camera_t::CreateFrustumFromCamera() const
 {
 	Frustum outFrustum{};
-	const float flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);
-	const float flHalfHSide = flHalfVSide * flAspectRatio;
+	const f32 flHalfVSide = flZFar * M_TAN_F(M_DEG2RAD_F(flFOV) * 0.5f);
+	const f32 flHalfHSide = flHalfVSide * flAspectRatio;
 	Vector3D vecFrontFar = vecFront * flZFar;
 
 	outFrustum.m_Faces[NEAR_FACE] = Plane::PlaneCreate(vecPosition + (vecFront * flZNear), vecFront);

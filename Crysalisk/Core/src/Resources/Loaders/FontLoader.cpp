@@ -15,12 +15,12 @@
 namespace FontLoader
 {
 	// The codepoint of the first char we include in our fonts.
-	const uint32_t kCodePointOfFirstChar = 32;
+	const u32 kCodePointOfFirstChar = 32;
 	// The number of characters we include in our font atlases.
-	const uint32_t kCharsToIncludeInFontAtlas = 95;
+	const u32 kCharsToIncludeInFontAtlas = 95;
 
 	// Forward Declarations
-	bool	LoadSingleTrueTypeFont(const char* pszFontPath, size_t iFontSize, bool bLoadAllGlyphs, FontResource_t& pOutResource);
+	bool	LoadSingleTrueTypeFont(const char* pszFontPath, u64 iFontSize, bool bLoadAllGlyphs, FontResource_t& pOutResource);
 
 	// @Multithreading: This function is a prime candidate for threading.
 	//-------------------------------------------------------------------------
@@ -32,7 +32,7 @@ namespace FontLoader
 	//			pOutResource - The loaded resource data.
 	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadFontResource(const char* pszFontPath, size_t iFontSize, FontResource_t& pOutResource) 
+	bool LoadFontResource(const char* pszFontPath, u64 iFontSize, FontResource_t& pOutResource) 
 	{
 		if (!LoadSingleTrueTypeFont(pszFontPath, iFontSize, true, pOutResource))
 		{
@@ -52,12 +52,12 @@ namespace FontLoader
 	//			pOutResource - The loaded resource data.
 	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadSingleTrueTypeFont(const char* pszFontPath, size_t iFontSize, bool bLoadAllGlyphs, FontResource_t& pOutResource)
+	bool LoadSingleTrueTypeFont(const char* pszFontPath, u64 iFontSize, bool bLoadAllGlyphs, FontResource_t& pOutResource)
 	{
-		size_t iTTFFileSize = 0;
-		size_t iBytesRead = 0;
-		Utl::CVector<uint8_t> ttfBytes = {};
-		uint8_t* pBufferPtr = nullptr;
+		u64 iTTFFileSize = 0;
+		u64 iBytesRead = 0;
+		Utl::CVector<u8> ttfBytes = {};
+		u8* pBufferPtr = nullptr;
 
 		stbtt_fontinfo	fontInfo = {};
 		// These will hold our intermediate font data.
@@ -87,7 +87,11 @@ namespace FontLoader
 		// Parse the font data.
 		stbtt_InitFont(&fontInfo, ttfBytes.Data(), 0);	// No offset for single-font files.
 
-		pOutResource.flFontScale = stbtt_ScaleForPixelHeight(&fontInfo, 12);
+		pOutResource.flFontScale = stbtt_ScaleForPixelHeight(&fontInfo, (f32)iFontSize);
+
+		i32 ascent, descent, lineGap;
+		stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+		pOutResource.lineHeight = (u32)((ascent - descent + lineGap) * pOutResource.flFontScale);
 
 		if (bLoadAllGlyphs)
 		{
@@ -118,7 +122,7 @@ namespace FontLoader
 				&packContext,
 				ttfBytes.Data(),
 				0,
-				(float)iFontSize,
+				(f32)iFontSize,
 				kCodePointOfFirstChar,
 				kCharsToIncludeInFontAtlas,
 				packedChars);
@@ -128,7 +132,7 @@ namespace FontLoader
 			// Make sure to get our quad texcoords as well.
 			for (int charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
 			{
-				float flUnusedX, flUnusedY;
+				f32 flUnusedX, flUnusedY;
 				stbtt_GetPackedQuad(
 					packedChars,
 					pImageResource.Width,

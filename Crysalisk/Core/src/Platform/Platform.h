@@ -32,9 +32,9 @@ namespace Platform
 	// Platform Layer Message Callbacks.
 	//-------------------------------------------------------------------------
 	typedef void (*Platform_KeyboardEventCallback)(const int processedKeyInput, bool pressed);
-	typedef void (*Platform_MouseButtonEventCallback)(unsigned int mouseButtonFlags, bool bPressed);
+	typedef void (*Platform_MouseButtonEventCallback)(u32 mouseButtonFlags, bool bPressed);
 	typedef void (*Platform_MouseMoveEventCallback)(const int mouseXPos, const int mouseYPos);
-	typedef bool (*Platform_WindowResizedCallback)(unsigned int width, unsigned int height);
+	typedef bool (*Platform_WindowResizedCallback)(u32 width, u32 height);
 	typedef void (*Platform_WindowCloseCallback)();
 
 	//-------------------------------------------------------------------------
@@ -46,7 +46,7 @@ namespace Platform
 		int			Y{};
 		int			Width{};
 		int			Height{};
-		float		flFOVDegrees{};
+		f32		flFOVDegrees{};
 		Matrix4x4	matProjection{};
 	};
 
@@ -58,7 +58,7 @@ namespace Platform
 	public:
 		virtual ~IPlatformWindow() {}
 
-		virtual void	GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) = 0;
+		virtual void	GetWindowSize(u32& pOutWidth, u32& pOutHeight) = 0;
 		virtual void*	GetInternalHandle() = 0;
 
 		virtual Viewport_t GetViewport() = 0;
@@ -79,23 +79,21 @@ namespace Platform
 	class ISysModule
 	{
 	public:
-		virtual void* ConnectInterface(void* pInterfaceState) = 0;
 		virtual void* GetFuncAddr(const char* pFuncName) = 0;
 	};
 
 	CORE_API ISysModule*	LoadSysModule(const char* pModulePath);
-	CORE_API void			SetupExternalInterfaces();
 
 	//-------------------------------------------------------------------------
 	// Threads
 	//-------------------------------------------------------------------------
 	CORE_API int		GetCurrentThreadID();
-	CORE_API size_t		GetNumberOfSystemProcessors();
+	CORE_API u64		GetNumberOfSystemProcessors();
 
 	class ISystemThread
 	{
 	public:
-		unsigned char m_iThreadID{ kInvalidID_U8 };
+		u8 m_iThreadID{ kInvalidID_U8 };
 	};
 
 	// Function pointer signature for thread entry points.
@@ -125,19 +123,19 @@ namespace Platform
 
 	CORE_API void	LogMessage(int level, const char* message);
 
-	CORE_API double	GetAbsoluteTime();
-	CORE_API void	ThreadSleep(double msToSleep);
+	CORE_API f64	GetAbsoluteTime();
+	CORE_API void	ThreadSleep(f64 msToSleep);
 
 	//-----------------------------------------------------------------------------
 	// Platform memory functions
 	// 
 	// Do NOT call these directly, instead call through the memory manager.
 	//-----------------------------------------------------------------------------
-	CORE_API void* MemoryAllocate(size_t size);
+	CORE_API void* MemoryAllocate(u64 size);
 	CORE_API void  MemoryFree(void* pMemoryBlock);
-	CORE_API void* MemoryReallocate(void* pMemBlock, size_t newSize);
-	CORE_API void* MemoryCopy(void* pDest, const void* pSource, size_t size);
-	CORE_API void* MemorySet(void* pMemBlock, int value, size_t size);
+	CORE_API void* MemoryReallocate(void* pMemBlock, u64 newSize);
+	CORE_API void* MemoryCopy(void* pDest, const void* pSource, u64 size);
+	CORE_API void* MemorySet(void* pMemBlock, int value, u64 size);
 
 	CORE_API IPlatformWindow* CreatePlatformWindow(WindowParams_t params, bool bShow);
 }

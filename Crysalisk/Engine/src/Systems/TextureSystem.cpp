@@ -40,12 +40,14 @@ public:
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
 
 	// Returns a texture's width/height.
-	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const override;
-	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureWidth(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureHeight(TextureHandle_t hTexture) const override;
 
 	// Use this to convert a texture handle to a texture pointer. This is necessary so the renderer can get at texture resources without relying on the texture system.
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
+
+	virtual bool				IsTextureLoaded(TextureHandle_t hTex) override { return m_TextureDictionary.m_TextureArray[hTex].internalHandle != kInvalidID_U32 && m_TextureDictionary.m_TextureArray[hTex].generation != kInvalidID_U8; }
 
 	// Getters for default textures.
 	virtual TextureHandle_t		GetDefaultDiffuseTexture() override { return m_pDefaultTextureLookup->TextureIndex; }
@@ -260,7 +262,6 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		textureLoadJob.ePriority = eJobPriority::NORMAL;
 
 		m_Config.pJobSystem->SubmitJob(textureLoadJob);
-		
 	}
 	else
 	{
@@ -269,7 +270,6 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
-	//CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -448,7 +448,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 // Input:	hTexture - The texture whose width to return.
 // Output:	Returns the texture's width.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].width;
 }
@@ -458,7 +458,7 @@ int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 // Input:	hTexture - The texture whose height to return.
 // Output:	Returns the texture's height.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].height;
 }
@@ -570,6 +570,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			newTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultTextureLookup = newTextureLookup;
+		defaultDiffuseTexture->generation = 0;
 	}
 
 	// Default white texture
@@ -613,6 +614,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultWhiteTextureLookup->TextureIndex = texIdx;
 
 		m_pWhiteTextureLookup = defaultWhiteTextureLookup;
+		defaultWhiteTexture->generation = 0;
 	}
 
 	// Default specular texture
@@ -656,6 +658,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultSpecularTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultSpecularTexture = defaultSpecularTextureLookup;
+		pDefaultSpecularTexture->generation = 0;
 	}
 
 	// Default normal texture
@@ -699,6 +702,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultNormalTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultNormalTexture = defaultNormalTextureLookup;
+		pDefaultNormalTexture->generation = 0;
 	}
 
 	return true;

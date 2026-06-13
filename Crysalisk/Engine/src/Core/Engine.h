@@ -31,7 +31,7 @@ struct EngineInterfaces_t
 	class IEventSystem*		pEngineEventHandler{ nullptr };
 	class IInputSystem*		pInputSystem{ nullptr };
 	class IRenderer*		pRenderer{ nullptr };
-	class IDebugRenderer*	pDebugRenderer{ nullptr };
+	class IDebugGeometrySystem*	pDebugGeometry{ nullptr };
 	class IJobSystem*		pJobSystem{ nullptr };
 	class ITextureSystem*	pTextureSystem{ nullptr };
 	class IShaderSystem*	pShaderSystem{ nullptr };
@@ -69,5 +69,5 @@ public:
 // Global interface to the engine context.
 extern IEngine* g_pEngine;
 
-ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
+ENGINE_API bool WindowResizeHandler(u32 width, u32 height);
 void WindowClosedHandler();

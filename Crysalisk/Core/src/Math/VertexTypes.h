@@ -39,8 +39,8 @@ public:
 	}
 
 	Vector3D Pos;
-	//Vector3D Color;
-	Vector2D TexCoord;
+	//Vector3D Color
 	Vector3D Normal;
+	Vector2D TexCoord;
 	Vector3D Tangent;
 };

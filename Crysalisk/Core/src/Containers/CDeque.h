@@ -6,12 +6,12 @@
 //=============================================================================
 #pragma once
 
-#include "Memory/MemoryAllocatorBase.h"
+#include "Memory/IMemoryAllocator.h"
 #include "Platform/Platform.h"
 
 namespace Utl
 {
-	template<typename T, class Allocator = Utl::CBaseMemoryAllocator>
+	template<typename T>
 	class CDeque
 	{
 	public:
@@ -27,10 +27,18 @@ namespace Utl
 		//--------------------------------------------------
 		// Creates a deque with space for 'initialCapacity' number of elements.
 		//--------------------------------------------------
-		CDeque(size_t initialCapacity)
+		CDeque(u64 initialCapacity)
 		{
 			// Allocate new memory and place the objects in there.
-			void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * sizeof(T)));
+			void* pNewMemory = nullptr;
+			if (m_Allocator != nullptr)
+			{
+				pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(initialCapacity * sizeof(T)));
+			}
+			else
+			{
+				pNewMemory = new T[initialCapacity];
+			}
 			m_pData = new (pNewMemory) T[initialCapacity];
 			m_iElementCapacity = initialCapacity;
 		}
@@ -45,11 +53,19 @@ namespace Utl
 			, m_iTailElement{ pOtherDeque.m_iTailElement }
 		{
 			// Copy over the allocator, in case it's a custom implementation.
-			Platform::MemoryCopy(&m_Allocator, &pOtherDeque.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -65,11 +81,19 @@ namespace Utl
 			, m_iTailElement{ pOtherDeque.m_iTailElement }
 		{
 			// Copy over the allocator, in case it's a custom implementation.
-			Platform::MemoryCopy(&m_Allocator, &pOtherDeque.m_Allocator, sizeof(Allocator));
+			m_Allocator = pOtherVector.m_Allocator;
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -90,7 +114,15 @@ namespace Utl
 
 			if (m_iElementCapacity)
 			{
-				void* pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				void* pNewMemory = nullptr;
+				if (m_Allocator != nullptr)
+				{
+					pNewMemory = reinterpret_cast<T*>(m_Allocator.Allocate(m_iElementCapacity * sizeof(T)));
+				}
+				else
+				{
+					pNewMemory = new T[m_iElementCapacity];
+				}
 				m_pData = new (pNewMemory) T[m_iElementCapacity];
 				Platform::MemoryCopy(m_pData, pOtherDeque.m_pData, pOtherDeque.m_iElementCount * sizeof(T));
 			}
@@ -104,7 +136,14 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator.Free(m_pData);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pData);
+				}
+				else
+				{
+					delete[] m_pData;
+				}
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -117,7 +156,14 @@ namespace Utl
 		{
 			if (m_pData && m_iElementCapacity > 0)
 			{
-				m_Allocator.Free(m_pData);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(m_pData);
+				}
+				else
+				{
+					delete[] m_pData;
+				}
 				m_pData = nullptr;
 				m_iElementCapacity = 0;
 			}
@@ -126,7 +172,7 @@ namespace Utl
 		//--------------------------------------------------
 		// Resizes the deque.
 		//--------------------------------------------------
-		void Resize(size_t iNewCapacity)
+		void Resize(u64 iNewCapacity)
 		{
 			T* pOldBlock = nullptr;
 			if (m_pData)
@@ -135,7 +181,16 @@ namespace Utl
 			}
 
 			// Allocate a new block.
-			void* pNewMemory = m_Allocator.Allocate(iNewCapacity * sizeof(T));
+			void* pNewMemory = nullptr;
+			if (m_Allocator != nullptr)
+			{
+				pNewMemory = m_Allocator->Allocate(iNewCapacity * sizeof(T));
+			}
+			else
+			{
+				pNewMemory = new T[iNewCapacity];
+			}
+			
 			m_pData = new (pNewMemory) T[iNewCapacity];
 
 			// Copy over the existing data.
@@ -147,7 +202,14 @@ namespace Utl
 			// Free the old block.
 			if (pOldBlock)
 			{
-				m_Allocator.Free(pOldBlock);
+				if (m_Allocator != nullptr)
+				{
+					m_Allocator->Free(pOldBlock);
+				}
+				else
+				{
+					delete[] pOldBlock;
+				}
 			}
 			m_iElementCapacity = iNewCapacity;
 		}
@@ -155,7 +217,7 @@ namespace Utl
 		//--------------------------------------------------
 		// Element indexing.
 		//--------------------------------------------------
-		inline T& ElementAt(size_t iIndex) const
+		inline T& ElementAt(u64 iIndex) const
 		{
 			return m_pData[iIndex];
 		}
@@ -163,12 +225,12 @@ namespace Utl
 		//--------------------------------------------------
 		// Same as above, allows for indexing like an array.
 		//--------------------------------------------------
-		inline T& operator[](size_t index)
+		inline T& operator[](u64 index)
 		{
 			return ElementAt(index);
 		}
 
-		inline const T& operator[](size_t index) const
+		inline const T& operator[](u64 index) const
 		{
 			return ElementAt(index);
 		}
@@ -228,17 +290,17 @@ namespace Utl
 
 		int		HeadIndex() const { return m_iHeadElement; }
 
-		size_t	Count() const { return m_iElementCount; }
-		size_t	Capacity() const { return m_iElementCapacity; }
+		u64	Count() const { return m_iElementCount; }
+		u64	Capacity() const { return m_iElementCapacity; }
 
 	private:
-		size_t						m_iElementCount{ 0 };
-		size_t						m_iElementCapacity{ 0 };
-		int32_t						m_iHeadElement{ 0 };
-		int32_t						m_iTailElement{ -1 };
+		u64						m_iElementCount{ 0 };
+		u64						m_iElementCapacity{ 0 };
+		i32						m_iHeadElement{ 0 };
+		i32						m_iTailElement{ -1 };
 
 		// NOTE: Not using a CVector because we do not want this to automatically resize.
-		Allocator					m_Allocator{};
+		IBaseMemoryAllocator*		m_Allocator{};
 		T*							m_pData{ nullptr };
 	};
 }

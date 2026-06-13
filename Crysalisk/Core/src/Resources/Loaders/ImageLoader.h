@@ -30,7 +30,7 @@ namespace ImageLoader
 	{
 		int		Width{ 0 };
 		int		Height{ 0 };
-		uint8_t	NumChannels{ 0 };
+		u8	NumChannels{ 0 };
 		bool	bIsTransparent{ false };
 		byte*	pPixelData{ nullptr };
 

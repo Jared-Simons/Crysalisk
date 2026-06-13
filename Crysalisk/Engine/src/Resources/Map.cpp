@@ -6,14 +6,15 @@
 //=============================================================================
 #include "Map.h"
 
+#include <Containers/CVector.h>
 #include <Core/Logging.h>
 #include "Core/Engine.h"
 #include <Math/MathLib.h>
 #include "Renderer/Renderer.h"
 #include <Strings/String_Utils.h>
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/MeshSystem.h"
-#include "Renderer/DebugRenderer.h"
 
 bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource)
 {
@@ -84,17 +85,37 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 
 	// Setup light data.
 	MapLoader::MapResource_t::LightResource_t& dirLight = pNewMapResource.DirectionalLight;
-	MapLoader::MapResource_t::LightResource_t& pointLight1 = pNewMapResource.PointLights[0];
-	MapLoader::MapResource_t::LightResource_t& pointLight2 = pNewMapResource.PointLights[1];
-	MapLoader::MapResource_t::LightResource_t& pointLight3 = pNewMapResource.PointLights[2];
-	MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
-	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
+	pMaterialSystem->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
 
- 	pMaterialSystem->SetDirectionalLightData(dirLight.vecDirection, dirLight.lightColor, dirLight.flBrightness, dirLight.ambientLightColor, dirLight.flAmbientStrength);
-	pMaterialSystem->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
-	pMaterialSystem->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
-	pMaterialSystem->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
-	pMaterialSystem->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	if (pNewMapResource.PointLights.Count() > 0)
+	{
+		MapLoader::MapResource_t::LightResource_t& pointLight1 = pNewMapResource.PointLights[0];
+		MapLoader::MapResource_t::LightResource_t& pointLight2 = pNewMapResource.PointLights[1];
+		MapLoader::MapResource_t::LightResource_t& pointLight3 = pNewMapResource.PointLights[2];
+		MapLoader::MapResource_t::LightResource_t& pointLight4 = pNewMapResource.PointLights[3];
+
+		pMaterialSystem->SetPointLightData(0, pointLight1.vecPosition, pointLight1.lightColor, pointLight1.flBrightness, pointLight1.flConstant, pointLight1.flLinear, pointLight1.flQuadratic);
+		pMaterialSystem->SetPointLightData(1, pointLight2.vecPosition, pointLight2.lightColor, pointLight2.flBrightness, pointLight2.flConstant, pointLight2.flLinear, pointLight2.flQuadratic);
+		pMaterialSystem->SetPointLightData(2, pointLight3.vecPosition, pointLight3.lightColor, pointLight3.flBrightness, pointLight3.flConstant, pointLight3.flLinear, pointLight3.flQuadratic);
+		pMaterialSystem->SetPointLightData(3, pointLight4.vecPosition, pointLight4.lightColor, pointLight4.flBrightness, pointLight4.flConstant, pointLight4.flLinear, pointLight4.flQuadratic);
+	}
+	else
+	{
+		// TODO: If no lights are present in the map file, default to fullbright?
+
+		// If there is no lighting data present, we need to make sure to default everything to 0 EXCEPT for the quadratic attenuation term!
+		// If all 3 attenuation terms are 0, then there'll be NaNs in the shader. We'll use the standard 1-quadratic as a default.
+		Vector vecZero(0.0f, 0.0f, 0.0f);
+		pMaterialSystem->SetPointLightData(0, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(1, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(2, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+		pMaterialSystem->SetPointLightData(3, vecZero, vecZero, 0.0f, 0.0f, 0.0f, 1.0f);
+	}
+	
+	MapLoader::MapResource_t::LightResource_t* spotLight = &pNewMapResource.SpotLight;
+	if ((spotLight->flLinear < kVectorElementEpsilon) && (spotLight->flConstant < kVectorElementEpsilon) && (spotLight->flQuadratic < kVectorElementEpsilon))	// No NaNs!
+		spotLight->flQuadratic = 1.0f;
+
 	pMaterialSystem->SetSpotLightData(spotLight->vecPosition, spotLight->vecDirection, spotLight->lightColor, spotLight->flBrightness, spotLight->flConstant, spotLight->flLinear, spotLight->flQuadratic, spotLight->flInnerCutoff, spotLight->flOuterCutoff);
 	pMaterialSystem->ApplyLightData();
 
@@ -121,7 +142,7 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<Matrix4x4>& pTransformationMatrices, Utl::CVector<GeometryInstance_t*>& pVisibleOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pVisibleTranslucentGeometries, unsigned int* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, u32* pCulledGeometries) const
 {
 	const Mesh*			pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
@@ -130,9 +151,6 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 	{
  		pCurrentMesh = m_hMeshes[iMesh].pMesh;
 		CAssert(pCurrentMesh);
-
-		// Split out transform matrices.
-		pTransformationMatrices.PushBack(m_hMeshes[iMesh].pMesh->m_matLocalToWorldTransform);
 
 		for (int iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
 		{
@@ -147,9 +165,9 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
 
 			Vector3D vecHalfExtents = {
-				(float)M_ABS(vecMaxExtents.x - vecCenter.x),
-				(float)M_ABS(vecMaxExtents.y - vecCenter.y),
-				(float)M_ABS(vecMaxExtents.z - vecCenter.z)
+				(f32)M_ABS(vecMaxExtents.x - vecCenter.x),
+				(f32)M_ABS(vecMaxExtents.y - vecCenter.y),
+				(f32)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
 			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
@@ -161,15 +179,15 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 			if (bIsInCameraFrustum)
 			{
 				// TODO: is there a good way to cache this state off instead of querying it everytime?
-				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hMaterial))
+				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hShaderInstance))
 				{
-					pVisibleOpaqueGeometries.PushBack(pCurrentSubmesh);
-					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pOpaqueGeometries.PushBack(pCurrentSubmesh);
+					pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 				else
 				{
-					pVisibleTranslucentGeometries.PushBack(pCurrentSubmesh);
-					pVisibleOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pTransparentGeometries.PushBack(pCurrentSubmesh);
+					pTransparentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
 				}
 			}
 			else
@@ -181,9 +199,7 @@ void CMap::GetRenderablesFromScene(IMaterialSystem* pMaterialSystem, Frustum& pC
 	}
 }
 
-static unsigned int iCurrentRayDebugGeoID{ kInvalidID_U32 };
-
-void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
+void CMap::CastRayIntoScene(Ray_t& pRay, IDebugGeometrySystem* pDebugGeometry) const
 {
 	pRay.bDidHit = false;
 	pRay.flDistance = kFLT_MAX;
@@ -192,7 +208,7 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 	// TODO: This would be GREATLY enhanced with a spatial-partitioning structure.
 	const Mesh* pCurrentMesh = nullptr;
 	GeometryInstance_t* pCurrentSubmesh = nullptr;
-	unsigned int iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
+	u32 iHitMesh{ kInvalidID_U32 }, iHitSubmesh{ kInvalidID_U32 };
 
 	for (int iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
@@ -220,8 +236,8 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 			Vector vecMins = pCurrentSubmesh->vecMinExtents;
 			Vector vecMaxs = pCurrentSubmesh->vecMaxExtents;
 
-			float flTMin = kFLT_MAX;
-			float flTMax = kFLT_MIN;
+			f32 flTMin = kFLT_MAX;
+			f32 flTMax = kFLT_MIN;
 
 			Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
 			Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
@@ -229,33 +245,19 @@ void CMap::CastRayIntoScene(Ray_t& pRay, IDebugRenderer* pDebugRenderer) const
 			Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
 			Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
 
-			float flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
-			float flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+			f32 flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+			f32 flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
 
 			if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
 			{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
  				pRay.bDidHit = true;
 				pRay.flDistance = flTNearMax;
 				pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
+				pRay.pHitGeometry = pCurrentSubmesh;
 				iHitMesh = iMesh;
 				iHitSubmesh = iSubMesh;
 			}
 		}
-	}
-
-	// Outline the geometry that we hit.
-	if (iHitMesh != kInvalidID_U32 && iHitSubmesh != kInvalidID_U32)
-	{
-		if (iCurrentRayDebugGeoID != kInvalidID_U32)
-			pDebugRenderer->RemoveDebugGeometry(iCurrentRayDebugGeoID);
-
-		GeometryInstance_t& pGeometry = m_hMeshes[iHitMesh].pMesh->m_Geometries[iHitSubmesh];
-		iCurrentRayDebugGeoID = pDebugRenderer->AddBBox(pGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
-	}
-	if (!pRay.bDidHit)
-	{
-		// Just cast the ray off to the limits of the space.
-		pRay.vecEnd = pRay.vecOrigin + pRay.vecDirection * pRay.flDistance;
 	}
 }
 

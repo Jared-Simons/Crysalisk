@@ -32,7 +32,7 @@ namespace Utl
 	//		   bStoreFreelistInMemoryBlock - This should ALWAYS be true, as the alternative is not yet implemented...
 	// Output: none.
 	//-------------------------------------------------------------------------
-	void DynamicAllocator::InitAllocatorInternals(size_t sizeInBytes, void* pMemoryBlock, bool bStoreFreelistInMemoryBlock = true)
+	void DynamicAllocator::InitAllocatorInternals(u64 sizeInBytes, void* pMemoryBlock, bool bStoreFreelistInMemoryBlock = true)
 	{
 		CAssert(sizeInBytes > 0 && pMemoryBlock != nullptr);
 		CASSERTMSG(bStoreFreelistInMemoryBlock == true, "DynamicAllocators currently need to store the freelist in the provided memory block!")
@@ -44,8 +44,8 @@ namespace Utl
 		{
 			// Initialize the freelist now.
 			m_FreeList.InitFreelist(pMemoryBlock);
-			size_t freelistArraySize = m_FreeList.GetInternalMemoryRequirement();
-			m_pMemoryBlock = reinterpret_cast<uint8_t*>(m_pMemoryBlock) + freelistArraySize;
+			u64 freelistArraySize = m_FreeList.GetInternalMemoryRequirement();
+			m_pMemoryBlock = reinterpret_cast<u8*>(m_pMemoryBlock) + freelistArraySize;
 			m_FreeList.SetNumBytesToTrack(sizeInBytes - freelistArraySize);
 		}
 	}
@@ -70,16 +70,16 @@ namespace Utl
 	//				Must be > 0!
 	// Output: A pointer to the allocated memory.
 	//-------------------------------------------------------------------------
-	void* DynamicAllocator::Allocate(size_t size)
+	void* DynamicAllocator::Allocate(u64 size)
 	{
 		CAssert(size > 0);
 		void* pNewBlock = nullptr;
 
-		size_t offset = m_FreeList.Allocate(size + kAllocHeaderSize);
-		AllocHeader_t* newHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(m_pMemoryBlock) + offset);
+		u64 offset = m_FreeList.Allocate(size + kAllocHeaderSize);
+		AllocHeader_t* newHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<u8*>(m_pMemoryBlock) + offset);
 		newHeader->Offset = offset;
 		newHeader->Size = size;
-		pNewBlock = reinterpret_cast<uint8_t*>(newHeader) + kAllocHeaderSize;
+		pNewBlock = reinterpret_cast<u8*>(newHeader) + kAllocHeaderSize;
 
 		return pNewBlock;
 	}
@@ -95,7 +95,7 @@ namespace Utl
 	{
 		CAssert(pMemoryBlock != nullptr);
 
-		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<uint8_t*>(pMemoryBlock) - kAllocHeaderSize);
+		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<u8*>(pMemoryBlock) - kAllocHeaderSize);
 
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);

@@ -7,22 +7,17 @@
 #include "Engine.h"
 
 #include "Application.h"
-#include <Containers/CHashMap.h>
-#include <Containers/CVector.h>
-#include <Core/Clock.h>
 #include <Core/Event.h>
-#include <Core/Input.h>
 #include <Core/Logging.h>
 #include <Memory/MemoryManager.h>
-#include <Platform/InterfaceRegistry.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
 #include "Resources/GeometryGenerator.h"
 #include "Resources/Map.h"
 #include <Strings/String_Utils.h>
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
@@ -35,15 +30,15 @@ static bool s_bApplicationSuspended{ false };
 bool		s_bLevelGeometryLoaded{ false };
 
 // Engine Event Handlers
-static bool Event_ApplicationQuit(EventData_t data);
-static bool Event_KeyPressed(EventData_t data);
-static bool Event_KeyReleased(EventData_t data);
-static bool Event_MouseButtonPressed(EventData_t data);
-static bool Event_MouseButtonReleased(EventData_t data);
-static bool Event_MouseMoved(EventData_t data);
-static bool Event_WindowResized(EventData_t data);
-static bool Event_WindowResizedPause(EventData_t data);
-static bool Event_WindowResizedUnpause(EventData_t data);
+static bool Event_ApplicationQuit(void* pEventListener, EventData_t data);
+static bool Event_KeyPressed(void* pEventListener, EventData_t data);
+static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+static bool Event_MouseButtonPressed(void* pEventListener, EventData_t data);
+static bool Event_MouseButtonReleased(void* pEventListener, EventData_t data);
+static bool Event_MouseMoved(void* pEventListener, EventData_t data);
+static bool Event_WindowResized(void* pEventListener, EventData_t data);
+static bool Event_WindowResizedPause(void* pEventListener, EventData_t data);
+static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data);
 
 //-------------------------------------------------------------------------
 // Implementation of the core engine class.
@@ -68,15 +63,16 @@ private:
 	EngineInterfaces_t		m_EngineInterfaces{};
 
 	Platform::IPlatformWindow* m_pEngineWindow = nullptr;
+	RenderPacket_t				m_FrameRenderData{};
 
 	CMap			m_CurrentMap{};
 
 	Clock			m_UpdateClock{};
-	double			m_LastUpdateTime{ 0.0f };
+	f64			m_LastUpdateTime{ 0.0f };
 
 	// These need access to our members.
-	friend static bool Event_KeyReleased(EventData_t data);
-	friend static bool Event_MouseButtonReleased(EventData_t data);
+	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+	friend static bool Event_MouseButtonReleased(void* pEventListener, EventData_t data);
 };
 
 // Engine context.
@@ -97,7 +93,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(200);
+	memoryConfig.totalMemoryBudget = MEBIBYTES(1000);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.
@@ -158,9 +154,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// The Core.dll gets it's interfaces separately because it is linked at link-time (TODO: Maybe this should work like every other lib?)
-	Platform::SetupExternalInterfaces();
-
 	// Input System.
 	IInputSystem::AllocateInputSystemState(&m_EngineInterfaces.pInputSystem);
 	if (!m_EngineInterfaces.pInputSystem->Initialize(*m_pEngineWindow, m_EngineInterfaces.pEngineEventHandler))
@@ -212,9 +205,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
-	// Setup application-specific renderer state.
-	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->renderViewConfigs);
-
 	// Save off a pointer to the renderer library so apps can have it.
 	engineConfig.pAppConfig->pRendererLibrary = pRendererModule;
 
@@ -250,10 +240,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	debugRendererConfig.pRenderer = m_EngineInterfaces.pRenderer;
 	debugRendererConfig.pShaderSystem = m_EngineInterfaces.pShaderSystem;
 	
-	IDebugRenderer::AllocateDebugRendererState(&m_EngineInterfaces.pDebugRenderer);
-	if (!m_EngineInterfaces.pDebugRenderer->Initialize(debugRendererConfig))
+	IDebugGeometrySystem::AllocateDebugGeometrySystemState(&m_EngineInterfaces.pDebugGeometry);
+	if (!m_EngineInterfaces.pDebugGeometry->Initialize(debugRendererConfig))
 	{
-		LOG_ERROR("Failed to initialize the debug renderer.");
+		LOG_ERROR("Failed to initialize the debug geometry system.");
 		return false;
 	}
 
@@ -287,6 +277,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Font system.
 	FontSystemConfig_t fontSysConfig{};
 	fontSysConfig.MaxFonts = 19;
+	fontSysConfig.pRenderer = m_EngineInterfaces.pRenderer;
 	fontSysConfig.pTextureSystem = m_EngineInterfaces.pTextureSystem;
 	fontSysConfig.pShaderSystem = m_EngineInterfaces.pShaderSystem;
 
@@ -297,6 +288,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		return false;
 	}
 
+	// Setup application-specific renderer state.
+	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->pViews);
+
 	// Initialize the application.
 	engineConfig.pAppConfig->pEngine = this;
 	m_pApplication->Initialize(engineConfig.pAppConfig);
@@ -306,6 +300,16 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	{
 		m_EngineInterfaces.pRenderer->RegisterWindow(*engineConfig.pAppConfig->pWindowToRegisterWithRenderer);
 	}
+	else
+	{
+		// Register the game window with the renderer.
+		m_EngineInterfaces.pRenderer->RegisterWindow(*m_pEngineWindow);
+	}
+
+	// Run Post-Engine initialize routines.
+	m_EngineInterfaces.pRenderer->PostInitialize(m_FrameRenderData);
+	m_EngineInterfaces.pMaterialSystem->PostInitialize();
+	m_EngineInterfaces.pFontSystem->PostInitialize();
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
@@ -314,9 +318,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
-
-	// Create temporary geometry.
-	m_EngineInterfaces.pRenderer->CreateTempTextObjects();
 
 	return true;
 }
@@ -330,6 +331,7 @@ bool CEngine::Run()
 {
 	m_UpdateClock.Start();
 
+	m_EngineInterfaces.pDebugGeometry->AddText(m_EngineInterfaces.pFontSystem, Vector{ 815.0f, 238.0f, -224.0f }, 0, "*  THIS IS A BAR!", Vector4D{ 1.0f, 0.8f, 0.0f, 1.0f }, - 1.0f);
 	while (!s_bApplicationQuitCalled)
 	{
 		Platform::ProcessMessages();
@@ -338,8 +340,8 @@ bool CEngine::Run()
 		if (!s_bApplicationSuspended && !s_bApplicationQuitCalled)
 		{
 			// Calculate our update delta time.
-			double currentFrameTime = m_UpdateClock.GetElapsedTime();
-			double deltaTime = currentFrameTime - m_LastUpdateTime;
+			f64 currentFrameTime = m_UpdateClock.GetElapsedTime();
+			f64 deltaTime = currentFrameTime - m_LastUpdateTime;
 			m_LastUpdateTime = currentFrameTime;
 
 			m_EngineInterfaces.pInputSystem->Update();
@@ -354,11 +356,10 @@ bool CEngine::Run()
 			// Handle jobs.
 			m_EngineInterfaces.pJobSystem->Update();
 
-			RenderPacket_t frameRenderData{};
-			frameRenderData.DeltaTime = deltaTime;
+			m_FrameRenderData.DeltaTime = deltaTime;
 
 			// Get render data from the application.
-			m_pApplication->FramePrepare(&frameRenderData);
+			m_pApplication->FramePrepare(&m_FrameRenderData);
 
 			// Run the app's render routine.
 			if (!m_pApplication->Render())
@@ -367,8 +368,16 @@ bool CEngine::Run()
 				return false;
 			}
 
-			// Get our renderable geometry from the map.
-			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, frameRenderData, &m_CurrentMap);
+			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, m_FrameRenderData, &m_CurrentMap);
+		}
+	}
+
+	for (int iView = 0; iView < RENDER_VIEW_MAX_TYPES; iView++)
+	{
+		if (m_FrameRenderData.pRenderViewExtendedData[iView])
+		{
+			delete m_FrameRenderData.pRenderViewExtendedData[iView];
+			m_FrameRenderData.pRenderViewExtendedData[iView] = nullptr;
 		}
 	}
 
@@ -406,9 +415,9 @@ void CEngine::Shutdown()
 	delete m_EngineInterfaces.pMaterialSystem;
 	m_EngineInterfaces.pMaterialSystem = nullptr;
 
-	m_EngineInterfaces.pDebugRenderer->Shutdown();
-	delete m_EngineInterfaces.pDebugRenderer;
-	m_EngineInterfaces.pDebugRenderer = nullptr;
+	m_EngineInterfaces.pDebugGeometry->Shutdown();
+	delete m_EngineInterfaces.pDebugGeometry;
+	m_EngineInterfaces.pDebugGeometry = nullptr;
 
 	m_EngineInterfaces.pShaderSystem->Shutdown();
 	delete m_EngineInterfaces.pShaderSystem;
@@ -441,7 +450,6 @@ void CEngine::Shutdown()
 		m_pEngineWindow = nullptr;
 	}
 
-	Platform::CleanupInterfaceRegistry();
 	Platform::ShutdownPlatformLayer();
 
 	m_EngineInterfaces.pInputSystem->Shutdown();
@@ -462,14 +470,14 @@ void CEngine::Shutdown()
 //-------------------------------------------------------------------------
 // Engine-level event handlers.
 //-------------------------------------------------------------------------
-bool Event_ApplicationQuit(EventData_t data)
+bool Event_ApplicationQuit(void* pEventListener, EventData_t data)
 {
 	LOG_VERBOSE("Application_Quit() called");
 	s_bApplicationQuitCalled = true;
 	return true;
 }
 
-bool Event_KeyPressed(EventData_t data)
+bool Event_KeyPressed(void* pEventListener, EventData_t data)
 {
 	char keycode = *data.c;
 	//if (keycode >= 65 && keycode <= 90)
@@ -477,7 +485,7 @@ bool Event_KeyPressed(EventData_t data)
 	return true;
 }
 
-bool Event_KeyReleased(EventData_t data)
+bool Event_KeyReleased(void* pEventListener, EventData_t data)
 {
 	char keycode = *data.c;
 	//if (keycode >= 65 && keycode <= 90)
@@ -518,22 +526,22 @@ bool Event_KeyReleased(EventData_t data)
 	return true;
 }
 
-bool Event_MouseButtonPressed(EventData_t data)
+bool Event_MouseButtonPressed(void* pEventListener, EventData_t data)
 {
 	u32 mouseButtonFlags = *data.u16;
 	//LOG_DEBUG("%s Mouse Button Pressed", e_MouseButtonTable_Strings[mouseButtonFlags]);
 	return true;
 }
 
-bool Event_MouseButtonReleased(EventData_t data)
+bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 {
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		Camera_t mainCamera = s_Engine.m_EngineInterfaces.pRenderer->GetMainCamera();
+		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
 
 		int iMouseX{ 0 }, iMouseY{ 0 };
-		unsigned int iWindowWidth{ 0 }, iWindowHeight{ 0 };
+		u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
 		Vector4D vecPosClip{};
 
 		// First, get the mouse coordinates in viewport-space.
@@ -555,44 +563,51 @@ bool Event_MouseButtonReleased(EventData_t data)
 		vecPosCamera.w = 0.0f;
 
 		// Camera space -> World space:
-		Vector vecRayDir = (mainCamera.GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+		Vector vecRayDir = (pMainCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
 		vecRayDir.NormalizeInPlace();
 
 		Ray_t ray{};
-		ray.vecOrigin = mainCamera.vecPosition;
+		ray.vecOrigin = pMainCamera->vecPosition;
 		ray.vecDirection = vecRayDir;
 
 		// We can only actually cast the ray if the level is loaded.
 		if (s_Engine.GetCurrentMap().IsMapLoaded())
 		{
-			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugRenderer);
-
+			s_Engine.GetCurrentMap().CastRayIntoScene(ray, s_Engine.GetEngineInterfaces()->pDebugGeometry);
 			Vector4D rayColor{};
 			if (ray.bDidHit)
 			{
+				LOG_DEBUG("HIT");
 				rayColor = { 0.0f, 1.0f, 0.0f, 1.0f };
 			}
 			else
 			{
+				LOG_DEBUG("MISS");
 				rayColor = { 1.0f, 0.0f, 0.0f, 1.0f };
 			}
-			s_Engine.GetEngineInterfaces()->pDebugRenderer->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugGeometry->AddPoint(ray.vecEnd, 30.0f, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, 5.0f);
+			s_Engine.GetEngineInterfaces()->pDebugGeometry->AddLine(ray.vecOrigin, ray.vecEnd, rayColor, 5.0f);
+			
+			if (ray.pHitGeometry)
+			{
+				s_Engine.GetEngineInterfaces()->pDebugGeometry->AddBBox(*ray.pHitGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, 5.0f);
+			}
 		}
 	}
 
 	return true;
 }
 
-bool Event_MouseMoved(EventData_t data)
+bool Event_MouseMoved(void* pEventListener, EventData_t data)
 {
-	float mouseXPos = data.f32[0];
-	float mouseYPos = data.f32[1];
+	f32 mouseXPos = data.f32[0];
+	f32 mouseYPos = data.f32[1];
 
 	//LOG_DEBUG("Mouse Pos: X:%f Y:%f", mouseXPos, mouseYPos);
 	return true;
 }
 
-static bool Event_WindowResized(EventData_t data)
+static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	u32 width, height;
 	width = data.u16[0];
@@ -612,13 +627,13 @@ static bool Event_WindowResized(EventData_t data)
 	return true;
 }
 
-static bool Event_WindowResizedPause(EventData_t data)
+static bool Event_WindowResizedPause(void* pEventListener, EventData_t data)
 {
 	s_bApplicationSuspended = true;
 	return true;
 }
 
-static bool Event_WindowResizedUnpause(EventData_t data)
+static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data)
 {
 	s_bApplicationSuspended = false;
 	return true;
@@ -638,7 +653,7 @@ void ReturnInterfacesToRegistry()
 //-------------------------------------------------------------------------
 // An callback that is exported so other libraries can call window resize events.
 //-------------------------------------------------------------------------
-bool WindowResizeHandler(unsigned int width, unsigned int height)
+bool WindowResizeHandler(u32 width, u32 height)
 {
 	EventData_t data{};
 	data.u32[0] = width;
@@ -649,7 +664,7 @@ bool WindowResizeHandler(unsigned int width, unsigned int height)
 }
 
 //-------------------------------------------------------------------------
-// An callback the allows the window to fire engine-shutdown events.
+// An callback that allows the window to fire engine-shutdown events.
 //-------------------------------------------------------------------------
 void WindowClosedHandler()
 {

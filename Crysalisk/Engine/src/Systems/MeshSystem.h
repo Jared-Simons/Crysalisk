@@ -16,7 +16,7 @@
 struct MeshSystemConfig_t
 {
 	// The max number of meshes that can be registered with the mesh system.
-	size_t	MaxMeshes{ 0 };
+	u64	MaxMeshes{ 0 };
 
 	// A pointer to the render system.
 	class IRenderer* pRenderer{ nullptr };

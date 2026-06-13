@@ -15,6 +15,11 @@
 #include <Resources/Map.h>
 #include <Systems/MaterialSystem.h>
 
+// Render views.
+#include <Renderer/Views/3D_Scene_View.h>
+#include <Renderer/Views/Debug_Render_View.h>
+#include <Renderer/Views/UI_View.h>
+
 // Cryaslisk Engine entry point.
 extern "C"
 {
@@ -32,16 +37,21 @@ public:
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
+	virtual Camera_t* GetMainCamera() override { return &m_MainCamera; }
+
 private:
 	void			ConfigureRenderViews(ApplicationConfig_t* pAppConfig);
 
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
 	Camera_t				m_MainCamera{};
+	
+	// These need access to our members.
+	friend static bool Event_WindowResized(void* pEventListener, EventData_t data);
 };
 
 static CGameApp s_GameApp{};
 
-static bool Event_WindowResized(EventData_t data);
+static bool Event_WindowResized(void* pEventListener, EventData_t data);
 
 int main(int argc, char** argv)
 {
@@ -60,6 +70,11 @@ bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	// Setup the render views.
 	ConfigureRenderViews(pAppConfig);
 
+	// Setup our render-views.
+	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
+
 	return true;
 }
 
@@ -69,9 +84,10 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 	// Start listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 	// Init camera data.
+	m_MainCamera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_MainCamera.RecalculateCameraVectors();
 
 	return true;
@@ -81,10 +97,11 @@ void CGameApp::Shutdown()
 {
 	// Stop listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
+	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 	// Clean up lingering memory.
 	m_pApplicationConfig->renderViewConfigs.Clear();
+	m_pApplicationConfig->pViews.Clear();
 }
 
 bool CGameApp::Run()
@@ -94,49 +111,15 @@ bool CGameApp::Run()
 
 void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
-	IMaterialSystem*	pMaterialSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pMaterialSystem;
-	CMap*				pMap = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pCurrentScene;
-
 	m_MainCamera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	pRenderPacket->pCamera = &m_MainCamera;
-
-	if (pMap && pMap->IsMapLoaded())
-	{
-		// Get the frustum from the camera.
-		Frustum frustum = m_MainCamera.CreateFrustumFromCamera();
-
-		// TODO: Make this work with a frame allocator.
-		// TODO: Figure out how to split out these matrices per model.
-		// TODO: Clear frame data.
-		pRenderPacket->iCulledGeometries = 0;
-
-		pMap->GetRenderablesFromScene(pMaterialSystem, frustum, pRenderPacket->TransformMatrices, pRenderPacket->pOpaqueGeometries, pRenderPacket->pTransparentGeometries, &pRenderPacket->iCulledGeometries);
-	}
 }
 
 bool CGameApp::Render()
 {
-	/*
-	* RENDERER CONVERSION NOTES: 
-	* 
-	* - The engine should handle metrics, so those will be cleared/updated over there.			[ ]
-	* - The camera should be moved to the application.											[ ]
-	* - The render-views should be moved to the application.									[ ]
-	* - Scene data can probably remain engine-side.												[ ]
-	* 
-	* Code-flow:
-	* - Engine calls application's render method.												[X]
-	* - Application calls back into the engine to get a scene draw list.						[ ]
-	* - Application then calls into the engine to render scene geometry.						[ ]
-	* - The application should handle all app-configurable items								[ ]
-	*	- Such as windows and render-views.														
-	* - Metrics should be handled separately from this.											[ ]
-	*/
-
 	IRenderer* pRenderer = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer;
 	CAssert(pRenderer);
 	
-
 	return true;
 }
 
@@ -147,16 +130,14 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 	// 3D Scene View.
 	{
 		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = Utl::StringDuplicate("3D_Scene_View");
+		sceneViewConfig.m_pszViewName = "3D_Scene_View";
 
 		// This view has 2 attachments: color and depth.
 		RendererViewAttachmentConfig_t colorAttachment{};
 		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
 
 		RendererViewAttachmentConfig_t depthAttachment{};
 		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
 
 		// Add them to the config.
 		sceneViewConfig.attachmentConfigs.Resize(2);
@@ -175,12 +156,10 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 		// This pass has 1 attachment: color.
 		RendererViewAttachmentConfig_t colorAttachment{};
 		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = false;
 
 		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
 		RendererViewAttachmentConfig_t depthAttachment{};
 		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
 
 		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
 		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
@@ -190,9 +169,16 @@ void CGameApp::ConfigureRenderViews(ApplicationConfig_t* pAppConfig)
 	}
 }
 
-static bool Event_WindowResized(EventData_t data)
+static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	LOG_DEBUG("APP WINDOW RESIZED!");
+	CGameApp* pGameState = (CGameApp*)pEventListener;
+
+	// Update camera state.
+	if (data.u32[0] > 0.0f)	// not minimized
+	{
+		pGameState->m_MainCamera.bAspectRatioChanged = true;
+	}
 
 	// Allow other handlers to get this event.
 	return false;
