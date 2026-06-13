@@ -19,4 +19,9 @@ namespace Utl
 	{
 		g_pMemoryManager->Free(pMemBlock);
 	}
+
+	void CBaseMemoryAllocator::FreeAll()
+	{
+
+	}
 } // namespace Utl

@@ -10,34 +10,16 @@
 
 #include "Platform.h"
 
-#include <Core/Event.h>
+#include "Containers/CVector.h"
 #include "Core/InputTypes.h"
 #include "Core/Logging.h"
-#include "Interfaces.h"
-#include "InterfaceRegistry.h"
+#include "Strings/String_Utils.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <malloc.h>
 
 namespace Platform 
 {
-	//-------------------------------------------------------------------------
-	// Win32-Specific Platform State.
-	//-------------------------------------------------------------------------
-	struct Win32_InternalState
-	{
-		HINSTANCE hInstance = 0;
-		IPlatformWindow* window = nullptr;
-
-		// Clock info
-		inline static double m_ClockFreq = -1.0;
-		inline static LARGE_INTEGER m_ClockStartTime;
-	};
-
-	static Win32_InternalState* s_pWin32PlatformData{ nullptr };
-	static Utl::CVector<class CSysModule> s_ModuleRegistry{};
-
 	//-------------------------------------------------------------------------
 	// Win32-Specific Window Implementation.
 	//-------------------------------------------------------------------------
@@ -56,7 +38,7 @@ namespace Platform
 			}
 		}
 
-		virtual void GetWindowSize(unsigned int& pOutWidth, unsigned int& pOutHeight) override
+		virtual void GetWindowSize(u32& pOutWidth, u32& pOutHeight) override
 		{
 			RECT rect;
 			if (GetClientRect(m_HWND, &rect))
@@ -80,6 +62,7 @@ namespace Platform
 		inline virtual void SetMouseButtonEventCallback(Platform_MouseButtonEventCallback callback) override { m_MouseButtonEventCallback = callback; }
 		inline virtual void	SetMouseMoveEventCallback(Platform_MouseMoveEventCallback callback) override { m_MouseMoveEventCallback = callback; }
 		inline virtual void SetWindowResizeCallback(Platform_WindowResizedCallback callback) override { m_WindowResizeEventCallback = callback; }
+		inline virtual void SetWindowCloseCallback(Platform_WindowCloseCallback callback) override { m_WindowOnClosedCallback = callback; }
 
 		Viewport_t		m_Viewport;
 	private:
@@ -90,6 +73,7 @@ namespace Platform
 		Platform_MouseButtonEventCallback	m_MouseButtonEventCallback;
 		Platform_MouseMoveEventCallback		m_MouseMoveEventCallback;
 		Platform_WindowResizedCallback		m_WindowResizeEventCallback;
+		Platform_WindowCloseCallback		m_WindowOnClosedCallback;
 
 		// NOTE: These are exposed to our private data because the input handlers need to
 		// be able to call our callbacks into the engine's input system.
@@ -97,7 +81,23 @@ namespace Platform
 		friend static int ProcessWin32Input_MouseMove(LPARAM lParam);
 	};
 
-	CWindowsWindow* s_pMainWindow; // FIXME: Get rid of this once we have a better solution, this should live nor be owned here.
+	//-------------------------------------------------------------------------
+	// Win32-Specific Platform State.
+	//-------------------------------------------------------------------------
+	struct Win32_InternalState
+	{
+		HINSTANCE hInstance = 0;
+		IPlatformWindow* window = nullptr;
+		Utl::CVector<CWindowsWindow*>	windows{};
+		CWindowsWindow*					activeWindow{ nullptr };
+
+		// Clock info
+		inline static f64 m_ClockFreq = -1.0;
+		inline static LARGE_INTEGER m_ClockStartTime;
+	};
+
+	static Win32_InternalState* s_pWin32PlatformData{ nullptr };
+	static Utl::CVector<class CSysModule> s_ModuleRegistry{};
 
 	// Default Window Procedure
 	static LRESULT WinProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -122,6 +122,7 @@ namespace Platform
 
 		s_pWin32PlatformData = new Win32_InternalState;
 		s_pWin32PlatformData->hInstance = GetModuleHandleA(0);
+		s_pWin32PlatformData->windows.Resize(1);
 		
 		LOG_INFO("Platform Layer Initialized!");
 		return true;
@@ -138,9 +139,6 @@ namespace Platform
 		delete s_pWin32PlatformData;
 		s_pWin32PlatformData = nullptr;
 
-		// Hitting this means our entire process is shutting down,
-		// so clear out our interface registry now.
-		CleanupInterfaceRegistry();
 		s_ModuleRegistry.Clear();
 	}
 
@@ -152,9 +150,11 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	IPlatformWindow* CreatePlatformWindow(WindowParams_t params, bool bShow)
 	{
-		CWindowsWindow* newWindow = new CWindowsWindow(params);
+		// Add this to the windows array.
+		s_pWin32PlatformData->windows.PushBack(new CWindowsWindow(params));
+		CWindowsWindow* pNewWindow = s_pWin32PlatformData->windows.Back();
 
-		if (!newWindow)
+		if (!pNewWindow)
 		{
 			LOG_ERROR("Failed to allocate a new window!");
 			return nullptr;
@@ -166,17 +166,17 @@ namespace Platform
 		if (s_pWin32PlatformData->window == nullptr)
 		{
 			// Register the window with the platform state.
-			s_pWin32PlatformData->window = newWindow;
+			//s_pWin32PlatformData->window = newWindow;
 		}
 
 		u32 windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_THICKFRAME;
 		u32 windowExStyle = WS_EX_APPWINDOW;
 
 		// Do some fixup on the window dimensions to account for the window border.
-		int windowX = newWindow->GetParams().X;
-		int windowY = newWindow->GetParams().Y;
-		int windowWidth = newWindow->GetParams().Width;
-		int windowHeight = newWindow->GetParams().Height;
+		int windowX = pNewWindow->GetParams().X;
+		int windowY = pNewWindow->GetParams().Y;
+		int windowWidth = pNewWindow->GetParams().Width;
+		int windowHeight = pNewWindow->GetParams().Height;
 
 		RECT borderRect = { 0 };
 		AdjustWindowRectEx(&borderRect, windowStyle, 0, windowExStyle);
@@ -205,7 +205,7 @@ namespace Platform
 		HWND hWndInit = CreateWindowExA(
 			0,
 			windowClassName,
-			newWindow->GetParams().pszName,
+			pNewWindow->GetParams().pszName,
 			windowStyle,
 			windowX,
 			windowY,
@@ -227,19 +227,19 @@ namespace Platform
 		{
 			ShowWindow(hWndInit, SW_SHOW);
 		}
-		newWindow->SetInternalHandle(hWndInit);
-		s_pMainWindow = newWindow; // FIXME: This shouldn't be here.
+		pNewWindow->SetInternalHandle(hWndInit);
+		s_pWin32PlatformData->activeWindow = pNewWindow;	// TODO: Maybe this shouldn't be here.
 
 		// Setup the window's viewport.
-		newWindow->m_Viewport.X = params.X;
-		newWindow->m_Viewport.Y = params.Y;
-		newWindow->m_Viewport.Width = params.Width;
-		newWindow->m_Viewport.Height = params.Height;
-		newWindow->m_Viewport.flFOVDegrees = 75.0f; // TODO: Default.
-		newWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(newWindow->m_Viewport.flFOVDegrees), ((float)newWindow->m_Viewport.Width / newWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+		pNewWindow->m_Viewport.X = params.X;
+		pNewWindow->m_Viewport.Y = params.Y;
+		pNewWindow->m_Viewport.Width = params.Width;
+		pNewWindow->m_Viewport.Height = params.Height;
+		pNewWindow->m_Viewport.flFOVDegrees = 75.0f; // TODO: Default.
+		pNewWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(pNewWindow->m_Viewport.flFOVDegrees), ((f32)pNewWindow->m_Viewport.Width / pNewWindow->m_Viewport.Height), 0.1f, 1000000.0f);
 
 		LOG_INFO("Window created!");
-		return newWindow;
+		return pNewWindow;
 	}
 
 	// ============================================================================
@@ -262,8 +262,14 @@ namespace Platform
 	{
 		switch (uMsg)
 		{
+		// CRYS_STD_LIB TODO: Fix how this is handled.
 		case WM_CLOSE:
-			g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+			//g_pEngineEvents->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
+			// NOTE: This assumes that the active window is the one being closed.
+			if (s_pWin32PlatformData->activeWindow && s_pWin32PlatformData->activeWindow->m_WindowOnClosedCallback)
+			{
+				s_pWin32PlatformData->activeWindow->m_WindowOnClosedCallback();
+			}
 			break;
 
 		case WM_SIZE:
@@ -271,14 +277,14 @@ namespace Platform
 				UINT width = LOWORD(lParam);
 				UINT height = HIWORD(lParam);
 
-				if (s_pMainWindow)
+				if (s_pWin32PlatformData->activeWindow)
 				{
-					s_pMainWindow->m_WindowResizeEventCallback(width, height);
+					s_pWin32PlatformData->activeWindow->m_WindowResizeEventCallback(width, height);
 
 					// This only works because we currently only have one window.
-					s_pMainWindow->m_Viewport.Width = width;
-					s_pMainWindow->m_Viewport.Height = height;
-					s_pMainWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(s_pMainWindow->m_Viewport.flFOVDegrees), ((float)s_pMainWindow->m_Viewport.Width / s_pMainWindow->m_Viewport.Height), 0.1f, 1000000.0f);
+					s_pWin32PlatformData->activeWindow->m_Viewport.Width = width;
+					s_pWin32PlatformData->activeWindow->m_Viewport.Height = height;
+					s_pWin32PlatformData->activeWindow->m_Viewport.matProjection = Matrix4x4::Perspective(M_DEG2RAD_F(s_pWin32PlatformData->activeWindow->m_Viewport.flFOVDegrees), ((f32)s_pWin32PlatformData->activeWindow->m_Viewport.Width / s_pWin32PlatformData->activeWindow->m_Viewport.Height), 0.1f, 1000000.0f);
 				}
 			}
 			break;
@@ -293,9 +299,9 @@ namespace Platform
 				bool pressed = (uMsg == WM_KEYDOWN || uMsg == WM_SYSKEYDOWN);
 
 				// Send it to our listeners.
-				if (s_pMainWindow && s_pMainWindow->m_KeyEventCallback)
+				if (s_pWin32PlatformData->activeWindow && s_pWin32PlatformData->activeWindow->m_KeyEventCallback)
 				{
-					s_pMainWindow->m_KeyEventCallback(processedKeyCode, pressed);
+					s_pWin32PlatformData->activeWindow->m_KeyEventCallback(processedKeyCode, pressed);
 				}
 			}
 			break;
@@ -310,9 +316,9 @@ namespace Platform
 				int processedMouseCode = ProcessWin32Input_MouseButton(uMsg);
 				bool pressed = (uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN);
 
-				if (s_pMainWindow && s_pMainWindow->m_MouseButtonEventCallback)
+				if (s_pWin32PlatformData->activeWindow && s_pWin32PlatformData->activeWindow->m_MouseButtonEventCallback)
 				{
-					s_pMainWindow->m_MouseButtonEventCallback(processedMouseCode, pressed);
+					s_pWin32PlatformData->activeWindow->m_MouseButtonEventCallback(processedMouseCode, pressed);
 				}
 			}
 			break;
@@ -320,8 +326,26 @@ namespace Platform
 		case WM_MOUSEMOVE:
 			ProcessWin32Input_MouseMove(lParam);
 			break;
-		}
 
+		case WM_ACTIVATE:
+			if (!lParam)
+				break;
+
+			// Find and assign the active window.
+			for (int iWindow = 0; iWindow < s_pWin32PlatformData->windows.Count(); iWindow++)
+			{
+				CWindowsWindow& pWindow = *s_pWin32PlatformData->windows[iWindow];
+				bool isActive = (LOWORD(wParam) == WA_ACTIVE) || (LOWORD(wParam) == WA_CLICKACTIVE);
+				HWND activeWindow = GetActiveWindow();
+				if (pWindow.m_HWND && activeWindow &&
+					((void*)pWindow.m_HWND == activeWindow) && isActive)
+				{
+					// Found the active window.
+					s_pWin32PlatformData->activeWindow = &pWindow;
+				}
+			}
+			break;
+		}
 
 		return DefWindowProc(hWnd, uMsg, wParam, lParam);
 	}
@@ -514,9 +538,9 @@ namespace Platform
 			mouseYPos = HIWORD(lParam);
 		}
 
-		if (s_pMainWindow && s_pMainWindow->m_MouseButtonEventCallback)
+		if (s_pWin32PlatformData->activeWindow && s_pWin32PlatformData->activeWindow->m_MouseMoveEventCallback)
 		{
-			s_pMainWindow->m_MouseMoveEventCallback(mouseXPos, mouseYPos);
+			s_pWin32PlatformData->activeWindow->m_MouseMoveEventCallback(mouseXPos, mouseYPos);
 		}
 
 		return true;
@@ -530,7 +554,7 @@ namespace Platform
 		return GetCurrentThreadId();
 	}
 
-	size_t GetNumberOfSystemProcessors()
+	u64 GetNumberOfSystemProcessors()
 	{
 		SYSTEM_INFO sysInfo{};
 		GetSystemInfo(&sysInfo);
@@ -667,7 +691,7 @@ namespace Platform
 
 		static char levelColor[6] = { 64, 4, 6, 3, 5, 8 };
 		SetConsoleTextAttribute(consoleHandle, levelColor[iLevel]);
-		size_t length = strlen(pszMessage);
+		u64 length = strlen(pszMessage);
 		WriteConsoleA(consoleHandle, pszMessage, (DWORD)length, 0, 0);
 
 		// Clear the console back to light gray after printing the message.
@@ -699,11 +723,11 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Purpose: Returns the current timestamp from platform code.
 	// Input:	none.
-	// Output:	double - The current timestep.
+	// Output:	f64 - The current timestep.
 	//-------------------------------------------------------------------------
-	double GetAbsoluteTime()
+	f64 GetAbsoluteTime()
 	{
-		double elapsedTime = 0.0;
+		f64 elapsedTime = 0.0;
 
 		// If the clock has not yet been initialized.
 		if (s_pWin32PlatformData->m_ClockFreq == -1)
@@ -721,7 +745,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Forces the current thread to sleep for the provided milliseconds.
 	//-------------------------------------------------------------------------
-	void ThreadSleep(double msToSleep)
+	void ThreadSleep(f64 msToSleep)
 	{
 		Sleep((DWORD)msToSleep);
 	}
@@ -729,8 +753,6 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	// Interface and factory methods for code modules (.dlls)
 	//-------------------------------------------------------------------------
-	typedef void (*PFN_ObtainInterfaces)(Utl::CVector<SystemInterface_t>& pOutInterfaces);
-	typedef void* (*PFN_ConnectInterface)(Utl::CVector<SystemInterface_t>& pInterfaceState);
 	class CSysModule : public ISysModule
 	{
 	public:
@@ -740,14 +762,8 @@ namespace Platform
 		{
 			if (m_szModuleName)
 				Utl::StringFree(m_szModuleName);
-		}
 
-		virtual void* ConnectInterface(void* pInterfaceState) override
-		{
-			if (!m_ConnectInterfaceFunc)
-				return false;
-
-			return m_ConnectInterfaceFunc(GetRegisteredInterfaces());
+			m_szModuleName = nullptr;
 		}
 
 		void* GetFuncAddr(const char* pFuncName) override
@@ -760,10 +776,8 @@ namespace Platform
 
 	public:
 		// These can be public, they can't be touched by another file w/o the windows headers anyways ¯\_(ツ)_/¯
-		HMODULE	m_Module;
-		PFN_ObtainInterfaces m_ObtainInterfacesFunc;
-		PFN_ConnectInterface m_ConnectInterfaceFunc;
-		char* m_szModuleName;
+		HMODULE	m_Module{ 0 };
+		char* m_szModuleName{ nullptr };
 	};
 
 	//-------------------------------------------------------------------------
@@ -785,7 +799,7 @@ namespace Platform
 		if (!pNewModule->m_Module)
 		{
 			// Try to append the .dll extension to the path and load again.
-			char formattedPath[512];
+			char formattedPath[10000];
 			Utl::StringFormat("%s.%s", pszModulePath, "dll", formattedPath);
 
 			pNewModule->m_Module = LoadLibraryA(formattedPath);
@@ -799,75 +813,12 @@ namespace Platform
 			}
 		}
 
-		// Attempt to get the module's 'ObtainInterfaces' function to get shared interfaces
-		pNewModule->m_ObtainInterfacesFunc = (PFN_ObtainInterfaces)GetProcAddress(pNewModule->m_Module, "ObtainInterfaces");
-
-		if (!pNewModule->m_ObtainInterfacesFunc)
-		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ObtainInterfaces()' from library '%s.dll' the module may not work as intended!", pszModulePath);
-		}
-
-		// Attempt to get at the module's 'ConnectInterface' function to bridge the gap!
-		pNewModule->m_ConnectInterfaceFunc = (PFN_ConnectInterface)GetProcAddress(pNewModule->m_Module, "ConnectInterface");
-
-		if (!pNewModule->m_ConnectInterfaceFunc)
-		{
-			LOG_WARN("Platform::LoadSysModule could not find required function 'ConnectInterface()' from library '%s.dll' the module may not work as intended!", pszModulePath);
-		}
-
 		pNewModule->m_szModuleName = Utl::StringDuplicate(pszModulePath);
 
 		// Register this module.
 		s_ModuleRegistry.PushBack(pNewModule);
 
 		return pNewModule;
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Assigns our interfaces obtained from external libraries.
-	//-------------------------------------------------------------------------
-	void SetupExternalInterfaces()
-	{
-		::AssignInterfaces(GetRegisteredInterfaces());
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Stores off pointers to all exposed interfaces within all loaded .dlls.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ObtainLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ObtainInterfacesFunc)
-			{
-				Utl::CVector<SystemInterface_t> incomingInterfaces{};
-				s_ModuleRegistry[idx].m_ObtainInterfacesFunc(incomingInterfaces);
-				for (int iface = 0; iface < incomingInterfaces.Count(); iface++)
-				{
-					RegisterInterface(incomingInterfaces[iface]);
-				}
-			}
-		}
-	}
-
-	//-------------------------------------------------------------------------
-	// Purpose: Connects all previously-obtained interface pointers for all registered .dlls.
-	//				After 'ObtainLibraryInterfaces()' and this, each registered .dll should have
-	//				access to all registered interfaces.
-	// Input:	none.
-	// Output:	none.
-	//-------------------------------------------------------------------------
-	void ConnectLibraryInterfaces()
-	{
-		for (int idx = 0; idx < s_ModuleRegistry.Count(); idx++)
-		{
-			if (s_ModuleRegistry[idx].m_ConnectInterfaceFunc)
-			{
-				s_ModuleRegistry[idx].m_ConnectInterfaceFunc(GetRegisteredInterfaces());
-			}
-		}
 	}
 
 	//-----------------------------------------------------------------------------
@@ -880,7 +831,7 @@ namespace Platform
 	// Input:	size - The size in bytes of the allocation to make.
 	// Output:	A pointer to the allocated memory.
 	//-------------------------------------------------------------------------
-	void* MemoryAllocate(size_t size)
+	void* MemoryAllocate(u64 size)
 	{
 		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, size);
 
@@ -908,7 +859,7 @@ namespace Platform
 	//			newSize - The size of the new memory block.
 	// Output:	none.
 	//-------------------------------------------------------------------------
-	void* MemoryReallocate(void* memory, size_t newSize)
+	void* MemoryReallocate(void* memory, u64 newSize)
 	{
 		if (memory && newSize)
 			return realloc(memory, newSize);
@@ -924,7 +875,7 @@ namespace Platform
 	//			size - The size of memory in bytes to be copied.
 	// Output:	A pointer to the new block of memory.
 	//-------------------------------------------------------------------------
-	void* MemoryCopy(void* dest, const void* source, size_t size)
+	void* MemoryCopy(void* dest, const void* source, u64 size)
 	{
 		if (dest && source && size)
 			return memcpy(dest, source, size);
@@ -940,7 +891,7 @@ namespace Platform
 	//			size - The size of memory in bytes to be set.
 	// Output:	A pointer to the block of memory.
 	//-------------------------------------------------------------------------
-	void* MemorySet(void* memory, int value, size_t size)
+	void* MemorySet(void* memory, int value, u64 size)
 	{
 		if (memory)
 			return memset(memory, value, size);

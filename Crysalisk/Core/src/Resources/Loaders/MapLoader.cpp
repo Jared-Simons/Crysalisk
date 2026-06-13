@@ -37,9 +37,9 @@ namespace MapLoader
 		while (!FileSystem::IsEOF(&hCMapFile))
 		{
 			char	szCurrentLine[kScratchStringBufferLength]{};
-			size_t	currentLineLength{ 0 };
-			size_t	bytesRead{ 0 };
-			size_t	equalIndex{ 0 };
+			u64	currentLineLength{ 0 };
+			u64	bytesRead{ 0 };
+			u64	equalIndex{ 0 };
 			char	szKey[500]{};
 			char	szValue[500]{};
 
@@ -115,9 +115,9 @@ namespace MapLoader
 		}
 
 		char	szCurrentLine[kScratchStringBufferLength]{};
-		size_t	iCurrentLineLength{ 0 };
-		size_t	bytesRead{ 0 };
-		size_t	equalIndex{ 0 };
+		u64	iCurrentLineLength{ 0 };
+		u64	bytesRead{ 0 };
+		u64	equalIndex{ 0 };
 		char	szKey[64]{};
 		char	szValue[64]{};
 
@@ -166,7 +166,7 @@ namespace MapLoader
 			else if (Utl::StringCompare(szKey, "model_resource"))
 			{
 				// Remove quotes.
-				size_t strLen = Utl::StringLength(szValue);
+				u64 strLen = Utl::StringLength(szValue);
 				newMeshResource_NEW.pszModelName = Utl::StringDuplicate_N(&szValue[1], strLen - 2);
 			}
 			else if (Utl::StringCompare(szKey, "position"))
@@ -208,9 +208,9 @@ namespace MapLoader
 		}
 
 		char	szCurrentLine[kScratchStringBufferLength]{};
-		size_t	iCurrentLineLength{ 0 };
-		size_t	bytesRead{ 0 };
-		size_t	equalIndex{ 0 };
+		u64	iCurrentLineLength{ 0 };
+		u64	bytesRead{ 0 };
+		u64	equalIndex{ 0 };
 		char	szKey[64]{};
 		char	szValue[64]{};
 

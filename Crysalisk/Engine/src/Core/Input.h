@@ -29,7 +29,7 @@ struct MouseState_t
 	// The position of the cursor on the screen.
 	int m_XPos;
 	int m_YPos;
-	unsigned int m_bitsMouseButtons;
+	u32 m_bitsMouseButtons;
 };
 
 //-------------------------------------------------------------------------
@@ -38,7 +38,9 @@ struct MouseState_t
 class IInputSystem
 {
 public:
-	virtual bool	Initialize(Platform::IPlatformWindow& pEngineWindow) = 0;
+	static void		AllocateInputSystemState(IInputSystem** ppSystemState);
+
+	virtual bool	Initialize(Platform::IPlatformWindow& pEngineWindow, class IEventSystem* pEngineEventHandler) = 0;
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
@@ -50,15 +52,9 @@ public:
 	virtual void	GetCurrentMousePos(int& iX, int& iY) = 0;
 };
 
-// A note on interfaces:
-// Any code that wants to access the input system from within the engine.dll can include this file and use g_pInputSystem_Internal.
-// Any code in another library must link with Interfaces.lib to get access to the engine's shared interfaces. Then include both Input.h AND Interfaces.h,
-// to get access to the g_pInputSystem interface.
-ENGINE_API extern IInputSystem* g_pInputSystem_Internal;
-
 //-----------------------------------------------------------------------------
 // API for external libraries to access our callbacks.
 //-----------------------------------------------------------------------------
 void API_ProcessKeyInput(int processedKeyInput, bool pressed);
-void API_ProcessMouseButtonInput(unsigned int mouseButtonFlags, bool bPressed);
+void API_ProcessMouseButtonInput(u32 mouseButtonFlags, bool bPressed);
 void API_ProcessMouseMoveInput(const int mouseXPos, const int mouseYPos);

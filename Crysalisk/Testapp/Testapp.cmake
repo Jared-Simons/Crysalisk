@@ -12,6 +12,7 @@ project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_TESTAPP_SRC_FILES
 	${TESTAPP_ROOT}/Main.cpp
+	${TESTAPP_ROOT}/MemOverride.cpp
 )
 
 # Group source files
@@ -40,7 +41,8 @@ endif()
 target_compile_definitions(Testapp PRIVATE DLLNAME=\"Testapp.exe\")
 
 # Linker input.
-target_link_libraries(Testapp PUBLIC Engine)
+target_link_libraries(Testapp PRIVATE Core)
+target_link_libraries(Testapp PRIVATE Engine)
 
 # Current Working Directory.
 set_property(TARGET Testapp PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

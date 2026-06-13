@@ -6,68 +6,165 @@
 //=============================================================================
 #include "Renderer/Renderer.h"
 
+#include "Core/Engine.h"
 #include "Core/Event.h"
 #include "Core/Input.h"
 #include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
+#include <Memory/LinearAllocator.h>
 #include "Renderer/Camera.h"
-#include "Renderer/DebugRenderer.h"
 #include "Resources/GeometryGenerator.h"
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/Map.h"
 #include "Resources/ResourceTypes.h"
+#include "Systems/DebugGeometrySystem.h"
 #include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
 #include "Systems/TextureSystem.h"
 
-// Renderer frontend context.
-static Renderer s_Renderer;
-Renderer* g_pRenderer = &s_Renderer;
-
 // Event handlers.
-static bool RendererEvent_WindowResized(EventData_t data);
-static bool RendererEvent_KeyPressed(EventData_t data);
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data);
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
 
-// TEMP Test font
-FontHandle_t	testFont;
-TextObject		testText;
-ShaderHandle_t	hUIShader{ kInvalidID_U32 };
-
-static const char* szRendererVisualizationModesLabels[9] =
+static const char* szRendererVisualizationModesLabels[10] =
 {
+	"FORWARD",
 	"FULLBRIGHT",
 	"LIGHTING ONLY",
 	"DIFFUSE LIGHTING",
 	"SPECULAR LIGHTING",
 	"NORMAL MAPS - TANGENT-SPACE",
-	"NORMAL MAPS - WORLD SPACE-SPACE",
+	"NORMAL MAPS - WORLD-SPACE",
 	"GEOMETRIC NORMALS",
 	"GEOMETRIC TANGENTS",
 	"GEOMETRIC BITANGENTS",
 };
 
-static bool s_bDisplayProfilingText = false;
-// END TEMP!
+//-------------------------------------------------------------------------
+// The renderer frontend.
+//-------------------------------------------------------------------------
+class CRenderer : public IRenderer
+{
+public:
+	// Initialize, shutdown.
+	bool			Initialize(RendererConfig_t& pAppConfig) override;
+	bool			PostInitialize(RenderPacket_t& pRenderPacket) override;
+	void			Shutdown() override;
+	bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) override;
+
+	bool			RegisterWindow(Platform::IPlatformWindow& pWindow) override;
+	void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
+
+	void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
+	void			RegisterRenderView(IRenderView* pView) override;
+
+	bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
+	void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
+	IRenderView*	GetRenderView(const char* pszRenderpassName) override;
+
+	bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
+	void			EndRenderpass() override;
+
+	bool			AcquireTextureResources(struct Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
+	void			ReleaseTextureResources(struct Texture* pTexture) override;
+
+	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) override;
+	void			DestroyShader(class Shader* pShader) override;
+
+	void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) override;
+	void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) override;
+
+	void			BindShader(class Shader* pShader) override;
+	void			BindShaderPerFrameUniforms(class Shader* pShader) override;
+	void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) override;
+
+	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
+
+	RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
+	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
+
+	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
+	RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
+	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
+
+	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
+	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
+	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
+
+	virtual f32	GetRendererTime() const { return (f32)m_flLastFrameTime; }
+	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
+
+	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
+	void	SetWindowDimensions(u32 iWidth, u32 iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
+
+	virtual inline u64	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
+
+private:
+	RendererConfig_t	m_Config{};
+	IRendererBackend*	m_RendererBackend{ nullptr };
+	bool				m_bMinimized{ false };
+	Clock				m_RendererClock{};
+	f64				m_flLastFrameTime{};
+
+	u64				m_iCurrentRendererFrame{ kInvalidID_U64 };
+	u8				m_iRendererDebugMode{ 0 };
+
+	RenderMetrics_t		m_Metrics{};
+
+	// The current dimensions of the surface we are presenting to (usually a window).
+	u32	m_iWindowWidth{ 0 };
+	u32	m_iWindowHeight{ 0 };
+
+	Utl::LinearAllocator	m_FrameAllocator{};
+
+	// An array of registered render-views.
+	Utl::CVector<IRenderView*>	m_pRenderViews{};
+
+	Utl::CVector<RenderBuffer>	m_RenderBuffers{};
+
+	class IDebugGeometrySystem* m_pDebugGeoSystem{ nullptr };
+
+	// A pointer to the window we're rendering to.
+	Platform::IPlatformWindow* m_pMainWindow;
+
+	// These need access to our members.
+	friend static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
+};
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IRenderer::AllocateRenderSystemState(IRenderer** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold render system state was not provided! Render system creation failed!");
+		return;
+	}
+
+	*ppSystemState = new CRenderer;
+}
 
 //-------------------------------------------------------------------------
 // Purpose: Initialize the Renderer frontend and backend.
 // Input: pConfig - The configuration for both the frontend and backend.
 // Output: bool - Returns true on successful initialization, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::Initialize(RendererConfig_t& pConfig)
+bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 {
 	// Load up the renderer backend module, and connect our interfaces.
-	Platform::ISysModule* pVulkanRendererDLL = pConfig.pRendererBackendDLL;
+	Platform::ISysModule* pVulkanRendererDLL = pAppConfig.pRendererBackendDLL;
 
 	PFN_GetRendererBackendState getRendererBackend = (PFN_GetRendererBackendState)pVulkanRendererDLL->GetFuncAddr("GetRendererBackendState");
 	if (!getRendererBackend)
 	{
-		LOG_ERROR("Renderer::Initialize failed to get a pointer to the renderer backend. Initialization failed.");
+		LOG_ERROR("IRenderer::Initialize failed to get a pointer to the renderer backend. Initialization failed.");
 		return false;
 	}
 
@@ -76,7 +173,7 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 
 	if (m_RendererBackend != nullptr)
 	{
-		if (!m_RendererBackend->RendererBackend_Initialize(pConfig))
+		if (!m_RendererBackend->RendererBackend_Initialize(pAppConfig))
 		{
 			return false;
 		}
@@ -87,84 +184,18 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 		return false;
 	}
 
-	// Set up our renderpasses
-	// 3D Scene View.
-	{
-		RendererViewConfig_t sceneViewConfig{};
-		sceneViewConfig.m_pszViewName = "3D_Scene_View";
-
-		// This pass has 2 attachments: color and depth.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = true;	// We do want to clear this target before rendering the scene.
-
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		// Add them to the config.
-		sceneViewConfig.attachmentConfigs.Resize(2);
-		sceneViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		sceneViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		m_SceneView.m_debuggingColor = Vector3D{ 0.3f, 0.0f, 0.7f };
-
-		m_RendererBackend->CreateRendererViewInternal(sceneViewConfig, m_SceneView);
-	}
-
-	// UI View.
-	{
-		RendererViewConfig_t UIViewConfig{};
-		UIViewConfig.m_pszViewName = "UI_View";
-
-		// This pass has 1 attachment: color.
-		RendererViewAttachmentConfig_t colorAttachment{};
-		colorAttachment.eAttachmentType = eRendererViewAttachmentType::COLOR;
-		colorAttachment.bShouldClear = false;
-
-		// TEMP: Adding in a depth pass for now because of renderpass compatibility reasons.
-		RendererViewAttachmentConfig_t depthAttachment{};
-		depthAttachment.eAttachmentType = eRendererViewAttachmentType::DEPTH;
-		depthAttachment.bShouldClear = true;
-
-		UIViewConfig.attachmentConfigs.PushBack(colorAttachment);
-		UIViewConfig.attachmentConfigs.PushBack(depthAttachment);
-
-		m_UIView.m_debuggingColor = Vector3D{ 0.7f, 0.0f, 0.9f };
-
-		m_RendererBackend->CreateRendererViewInternal(UIViewConfig, m_UIView);
-	}
-
 	// Set up our renderbuffers
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer", m_WorldVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer", m_WorldIndexBuffer);
+	m_RenderBuffers.Resize(6);
 
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(Vertex2D) * 1 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "UI_Vertex_Buffer", m_UIVertexBuffer);
-	m_RendererBackend->CreateRenderBufferInternal(sizeof(uint32_t) * 1 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "UI_Index_Buffer", m_UIIndexBuffer);
-
-	g_pEngineEvents_Internal->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, RendererEvent_WindowResized);
-	g_pEngineEvents_Internal->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, RendererEvent_KeyPressed);
+	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
+	{
+		IEventSystem* pEventHandler = pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler;
+		pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, this, RendererEvent_WindowResized);
+		pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, this, RendererEvent_KeyPressed);
+	}
 
 	// Grab window dimensions.
-	pConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
-
-	// Setup our internal framebuffers.
-	if (!m_RendererBackend->CreateSwapchainFramebuffers(m_SceneView))
-	{
-		LOG_ERROR("Failed to create swapchain framebuffers. Renderer initialization failed!");
-		return false;
-	}
-
-	// Setup the debug renderer.
-	DebugRendererConfig_t debugRendererConfig{};
-	debugRendererConfig.uMaxDebugGeometries = 64;
-	if (!g_pDebugRenderer->Initialize(debugRendererConfig))
-	{
-		LOG_ERROR("Failed to initialize the debug renderer.");
-		return false;
-	}
-
-	m_Camera.RecalculateCameraVectors();
+	pAppConfig.pMainWindow->GetWindowSize(m_iWindowWidth, m_iWindowHeight);
 
 	// Start the clock now and we'll take the delta time each frame.
 	m_RendererClock.Start();
@@ -175,29 +206,90 @@ bool Renderer::Initialize(RendererConfig_t& pConfig)
 	m_iCurrentRendererFrame = 0;
 
 	// Store off a pointer to the window we're rendering to.
-	m_pMainWindow = pConfig.pMainWindow;
+	m_pMainWindow = pAppConfig.pMainWindow;
+
+	// Save off the config.
+	m_Config = pAppConfig;
+
+	// Set up frame allocator.
+	if (!m_FrameAllocator.Initialize(MEBIBYTES(5)))
+	{
+		LOG_ERROR("Renderer frame allocator failed to initialize!");
+		return false;
+	}
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
 }
 
 //-------------------------------------------------------------------------
+// Purpose: Renderer post-initialization utilities.
+// Input:	none.
+// Output:	True on successful geometry initialization, otherwise false.
+//-------------------------------------------------------------------------
+bool CRenderer::PostInitialize(RenderPacket_t& pRenderPacket)
+{
+	// We can now setup the debug geo system.
+	m_pDebugGeoSystem = m_Config.pEngine->GetEngineInterfaces()->pDebugGeometry;
+	if (!m_pDebugGeoSystem->InitializeDebugShaders())
+	{
+		LOG_ERROR("Failed to initialize debug shaders!");
+		return false;
+	}
+
+	pRenderPacket.pFrameAllocator = &m_FrameAllocator;
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews)
+{
+	for (int iView = 0; iView < pRenderViews.Count(); iView++)
+	{
+		if (!pRenderViews[iView]->Initialize(m_Config.pEngine->GetEngineInterfaces()))
+		{
+			LOG_ERROR("Render view failed to initialize!");
+		}
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::RegisterRenderView(IRenderView* pView)
+{
+	if (pView)
+	{
+		m_pRenderViews.PushBack(pView);
+	}
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Shuts down the renderer system.
 //-------------------------------------------------------------------------
-void Renderer::Shutdown()
+void CRenderer::Shutdown()
 {
 	LOG_INFO("Shutting Down Renderer");
 
-	// Shutdown the debug renderer.
-	g_pDebugRenderer->Shutdown();
+	m_FrameAllocator.Destroy();
 
-	m_RendererBackend->DestroyRenderBufferInternal(m_UIIndexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_UIVertexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_WorldIndexBuffer);
-	m_RendererBackend->DestroyRenderBufferInternal(m_WorldVertexBuffer);
+	// Release render-views.
+	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	{
+		m_pRenderViews[iView]->Shutdown(this);
+	}
 
-	m_RendererBackend->DestroyRendererViewInternal(m_UIView);
-	m_RendererBackend->DestroyRendererViewInternal(m_SceneView);
+	// Release render-buffers.
+	for (int iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	{
+		DestroyRenderBuffer(m_RenderBuffers[iBuffer]);
+	}
+
+	// TODO: Is this the right place to free these guys?
+	m_pRenderViews.Clear();
 
 	m_RendererBackend->RendererBackend_Shutdown();
 
@@ -206,17 +298,25 @@ void Renderer::Shutdown()
 
 //-------------------------------------------------------------------------
 // Purpose: Draws a frame with the renderer.
-// Input: pRenderData - Frame-specific data to be used in rendering ops.
+// Input: pTargetWindow - The window to render to.
 //		  pCurrentMap - The current map to get rendering data from.
+//		  deltaTime - Frame delta time.
 // Output: bool - True on successful frame; if there were any rendering errors, false.
 //-------------------------------------------------------------------------
-bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
+bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap)
 {
 	// If we are currently minimized, do not do anything!
 	if (m_bMinimized)
 	{
 		return true;
 	}
+
+	for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
+	{
+		m_pRenderViews[iView]->BuildRenderPacket(&pRenderData);
+	}
+
+	pRenderData.pMetrics = &m_Metrics;
 
 	if (m_Metrics.TimeSinceLastMetricsUpdate + 1 < m_RendererClock.GetElapsedTime())
 	{
@@ -230,137 +330,144 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 	m_Metrics.FrameTime = 0.0f;
 	m_Metrics.NumDrawCalls = 0;
 	m_Metrics.NumGeometriesFrustumCulled = 0;
+	pRenderData.iCulledGeometries = 0;
 
 	// Calculate our delta time.
-	double currentFrameTime = m_RendererClock.GetElapsedTime();
-	pRenderData.DeltaTime = currentFrameTime - m_flLastFrameTime;
+	f64 currentFrameTime = m_RendererClock.GetElapsedTime();
 	m_flLastFrameTime = currentFrameTime;
 
 	// Save off the frametime.
 	m_Metrics.FrameTime = pRenderData.DeltaTime;
 
-	m_Camera.UpdateCameraData(pRenderData.DeltaTime);
+	// Set per-frame render data.
+	IShaderSystem* pShaderSystem = m_Config.pEngine->GetEngineInterfaces()->pShaderSystem;
+	IMaterialSystem* pMaterialSystem = m_Config.pEngine->GetEngineInterfaces()->pMaterialSystem;
 
-	// Draw the frame!
-	if (!m_RendererBackend->BeginFrame(pRenderData))
-	{
-		return false;
-	}
-
-	m_RendererBackend->BeginRenderpass(m_SceneView);
-
+	// Setup main projection matrix.
 	Matrix4x4 matProjection = m_pMainWindow->GetViewport().matProjection;
+
 	// Flip the y-axis.
-	matProjection.flData[5] *= -1;
-	Matrix4x4 matView = m_Camera.GetViewMatrix();
-	Vector vecCameraPos = m_Camera.vecPosition;
-	Matrix4x4 model = Matrix4x4{ 1.0f };
+	matProjection.flData[5] *= -1.0f;
+	Vector vecCameraPos = pRenderData.pCamera->vecPosition;
 
-	g_pMaterialSystemInternal->ApplyGlobalRenderData(matProjection, matView, vecCameraPos, s_Renderer.m_iRendererDebugMode);
-	// TODO: Figure out how to split out these matrices per model.
-	Utl::CVector<Matrix4x4>				TransformMatrices(32);
+	pRenderData.matProjection = matProjection;
+	pRenderData.iDebugRendererMode = m_iRendererDebugMode;
 
-	if (pCurrentMap.IsMapLoaded())
-	{
-		// Get the frustum from the camera.
-		Frustum frustum = m_Camera.CreateFrustumFromCamera();
-
-		// TODO: Make this work with an allocator.
-		Utl::CVector<GeometryInstance_t*>	pOpaqueGeometries(512);
-		Utl::CVector<GeometryInstance_t*>	pTransparentGeometries(512);
-		unsigned int						pCulledGeometries{ 0 };
-
-		// Get the renderables from the map.
-		pCurrentMap.GetRenderablesFromScene(frustum, TransformMatrices, pOpaqueGeometries, pTransparentGeometries, &pCulledGeometries);
-		m_Metrics.NumGeometriesFrustumCulled = pCulledGeometries;
-
-		for (int idx = 0; idx < pOpaqueGeometries.Count(); idx++)
+	// Start rendering!
+	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
+	{		
+		for (int iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
-			// Apply transformations.
-			//model = TransformMatrices[pOpaqueGeometries[idx]->iLocalToWorldTransform];
-			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pOpaqueGeometries[idx]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			g_pMaterialSystemInternal->ApplyMaterialInstance(pOpaqueGeometries[idx]->hMaterial);
-			DrawGeometry(*pOpaqueGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
-
-			m_Metrics.NumDrawCalls++;
-		}
-
-		// Render the sorted transparent geometries.
-		for (int idx = 0; idx < pTransparentGeometries.Count(); idx++)
-		{
-			// Apply transformations.
-			//model = TransformMatrices[pTransparentGeometries[idx]->iLocalToWorldTransform];
-			//g_pMaterialSystemInternal->ApplyPerDrawRenderData(model);
-			g_pMaterialSystemInternal->ApplyPerDrawRenderData(pTransparentGeometries[idx]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			g_pMaterialSystemInternal->ApplyMaterialInstance(pTransparentGeometries[idx]->hMaterial);
-			DrawGeometry(*pTransparentGeometries[idx], &m_WorldVertexBuffer, &m_WorldIndexBuffer);
-
-			m_Metrics.NumDrawCalls++;
+			m_pRenderViews[iView]->Render(&pRenderData);
 		}
 	}
+	m_RendererBackend->EndFrame(pTargetWindow, pRenderData);
 
-	m_RendererBackend->EndRenderpass();
-
-	g_pDebugRenderer->Update();
-
-	// Render our debug geometry.
-	DebugRendererFrameData_t debugFrameData{};
-	debugFrameData.matProjection = matProjection;
-	debugFrameData.matView = matView;
-	debugFrameData.vecCameraPosition = m_Camera.vecPosition;
-	debugFrameData.vecCameraForward = m_Camera.vecFront;
-	debugFrameData.flCurTime = (float)m_RendererClock.GetElapsedTime();
-	g_pDebugRenderer->Render(debugFrameData);
-
-	if (testText.m_pszText != nullptr && s_bDisplayProfilingText)
-	{
-		m_RendererBackend->BeginRenderpass(m_UIView);
-
-		// Render some test UI text.
-		/*float flHalfWidth = ((float)m_iWindowWidth / 2.0f);
-		float flHalfHeight = ((float)m_iWindowHeight / 2.0f);
-		Matrix4x4 UIProjection = Matrix4x4::Orthographic(-flHalfWidth, flHalfWidth, -flHalfHeight, flHalfHeight, -5.0f, 5.0f);*/
-		// TODO: Orthographic projection is broken.
-		Matrix4x4 UIProjection{ 1.0f };
-		g_pShaderSystem->SetShaderUniform(1, 0, 0, 1, &UIProjection);
-		g_pShaderSystem->BindShader(hUIShader);
-		g_pShaderSystem->BindPerInstanceUniforms(1);
-		DrawGeometry(testText.m_Geometry, &m_UIVertexBuffer, &m_UIIndexBuffer);
-
-		m_RendererBackend->EndRenderpass();
-	}
-
-	m_RendererBackend->EndFrame(pRenderData);
-	m_Metrics.CurrentFrameFPS++;
-
+	// Update debug geometries.
+	m_pDebugGeoSystem->Update();
+	
 	// Clear out bound shader state.
-	g_pShaderSystem->BindShader(kInvalidID_U32);
+	pShaderSystem->BindShader(kInvalidID_U32);
 
-	if (s_bDisplayProfilingText)
+	// Reset buffer offsets.
+	for (u32 iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
 	{
-		// Display renderer matrics.
-		char szMetricsString[512]{};
-		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nCurrent map: '%s'\nCurrent Vis Mode: %s",
-			szMetricsString,
-			m_Metrics.FrameTime, m_Metrics.PreviousFrameFPS,
-			m_Metrics.NumDrawCalls,	m_Metrics.NumGeometriesFrustumCulled,
-			g_pMemoryManager->GetPercentAllocated(),
-			pCurrentMap.GetMapName() != nullptr ? pCurrentMap.GetMapName() : "None",
-			m_iRendererDebugMode > 0 ? szRendererVisualizationModesLabels[m_iRendererDebugMode - 1] : "Default");
-
-		// Set the string.
-		testText.SetText(szMetricsString);
+		m_RenderBuffers[iBuffer].m_CurrentBoundOffset = kInvalidID_U64;
 	}
+
+	// Clear out the frame allocator.
+	m_FrameAllocator.FreeAll();
+
+	m_Metrics.CurrentFrameFPS++;
 
 	// Increment the frame count.
 	m_iCurrentRendererFrame++;
 
 	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
+{
+	return m_RendererBackend->RegisterWindow(pWindow);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::ReleaseWindowResources(Platform::IPlatformWindow& pWindow)
+{
+	m_RendererBackend->ReleaseWindowResources(pWindow);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+bool CRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass)
+{
+	if (pConfig->attachmentConfigs.Count() < 1)
+	{
+		LOG_ERROR("Cannot create renderpass without attachments!");
+		return false;
+	}
+
+	if (pConfig->pszName)
+		pRenderpass->pszName = Utl::StringDuplicate(pConfig->pszName);
+	
+	return m_RendererBackend->CreateRenderpass(pConfig, pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::DestroyRenderpass(struct Renderpass* pRenderpass)
+{
+	if (pRenderpass->pszName)
+	{
+		Utl::StringFree(pRenderpass->pszName);
+		pRenderpass->pszName = nullptr;
+	}
+
+	m_RendererBackend->DestroyRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+IRenderView* CRenderer::GetRenderView(const char* pszRenderViewName)
+{
+	CAssert(pszRenderViewName != nullptr);
+
+	for (int iPass = 0; iPass < m_pRenderViews.Count(); iPass++)
+	{
+		if (Utl::StringCompareInsensitive(pszRenderViewName, m_pRenderViews[iPass]->GetViewName()))
+		{
+			return m_pRenderViews[iPass];
+		}
+	}
+
+	// TODO: nullptr?
+	LOG_ERROR("Failed to find renderpass named '%s'. Returning first pass.", pszRenderViewName);
+	return m_pRenderViews[0];
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+bool CRenderer::BeginRenderpass(Renderpass* pRenderpass)
+{
+	CAssert(pRenderpass != nullptr);
+	return m_RendererBackend->BeginRenderpass(pRenderpass);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CRenderer::EndRenderpass()
+{
+	m_RendererBackend->EndRenderpass();
 }
 
 //-------------------------------------------------------------------------
@@ -371,7 +478,7 @@ bool Renderer::Update(RenderPacket_t& pRenderData, CMap& pCurrentMap)
 //			pPixelData - An array of the texture's pixel data.
 // Output:	bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, size_t nPixelDataSize, byte* pPixelData)
+bool CRenderer::AcquireTextureResources(Texture* pTexture, int internalIndex, u64 nPixelDataSize, byte* pPixelData)
 {
 	return m_RendererBackend->AcquireTextureResources(pTexture, internalIndex, nPixelDataSize, pPixelData);
 }
@@ -381,7 +488,7 @@ bool Renderer::AcquireTextureResources(Texture* pTexture, int internalIndex, siz
 // Input:	pTexture - The texture to release resources for.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::ReleaseTextureResources(Texture* pTexture)
+void CRenderer::ReleaseTextureResources(Texture* pTexture)
 {
 	m_RendererBackend->ReleaseTextureResources(pTexture);
 }
@@ -392,9 +499,9 @@ void Renderer::ReleaseTextureResources(Texture* pTexture)
 //			pConfig - Some shader configuration details.
 // Output:	bool - Returns true on successful resource acquisition, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
+bool CRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pAppConfig)
 {
-	return m_RendererBackend->CreateShader(pShader, pConfig); 
+	return m_RendererBackend->CreateShader(pShader, pAppConfig); 
 }
 
 //-------------------------------------------------------------------------
@@ -402,7 +509,7 @@ bool Renderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 // Input:	pShader - The shader to release resources for.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::DestroyShader(Shader* pShader)
+void CRenderer::DestroyShader(Shader* pShader)
 {
 	m_RendererBackend->DestroyShader(pShader);
 }
@@ -415,7 +522,7 @@ void Renderer::DestroyShader(Shader* pShader)
 //			pszResourceName - Name to tag the shader resources with. Only used in debug builds.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOutInstanceID, const char* pszResourceName)
+void CRenderer::AcquireShaderInstanceResources(Shader* pShader, u32* pOutInstanceID, const char* pszResourceName)
 {
 	m_RendererBackend->AcquireShaderInstanceResources(pShader, pOutInstanceID, pszResourceName);
 }
@@ -426,7 +533,7 @@ void Renderer::AcquireShaderInstanceResources(Shader* pShader, unsigned int* pOu
 //			pInstanceID - The instance to be released.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pInstanceID)
+void CRenderer::ReleaseShaderInstanceResources(Shader* pShader, u32 pInstanceID)
 {
 	m_RendererBackend->ReleaseShaderInstanceResources(pShader, pInstanceID);
 }
@@ -436,71 +543,30 @@ void Renderer::ReleaseShaderInstanceResources(Shader* pShader, unsigned int pIns
 // Input:	pShader - The shader to bind.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::BindShader(Shader* pShader)
+void CRenderer::BindShader(Shader* pShader)
 {
 	m_RendererBackend->BindShader(pShader);
 }
 
 //-------------------------------------------------------------------------
 // Purpose: Binds a shader's per-frame uniforms.
-// Input:	pShader - The shader who's uniforms to bind.
+// Input:	pShader - The shader whose uniforms to bind.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::BindShaderPerFrameUniforms(Shader* pShader)
+void CRenderer::BindShaderPerFrameUniforms(Shader* pShader)
 {
 	m_RendererBackend->BindPerFrameShaderDescriptors(pShader);
 }
 
 //-------------------------------------------------------------------------
 // Purpose: Binds a shader's per-instance uniforms.
-// Input:	pShader - The shader who's uniforms to bind.
+// Input:	pShader - The shader whose uniforms to bind.
 //			hInstanceID - The instance to be bound.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::BindShaderPerInstanceUniforms(Shader* pShader, unsigned int hInstanceID)
+void CRenderer::BindShaderPerInstanceUniforms(Shader* pShader, u32 hInstanceID)
 {
 	m_RendererBackend->BindPerInstanceShaderDescriptors(pShader, hInstanceID);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Creates/acquires the resources needed for a renderer view.
-// Input:	pViewConfig - The configuration for the new view.
-//			pOutView - The structure to store the newly created view.
-// Output:	Returns true on successful creation, otherwise false.
-//-------------------------------------------------------------------------
-bool Renderer::CreateRendererView(RendererViewConfig_t& pViewConfig, RendererView& pOutView)
-{
-	return m_RendererBackend->CreateRendererViewInternal(pViewConfig, pOutView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Destroys/releases the resources used for a renderer view.
-// Input:	pView - The view to be destroyed.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::DestroyRendererView(RendererView& pView)
-{
-	m_RendererBackend->DestroyRendererViewInternal(pView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Begins a renderer view/renderpass.
-// Input:	pView - The view to start.
-// Output:	Returns true on successful start, otherwise false.
-//-------------------------------------------------------------------------
-bool Renderer::BeginRendererView(RendererView& pView)
-{
-	return m_RendererBackend->BeginRenderpass(pView);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Ends the current renderer view/renderpass.
-// Input:	none.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::EndRendererView()
-{
-	m_RendererBackend->EndRenderpass();
 }
 
 //-------------------------------------------------------------------------
@@ -513,9 +579,22 @@ void Renderer::EndRendererView()
 //			pOutBuffer - Stores the newly created renderbuffer.
 // Output:	Returns true on successful creation, otherwise false.
 //-------------------------------------------------------------------------
-bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName, RenderBuffer& pOutBuffer)
+RenderBuffer* CRenderer::CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName)
 {
-	return m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, pOutBuffer);
+	u64 iNewBuffer = m_RenderBuffers.Count();
+	m_RenderBuffers.PushBack(RenderBuffer{});
+	RenderBuffer* pNewBuffer = &m_RenderBuffers.Back();
+
+	pNewBuffer->pszBufferName = Utl::StringDuplicate(pszBufferName);
+	bool bCreateResult = m_RendererBackend->CreateRenderBufferInternal(bufferSize, bufferUsage, bUseFreelist, pszBufferName, *pNewBuffer);
+
+	if (!bCreateResult)
+	{
+		LOG_ERROR("Failed to create renderbuffer. Returning nullptr.");
+		return nullptr;
+	}
+
+	return pNewBuffer;
 }
 
 //-------------------------------------------------------------------------
@@ -523,9 +602,55 @@ bool Renderer::CreateRenderBuffer(size_t bufferSize, eRenderBufferUsage bufferUs
 // Input:	pBuffer - The buffer to be destroyed.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
+void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 {
 	m_RendererBackend->DestroyRenderBufferInternal(pBuffer);
+
+	if (pBuffer.pszBufferName != nullptr)
+	{
+		Utl::StringFree(pBuffer.pszBufferName);
+		pBuffer.pszBufferName = nullptr;
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance)
+{
+	CAssert(iVertexCount > 0 && pVertices != nullptr && pOutInstance != nullptr);
+
+	pOutInstance->vertexCount = iVertexCount;
+	pOutInstance->indexCount = iIndexCount;
+
+	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, iVertexCount, iVertexStride, iVertexBase, pVertices, iIndexCount, pIndices, *pOutInstance);
+
+	return true;
+}
+
+void CRenderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
+{
+	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
+	pGeometry.indexCount = 0;
+	pGeometry.vertexCount = 0;
+}
+
+RenderBuffer* CRenderer::GetRenderBufferByName(const char* pszBufferName) const
+{
+	if (!pszBufferName)
+	{
+		LOG_ERROR("GetRenderBufferByName was provided with no name! Returning nullptr.");
+		return nullptr;
+	}
+
+	for (u32 iBuffer = 0; iBuffer < m_RenderBuffers.Count(); iBuffer++)
+	{
+		if (Utl::StringCompare(pszBufferName, m_RenderBuffers[iBuffer].pszBufferName))
+			return &m_RenderBuffers[iBuffer];
+	}
+
+	LOG_ERROR("Failed to find render buffer named '%s'. Returning nullptr.", pszBufferName);
+	return nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -537,64 +662,9 @@ void Renderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 //			pData - An opaque pointer to the value to be set in the uniform.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, unsigned int iUniformArrayIndex, unsigned int hInstanceID, void* pData)
+void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, GeometryConfig_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometryConfig - The specific geometry data.
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryConfig2D_t& pGeometryConfig, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, pGeometryConfig.Vertices.Count(), pGeometryConfig.Vertices.Stride(), pGeometryConfig.Vertices.Data(), pGeometryConfig.Indices.Count(), pGeometryConfig.Indices.Data(), pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Acquires the renderer-specific resources for rendering geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			iVertexCount - The number of vertices to be uploaded.
-//			iVertexStride - The size (in bytes) of each vertex.
-//			pVertices - An array of vertices to be uploaded.
-//			iIndexCount - The number of indices to be uploaded.
-//			pIndices - An array of indices to be uploaded (assumed to be made of uint32_t's).
-//			pOutInstance - A structure that holds the instance of geometry after acquisition.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
-{
-	m_RendererBackend->AcquireGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Releases the renderer-specific resources for geometry.
-// Input:	pVertexBuffer - The vertex buffer to be associated with this geometry.
-//			pIndexBuffer - The index buffer to be associated with this geometry.
-//			pGeometry - The geometry instance to be released.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry)
-{
-	m_RendererBackend->ReleaseGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry);
 }
 
 //-------------------------------------------------------------------------
@@ -604,7 +674,7 @@ void Renderer::ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffe
 //			pIndexBuffer - The index buffer to be associated with this geometry.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
+void CRenderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
 {
 	m_RendererBackend->DrawGeometry(pVertexBuffer, pIndexBuffer, pGeometry);
 }
@@ -617,7 +687,7 @@ void Renderer::DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertex
 //			pNewGeometryConfig - The new geometry data to overwrite the existing data.
 // Output:	none.
 //-------------------------------------------------------------------------
-void Renderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) 
+void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig)
 {
 	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
 }
@@ -633,9 +703,9 @@ void Renderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer
 // NOTE: This method handles 2D geometry
 // TODO: Find a way to combine this and the above method.
 //-------------------------------------------------------------------------
-void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
+void CRenderer::UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig)
 {
-	m_RendererBackend->UpdateGeometryResources(m_UIVertexBuffer, m_UIIndexBuffer, pGeometry, pNewGeometryConfig);
+	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, pGeometry, pNewGeometryConfig);
 }
 
 //-------------------------------------------------------------------------
@@ -648,44 +718,9 @@ void Renderer::UpdateGeometryResources(GeometryInstance_t& pGeometry, GeometryCo
 // 
 // TODO: Find a way to combine this and the above method.
 //-------------------------------------------------------------------------
-void Renderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, uint64_t iVertexCount, uint64_t iVertexStride, void* pVertices, uint64_t iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
+void CRenderer::UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance)
 {
 	m_RendererBackend->UpdateGeometryResources(pVertexBuffer, pIndexBuffer, iVertexCount, iVertexStride, pVertices, iIndexCount, pIndices, pOutInstance);
-}
-
-//-------------------------------------------------------------------------
-// Purpose: A temporary function to create geometry for testing.
-// Input:	none.
-// Output:	True on successful geometry creation, otherwise false.
-// TODO:	Find a better name/place for this function.
-//				This really is responsible for creating/initializing structures
-//				that need to be created post system-initialization.
-//-------------------------------------------------------------------------
-bool Renderer::CreateTempTextObjects()
-{
-	hUIShader = g_pShaderSystem->AcquireShader("Core.UI");
-	testFont = g_pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
-	testText.m_hFont = testFont;
-	testText.m_flTextSize = 1.0f;
-	testText.m_vecPos = { -0.95f, -0.6f };	// TODO: Make this screenspace instead of NDC!
-
-	if (!g_pDebugRenderer->InitializeDebugShaders())
-	{
-		LOG_ERROR("Failed to initialize debug shaders!");
-		return false;
-	}
-
-	return true;
-}
-
-//-------------------------------------------------------------------------
-// Purpose: Releases all temp geometry resources.
-// Input:	none.
-// Output:	none.
-//-------------------------------------------------------------------------
-void Renderer::DestroyTempGeometry()
-{
-	// TODO: Remove me!
 }
 
 //-------------------------------------------------------------------------
@@ -693,23 +728,22 @@ void Renderer::DestroyTempGeometry()
 // Input:	data - Event-specific data (this contains the new dimensions of the window).
 // Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
 //-------------------------------------------------------------------------
-static bool RendererEvent_WindowResized(EventData_t data)
+static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data)
 {
+	CRenderer* pRenderer = (CRenderer*)pEventListener;
+
 	// Handle minimized contexts.
 	if (data.u32[0] == 0 || data.u32[1] == 0)
 	{
-		s_Renderer.SetMinimized(true);
+		pRenderer->SetMinimized(true);
 	}
 	else
 	{
-		s_Renderer.SetMinimized(false);
+		pRenderer->SetMinimized(false);
 	}
 
 	// Cache off the new dimensions.
-	s_Renderer.SetWindowDimensions(data.u32[0], data.u32[1]);
-
-	// Make sure to resize the camera's aspect ratio as well.
-	s_Renderer.m_Camera.flAspectRatio = ((float)data.u32[0] / data.u32[1]);
+	pRenderer->SetWindowDimensions(data.u32[0], data.u32[1]);
 
 	// Let other listeners handle this event.
 	return false;
@@ -720,23 +754,12 @@ static bool RendererEvent_WindowResized(EventData_t data)
 // Input:	data - Event-specific data (this contains the relevant pressed key-codes).
 // Output:	Returns true if this event should be considered 'handled', false if it should propogate to other listeners.
 //-------------------------------------------------------------------------
-static bool RendererEvent_KeyPressed(EventData_t data)
+static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 {
-	if (data.c[0] == 'P')
-	{
-		// Print the camera's position and angles.
-		LOG_INFO("Pos: %f, %f, %f\tAng: %f, %f", s_Renderer.m_Camera.vecPosition.x, s_Renderer.m_Camera.vecPosition.y, s_Renderer.m_Camera.vecPosition.z, s_Renderer.m_Camera.Pitch, s_Renderer.m_Camera.Yaw);
-	}
-
-	if (data.c[0] == 'Y')
-	{
-		// Toggle profiling text.
-		s_bDisplayProfilingText = !s_bDisplayProfilingText;
-	}
-
+	CRenderer* pRenderer = (CRenderer*)pEventListener;
 	if (data.c[0] >= 0 && data.c[0] <= 9)
 	{
-		g_pRenderer->m_iRendererDebugMode = data.c[0];
+		pRenderer->m_iRendererDebugMode = data.c[0];
 	}
 
 	// Let other listeners handle this event.

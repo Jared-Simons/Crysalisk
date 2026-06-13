@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 # Core root
 # TODO: This variable isn't properly expanding
 #set(CORE_ROOT %{CRYSALISK_REPO_ROOT}/Crysalisk/Core/src)
-set(CORE_ROOT Crysalisk/Core/src/)
+#set(CORE_ROOT src/)
+set(CORE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/Crysalisk/Core/src)
 
 project(Crysalisk VERSION 1.0)
 
@@ -28,16 +29,16 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Memory/DynamicAllocator.cpp
 	${CORE_ROOT}/Memory/DynamicAllocator.h
 	${CORE_ROOT}/Memory/IMemoryAllocator.h
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.cpp
-	${CORE_ROOT}/Memory/MemoryAllocatorBase.h
+	${CORE_ROOT}/Memory/LinearAllocator.cpp
+	${CORE_ROOT}/Memory/LinearAllocator.h
 	${CORE_ROOT}/Memory/MemoryManager.cpp
 	${CORE_ROOT}/Memory/MemoryManager.h
 	${CORE_ROOT}/Platform/FileSystem.cpp
 	${CORE_ROOT}/Platform/FileSystem.h
-	${CORE_ROOT}/Platform/InterfaceRegistry.cpp
-	${CORE_ROOT}/Platform/InterfaceRegistry.h
 	${CORE_ROOT}/Platform/Platform.h
 	${CORE_ROOT}/Platform/Platform_Win32.cpp
+	${CORE_ROOT}/Renderer/Camera.cpp
+	${CORE_ROOT}/Renderer/Camera.h
 	${CORE_ROOT}/Resources/Loaders/FontLoader.cpp
 	${CORE_ROOT}/Resources/Loaders/FontLoader.h
 	${CORE_ROOT}/Resources/Loaders/ImageLoader.cpp
@@ -63,7 +64,7 @@ set(CRYSALISK_CORE_SRC_FILES
 )
 
 # Group source files
-source_group(TREE ${CORE_ROOT} FILES ${CRYSALISK_CORE_SRC_FILES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${CRYSALISK_CORE_SRC_FILES})
 
 # Create Crysalisk Core Utilities library.
 add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
@@ -72,8 +73,6 @@ add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
 # TODO: Get these directories from somewhere else.
 target_include_directories(Core PUBLIC ${CORE_ROOT})
 target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
-target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Interfaces/src/)
-target_include_directories(Core PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
 
 # Force multi-byte character set.
 target_compile_definitions(Core PRIVATE _MBCS)

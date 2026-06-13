@@ -40,12 +40,14 @@ public:
 			void				ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease);
 
 	// Returns a texture's width/height.
-	virtual int32_t				GetTextureWidth(TextureHandle_t hTexture) const override;
-	virtual int32_t				GetTextureHeight(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureWidth(TextureHandle_t hTexture) const override;
+	virtual i32				GetTextureHeight(TextureHandle_t hTexture) const override;
 
 	// Use this to convert a texture handle to a texture pointer. This is necessary so the renderer can get at texture resources without relying on the texture system.
 	// Nothing except the renderer should be using this, handles are the right answer elsewhere.
 	virtual Texture*			GetTextureFromHandle(TextureHandle_t hTex) override { return &m_TextureDictionary.m_TextureArray[hTex]; }
+
+	virtual bool				IsTextureLoaded(TextureHandle_t hTex) override { return m_TextureDictionary.m_TextureArray[hTex].internalHandle != kInvalidID_U32 && m_TextureDictionary.m_TextureArray[hTex].generation != kInvalidID_U8; }
 
 	// Getters for default textures.
 	virtual TextureHandle_t		GetDefaultDiffuseTexture() override { return m_pDefaultTextureLookup->TextureIndex; }
@@ -101,9 +103,7 @@ private:
 	TextureLookup* m_pDefaultNormalTexture{ nullptr };
 };
 
-// Texture System context.
-static CTextureSystem s_TextureSystem;
-ITextureSystem* g_pTextureSystem_Internal = &s_TextureSystem;
+static CTextureSystem* s_TextureSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async texture-loading job.
@@ -112,7 +112,7 @@ static int OnTextureLoadJob_Success(JobResults_t& pResults)
 {
 	ImageLoader::ImageLoaderParams_t* pTypedResults = reinterpret_cast<ImageLoader::ImageLoaderParams_t*>(pResults.pUserData);
 
-	g_pTextureSystem_Internal->AcquireTextureFromResource(*pTypedResults->pOutResource, pTypedResults->pszImageName, true);
+	s_TextureSystem->AcquireTextureFromResource(*pTypedResults->pOutResource, pTypedResults->pszImageName, true);
 
 	// Release all the resources allocated for this job.
 	delete pTypedResults->pOutResource;
@@ -150,6 +150,21 @@ static int OnTextureLoadJob_Fail(JobResults_t& pResults)
 	pTypedResults = nullptr;
 
 	return 1;
+}
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void ITextureSystem::AllocateTextureSystemState(ITextureSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold texture system state was not provided! Texture system creation failed!");
+		return;
+	}
+
+	s_TextureSystem = new CTextureSystem;
+	*ppSystemState = s_TextureSystem;
 }
 
 //-------------------------------------------------------------------------
@@ -192,6 +207,8 @@ void CTextureSystem::Shutdown()
 	DestroyDefaultTextures();
 
 	delete[] m_TextureDictionary.m_TextureArray;
+
+	s_TextureSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -244,8 +261,7 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		textureLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		textureLoadJob.ePriority = eJobPriority::NORMAL;
 
-		g_pJobSystem->SubmitJob(textureLoadJob);
-		
+		m_Config.pJobSystem->SubmitJob(textureLoadJob);
 	}
 	else
 	{
@@ -254,7 +270,6 @@ TextureHandle_t CTextureSystem::AcquireTexture(const char* pszTextureName, bool 
 		newTextureHandle = pTextureLookup->TextureIndex;
 	}
 
-	//CAssert(newTextureHandle == pTextureLookup->TextureIndex);
 	return newTextureHandle;
 }
 
@@ -297,7 +312,7 @@ TextureHandle_t CTextureSystem::AcquireTextureFromResource(ImageLoader::ImageRes
 	pTexture->pszTextureName = Utl::StringDuplicate(pszTextureName);
 
 	// Acquire renderer resources and upload to the GPU.
-	if (!g_pRenderer->AcquireTextureResources(pTexture, newTextureHandle, (pTexture->width * pTexture->height * pTexture->numChannels), pResource.pPixelData))
+	if (!m_Config.pRenderer->AcquireTextureResources(pTexture, newTextureHandle, (pTexture->width * pTexture->height * pTexture->numChannels), pResource.pPixelData))
 	{
 		LOG_ERROR("Failed to acquire renderer resources for texture '%s'. Texture acquisition failed!", pszTextureName);
 
@@ -369,7 +384,7 @@ void CTextureSystem::ReleaseTexture(TextureHandle_t hTexture)
 	if (pLookup->ReferenceCount == 0 && pLookup->AutoRelease == true)
 	{
 		// Release internal texture data.
-		g_pRenderer->ReleaseTextureResources(pTexture);
+		m_Config.pRenderer->ReleaseTextureResources(pTexture);
 		pTexture->internalHandle = kInvalidID_U32;
 
 		// Clear the hashmap and texture data.
@@ -421,7 +436,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 	if (pTexture.generation == kInvalidID_U8)
 		return;
 
-	g_pRenderer->ReleaseTextureResources(&pTexture);
+	m_Config.pRenderer->ReleaseTextureResources(&pTexture);
 	if (pTexture.pszTextureName)
 		Utl::StringFree(pTexture.pszTextureName);
 
@@ -433,7 +448,7 @@ void CTextureSystem::ReleaseTextureAtIndex(Texture& pTexture, bool bForceRelease
 // Input:	hTexture - The texture whose width to return.
 // Output:	Returns the texture's width.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].width;
 }
@@ -443,7 +458,7 @@ int32_t CTextureSystem::GetTextureWidth(TextureHandle_t hTexture) const
 // Input:	hTexture - The texture whose height to return.
 // Output:	Returns the texture's height.
 //-------------------------------------------------------------------------
-int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
+i32 CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 {
 	return m_TextureDictionary.m_TextureArray[hTexture].height;
 }
@@ -455,7 +470,7 @@ int32_t CTextureSystem::GetTextureHeight(TextureHandle_t hTexture) const
 //-------------------------------------------------------------------------
 TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 {
-	if (!s_TextureSystem.m_TextureDictionary.m_TextureArray)
+	if (!m_TextureDictionary.m_TextureArray)
 	{
 		LOG_ERROR("Attempting to acquire a texture prior to texture system initialization, texture acquisition failed.");
 		return kInvalidID_U32;
@@ -463,7 +478,7 @@ TextureHandle_t CTextureSystem::GetFirstFreeTextureHandle() const
 
 	for (int texIdx = 0; texIdx < m_Config.MaxTextures; texIdx++)
 	{
-		if (s_TextureSystem.m_TextureDictionary.m_TextureArray[texIdx].internalHandle == kInvalidID_U32)
+		if (m_TextureDictionary.m_TextureArray[texIdx].internalHandle == kInvalidID_U32)
 		{
 			// Found a free slot, return!
 			return texIdx;
@@ -545,7 +560,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		defaultDiffuseTexture->width = defaultDiffuseTexture->height = 8;
 		defaultDiffuseTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources(defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!m_Config.pRenderer->AcquireTextureResources(defaultDiffuseTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
@@ -555,6 +570,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			newTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultTextureLookup = newTextureLookup;
+		defaultDiffuseTexture->generation = 0;
 	}
 
 	// Default white texture
@@ -588,7 +604,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		defaultWhiteTexture->width = defaultWhiteTexture->height = 8;
 		defaultWhiteTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources(defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!m_Config.pRenderer->AcquireTextureResources(defaultWhiteTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default diffuse texture.");
 			return false;
@@ -598,6 +614,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultWhiteTextureLookup->TextureIndex = texIdx;
 
 		m_pWhiteTextureLookup = defaultWhiteTextureLookup;
+		defaultWhiteTexture->generation = 0;
 	}
 
 	// Default specular texture
@@ -631,7 +648,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		pDefaultSpecularTexture->width = pDefaultSpecularTexture->height = 8;
 		pDefaultSpecularTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources(pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!m_Config.pRenderer->AcquireTextureResources(pDefaultSpecularTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default specular texture.");
 			return false;
@@ -641,6 +658,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultSpecularTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultSpecularTexture = defaultSpecularTextureLookup;
+		pDefaultSpecularTexture->generation = 0;
 	}
 
 	// Default normal texture
@@ -674,7 +692,7 @@ bool CTextureSystem::CreateDefaultTextures()
 
 		pDefaultNormalTexture->width = pDefaultNormalTexture->height = 8;
 		pDefaultNormalTexture->numChannels = 4;
-		if (!g_pRenderer->AcquireTextureResources(pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
+		if (!m_Config.pRenderer->AcquireTextureResources(pDefaultNormalTexture, texIdx, sizeof(byte) * 8 * 8 * 4, pPixelData))
 		{
 			LOG_ERROR("Failed to create default normal texture.");
 			return false;
@@ -684,6 +702,7 @@ bool CTextureSystem::CreateDefaultTextures()
 			defaultNormalTextureLookup->TextureIndex = texIdx;
 
 		m_pDefaultNormalTexture = defaultNormalTextureLookup;
+		pDefaultNormalTexture->generation = 0;
 	}
 
 	return true;
@@ -695,21 +714,21 @@ bool CTextureSystem::CreateDefaultTextures()
 void CTextureSystem::DestroyDefaultTextures()
 {
 	Texture* pDefaultTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultTextureLookup->TextureIndex];
-	g_pRenderer->ReleaseTextureResources(pDefaultTexture);
+	m_Config.pRenderer->ReleaseTextureResources(pDefaultTexture);
 	pDefaultTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultTexture->pszTextureName)
 		Utl::StringFree(pDefaultTexture->pszTextureName);
 
 	Texture* pDefaultWhiteTexture = &m_TextureDictionary.m_TextureArray[m_pWhiteTextureLookup->TextureIndex];
-	g_pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
+	m_Config.pRenderer->ReleaseTextureResources(pDefaultWhiteTexture);
 	pDefaultWhiteTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultWhiteTexture->pszTextureName)
 		Utl::StringFree(pDefaultWhiteTexture->pszTextureName);
 
 	Texture* pDefaultSpecularTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultSpecularTexture->TextureIndex];
-	g_pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
+	m_Config.pRenderer->ReleaseTextureResources(pDefaultSpecularTexture);
 	pDefaultSpecularTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultSpecularTexture->pszTextureName)
@@ -717,7 +736,7 @@ void CTextureSystem::DestroyDefaultTextures()
 
 
 	Texture* pDefaultNormalTexture = &m_TextureDictionary.m_TextureArray[m_pDefaultNormalTexture->TextureIndex];
-	g_pRenderer->ReleaseTextureResources(pDefaultNormalTexture);
+	m_Config.pRenderer->ReleaseTextureResources(pDefaultNormalTexture);
 	pDefaultNormalTexture->internalHandle = kInvalidID_U32;
 
 	if (pDefaultNormalTexture->pszTextureName)

@@ -31,7 +31,7 @@ public:
 	static bool	CreateDevice(class CVulkanRenderer& pRenderingContext, VulkanDevice& pOutDevice);
 	static void	DestroyDevice(class CVulkanRenderer& pRenderingContext, VulkanDevice& pDevice);
 
-	uint32_t	FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+	u32	FindMemoryType(u32 typeFilter, VkMemoryPropertyFlags properties);
 	VkFormat	FindSupportedDepthFormat();
 
 public:
@@ -57,12 +57,13 @@ public:
 class VulkanImage
 {
 public:
-	static bool CreateImage(class CVulkanRenderer& pRenderingContext, const char* pszImageName, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage);
+	static bool CreateImage(class CVulkanRenderer& pRenderingContext, const char* pszImageName, u32 width, u32 height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage);
 	static void DestroyImage(class CVulkanRenderer& pRenderingContext, VulkanImage& pImage);
 
 	bool		TransitionImageLayout(class CVulkanRenderer& pRenderingContext, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData);
+	bool		WriteDataToImage(class CVulkanRenderer& pRenderingContext, u32 width, u32 height, u8 numChannels, byte* pPixelData);
+	void		CopyBufferToImage(class CVulkanRenderer& pRenderingContext, class VulkanBuffer& pStagingBuffer, u32 width, u32 height);
 
 public:
 	VkImage			m_Image{ VK_NULL_HANDLE };
@@ -73,12 +74,12 @@ public:
 class VulkanBuffer
 {
 public:
-	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, size_t bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer);
+	static bool		CreateBuffer(class CVulkanRenderer& pRenderingContext, u64 bufferSize, VkBufferUsageFlags bufferUsage, VkMemoryPropertyFlags memoryProperties, bool bUseFreelist, VulkanBuffer& pOutBuffer);
 	static void		DestroyBuffer(class CVulkanRenderer& pRenderingContext, VulkanBuffer& pBuffer);
-	static void		Resize(class CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, size_t iNewBufferSize);
+	static void		Resize(class CVulkanRenderer& pRenderingContext, VulkanBuffer* pBuffer, u64 iNewBufferSize);
 
-	size_t			UploadDataRange(class CVulkanRenderer& pRenderingContext, size_t dataSize, void* pData);
-	void			FreeDataRange(class CVulkanRenderer& pRenderingContext, size_t dataOffset, size_t dataSize);
+	u64			UploadDataRange(class CVulkanRenderer& pRenderingContext, u64 dataSize, void* pData);
+	void			FreeDataRange(class CVulkanRenderer& pRenderingContext, u64 dataOffset, u64 dataSize);
 
 public:
 	VkBuffer				m_Handle{ VK_NULL_HANDLE };
@@ -86,8 +87,9 @@ public:
 	VkMemoryPropertyFlags	m_MemoryProperties{};
 	VkBufferUsageFlags		m_BufferUsage{};
 
-	size_t					m_BufferSize{ 0 };
-	size_t					m_BytesAllocated{ 0 };
+	// FIXME: MOVE THESE TO THE RENDERBUFFER CLASS!
+	u64					m_BufferSize{ 0 };
+	u64					m_BytesAllocated{ 0 };
 	
 	bool			m_bUsesFreelist{ false };
 	Utl::CFreeList	m_Freelist{};
@@ -110,7 +112,7 @@ public:
 class VulkanSwapchain
 {
 public:
-	static bool		CreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pOutSwapchain);
+	static bool		CreateSwapchain(class CVulkanRenderer& pRenderingContext, VkSurfaceKHR pSurface, VulkanSwapchain& pOutSwapchain);
 	static void		DestroySwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
 	static bool		CreateFramebuffers(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain, class VulkanRenderPass* pMainRenderpass);
 	static void		RecreateSwapchain(class CVulkanRenderer& pRenderingContext, VulkanSwapchain& pSwapchain);
@@ -127,6 +129,12 @@ public:
 	Utl::CVector<VkFramebuffer> m_Framebuffers{};
 	class VulkanImage			m_DepthImage{};
 	class VulkanRenderPass*		m_pFramebufferPass{ nullptr };
+};
+
+struct VulkanWindowState_t
+{
+	VkSurfaceKHR	m_WindowSurface{};
+	VulkanSwapchain	m_Swapchain{};
 };
 
 class VulkanRenderPass
@@ -154,10 +162,10 @@ public:
 	struct VulkanDescriptorSetState
 	{
 		VkDescriptorSet m_DescriptorSets[3];
-		byte			m_Generation;
+		byte			m_Generation[4];	// 1 Uniform Buffer, 3 Images TODO: Make dynamic
 	};
 
-	size_t		m_Generation{ kInvalidID_U32 };
+	u64		m_Generation{ kInvalidID_U32 };
 	VkPipeline	m_Pipeline{ VK_NULL_HANDLE };
 	VkPipelineLayout m_PipelineLayout{ VK_NULL_HANDLE };
 
@@ -167,7 +175,7 @@ public:
 	Utl::CVector<VulkanDescriptorSetLayoutState> m_DescriptorSetLayouts{};
 	Utl::CVector<VulkanDescriptorSetState>	m_DescriptorSets{};
 	int						m_NextFreeDescriptorSetIndex{ 0 };
-	size_t					m_CurrentRendererFrame{ 0 };
+	u64					m_CurrentRendererFrame{ 0 };
 
 	Utl::CVector<VkSampler>		m_ImageSamplers{};
 	Utl::CVector<VulkanBuffer>	m_UniformBuffers{};
@@ -176,5 +184,5 @@ public:
 struct VulkanTextureInternal
 {
 	class VulkanImage	m_Image{};
-	unsigned char		m_Generation{ kInvalidID_U8 };
+	u8		m_Generation{ kInvalidID_U8 };
 };

@@ -18,7 +18,7 @@
 class CMeshSystem : public IMeshSystem
 {
 public:
-	virtual bool			Initialize(const MeshSystemConfig_t& pConfig) override;
+	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) override;
 	virtual void			Shutdown() override;
 
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
@@ -34,6 +34,9 @@ private:
 
 private:
 	MeshSystemConfig_t	m_Config{};
+
+	RenderBuffer*		m_pWorldVertexBuffer{ nullptr };
+	RenderBuffer*		m_pWorldIndexBuffer{ nullptr };
 
 	struct MeshLookup
 	{
@@ -53,23 +56,21 @@ private:
 };
 
 // Mesh System Context
-static CMeshSystem s_MeshSystem;
-IMeshSystem* g_pMeshSystem = &s_MeshSystem;
+static CMeshSystem* s_MeshSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async mesh-loading job.
 //-------------------------------------------------------------------------
 static int OnMeshLoadJob_Success(JobResults_t& pResults)
 {
+	// LEFTOFF: Make this work with the new mesh format.
 	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
 
-	MeshLoader::MeshResource_t::GeometryGroup_t*	pMesh = &pTypedResults->pOutResource->pObjects[0];
-	MeshLoader::MeshResource_t::GeometryObject_t*	pSubmesh = nullptr;
-
 	// This will handle mesh registration and GPU upload.
-	s_MeshSystem.AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
+	s_MeshSystem->AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
 
 	// Release all the resources allocated for this job.
+	// TODO: Make sure this is properly releasing EVERYTHING
 	delete pTypedResults->pOutResource;
 	pTypedResults->pOutResource = nullptr;
 	CAssert(pTypedResults->pszMeshPath != nullptr);
@@ -108,20 +109,50 @@ static int OnMeshLoadJob_Fail(JobResults_t& pResults)
 }
 
 //-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+void IMeshSystem::AllocateMeshSystemState(IMeshSystem** ppSystemState)
+{
+	if (!ppSystemState)
+	{
+		LOG_ERROR("Pointer to hold mesh system state was not provided! Mesh system creation failed!");
+		return;
+	}
+
+	s_MeshSystem = new CMeshSystem;
+	*ppSystemState = s_MeshSystem;
+}
+
+//-------------------------------------------------------------------------
 // Initialize.
 //-------------------------------------------------------------------------
-bool CMeshSystem::Initialize(const MeshSystemConfig_t& pConfig)
+bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 {
-	if (pConfig.MaxMeshes < 1)
+	if (pAppConfig.MaxMeshes < 1)
 	{
 		LOG_ERROR("Mesh System REQUIRES Config.MeshMeshes > 0.");
 		return false;
 	}
 
-	m_Config = pConfig;
+	m_Config = pAppConfig;
 
 	m_MeshDictionary.m_MeshArray = new Mesh[m_Config.MaxMeshes];
 	m_MeshDictionary.m_MeshHashmap.Resize(m_Config.MaxMeshes);
+
+	// Get geometry buffers
+	m_pWorldVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer");
+	if (m_pWorldVertexBuffer == nullptr)
+	{
+		LOG_ERROR("Failed to create world geometry vertex buffer!");
+		return false;
+	}
+
+	m_pWorldIndexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(u32) * 5 * 1024 * 1024, eRenderBufferUsage::INDEX, true, "World_Index_Buffer");
+	if (m_pWorldIndexBuffer == nullptr)
+	{
+		LOG_ERROR("Failed to create world geometry index buffer!");
+		return false;
+	}
 
 	LOG_INFO("Mesh system initialized! (Max meshes: %d)", m_Config.MaxMeshes);
 	return true;
@@ -137,6 +168,8 @@ void CMeshSystem::Shutdown()
 		delete[] m_MeshDictionary.m_MeshArray;
 		m_MeshDictionary.m_MeshArray = nullptr;
 	}
+
+	s_MeshSystem = nullptr;
 }
 
 //-------------------------------------------------------------------------
@@ -160,9 +193,6 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 	MeshLookup*		pMeshLookup = nullptr;
 	Mesh*			pMesh = nullptr;
 
-	MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
-	MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
-
 	// Format the string with the path to the model directory.
 	char szFormattedPath[512]{};
 	Utl::StringFormat_V("Assets/Models/%s\0", szFormattedPath, pszMeshName);
@@ -178,6 +208,9 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 			LOG_ERROR("AcquireMeshInstance() could not acquire a new mesh slot. Increase mesh system config to allow for more. Returning null handle.");
 			return kInvalidID_U32;
 		}
+
+		MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
+		MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
 
 		pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
 		pMesh->m_MeshID = newMeshHandle;
@@ -203,7 +236,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
 		meshLoadJob.ePriority = eJobPriority::NORMAL;
 
-		g_pJobSystem->SubmitJob(meshLoadJob);
+		m_Config.pJobSystem->SubmitJob(meshLoadJob);
 	}
 	else
 	{
@@ -243,46 +276,43 @@ MeshHandle_t CMeshSystem::AcquireMeshFromResource(MeshLoader::MeshResource_t& pR
 
 	pMesh->m_matLocalToWorldTransform = Matrix4x4::Translate(pMesh->m_matLocalToWorldTransform, pMesh->m_vecPosition);
 
-	MeshLoader::MeshResource_t::GeometryObject_t* pCurSubmesh = nullptr;
 	// Acquire renderer resources and upload to the GPU.
-	// 
-	// TODO: Only accounts for one mesh.
-	// Reformat the mesh file eventally to make this cleaner.
-	for (int iSubmesh = 0; iSubmesh < pResource.pObjects[0].pGroups.Capacity(); iSubmesh++)
+	for (int iSubmesh = 0; iSubmesh < pResource.pMeshes.Count(); iSubmesh++)
 	{
-		pCurSubmesh = &pResource.pObjects[0].pGroups[iSubmesh];
-		CAssert(pCurSubmesh);
+		MeshLoader::MeshResource_t::GeometryObject_t& pCurSubmesh = pResource.pMeshes[iSubmesh];
 
-		if (pCurSubmesh->Vertices.Count() < 1)
-			continue;	// Vertex data is required!
-
-		LOG_DEBUG("Acquiring mesh resources for: %s", pCurSubmesh->pszDebugName);
-
-		GeometryConfig_t newConfig{};
-		newConfig.Vertices = pCurSubmesh->Vertices;
-		newConfig.Indices = pCurSubmesh->Indices;
 		pMesh->m_Geometries.PushBack(GeometryInstance_t{});
-		g_pRenderer->AcquireGeometryResources(&g_pRenderer->m_WorldVertexBuffer, &g_pRenderer->m_WorldIndexBuffer, newConfig, pMesh->m_Geometries.Back());
 
 		GeometryInstance_t& pNewSubmesh = pMesh->m_Geometries.Back();
 
-		pNewSubmesh.vecMinExtents = pCurSubmesh->vecMinExtents;
-		pNewSubmesh.vecMaxExtents = pCurSubmesh->vecMaxExtents;
-		pNewSubmesh.vecCenter = pCurSubmesh->vecCenter;
-
 		// Acquire material resources.
-		if (pCurSubmesh->pszMaterialName != nullptr)
+		if (pResource.pMaterialNames.Count() > 0 && pResource.pMeshes[iSubmesh].iMaterialNameIndex != kInvalidID_U32)
 		{
-			pNewSubmesh.hMaterial = g_pMaterialSystemInternal->AcquireMaterial(pCurSubmesh->pszMaterialName);
-
-			// Set transparency state.
-			pNewSubmesh.bIsTransparent = g_pMaterialSystemInternal->IsMaterialTransparent(pNewSubmesh.hMaterial);
+			pNewSubmesh.hShaderInstance = m_Config.pMaterialSystem->AcquireMaterial(pResource.pMaterialNames[pResource.pMeshes[iSubmesh].iMaterialNameIndex]);
 		}
+		else
+		{
+			// Just grab the default if no materials were provided.
+			pNewSubmesh.hShaderInstance = m_Config.pMaterialSystem->GetDefaultMaterialReference();
+		}
+
+		pNewSubmesh.vertexDataOffset = pCurSubmesh.iVertexOffset;
+		pNewSubmesh.indexDataOffset = pCurSubmesh.iIndexOffset;
+		pNewSubmesh.vecMinExtents = pCurSubmesh.vecMinExtents;
+		pNewSubmesh.vecMaxExtents = pCurSubmesh.vecMaxExtents;
+		pNewSubmesh.vecCenter = (pNewSubmesh.vecMinExtents + pNewSubmesh.vecMaxExtents) * 0.5f;
+		m_Config.pRenderer->AcquireGeometryResources(*m_pWorldVertexBuffer, *m_pWorldIndexBuffer,
+													pCurSubmesh.iVertexCount, pCurSubmesh.iVertexStride, pCurSubmesh.iVertexOffset, pCurSubmesh.pVertexData,
+													pCurSubmesh.iIndexCount, pCurSubmesh.iIndexData, &pNewSubmesh);
 	}
 
 	// Increment the reference count.
 	pMeshLookup->iReferenceCount++;
 	pMeshLookup->bAutoRelease = bAutoRelease;
+
+	// Clean up mesh resources.
+	// NOTE: Put this on a thread?
+	MeshLoader::UnloadMeshResource(pResource);
 
 	return meshHandle;
 }
@@ -343,8 +373,9 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 		
 		for (int iSubmeshIdx = 0; iSubmeshIdx < pMesh->m_Geometries.Count(); iSubmeshIdx++)
 		{
-			g_pRenderer->ReleaseGeometryResources(g_pRenderer->m_WorldVertexBuffer, g_pRenderer->m_WorldIndexBuffer, pMesh->m_Geometries[iSubmeshIdx]);
-			g_pMaterialSystemInternal->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hMaterial, false);
+			// TODO: Fix this
+			//m_Config.pRenderer->ReleaseGeometryResources(m_Config.pRenderer->GetWorldVertexBuffer(), m_Config.pRenderer->GetWorldIndexBuffer(), pMesh->m_Geometries[iSubmeshIdx]);
+			m_Config.pMaterialSystem->ReleaseMaterial(pMesh->m_Geometries[iSubmeshIdx].hShaderInstance, false);
 		}
 		ClearMeshDictionaryEntry(pMesh->m_pszMeshPath);
 	}
@@ -357,7 +388,7 @@ void CMeshSystem::ReleaseMeshInstance(MeshHandle_t hMesh)
 //-------------------------------------------------------------------------
 MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 {
-	if (!s_MeshSystem.m_MeshDictionary.m_MeshArray)
+	if (!s_MeshSystem->m_MeshDictionary.m_MeshArray)
 	{
 		LOG_ERROR("Attempting to acquire a mesh prior to mesh system initialization, mesh acquisition failed.");
 		return kInvalidID_U32;
@@ -365,7 +396,7 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 
 	for (int meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
 	{
-		if (s_MeshSystem.m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
+		if (s_MeshSystem->m_MeshDictionary.m_MeshArray[meshIdx].m_MeshID == kInvalidID_U32)
 		{
 			// Found a free slot, return!
 			return meshIdx;

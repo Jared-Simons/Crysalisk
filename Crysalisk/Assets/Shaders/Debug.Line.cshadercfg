@@ -1,5 +1,6 @@
 name="Debug.Line"
 num_shader_stages=2
+renderview="Debug View"
 
 stages
 {

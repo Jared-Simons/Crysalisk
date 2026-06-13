@@ -1,0 +1,3 @@
+[submodule "Crys-STDLib"]
+	path = Crysalisk-Stdlib
+	url = https://github.com/Jared-Simons/Crysalisk-Stdlib

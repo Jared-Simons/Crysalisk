@@ -18,7 +18,7 @@
 //			pOutImage - The structure that will hold the created image.
 // Output:	Returns true on successful image creation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* pszImageName, uint32_t width, uint32_t height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
+bool VulkanImage::CreateImage(CVulkanRenderer& pRenderingContext, const char* pszImageName, u32 width, u32 height, VkFormat imageFormat, VkImageUsageFlags usageFlags, VkImageAspectFlags aspectFlags, VulkanImage& pOutImage)
 {
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.pNext = nullptr;
@@ -163,7 +163,7 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer& pRenderingContext, VkIm
 //			pPixelData - An array of the pixels to be written to the image.
 // Output:	Returns true on successful data write operation, otherwise false.
 //-------------------------------------------------------------------------
-bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t width, uint32_t height, uint8_t numChannels, byte* pPixelData)
+bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, u32 width, u32 height, u8 numChannels, byte* pPixelData)
 {
 	// Put the image data into a nice staging buffer.
 	VulkanBuffer stagingBuffer;
@@ -182,32 +182,7 @@ bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t 
 	}
 
 	// Copy the buffer data to the image.
-	// FIXME: Make this it's own method?
-	{
-		VulkanCommandBuffer cmdBuffer{};
-		cmdBuffer.CreateAndBeginSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
-
-		VkBufferImageCopy region{};
-		region.bufferOffset = 0;
-		region.bufferRowLength = 0;
-		region.bufferImageHeight = 0;
-
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.mipLevel = 0;
-		region.imageSubresource.baseArrayLayer = 0;
-		region.imageSubresource.layerCount = 1;
-
-		region.imageOffset = { 0, 0, 0 };
-		region.imageExtent = {
-			width,
-			height,
-			1
-		};
-
-		vkCmdCopyBufferToImage(cmdBuffer.m_Handle, stagingBuffer.m_Handle, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-		cmdBuffer.EndSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
-	}
+	CopyBufferToImage(pRenderingContext, stagingBuffer, width, height);
 
 	// Transition the image to a layout optimal for reading in the shader.
 	if (!TransitionImageLayout(pRenderingContext, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL))
@@ -220,4 +195,31 @@ bool VulkanImage::WriteDataToImage(CVulkanRenderer& pRenderingContext, uint32_t 
 	VulkanBuffer::DestroyBuffer(pRenderingContext, stagingBuffer);
 
 	return true;
+}
+
+void VulkanImage::CopyBufferToImage(class CVulkanRenderer& pRenderingContext, class VulkanBuffer& pStagingBuffer, u32 width, u32 height)
+{
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
+
+	VkBufferImageCopy region{};
+	region.bufferOffset = 0;
+	region.bufferRowLength = 0;
+	region.bufferImageHeight = 0;
+
+	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.layerCount = 1;
+
+	region.imageOffset = { 0, 0, 0 };
+	region.imageExtent = {
+		width,
+		height,
+		1
+	};
+
+	vkCmdCopyBufferToImage(cmdBuffer.m_Handle, pStagingBuffer.m_Handle, m_Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	cmdBuffer.EndSingleUse(pRenderingContext, pRenderingContext.m_GraphicsCommandPool);
 }

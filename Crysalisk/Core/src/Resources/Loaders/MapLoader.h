@@ -31,17 +31,17 @@ namespace MapLoader
 
 			// NOTE: Only applies to directional/sky lights.
 			Vector3D	ambientLightColor{};
-			float		flAmbientStrength{};
+			f32		flAmbientStrength{};
 
 			// NOTE: Does not apply to directional/sky lights.
-			float		flConstant{ 0.0f };
-			float		flLinear{ 0.0f };
-			float		flQuadratic{ 0.0f };
-			float		flBrightness{ 0.0f };
+			f32		flConstant{ 0.0f };
+			f32		flLinear{ 0.0f };
+			f32		flQuadratic{ 0.0f };
+			f32		flBrightness{ 0.0f };
 
 			// NOTE: These only apply to spotlights.
-			float		flInnerCutoff{ 0.0f };
-			float		flOuterCutoff{ 0.0f };
+			f32		flInnerCutoff{ 0.0f };
+			f32		flOuterCutoff{ 0.0f };
 		};
 		enum class eLightType{ INVALID, DIRECTIONAL, POINT, SPOT };
 
@@ -56,7 +56,7 @@ namespace MapLoader
 			Vector	vecScale{};
 		};
 
-		uint32_t	iMapVersion{ 0 };
+		u32	iMapVersion{ 0 };
 		char*		pszMapName{ nullptr };
 
 		// Static meshes.

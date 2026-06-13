@@ -8,11 +8,12 @@
 	- [X] Math Library
 	- [ ] Networking
 	- [ ] Multi-threading
+	- [ ] Dev. Console
 
 - [-] Containers
-	- [X] Dynamic array (Utl::CVector<T>)
+	- [X] Dynamic array (Utl::CVector)
 	- [X] Freelist  (Utl::CFreelist)
-	- [X] String Hashtable (Utl::CStringHashMap<T>)
+	- [X] String Hashtable (Utl::CStringHashMap)
 	- [ ] Stack
 	- [ ] Binary Tree
 	- [ ] Custom String Handlers
@@ -45,7 +46,8 @@
 			- [ ] Dynamic meshes
 			- [ ] AI characters
 	- [ ] Spatial Partitioning/PVS
-	- [ ] Raycasting
+	- [X] Raycasting
+	- [ ] Prefabs
 
 - [-] Renderer
 	- [X] Textures
@@ -88,12 +90,15 @@
 		- [-] Textbox
 		- [ ] Radio Buttons
 		- [ ] Drop-down menus
+	- [ ] Platform-specific File IO
 		
-- [ ] Editor
+- [ ] Editor Suite
+	- [ ] Level editor
+	- [ ] Material editor
+	- [ ] Model editor
 
 - [ ] Content toolchain
-	- [ ] Max/Scene compiler
+	- [ ] Map/Scene compiler
 	- [ ] Visibility solver
 		- [ ] BSP-Tree/Octree
 	- [ ] Radiosity solver
-

@@ -17,6 +17,29 @@ struct EngineConfig_t
 	// Set this to true to run the engine without rendering or platform faculties.
 	// This is useful for unit tests and dedicated servers that do not require input.
 	bool isHeadless = false;
+
+	// The application configuration for the app using the engine.
+	struct ApplicationConfig_t* pAppConfig{};
+};
+
+//-------------------------------------------------------------------------
+// Interfaces of engine systems.
+//-------------------------------------------------------------------------
+struct EngineInterfaces_t
+{
+	class LogSystem*		pLogger{ nullptr };
+	class IEventSystem*		pEngineEventHandler{ nullptr };
+	class IInputSystem*		pInputSystem{ nullptr };
+	class IRenderer*		pRenderer{ nullptr };
+	class IDebugGeometrySystem*	pDebugGeometry{ nullptr };
+	class IJobSystem*		pJobSystem{ nullptr };
+	class ITextureSystem*	pTextureSystem{ nullptr };
+	class IShaderSystem*	pShaderSystem{ nullptr };
+	class IMaterialSystem*	pMaterialSystem{ nullptr };
+	class IMeshSystem*		pMeshSystem{ nullptr };
+	class IFontSystem*		pFontSystem{ nullptr };
+
+	class CMap*				pCurrentScene{ nullptr };
 };
 
 //-------------------------------------------------------------------------
@@ -38,9 +61,13 @@ public:
 
 	// Gets a pointer to the engine's main window.
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const = 0;
+
+	// Gets a pointer to engine subsystems.
+	virtual inline const EngineInterfaces_t*		GetEngineInterfaces() const = 0;
 };
 
 // Global interface to the engine context.
 extern IEngine* g_pEngine;
 
-ENGINE_API bool WindowResizeHandler(unsigned int width, unsigned int height);
+ENGINE_API bool WindowResizeHandler(u32 width, u32 height);
+void WindowClosedHandler();

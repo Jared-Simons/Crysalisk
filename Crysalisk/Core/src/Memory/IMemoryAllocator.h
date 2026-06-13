@@ -8,10 +8,19 @@
 
 namespace Utl
 {
+	enum eAllocatorType
+	{
+		ALLOCATOR_TYPE_DYNAMIC = 0,
+		ALLOCATOR_TYPE_LINEAR,
+	};
+
 	class IBaseMemoryAllocator
 	{
 	public:
-		virtual void*	Allocate(size_t numBytes) = 0;
-		virtual void	Free(void* pMemBlock) = 0;
+		virtual void*	Allocate(u64 numBytes) = 0;
+		virtual int		Free(void* pMemBlock) = 0;
+		virtual void	FreeAll() = 0;
+
+		virtual eAllocatorType	GetAllocatorType() const = 0;
 	};
 } // namespace Utl

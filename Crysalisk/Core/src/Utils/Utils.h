@@ -10,15 +10,15 @@
 #include "Math/MathLib.h"
 #include "Strings/String_Utils.h"
 
-DLL_EXPORT int SimpleHash_StringToInt(const char* pStr, size_t numElements);
+DLL_EXPORT int SimpleHash_StringToInt(const char* pStr, u64 numElements);
 
 template<typename typeIn, typename typeOut>
-typeOut SimpleHash(typeIn pInput, size_t numElements)
+typeOut SimpleHash(typeIn pInput, u64 numElements)
 {
 	typeOut sum = 0;
 	int mul = 1;
 
-	size_t len = StringLength(pStr);
+	u64 len = StringLength(pStr);
 
 	for (int idx = 0; idx < len; idx++)
 	{
@@ -26,8 +26,12 @@ typeOut SimpleHash(typeIn pInput, size_t numElements)
 		sum += pStr[idx] * mul;
 	}
 
-	return static_cast<typeOut>((size_t)M_ABS(sum) % numElements);
+	return static_cast<typeOut>((u64)M_ABS(sum) % numElements);
 }
 
 // Non-templated string version of the above. To keep things simple until we need a more generic hashing structure.
-int SimpleHash_StringToInt(const char* pInput, size_t numElements);
+int SimpleHash_StringToInt(const char* pInput, u64 numElements);
+
+// Packing utilities.
+u16 PackF32ToUint16(const f32 flUnitFloat);
+f32 UnpackF32FromUint16(const u16 inputData);
