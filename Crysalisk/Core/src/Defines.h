@@ -72,6 +72,12 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 #define VULKAN_API  __declspec(dllimport)
 #endif
 
+#if defined APPUI_DLL
+#define APPUI_API __declspec(dllexport)
+#else
+#define APPUI_API __declspec(dllimport)
+#endif
+
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
 // Platform detection

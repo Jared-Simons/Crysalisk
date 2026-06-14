@@ -18,6 +18,9 @@
 #include <Renderer/Views/Debug_Render_View.h>
 #include <Renderer/Views/UI_View.h>
 
+// UI Framework
+#include <AppUI.h>
+
 #include "ToolsTypes.h"
 
 class CEditorHubApp : public ICrysApplication
@@ -38,6 +41,8 @@ private:
 	ApplicationConfig_t*			m_pApplicationConfig{ nullptr };
 	Utl::CVector<IToolApp*>			m_pTools{};
 	Camera_t						m_Camera{};
+
+	AppUI::IAppUI*					m_pUISystem{ nullptr };
 };
 
 CEditorHubApp s_EditorHubApp{};
@@ -51,12 +56,13 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	// Setup our render-views.
 	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
 	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
+	// Here is where we'll put the AppUI render view.
 	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
 	return true;
 }
 
-typedef void* (*PFN_GetAppFrameworkState)();
+typedef AppUI::IAppUI* (*PFN_GetAppFrameworkState)();
 
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
@@ -66,6 +72,15 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	// Init camera data.
 	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_Camera.RecalculateCameraVectors();
+
+	// Load up UI library.
+	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
+	PFN_GetAppFrameworkState pfnGetPluginInterface = (PFN_GetAppFrameworkState)pAppUILibrary->GetFuncAddr("GetUIPluginInterface");
+	CAssert(pfnGetPluginInterface);
+
+	m_pUISystem = pfnGetPluginInterface();
+	CAssert(m_pUISystem);
+	m_pUISystem->Init();
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
