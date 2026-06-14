@@ -35,9 +35,6 @@ namespace AppUI
 		ShaderHandle_t	m_hUIShader{ kInvalidID_U32 };
 	};
 
-	// Temp geometry test
-	static GeometryInstance_t s_TestGeo{};
-
 	bool CAppUI_RenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	{
 		// Store off subsystem pointers.
@@ -83,28 +80,6 @@ namespace AppUI
 		// Shaders.
 		m_hUIShader = m_pShaderSystem->AcquireShader("App_UI");
 
-		// Temp geometry test
-		{
-			Vertex2D	verts[4];
-			u32			indices[6];
-
-			verts[0].Pos = { 0.0f, 0.0f };
-			verts[1].Pos = { 100.0f, 100.0f };
-			verts[2].Pos = { 0.0f, 100.0f };
-			verts[3].Pos = { 100.0f, 0.0f };
-
-			indices[0] = 2;
-			indices[1] = 1;
-			indices[2] = 0;
-			indices[3] = 3;
-			indices[4] = 0;
-			indices[5] = 1;
-
-			pEngineSystems->pRenderer->AcquireGeometryResources(*m_pVertexBuffer, *m_pIndexBuffer,
-																4, sizeof(Vertex2D), 0, verts,
-																6, indices, &s_TestGeo);
-		}
-
 		return true;
 	}
 
@@ -122,10 +97,14 @@ namespace AppUI
 		Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, 0.1f, 1000.0f);
 		if (m_pRenderer->BeginRenderpass(&m_Renderpass))
 		{
-			// FIXME: Some texture or shader resources needed here.
-			m_pShaderSystem->BindShader(m_hUIShader);
-			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
-			m_pRenderer->DrawGeometry(s_TestGeo, m_pVertexBuffer, m_pIndexBuffer);
+			if (pRenderData->pEditorGeo)
+			{
+				// FIXME: Need to recreate the projection matrix on window resize.
+				m_pShaderSystem->BindShader(m_hUIShader);
+				m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
+				m_pShaderSystem->BindPerInstanceUniforms(pRenderData->pEditorGeo->hShaderInstance);
+				m_pRenderer->DrawGeometry(*pRenderData->pEditorGeo, m_pVertexBuffer, m_pIndexBuffer);
+			}
 
 			m_pRenderer->EndRenderpass();
 		}

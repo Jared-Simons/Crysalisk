@@ -1351,9 +1351,12 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	}
 
 	VkPushConstantRange pushConstants{};
-	pushConstants.size = pConfig.perDrawUBOStride;
-	pushConstants.offset = 0;
-	pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	if (pConfig.perDrawUBOStride > 0)
+	{
+		pushConstants.size = pConfig.perDrawUBOStride;
+		pushConstants.offset = 0;
+		pushConstants.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	}
 
 	VkDescriptorSetLayout descriptorSetLayouts[2] = { pInternalShader->m_DescriptorSetLayouts[0].m_Layout, pInternalShader->m_DescriptorSetLayouts[1].m_Layout };
 
@@ -1361,8 +1364,8 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.setLayoutCount = (u32)pInternalShader->m_DescriptorSetLayouts.Capacity();
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts;
-	pipelineLayoutInfo.pushConstantRangeCount = 1;
-	pipelineLayoutInfo.pPushConstantRanges = &pushConstants;
+	pipelineLayoutInfo.pushConstantRangeCount = pConfig.perDrawUBOStride > 0 ? 1 : 0;
+	pipelineLayoutInfo.pPushConstantRanges = pConfig.perDrawUBOStride > 0 ? &pushConstants : VK_NULL_HANDLE;
 	VK_CHECK(vkCreatePipelineLayout(m_Device.m_Device, &pipelineLayoutInfo, m_Allocator, &pInternalShader->m_PipelineLayout));
 
 	// Renderpass

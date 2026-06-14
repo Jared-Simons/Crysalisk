@@ -11,11 +11,14 @@ set(APPUI_ROOT Crysalisk/AppUI/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_APPUI_SRC_FILES
+	${APPUI_ROOT}/src/Controls/Panel.cpp
+	${APPUI_ROOT}/src/Controls/Panel.h
 	${APPUI_ROOT}/src/Renderer/AppUI_View.cpp
 	${APPUI_ROOT}/src/Renderer/AppUI_View.h
 	${APPUI_ROOT}/src/AppUI.cpp
 	${APPUI_ROOT}/src/AppUI.h
 	${APPUI_ROOT}/src/MemOverride.cpp
+	${APPUI_ROOT}/src/UI_Types.h
 )
 
 # Group source files
@@ -26,7 +29,7 @@ add_library(AppUI SHARED ${CRYSALISK_APPUI_SRC_FILES})
 
 # Include directories
 # TODO: Get these directories from somewhere else.
-target_include_directories(AppUI PUBLIC ${APPUI_ROOT})
+target_include_directories(AppUI PUBLIC ${APPUI_ROOT}/src)
 target_include_directories(AppUI PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(AppUI PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 target_include_directories(AppUI PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)

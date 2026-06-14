@@ -60,6 +60,8 @@ struct RenderPacket_t
 	Utl::LinearAllocator* pFrameAllocator{ nullptr };
 
 	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
+	// Editor temp
+	struct GeometryInstance_t* pEditorGeo{ nullptr };
 };
 
 //-------------------------------------------------------------------------

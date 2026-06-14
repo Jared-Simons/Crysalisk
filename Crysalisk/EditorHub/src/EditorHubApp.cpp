@@ -66,7 +66,7 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 
 	m_pUISystem = pfnGetPluginInterface();
 	CAssert(m_pUISystem);
-	m_pUISystem->Initialize(pAppConfig);
+	m_pUISystem->PreInitialize(pAppConfig);
 
 	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
@@ -77,6 +77,8 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Launching Crysalisk Tools");
 	m_pTools.Resize(1);
+
+	m_pUISystem->Initialize(pAppConfig);
 
 	// Init camera data.
 	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
@@ -102,6 +104,11 @@ bool CEditorHubApp::Run()
 
 void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
+	// LEFTOFF: We need a way to populate UI-specific geometry data in the render packet from this point.
+	// We can't do the 'extended data' that we did with other geometries by simply indexing the void* array
+	// because this view will not exist in every build.
+	m_pUISystem->FramePrepare(pRenderPacket);
+
 	m_Camera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	pRenderPacket->pCamera = &m_Camera;
 }
