@@ -28,6 +28,7 @@ bool LoadTool(const char* pszToolName);
 i32 main(i32 argc, char** argv)
 {
 	// Load up the editor library.
+	// FIXME: There's a string leak happening here on shutdown.
 	Platform::ISysModule* pEditorHubDLL = Platform::LoadSysModule("EditorHub");
 	PFN_Get_Application_State pfnGetAppState = (PFN_Get_Application_State)pEditorHubDLL->GetFuncAddr("GetApplicationState");
 	CAssert(pfnGetAppState);
@@ -37,6 +38,7 @@ i32 main(i32 argc, char** argv)
 
 	appConfig.pApplication = pfnGetAppState();
 
+	// Start up the engine.
 	Crysalisk_Main(appConfig);
 
 	// EDITORTODO: Launch the tool specified by some argument (command-line? tool-selector menu?)

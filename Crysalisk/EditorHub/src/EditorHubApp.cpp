@@ -6,6 +6,7 @@
 //=============================================================================
 #include <Application.h>
 #include <Containers/CVector.h>
+#include <Core/Engine.h>
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 #include <Renderer/Camera.h>
@@ -16,9 +17,6 @@
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Renderer/Views/Debug_Render_View.h>
 #include <Renderer/Views/UI_View.h>
-
-// Framework includes.
-#include <AppFramework.h>
 
 #include "ToolsTypes.h"
 
@@ -38,7 +36,6 @@ public:
 
 private:
 	ApplicationConfig_t*			m_pApplicationConfig{ nullptr };
-	AppFramework::IAppFramework*	m_pAppFramework{ nullptr };
 	Utl::CVector<IToolApp*>			m_pTools{};
 	Camera_t						m_Camera{};
 };
@@ -85,14 +82,12 @@ bool CEditorHubApp::Run()
 		m_pTools[iTool]->Tool_Run();
 	}
 
-	//RenderPacket_t packet{};
-	//m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->Update(m_pAppFramework->GetActiveWindow(), packet, nullptr);
-
 	return true;
 }
 
 void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
+	m_Camera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	pRenderPacket->pCamera = &m_Camera;
 }
 

@@ -28,7 +28,6 @@ target_include_directories(EditorHub PUBLIC ${EDITOR_HUB_ROOT})
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Core/src/)
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Engine/src/)
 target_include_directories(EditorHub PUBLIC ${CRYSALISK_REPO_ROOT}/Crysalisk/Public/)
-target_include_directories(EditorHub PRIVATE ${CRYSALISK_REPO_ROOT}/Vulkan-App-Framework/AppFramework/src/)
 
 # Force multi-byte character set.
 target_compile_definitions(EditorHub PRIVATE _MBCS)
@@ -43,7 +42,6 @@ endif()
 # Linker input.
 target_link_libraries(EditorHub PRIVATE Core)
 target_link_libraries(EditorHub PRIVATE Engine)
-target_link_libraries(EditorHub PRIVATE AppFramework)
 
 # Current Working Directory.
 set_property(TARGET EditorHub PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

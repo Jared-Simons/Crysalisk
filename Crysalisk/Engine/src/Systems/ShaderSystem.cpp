@@ -575,7 +575,7 @@ static ShaderUniformConfig_t GetShaderAttributeFromString(const char* pszAttribu
 	ShaderUniformConfig_t newUniformConfig{};
 
 	// Get the type and stride.
-	if (Utl::StringCompareInsensitive(pszAttributeStr, "i32"))
+	if (Utl::StringCompareInsensitive(pszAttributeStr, "int"))
 	{
 		newUniformConfig.eType = ShaderAttribute_t::Int32;
 		newUniformConfig.iStride = sizeof(i32);
