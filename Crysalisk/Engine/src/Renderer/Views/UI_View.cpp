@@ -124,7 +124,7 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f\nDebug vis mode: %s",
 			szMetricsString,
 			pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
-			pMetrics.NumDrawCalls, pRenderData->iCulledGeometries,
+			pMetrics.NumDrawCalls, pRenderData->pMetrics->NumGeometriesFrustumCulled,
 			g_pMemoryManager->GetPercentAllocated(),
 			pRenderData->pCamera->vecPosition.x,
 			pRenderData->pCamera->vecPosition.y,

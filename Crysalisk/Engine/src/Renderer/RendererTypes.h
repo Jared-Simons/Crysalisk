@@ -48,18 +48,17 @@ enum eRenderViewType
 struct RenderPacket_t
 {
 	// The time elapsed between frames.
-	f64	DeltaTime;
+	f64							DeltaTime;
 
-	u32								iCulledGeometries{ 0 };
-	i32											iDebugRendererMode{ 0 };
+	i32							iDebugRendererMode{ 0 };
 
-	Matrix4x4									matProjection{};
-	struct Camera_t*							pCamera{ nullptr };
+	Matrix4x4					matProjection{};
+	struct Camera_t*			pCamera{ nullptr };
 
-	struct RenderMetrics_t* pMetrics{ nullptr };
-	Utl::LinearAllocator* pFrameAllocator{ nullptr };
+	struct RenderMetrics_t*		pMetrics{ nullptr };
+	Utl::LinearAllocator*		pFrameAllocator{ nullptr };
 
-	void*	pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
+	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
 	// Editor temp
 	struct GeometryInstance_t* pEditorGeo{ nullptr };
 };

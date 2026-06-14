@@ -114,7 +114,7 @@ void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 
 		pMap->GetRenderablesFromScene(g_pEngine->GetEngineInterfaces()->pMaterialSystem, frustum,
 									  pViewData->pOpaqueGeometries, pViewData->pTransparentGeometries,
-									  &pRenderData->iCulledGeometries);
+									  &pRenderData->pMetrics->NumGeometriesFrustumCulled);
 	}
 }
 
