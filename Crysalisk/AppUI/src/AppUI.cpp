@@ -11,22 +11,22 @@
 // Core
 #include <Core/Logging.h>
 
+// Engine
+#include <Application.h>
+
 namespace AppUI
 {
 	class CAppUI : public IAppUI
 	{
 	public:
-		virtual bool	Init() override;
-
-	private:
-		IRenderView*	m_pAppUI_RenderView{ nullptr };
+		virtual bool	Initialize(struct ::ApplicationConfig_t* pAppConfig) override;
 	};
 
-	bool CAppUI::Init()
+	bool CAppUI::Initialize(struct ::ApplicationConfig_t* pAppConfig)
 	{
 		LOG_INFO("Initializing AppUI framework");
 
-		m_pAppUI_RenderView = RenderViewCreate_AppUIView();
+		pAppConfig->pViews.PushBack(RenderViewCreate_AppUIView());
 
 		return true;
 	}

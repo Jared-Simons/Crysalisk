@@ -185,7 +185,8 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	}
 
 	// Set up our renderbuffers
-	m_RenderBuffers.Resize(6);
+	// FIXME: Use handles instead of this.
+	m_RenderBuffers.Resize(8);
 
 	if (pAppConfig.pEngine && pAppConfig.pEngine->GetEngineInterfaces()->pEngineEventHandler)
 	{

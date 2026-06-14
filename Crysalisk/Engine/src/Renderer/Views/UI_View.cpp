@@ -139,14 +139,13 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 		if (m_bUIOverlayEnabled)
 		{
 			// Draw stuff here.
-			Matrix4x4 matUIProj(1.0f);
 			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
 			m_pShaderSystem->BindShader(m_hUIShader);
 			m_pShaderSystem->BindPerInstanceUniforms(1);
 			m_pRenderer->DrawGeometry(m_TestText.m_Geometry, m_pUIVertexBuffer, m_pUIIndexBuffer);
 		}
+		m_pRenderer->EndRenderpass();
 	}
-	m_pRenderer->EndRenderpass();
 }
 
 // Factory function to create the view.

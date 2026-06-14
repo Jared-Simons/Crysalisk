@@ -8,12 +8,15 @@
 
 #include <Defines.h>
 
+// Forward declarations
+struct ApplicationConfig_t;
+
 namespace AppUI
 {
 	class IAppUI
 	{
 	public:
-		virtual bool	Init() = 0;
+		virtual bool	Initialize(struct ::ApplicationConfig_t* pAppConfig) = 0;
 	};
 } // namespace AppUI
 

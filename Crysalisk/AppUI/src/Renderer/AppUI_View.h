@@ -13,7 +13,5 @@
 
 namespace AppUI
 {
-
+	IRenderView* RenderViewCreate_AppUIView();
 } // namespace AppUI
-
-DLL_EXPORT IRenderView* RenderViewCreate_AppUIView();

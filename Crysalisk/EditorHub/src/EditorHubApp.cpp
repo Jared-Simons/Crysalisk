@@ -48,6 +48,7 @@ private:
 CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
+typedef AppUI::IAppUI* (*PFN_GetAppFrameworkState)();
 
 bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
@@ -56,13 +57,21 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	// Setup our render-views.
 	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
 	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
-	// Here is where we'll put the AppUI render view.
+
+	// Load up UI library.
+	// FIXME: Putting this here so that the UI Plugin's render view gets added before the UI view below. There's gotta be a better way to do this.
+	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
+	PFN_GetAppFrameworkState pfnGetPluginInterface = (PFN_GetAppFrameworkState)pAppUILibrary->GetFuncAddr("GetUIPluginInterface");
+	CAssert(pfnGetPluginInterface);
+
+	m_pUISystem = pfnGetPluginInterface();
+	CAssert(m_pUISystem);
+	m_pUISystem->Initialize(pAppConfig);
+
 	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
 	return true;
 }
-
-typedef AppUI::IAppUI* (*PFN_GetAppFrameworkState)();
 
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
@@ -72,15 +81,6 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	// Init camera data.
 	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_Camera.RecalculateCameraVectors();
-
-	// Load up UI library.
-	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
-	PFN_GetAppFrameworkState pfnGetPluginInterface = (PFN_GetAppFrameworkState)pAppUILibrary->GetFuncAddr("GetUIPluginInterface");
-	CAssert(pfnGetPluginInterface);
-
-	m_pUISystem = pfnGetPluginInterface();
-	CAssert(m_pUISystem);
-	m_pUISystem->Init();
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
