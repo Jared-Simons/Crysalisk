@@ -29,7 +29,8 @@ public:
 	void		ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) override;
 	void		ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos) override;
 
-	bool			IsKeyPressed(const i32 key) const override;
+	virtual bool	IsKeyPressed(const i32 key) const override;
+	virtual bool	IsMouseButtonPressed(eMouseButtonTable button) const override;
 	virtual void	GetCurrentMousePos(i32& iX, i32& iY) override;
 
 private:
@@ -217,6 +218,21 @@ bool CInputSystem::IsKeyPressed(const i32 key) const
 {
 	if (m_KeysState[key].m_bPressed)
 		return true;
+
+	return false;
+}
+
+//-------------------------------------------------------------------------
+// Purpose - Checks to see if 'button' is currently pressed.
+// Input - button: The mouse button value to check for.
+// Output - True if the button is currently pressed, otherwise false.
+//-------------------------------------------------------------------------
+bool CInputSystem::IsMouseButtonPressed(eMouseButtonTable button) const
+{
+	if (m_MouseState.m_bitsMouseButtons & button)
+	{
+		return true;
+	}
 
 	return false;
 }

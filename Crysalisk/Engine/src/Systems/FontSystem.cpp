@@ -302,8 +302,8 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 			continue;
 
 		pCurGlyph = &pInternalAtlas->glyphs[pTextObject.m_pszText[ch] - kCodePointOfFirstChar]; 
-		width = pCurGlyph->xMax - pCurGlyph->xMin;
-		height = pCurGlyph->yMax - pCurGlyph->yMin;
+		width = (f32)(pCurGlyph->xMax - pCurGlyph->xMin);
+		height = (f32)(pCurGlyph->yMax - pCurGlyph->yMin);
 		
 		f32 flMinX = (vecCurPos.x + pCurGlyph->xOffset) * flTextSize;
 		f32 flMinY = (vecCurPos.y + pCurGlyph->yOffset) * flTextSize;

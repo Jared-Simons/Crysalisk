@@ -6,6 +6,8 @@
 //=============================================================================
 #include "AppUI_View.h"
 
+#include "UI_Types.h"
+
 // Engine
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
@@ -77,8 +79,8 @@ namespace AppUI
 		// Register with the renderer.
 		pEngineSystems->pRenderer->RegisterRenderView(this);
 
-		// Shaders.
-		m_hUIShader = m_pShaderSystem->AcquireShader("App_UI");
+		// Shaders
+		m_hUIShader = pEngineSystems->pShaderSystem->AcquireShader("App_UI");
 
 		return true;
 	}
@@ -97,13 +99,14 @@ namespace AppUI
 		Matrix4x4 matProjection = Matrix4x4::Orthographic(0, 1080.0f, 0.0f, 720.0f, 0.1f, 1000.0f);
 		if (m_pRenderer->BeginRenderpass(&m_Renderpass))
 		{
-			if (pRenderData->pEditorGeo)
+			if (pRenderData->pEditorExtendedData)
 			{
+				UIControlRenderData_t* pRenderable = (UIControlRenderData_t*)pRenderData->pEditorExtendedData;
 				// FIXME: Need to recreate the projection matrix on window resize.
-				m_pShaderSystem->BindShader(m_hUIShader);
-				m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
-				m_pShaderSystem->BindPerInstanceUniforms(pRenderData->pEditorGeo->hShaderInstance);
-				m_pRenderer->DrawGeometry(*pRenderData->pEditorGeo, m_pVertexBuffer, m_pIndexBuffer);
+				m_pShaderSystem->BindShader(pRenderable->hShader);
+				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, 1, &matProjection);
+				m_pShaderSystem->BindPerInstanceUniforms(pRenderable->iShaderInstance);
+				m_pRenderer->DrawGeometry(pRenderable->geo, m_pVertexBuffer, m_pIndexBuffer);
 			}
 
 			m_pRenderer->EndRenderpass();

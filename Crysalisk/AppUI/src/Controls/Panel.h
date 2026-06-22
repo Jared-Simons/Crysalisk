@@ -7,16 +7,16 @@
 #pragma once
 
 #include <Defines.h>
-#include <UI_Types.h>
 
-// Engine
-// FIXME: These really shouldn't be here.
-#include <Renderer/Renderer.h>
-#include <Systems/ShaderSystem.h>
+#include "AppUI.h"
+#include "UI_Types.h"
 
 namespace AppUI
 {
-	BaseUIControl*	CreatePanel(u16 x, u16 y, u16 width, u16 height, IRenderer* pRenderer, IShaderSystem* pShaderSystem, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer);
-	void			DestroyPanel(BaseUIControl* pPanel);
+	void				CreatePanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	void				DestroyPanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+
+	void				SetPanelControlPosition(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y);
+	void				SetPanelControlDimensions(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height);
 
 } // namespace AppUI

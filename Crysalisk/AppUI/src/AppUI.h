@@ -8,12 +8,28 @@
 
 #include <Defines.h>
 
+#include <UI_Types.h>
+
+// Core
+#include <Containers/CVector.h>
+
 // Forward declarations
 struct ApplicationConfig_t;
 struct RenderPacket_t;
+class IRenderer;
+class IShaderSystem;
+class RenderBuffer;
 
 namespace AppUI
 {
+	struct AppUIRenderContext_t
+	{
+		IRenderer* m_pRenderer{ nullptr };
+		IShaderSystem* m_pShaderSystem{ nullptr };
+		RenderBuffer* m_pVertexBuffer{ nullptr };
+		RenderBuffer* m_pIndexBuffer{ nullptr };
+	};
+
 	class IAppUI
 	{
 	public:
@@ -21,7 +37,16 @@ namespace AppUI
 		virtual bool	Initialize(struct ApplicationConfig_t* pConfig) = 0;
 
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
+		virtual void	Update() = 0;
+
+		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) = 0;
+		virtual void				DestroyUIControl(UIControlHandle_t hControl) = 0;
+
+		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) = 0;
+		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) = 0;
+		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) = 0;
 	};
+
 } // namespace AppUI
 
 extern AppUI::IAppUI* g_pUISystem;

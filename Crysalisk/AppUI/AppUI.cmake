@@ -11,8 +11,12 @@ set(APPUI_ROOT Crysalisk/AppUI/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_APPUI_SRC_FILES
+	# Controls
+	${APPUI_ROOT}/src/Controls/Button.cpp
+	${APPUI_ROOT}/src/Controls/Button.h
 	${APPUI_ROOT}/src/Controls/Panel.cpp
 	${APPUI_ROOT}/src/Controls/Panel.h
+
 	${APPUI_ROOT}/src/Renderer/AppUI_View.cpp
 	${APPUI_ROOT}/src/Renderer/AppUI_View.h
 	${APPUI_ROOT}/src/AppUI.cpp

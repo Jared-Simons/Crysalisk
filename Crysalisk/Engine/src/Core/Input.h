@@ -49,6 +49,7 @@ public:
 	virtual void	ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos) = 0;
 
 	virtual bool	IsKeyPressed(const i32 key) const = 0;
+	virtual bool	IsMouseButtonPressed(eMouseButtonTable button) const = 0;
 	virtual void	GetCurrentMousePos(i32& iX, i32& iY) = 0;
 };
 

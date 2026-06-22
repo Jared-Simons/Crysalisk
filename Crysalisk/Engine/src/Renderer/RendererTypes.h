@@ -59,8 +59,7 @@ struct RenderPacket_t
 	Utl::LinearAllocator*		pFrameAllocator{ nullptr };
 
 	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
-	// Editor temp
-	struct GeometryInstance_t* pEditorGeo{ nullptr };
+	void*						pEditorExtendedData;	// FIXME: This is required because the editor will not always be used. Make the above a dynamic array?
 };
 
 //-------------------------------------------------------------------------

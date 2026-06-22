@@ -73,6 +73,10 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	return true;
 }
 
+// HACK: UI test
+static AppUI::UIControlHandle_t hTestPanel = kInvalidID_U32;
+static AppUI::UIControlHandle_t hTestButton = kInvalidID_U32;
+
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Launching Crysalisk Tools");
@@ -84,6 +88,19 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	m_Camera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_Camera.RecalculateCameraVectors();
 
+	// HACK: UI test
+	{
+		//hTestPanel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		//m_pUISystem->SetControlPosition(hTestPanel, 400, 0);
+		//m_pUISystem->SetControlDimensions(hTestPanel, 50, 650);
+		//m_pUISystem->SetControlColor(hTestPanel, 0, 128, 96, 255);
+
+		hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+		m_pUISystem->SetControlPosition(hTestButton, 400, 0);
+		m_pUISystem->SetControlDimensions(hTestButton, 50, 650);
+		m_pUISystem->SetControlColor(hTestButton, 255, 0, 0, 255);
+	}
+
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
 
@@ -92,6 +109,9 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 bool CEditorHubApp::Run()
 {
+	// Update the UI plugin.
+	m_pUISystem->Update();
+
 	// Serve our tools.
 	// EDITORTODO: Only run the active tool!
 	for (i32 iTool = 0; iTool < m_pTools.Count(); iTool++)
@@ -120,6 +140,8 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
+	m_pUISystem->DestroyUIControl(hTestButton);
+	//m_pUISystem->DestroyUIControl(hTestPanel);
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
