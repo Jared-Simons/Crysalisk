@@ -101,11 +101,19 @@ namespace AppUI
 			if (pRenderData->pEditorExtendedData)
 			{
 				UIControlRenderData_t* pRenderable = (UIControlRenderData_t*)pRenderData->pEditorExtendedData;
-				// FIXME: Need to recreate the projection matrix on window resize.
 				m_pShaderSystem->BindShader(pRenderable->hShader);
 				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, 1, &pRenderData->UIProjectionMatrix);
 				m_pShaderSystem->BindPerInstanceUniforms(pRenderable->iShaderInstance);
 				m_pRenderer->DrawGeometry(pRenderable->geo, m_pVertexBuffer, m_pIndexBuffer);
+			}
+
+			if (pRenderData->pEditorTextTest)
+			{
+				UIControlLabel_t* pLabel = (UIControlLabel_t*)pRenderData->pEditorTextTest;
+				m_pShaderSystem->BindShader(pLabel->text.m_Geometry.hShader);
+				m_pShaderSystem->SetShaderUniform(pLabel->text.m_Geometry.hShader, 0, 0, 1, &pRenderData->UIProjectionMatrix);
+				m_pShaderSystem->BindPerInstanceUniforms(pLabel->text.m_Geometry.hShaderInstance);
+				m_pRenderer->DrawGeometry(pLabel->text.m_Geometry, pRenderData->pUIVertexBuffer, pRenderData->pUIIndexBuffer);
 			}
 
 			m_pRenderer->EndRenderpass();

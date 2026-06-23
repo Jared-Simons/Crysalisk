@@ -28,7 +28,7 @@ struct FontSystemConfig_t
 //-------------------------------------------------------------------------
 // A piece of texture that can be used for rendering.
 //-------------------------------------------------------------------------
-class TextObject
+class ENGINE_API TextObject
 {
 public:
 	// Sets the actual text to be rendered.

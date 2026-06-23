@@ -61,8 +61,11 @@ struct RenderPacket_t
 	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
 
 	// FIXME: This is required because the editor will not always be used. Make the above a dynamic array?
-	void*						pEditorExtendedData;	
+	void*						pEditorExtendedData{ nullptr };	
+	void*						pEditorTextTest{ nullptr };
 	Matrix4x4					UIProjectionMatrix{};
+	class RenderBuffer*				pUIVertexBuffer{ nullptr };
+	class RenderBuffer*				pUIIndexBuffer{ nullptr };
 };
 
 //-------------------------------------------------------------------------

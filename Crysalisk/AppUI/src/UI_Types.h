@@ -10,6 +10,7 @@
 
 // Engine
 #include <Resources/ResourceTypes.h>
+#include <Systems/FontSystem.h>	// FIXME: Get rid of TextObject
 
 namespace AppUI
 {
@@ -19,6 +20,8 @@ namespace AppUI
 	{
 		CONTROL_TYPE_UNDEFINED = 0,
 		CONTROL_TYPE_PANEL = 1,
+		CONTROL_TYPE_FRAME,
+		CONTROL_TYPE_LABEL,
 		CONTROL_TYPE_BUTTON,
 
 		CONTROL_TYPE_MAX_TYPES,
@@ -42,14 +45,16 @@ namespace AppUI
 		GeometryInstance_t geo{};	// FIXME: This is temporary until we can render without it.
 	};
 
+	struct UIBaseControl_t
+	{
+		u16 m_eControlType{ CONTROL_TYPE_UNDEFINED };
+		u32 m_iRenderableIdx{ kInvalidID_U32 };
+		u32 m_iControlDataIdx{ kInvalidID_U32 };
+	};
+
 	struct UIControlPanel_t
 	{
-		u16					m_eControlType{ CONTROL_TYPE_UNDEFINED };
-		u32					m_iRenderableIdx{ kInvalidID_U32 };
-
 		// Extents
-		// FIXME: Make this work with window resizing.
-		// Buttons break, for example, when the window is resized.
 		u16					x{ 0 };
 		u16					y{ 0 };
 		u16					width{ 0 };
@@ -58,8 +63,18 @@ namespace AppUI
 		Vector4D			color{};
 
 		UIControlHandle_t	hParentControl{ kInvalidID_U32 };
-		// An index into the appropriate array for our type-specific data.
-		u32					typedIndex{ kInvalidID_U32 };
+	};
+
+	struct UIControlFrame_t
+	{
+		UIControlPanel_t*	pPanel{ nullptr };
+
+		// FIXME: Have the option of a textbox/label here.
+	};
+
+	struct UIControlLabel_t
+	{
+		TextObject	text{};
 	};
 
 	struct UIControlButton_t

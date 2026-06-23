@@ -21,7 +21,8 @@ namespace AppUI
 	{
 		CAssert(pBase && pRenderable && pButtonControl && pRenderContext);
 
-		pBase->m_eControlType = CONTROL_TYPE_BUTTON;
+		// FIXME: Make this work
+		//pBase->m_eControlType = CONTROL_TYPE_BUTTON;
 
 		// Set some defaults here, the caller can override after creation.
 		pBase->x = 0;

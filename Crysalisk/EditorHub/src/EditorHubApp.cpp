@@ -74,8 +74,8 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 }
 
 // HACK: UI test
-static AppUI::UIControlHandle_t hTestPanel = kInvalidID_U32;
-static AppUI::UIControlHandle_t hTestButton = kInvalidID_U32;
+static AppUI::UIControlHandle_t hTestFrame = kInvalidID_U32;
+static AppUI::UIControlHandle_t	hTestLabel = kInvalidID_U32;
 
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
@@ -90,15 +90,21 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 	// HACK: UI test
 	{
-		//hTestPanel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
-		//m_pUISystem->SetControlPosition(hTestPanel, 400, 0);
-		//m_pUISystem->SetControlDimensions(hTestPanel, 50, 650);
-		//m_pUISystem->SetControlColor(hTestPanel, 0, 128, 96, 255);
+		// NOTE: Base resolution that UI elements are defined in is 1080x720.
+		
+		//hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_FRAME);
+		hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUISystem->SetControlPosition(hTestFrame, 50, 50);
+		m_pUISystem->SetControlDimensions(hTestFrame, 700, 525);
+		m_pUISystem->SetControlColor(hTestFrame, 255, 255, 255, 200);
 
-		hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-		m_pUISystem->SetControlPosition(hTestButton, 400, 0);
-		m_pUISystem->SetControlDimensions(hTestButton, 50, 650);
-		m_pUISystem->SetControlColor(hTestButton, 255, 0, 0, 255);
+		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUISystem->SetControlText(hTestLabel, "TEST LABEL TEXT");
+
+		//hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+		//m_pUISystem->SetControlPosition(hTestButton, 400, 0);
+		//m_pUISystem->SetControlDimensions(hTestButton, 50, 650);
+		//m_pUISystem->SetControlColor(hTestButton, 255, 0, 0, 255);
 	}
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
@@ -140,7 +146,7 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
-	m_pUISystem->DestroyUIControl(hTestButton);
+	//m_pUISystem->DestroyUIControl(hTestButton);
 	//m_pUISystem->DestroyUIControl(hTestPanel);
 }
 

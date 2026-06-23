@@ -14,6 +14,10 @@ set(CRYSALISK_APPUI_SRC_FILES
 	# Controls
 	${APPUI_ROOT}/src/Controls/Button.cpp
 	${APPUI_ROOT}/src/Controls/Button.h
+	${APPUI_ROOT}/src/Controls/Frame.cpp
+	${APPUI_ROOT}/src/Controls/Frame.h
+	${APPUI_ROOT}/src/Controls/Label.cpp
+	${APPUI_ROOT}/src/Controls/Label.h
 	${APPUI_ROOT}/src/Controls/Panel.cpp
 	${APPUI_ROOT}/src/Controls/Panel.h
 

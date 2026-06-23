@@ -17,18 +17,18 @@ namespace AppUI
 {
 	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
 
-	void CreatePanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	void CreatePanel(UIBaseControl_t* pBaseControl, UIControlRenderData_t* pRenderable, UIControlPanel_t* pPanelControl, AppUIRenderContext_t* pRenderContext)
 	{
-		CAssert(pBase && pRenderable && pRenderContext);
+		CAssert(pBaseControl && pRenderable && pPanelControl && pRenderContext);
 
-		pBase->m_eControlType = CONTROL_TYPE_PANEL;
+		pBaseControl->m_eControlType = CONTROL_TYPE_PANEL;
 		
 		// Set some defaults here, the caller can override after creation.
-		pBase->x = 0;
-		pBase->y = 0;
-		pBase->width = 100;
-		pBase->height = 100;
-		pBase->color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
+		pPanelControl->x = 0;
+		pPanelControl->y = 0;
+		pPanelControl->width = 100;
+		pPanelControl->height = 100;
+		pPanelControl->color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
 	}
 
 	void DestroyPanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
@@ -48,23 +48,23 @@ namespace AppUI
 		pRenderable->vertexCount = kInvalidID_U64;
 	}
 
-	void SetPanelControlPosition(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
+	void SetPanelControlPosition(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
 	{
-		pBase->x = x;
-		pBase->y = y;
-		GenerateControlGeometry(pBase, pRenderable, pRenderContext);
+		pPanel->x = x;
+		pPanel->y = y;
+		GenerateControlGeometry(pPanel, pRenderable, pRenderContext);
 	}
 
-	void SetPanelControlDimensions(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
+	void SetPanelControlDimensions(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
 	{
-		pBase->width = width;
-		pBase->height = height;
-		GenerateControlGeometry(pBase, pRenderable, pRenderContext);
+		pPanel->width = width;
+		pPanel->height = height;
+		GenerateControlGeometry(pPanel, pRenderable, pRenderContext);
 	}
 
-	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	static void GenerateControlGeometry(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
 	{
-		CAssert(pUIBase && pRenderable && pRenderContext);
+		CAssert(pPanel && pRenderable && pRenderContext);
 
 		// Release any existing geo resources.
 		if (pRenderable->geo.vertexCount != kInvalidID_U64)
@@ -75,10 +75,10 @@ namespace AppUI
 		Vector2D	verts[4];
 		u32			indices[6];
 
-		verts[0] = { (f32)pUIBase->x, (f32)pUIBase->y };
-		verts[1] = { (f32)pUIBase->x + (f32)pUIBase->width, (f32)pUIBase->y + (f32)pUIBase->height };
-		verts[2] = { (f32)pUIBase->x, (f32)pUIBase->y + (f32)pUIBase->height };
-		verts[3] = { (f32)pUIBase->x + (f32)pUIBase->width, (f32)pUIBase->y };
+		verts[0] = { (f32)pPanel->x, (f32)pPanel->y };
+		verts[1] = { (f32)pPanel->x + (f32)pPanel->width, (f32)pPanel->y + (f32)pPanel->height };
+		verts[2] = { (f32)pPanel->x, (f32)pPanel->y + (f32)pPanel->height };
+		verts[3] = { (f32)pPanel->x + (f32)pPanel->width, (f32)pPanel->y };
 
 		indices[0] = 2;
 		indices[1] = 1;
@@ -105,7 +105,7 @@ namespace AppUI
 		pRenderable->hShader = hShader;
 		pRenderContext->m_pShaderSystem->AcquireShaderInstanceResources(hShader, &pRenderable->iShaderInstance, "App_UI_Panel");
 		pRenderContext->m_pShaderSystem->SetShaderUniform(hShader,
-			pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &pUIBase->color);
+			pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
 	}
 
 } // namespace AppUI

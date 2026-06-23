@@ -291,6 +291,11 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Setup application-specific renderer state.
 	m_EngineInterfaces.pRenderer->ConfigureRenderViews(engineConfig.pAppConfig->pViews);
 
+	// Run Post-Engine initialize routines.
+	m_EngineInterfaces.pRenderer->PostInitialize(m_FrameRenderData);
+	m_EngineInterfaces.pMaterialSystem->PostInitialize();
+	m_EngineInterfaces.pFontSystem->PostInitialize();
+
 	// Initialize the application.
 	engineConfig.pAppConfig->pEngine = this;
 	m_pApplication->Initialize(engineConfig.pAppConfig);
@@ -305,11 +310,6 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 		// Register the game window with the renderer.
 		m_EngineInterfaces.pRenderer->RegisterWindow(*m_pEngineWindow);
 	}
-
-	// Run Post-Engine initialize routines.
-	m_EngineInterfaces.pRenderer->PostInitialize(m_FrameRenderData);
-	m_EngineInterfaces.pMaterialSystem->PostInitialize();
-	m_EngineInterfaces.pFontSystem->PostInitialize();
 
 	// Print memory state
 	g_pMemoryManager->PrintMemoryStats();
