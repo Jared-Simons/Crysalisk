@@ -18,10 +18,14 @@
 // Engine
 #include <Application.h>
 #include <Core/Engine.h>
+#include <Core/Event.h>
 #include <Core/Input.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 #include <Systems/ShaderSystem.h>
+
+// Engine event handlers.
+static bool Event_WindowResized(void* pEventListener, EventData_t data);
 
 namespace AppUI
 {
@@ -41,13 +45,17 @@ namespace AppUI
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) override;
 		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) override;
 
+		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
+
 		AppUIRenderContext_t	renderContext{};
 
+		// FIXME: Regenerate renderables on window resize.
 		Utl::CVector<UIControlRenderData_t>	renderables{};
 
 		// Controls
-		Utl::CVector<BaseUIControl>			baseControls{};
-		Utl::CVector<ButtonControlData_t>	buttonControls{};
+		// Panels also contain the base geometry data for every other control.
+		Utl::CVector<UIControlPanel_t>		panels{};
+		Utl::CVector<UIControlButton_t>		buttons{};
 	};
 
 	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext);
@@ -69,6 +77,13 @@ namespace AppUI
 
 		LOG_INFO("Initializing AppUI framework");
 
+		// FIXME: Unregister this on plugin shutdown.
+		pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
+
+		// FIXME: Don't hardcode these.
+		renderContext.currentSurfaceWidth = 1080;
+		renderContext.currentSurfaceHeight = 720;
+
 		renderContext.m_pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
 		renderContext.m_pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
 
@@ -80,11 +95,11 @@ namespace AppUI
 		renderables.Resize(32);
 		renderables.SetCount(32);	// FIXME: We need to get rid of this pattern.
 
-		baseControls.Resize(32);
-		baseControls.SetCount(32);
+		panels.Resize(32);
+		panels.SetCount(32);
 
-		buttonControls.Resize(32);
-		buttonControls.SetCount(32);
+		buttons.Resize(32);
+		buttons.SetCount(32);
 
 		return true;
 	}
@@ -92,15 +107,16 @@ namespace AppUI
 	void CAppUI::FramePrepare(struct RenderPacket_t* pRenderPacket)
 	{
 		pRenderPacket->pEditorExtendedData = &renderables[0];
+		pRenderPacket->UIProjectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 	}
 
 	void CAppUI::Update()
 	{
-		BaseUIControl* pCurrentControl = nullptr;
+		UIControlPanel_t* pCurrentControl = nullptr;
 		// Update our controls.
-		for (u32 iControl = 0; iControl < baseControls.Count(); iControl++)
+		for (u32 iControl = 0; iControl < panels.Count(); iControl++)
 		{
-			pCurrentControl = &baseControls[iControl];
+			pCurrentControl = &panels[iControl];
 
 			if (pCurrentControl->m_eControlType != CONTROL_TYPE_UNDEFINED)
 			{
@@ -125,7 +141,7 @@ namespace AppUI
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 							{
 								// FIXME: Don't hardcode the control index.
-								buttonControls[0].PFN_UI_Button_Control_Clicked();
+								buttons[0].PFN_UI_Button_Control_Clicked();
 							}
 						}
 						else
@@ -151,23 +167,29 @@ namespace AppUI
 	UIControlHandle_t CAppUI::CreateUIControl(eControlType controlType)
 	{
 		UIControlHandle_t	hNewControl = GetAvailableBaseControl(this);
-		u32					renderableIdx = GetAvailableRenderableIndex(this);
 
-		BaseUIControl* pBase = &baseControls[hNewControl];
-		UIControlRenderData_t* pRenderable = &renderables[renderableIdx];
-		pBase->m_iRenderableIdx = renderableIdx;
+		UIControlPanel_t* pBase = &panels[hNewControl];
+		pBase->m_iRenderableIdx = GetAvailableRenderableIndex(this);
+		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
 
 		switch (controlType)
 		{
 		case CONTROL_TYPE_PANEL:
 			CreatePanel(pBase, pRenderable, &renderContext);
+			// These calls will generate the base control geometry.
+			SetPanelControlPosition(pBase, &renderables[pBase->m_iRenderableIdx], &renderContext, pBase->x, pBase->y); 
+			SetPanelControlDimensions(pBase, &renderables[pBase->m_iRenderableIdx], &renderContext, pBase->width, pBase->height);
 			break;
 
 		case CONTROL_TYPE_BUTTON:
 			{	
 				// LEFTOFF: Make this work properly.
-				ButtonControlData_t* pButtonData = &buttonControls[0];
+				UIControlButton_t* pButtonData = &buttons[0];
+
 				CreateButton(pBase, pRenderable, pButtonData, &renderContext);
+				// These calls will generate the base control geometry.
+				SetPanelControlPosition(pBase, &renderables[pBase->m_iRenderableIdx], &renderContext, pBase->x, pBase->y);
+				SetPanelControlDimensions(pBase, &renderables[pBase->m_iRenderableIdx], &renderContext, pBase->width, pBase->height);
 				break;
 			}
 
@@ -182,7 +204,7 @@ namespace AppUI
 	void CAppUI::DestroyUIControl(UIControlHandle_t hControl)
 	{
 		CAssert(hControl != kInvalidID_U32);
-		BaseUIControl* pBase = &baseControls[hControl];
+		UIControlPanel_t* pBase = &panels[hControl];
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
@@ -198,7 +220,7 @@ namespace AppUI
 	void CAppUI::SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y)
 	{
 		CAssert(hControl != kInvalidID_U32);
-		BaseUIControl* pBase = &baseControls[hControl];
+		UIControlPanel_t* pBase = &panels[hControl];
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
@@ -215,7 +237,7 @@ namespace AppUI
 	void CAppUI::SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height)
 	{
 		CAssert(hControl != kInvalidID_U32);
-		BaseUIControl* pBase = &baseControls[hControl];
+		UIControlPanel_t* pBase = &panels[hControl];
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
@@ -232,7 +254,7 @@ namespace AppUI
 	void CAppUI::SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a)
 	{
 		CAssert(hControl != kInvalidID_U32);
-		BaseUIControl* pBase = &baseControls[hControl];
+		UIControlPanel_t* pBase = &panels[hControl];
 		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
 
 		// Convert the color range from [0-256] to [0-1].
@@ -249,17 +271,51 @@ namespace AppUI
 			renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pBase->color);
 	}
 
+	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)
+	{
+		u32 oldSurfaceWidth = renderContext.currentSurfaceWidth;
+		u32 oldSurfaceHeight = renderContext.currentSurfaceHeight;
+
+		// We need to stretch/squish the values for the new controls to that they are correct proportionally at the new resolution.
+		for (u32 iControl = 0; iControl < panels.Count(); ++iControl)
+		{
+			if (panels[iControl].m_eControlType != CONTROL_TYPE_UNDEFINED)
+			{
+				UIControlPanel_t* pCurrentControl = &panels[iControl];
+
+				u16 oldX = pCurrentControl->x;
+				u16 oldY = pCurrentControl->y;
+				u16 oldWidth = pCurrentControl->width;
+				u16 oldHeight = pCurrentControl->height;
+
+				pCurrentControl->x = (u16)((oldX / (float)oldSurfaceWidth) * newWidth);
+				pCurrentControl->y = (u16)((oldY / (float)oldSurfaceHeight) * newHeight);
+				pCurrentControl->width = (u16)((oldWidth / (float)oldSurfaceWidth) * newWidth);
+				pCurrentControl->height = (u16)((oldHeight / (float)oldSurfaceHeight) * newHeight);
+
+				SetPanelControlPosition(pCurrentControl, &renderables[pCurrentControl->m_iRenderableIdx], &renderContext, pCurrentControl->x, pCurrentControl->y);
+				SetPanelControlDimensions(pCurrentControl, &renderables[pCurrentControl->m_iRenderableIdx], &renderContext, pCurrentControl->width, pCurrentControl->height);
+			}
+		}
+
+		// LEFTOFF: Also regenerate the projection matrix.
+
+		// Lastly, store off these new values.
+		renderContext.currentSurfaceWidth = newWidth;
+		renderContext.currentSurfaceHeight = newHeight;
+	}
+
 	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext)
 	{
-		for (u32 iBase = 0; iBase < pUIContext->baseControls.Count(); iBase++)
+		for (u32 iBase = 0; iBase < pUIContext->panels.Count(); iBase++)
 		{
-			if (pUIContext->baseControls[iBase].m_eControlType == CONTROL_TYPE_UNDEFINED)
+			if (pUIContext->panels[iBase].m_eControlType == CONTROL_TYPE_UNDEFINED)
 			{
 				// Found an empty slot!
 				return iBase;
 			}
 		}
-		CASSERTMSG(0, "Failed to find an available base UI control!");
+		CASSERTMSG(0, "Failed to find an available panel UI control!");
 		return kInvalidID_U32;
 	}
 
@@ -286,4 +342,19 @@ AppUI::IAppUI* g_pUISystem = &s_UISystem;
 AppUI::IAppUI* GetUIPluginInterface()
 {
 	return g_pUISystem;
+}
+
+static bool Event_WindowResized(void* pEventListener, EventData_t data)
+{
+	LOG_INFO("AppUI detected window resize. Regenerating control geometry.");
+
+	AppUI::CAppUI* pUIContext = (AppUI::CAppUI*)pEventListener;
+
+	if (pUIContext)
+	{
+		pUIContext->RegenerateControlGeometry(data.u32[0], data.u32[1]);
+	}
+
+	// Let other listeners handle this.
+	return false;
 }

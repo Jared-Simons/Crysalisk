@@ -15,9 +15,9 @@
 
 namespace AppUI
 {
-	static void GenerateControlGeometry(BaseUIControl* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
 
-	void CreatePanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	void CreatePanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
 	{
 		CAssert(pBase && pRenderable && pRenderContext);
 
@@ -29,12 +29,9 @@ namespace AppUI
 		pBase->width = 100;
 		pBase->height = 100;
 		pBase->color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
-
-		// Create the geometry resources.
-		GenerateControlGeometry(pBase, pRenderable, pRenderContext);
 	}
 
-	void DestroyPanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	void DestroyPanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
 	{
 		CAssert(pBase && pRenderable && pRenderContext);
 
@@ -47,25 +44,25 @@ namespace AppUI
 		// Zero out structures.
 		// Note that this will set controlType back to CONTROL_TYPE_UNDEFINED, allowing for this to be reused.
 		Platform::MemorySet(pRenderable, 0, sizeof(UIControlRenderData_t));
-		Platform::MemorySet(pBase, 0, sizeof(BaseUIControl));
+		Platform::MemorySet(pBase, 0, sizeof(UIControlPanel_t));
 		pRenderable->vertexCount = kInvalidID_U64;
 	}
 
-	void SetPanelControlPosition(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
+	void SetPanelControlPosition(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
 	{
 		pBase->x = x;
 		pBase->y = y;
 		GenerateControlGeometry(pBase, pRenderable, pRenderContext);
 	}
 
-	void SetPanelControlDimensions(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
+	void SetPanelControlDimensions(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
 	{
 		pBase->width = width;
 		pBase->height = height;
 		GenerateControlGeometry(pBase, pRenderable, pRenderContext);
 	}
 
-	static void GenerateControlGeometry(BaseUIControl* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
 	{
 		CAssert(pUIBase && pRenderable && pRenderContext);
 

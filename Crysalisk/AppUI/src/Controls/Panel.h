@@ -13,10 +13,10 @@
 
 namespace AppUI
 {
-	void				CreatePanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
-	void				DestroyPanel(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	void				CreatePanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	void				DestroyPanel(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
 
-	void				SetPanelControlPosition(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y);
-	void				SetPanelControlDimensions(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height);
+	void				SetPanelControlPosition(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y);
+	void				SetPanelControlDimensions(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height);
 
 } // namespace AppUI

@@ -59,7 +59,10 @@ struct RenderPacket_t
 	Utl::LinearAllocator*		pFrameAllocator{ nullptr };
 
 	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
-	void*						pEditorExtendedData;	// FIXME: This is required because the editor will not always be used. Make the above a dynamic array?
+
+	// FIXME: This is required because the editor will not always be used. Make the above a dynamic array?
+	void*						pEditorExtendedData;	
+	Matrix4x4					UIProjectionMatrix{};
 };
 
 //-------------------------------------------------------------------------

@@ -624,7 +624,7 @@ static bool Event_WindowResized(void* pEventListener, EventData_t data)
 		s_bApplicationSuspended = false;
 	}
 
-	return true;
+	return false;
 }
 
 static bool Event_WindowResizedPause(void* pEventListener, EventData_t data)

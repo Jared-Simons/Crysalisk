@@ -28,6 +28,9 @@ namespace AppUI
 		IShaderSystem* m_pShaderSystem{ nullptr };
 		RenderBuffer* m_pVertexBuffer{ nullptr };
 		RenderBuffer* m_pIndexBuffer{ nullptr };
+
+		u32			currentSurfaceWidth{ 0 };
+		u32			currentSurfaceHeight{ 0 };
 	};
 
 	class IAppUI

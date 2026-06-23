@@ -13,5 +13,5 @@
 
 namespace AppUI
 {
-	void				CreateButton(BaseUIControl* pBase, UIControlRenderData_t* pRenderable, ButtonControlData_t* pButtonControl, AppUIRenderContext_t* pRenderContext);
+	void				CreateButton(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, UIControlButton_t* pButtonControl, AppUIRenderContext_t* pRenderContext);
 } // namespace AppUI

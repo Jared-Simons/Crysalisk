@@ -15,6 +15,8 @@ enum class eEventCategory
 {
 	UNKNOWN = -1,
 	WINDOW_RESIZE,
+
+	// FIXME: Start and End resize need to be implemented.
 	WINDOW_START_RESIZE,
 	WINDOW_END_RESIZE,
 	APPLICATION_QUIT,
