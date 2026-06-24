@@ -50,6 +50,8 @@ namespace AppUI
 		u16 m_eControlType{ CONTROL_TYPE_UNDEFINED };
 		u32 m_iRenderableIdx{ kInvalidID_U32 };
 		u32 m_iControlDataIdx{ kInvalidID_U32 };
+
+		UIControlHandle_t	m_hParentControl{ kInvalidID_U32 };
 	};
 
 	struct UIControlPanel_t
@@ -61,8 +63,6 @@ namespace AppUI
 		u16					height{ 0 };
 
 		Vector4D			color{};
-
-		UIControlHandle_t	hParentControl{ kInvalidID_U32 };
 	};
 
 	struct UIControlFrame_t

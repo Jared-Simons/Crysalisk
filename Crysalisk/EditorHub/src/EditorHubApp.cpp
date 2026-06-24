@@ -95,11 +95,13 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		//hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_FRAME);
 		hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
 		m_pUISystem->SetControlPosition(hTestFrame, 50, 50);
-		m_pUISystem->SetControlDimensions(hTestFrame, 700, 525);
+		m_pUISystem->SetControlDimensions(hTestFrame, 496, 312);
 		m_pUISystem->SetControlColor(hTestFrame, 255, 255, 255, 200);
 
 		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
-		m_pUISystem->SetControlText(hTestLabel, "TEST LABEL TEXT");
+		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
+		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
+		m_pUISystem->SetControlText(hTestLabel, "Resolution");
 
 		//hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 		//m_pUISystem->SetControlPosition(hTestButton, 400, 0);

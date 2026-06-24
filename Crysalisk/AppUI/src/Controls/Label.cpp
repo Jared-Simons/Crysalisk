@@ -33,6 +33,17 @@ namespace AppUI
 		pLabel->text.m_Geometry.hShaderInstance = 1; // FIXME: Don't hardcode!
 	}
 
+	void SetLabelPosition(UIControlLabel_t* pLabelData, u16 x, u16 y)
+	{
+		CAssert(pLabelData);
+
+		IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
+		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
+
+		pLabelData->text.m_vecPos = { (f32)x, (f32)y };
+		pLabelData->text.SetText(pRenderer, pFontSystem, pLabelData->text.m_pszText);	// NOTE: We have to call this again because this is the only way to regenerate text geo currently.
+	}
+
 	void SetLabelText(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, const char* pszText)
 	{
 		CAssert(pLabelData && pRenderable && pszText);

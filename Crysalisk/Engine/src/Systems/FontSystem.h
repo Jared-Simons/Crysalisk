@@ -26,7 +26,7 @@ struct FontSystemConfig_t
 };
 
 //-------------------------------------------------------------------------
-// A piece of texture that can be used for rendering.
+// A piece of text that can be used for rendering.
 //-------------------------------------------------------------------------
 class ENGINE_API TextObject
 {
@@ -36,7 +36,7 @@ public:
 
 public:
 	// The size of this text.
-	f32				m_flTextSize{ 0.0f };
+	f32					m_flTextSize{ 0.0f };
 	// The position of this text (in Screen-Space [1080x720]).
 	Vector2D			m_vecPos{};
 	// The text this element should be rendering.

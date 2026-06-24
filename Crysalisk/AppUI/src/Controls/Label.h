@@ -15,6 +15,7 @@ namespace AppUI
 {
 	void				CreateLabelControl(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlLabel_t* pLabel, AppUIRenderContext_t* pRenderContext);
 
+	void				SetLabelPosition(UIControlLabel_t* pLabelData, u16 x, u16 y);
 	void				SetLabelText(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, const char* pszText);
 
 } // namespace AppUI

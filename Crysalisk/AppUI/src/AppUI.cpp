@@ -43,6 +43,7 @@ namespace AppUI
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
 
+		virtual void	SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent) override;
 		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) override;
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) override;
 		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) override;
@@ -273,19 +274,52 @@ namespace AppUI
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
 		UIControlPanel_t* pPanel = nullptr;
+
+		// A control's position is defined relative to its parent, if it has one.
+		UIBaseControl_t* pParentBase = nullptr;
+		u16 parentedX = x;
+		u16 parentedY = y;
+
+		if (pBase->m_hParentControl != kInvalidID_U32)
+		{
+			pParentBase = &baseControls[pBase->m_hParentControl];
+			
+			switch (pParentBase->m_eControlType)
+			{
+			case CONTROL_TYPE_PANEL:	
+				pPanel = &panels[pParentBase->m_iControlDataIdx];
+				break;
+			case CONTROL_TYPE_FRAME:
+				pPanel = frames[pParentBase->m_iControlDataIdx].pPanel;
+				break;
+			default:
+				CAssert(0);
+				break;
+			}
+
+			parentedX += pPanel->x;
+			parentedY += pPanel->y;
+		}
+
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
 			pPanel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, x, y);
+			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
 			break;
 		case CONTROL_TYPE_FRAME:
 			pPanel = frames[pBase->m_iControlDataIdx].pPanel;
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, x, y);
+			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			break;
+		case CONTROL_TYPE_LABEL:
+			{
+				UIControlLabel_t* pLabelData = &labels[pBase->m_iControlDataIdx];
+				SetLabelPosition(pLabelData, parentedX, parentedY);
+			}
 			break;
 		case CONTROL_TYPE_BUTTON:
 			// FIXME: Make this work.
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, x, y);
+			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
 			break;
 
 		default:
@@ -318,6 +352,13 @@ namespace AppUI
 			CAssert(0);
 			break;
 		}
+	}
+
+	void CAppUI::SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent)
+	{
+		CAssert(hChild != kInvalidID_U32 && hParent != kInvalidID_U32);
+		UIBaseControl_t* pChildBase = &baseControls[hChild];
+		pChildBase->m_hParentControl = hParent;
 	}
 
 	void CAppUI::SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a)
