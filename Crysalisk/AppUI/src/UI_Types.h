@@ -74,6 +74,10 @@ namespace AppUI
 
 	struct UIControlLabel_t
 	{
+		FontHandle_t	hFont{ kInvalidID_U32 };
+		char*			pszText{ nullptr };
+
+		// FIXME: Deprecate this.
 		TextObject	text{};
 	};
 

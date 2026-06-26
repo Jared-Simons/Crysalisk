@@ -14,6 +14,7 @@
 #include <Resources/Loaders/FontLoader.h>
 #include "Systems/TextureSystem.h"
 #include "Systems/ShaderSystem.h"
+#include <Utils/Utils.h>
 
 //-------------------------------------------------------------------------
 // Indices for each of the UI shader lookups.
@@ -51,9 +52,11 @@ class CFontSystem : public IFontSystem
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for a given font.
-	virtual FontHandle_t		AcquireFontResources(const char* pFontName) override;
+	virtual FontHandle_t		AcquireFontResources(const char* pFontName, f32 flFontSize) override;
 
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
+
+	virtual void				BindFontInstance(FontHandle_t hFont) const override;
 
 	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize) override;
@@ -71,6 +74,7 @@ private:
 	struct FontLookup
 	{
 		FontHandle_t	FontIndex{ kInvalidID_U32 };
+		f32				FontSize{ 0.0f };
 	};
 
 	struct FontDictionary
@@ -167,7 +171,7 @@ void CFontSystem::PostInitialize()
 	s_UIShaderLocations.model = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	// Load default font.
-	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
 }
 
 //-------------------------------------------------------------------------
@@ -176,14 +180,16 @@ void CFontSystem::PostInitialize()
 void CFontSystem::Shutdown()
 {
 	delete[] m_FontDictionary.m_FontArray;
+	m_FontDictionary.m_FontArray = nullptr;
 }
 
 //-------------------------------------------------------------------------
 // Purpose: Attempts to acquire the resources for a given font.
 // Input:	pszFontName - The font to acquire resources for.
+//			flFontSize - The size of the text to render.
 // Output:	Returns a handle to the new font.
 //-------------------------------------------------------------------------
-FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
+FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFontSize)
 {
 	FontLoader::FontResource_t	fontResource{};
 	FontHandle_t				fontHandle{ kInvalidID_U32 };
@@ -196,13 +202,18 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		return m_hDefaultFont;
 	}
 
-	// Check to see if the font is already loaded.
-	pFontLookup = &m_FontDictionary.m_FontHashmap[pszFontName];
+	char szLookupStringBuffer[1000];
+	Utl::StringFormat_V("%s_%f", szLookupStringBuffer, pszFontName, flFontSize);
 
-	if (pFontLookup->FontIndex == kInvalidID_U32)
+	// Check to see if the font is already loaded.
+	pFontLookup = &m_FontDictionary.m_FontHashmap[szLookupStringBuffer];
+
+	bool bNewSizeVariantNeeded = (pFontLookup->FontIndex != kInvalidID_U32 && !FloatCompare(pFontLookup->FontSize, flFontSize));
+
+	if (pFontLookup->FontIndex == kInvalidID_U32 || bNewSizeVariantNeeded)
 	{
 		// The font is not yet loaded, load it up.
-		if (!FontLoader::LoadFontResource(pszFontName, 30, fontResource))
+		if (!FontLoader::LoadFontResource(pszFontName, flFontSize, fontResource))
 		{
 			LOG_ERROR("Failed to load font resource data for font '%s'. Returning default font.", pszFontName);
 			return m_hDefaultFont;
@@ -226,6 +237,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName)
 		pAtlas->glyphs = fontResource.charGlyphs;
 
 		pFontLookup->FontIndex = fontHandle;
+		pFontLookup->FontSize = flFontSize;
 	}
 	else
 	{
@@ -250,6 +262,17 @@ TextureHandle_t CFontSystem::AcquireFontAtlasTexture(FontHandle_t hFont) const
 	}
 
 	return m_FontDictionary.m_FontArray[hFont].m_hFontTexture;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+// Make sure that the appropriate shader is bound prior to calling this!
+//-------------------------------------------------------------------------
+void CFontSystem::BindFontInstance(FontHandle_t hFont) const
+{
+	CAssert(hFont != kInvalidID_U32);
+	Font* pFont = &m_FontDictionary.m_FontArray[hFont];
+	m_Config.pShaderSystem->BindPerInstanceUniforms(pFont->m_InternalInstanceID);
 }
 
 //-------------------------------------------------------------------------

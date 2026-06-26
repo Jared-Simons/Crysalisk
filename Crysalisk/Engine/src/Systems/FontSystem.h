@@ -61,9 +61,12 @@ public:
 	virtual void				Shutdown() = 0;
 
 	// Acquires the resources for a given font.
-	virtual FontHandle_t		AcquireFontResources(const char* pFontName) = 0;
+	virtual FontHandle_t		AcquireFontResources(const char* pFontName, f32 flFontSize) = 0;
 
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const = 0;
+
+	// Binds a font instance's resources for rendering.
+	virtual void				BindFontInstance(FontHandle_t hFont) const = 0;
 
 	// Generates the geometry necessary to render a piece of text.
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSizet) = 0;

@@ -29,6 +29,8 @@ typeOut SimpleHash(typeIn pInput, u64 numElements)
 	return static_cast<typeOut>((u64)M_ABS(sum) % numElements);
 }
 
+DLL_EXPORT inline bool FloatCompare(f32 a, f32 b, f32 tolerance = 0.0000001f);
+
 // Non-templated string version of the above. To keep things simple until we need a more generic hashing structure.
 i32 SimpleHash_StringToInt(const char* pInput, u64 numElements);
 

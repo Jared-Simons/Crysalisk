@@ -11,6 +11,11 @@
 #include "Math/MathLib.h"
 #include "Strings/String_Utils.h"
 
+inline bool FloatCompare(f32 a, f32 b, f32 tolerance)
+{
+	return M_ABS_F(a - b) < tolerance;
+}
+
 // Hashing function borrowed from "https://opendsa-server.cs.vt.edu/ODSA/Books/CS3/html/HashFuncExamp.html"
 i32 SimpleHash_StringToInt(const char* pInput, u64 numElements)
 {

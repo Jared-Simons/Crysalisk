@@ -56,9 +56,7 @@ i32 main(i32 argc, char** argv)
 	ApplicationConfig_t appConfig{};
 	appConfig.pApplication = &s_GameApp;
 
-	Crysalisk_Main(appConfig);
-
-	return 0;
+	return Crysalisk_Main(appConfig);
 }
 
 bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)

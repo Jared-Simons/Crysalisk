@@ -26,8 +26,8 @@ namespace AppUI
 
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 		IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
-		pLabel->text.m_flTextSize = 1.0f;
-		pLabel->text.m_hFont = pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf");
+		pLabel->text.m_flTextSize = 0.99f;
+		pLabel->text.m_hFont = pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
 		pLabel->text.m_vecPos = { 100.0f, 500.0f };	// LEFTOFF: Figure out the dimensions to use here. (1080x720?)
 		pLabel->text.m_Geometry.hShader = pShaderSystem->AcquireShader("Core.UI");
 		pLabel->text.m_Geometry.hShaderInstance = 1; // FIXME: Don't hardcode!

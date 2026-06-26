@@ -47,7 +47,9 @@ namespace AppUI
 		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) override;
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) override;
 		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) override;
+
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) override;
+		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) override;
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
 
@@ -124,6 +126,7 @@ namespace AppUI
 
 		pRenderPacket->pEditorExtendedData = &renderables[0];
 		pRenderPacket->pEditorTextTest = &labels[0];
+		pRenderPacket->pEditorTextTest2 = &labels[1];
 		pRenderPacket->UIProjectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 	}
 
@@ -386,12 +389,23 @@ namespace AppUI
 	{
 		CAssert(hControl != kInvalidID_U32 && pszText);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_LABEL, "%s - This function must only be called for UI elements that support text!");
+		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_LABEL, "SetControlText - This function must only be called for UI elements that support text!");
 
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
 		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
 
 		SetLabelText(pLabel, pRenderable, pszText);
+	}
+
+	void CAppUI::SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize)
+	{
+		CAssert(hControl != kInvalidID_U32 && pszFontName);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_LABEL, "SetControlFont - This function must only be called for UI elements that support text!");
+
+		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
+		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
+		pLabel->hFont = pFontSystem->AcquireFontResources(pszFontName, flFontSize);
 	}
 
 	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)
@@ -401,6 +415,7 @@ namespace AppUI
 
 		// We need to stretch/squish the values for the new controls to that they are correct proportionally at the new resolution.
 		// FIXME: Make resizing/proportional elements optional.
+		// FIXME: When the resolution is decreased, the elements are not properly fixed.
 		for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
 		{
 			UIBaseControl_t* pCurrentBase = &baseControls[iControl];

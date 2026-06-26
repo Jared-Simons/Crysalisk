@@ -76,10 +76,14 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 // HACK: UI test
 static AppUI::UIControlHandle_t hTestFrame = kInvalidID_U32;
 static AppUI::UIControlHandle_t	hTestLabel = kInvalidID_U32;
+static AppUI::UIControlHandle_t	hTestLabel2 = kInvalidID_U32;
 
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
+	LOG_INFO("-------------------------");
 	LOG_INFO("Launching Crysalisk Tools");
+	LOG_INFO("-------------------------");
+
 	m_pTools.Resize(1);
 
 	m_pUISystem->Initialize(pAppConfig);
@@ -101,7 +105,13 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
+		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 12.0f);
 		m_pUISystem->SetControlText(hTestLabel, "Resolution");
+
+		hTestLabel2 = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUISystem->SetControlParent(hTestLabel2, hTestFrame);
+		m_pUISystem->SetControlPosition(hTestLabel2, 36, 95);
+		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");
 
 		//hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 		//m_pUISystem->SetControlPosition(hTestButton, 400, 0);
