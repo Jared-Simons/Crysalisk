@@ -105,12 +105,13 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
-		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 12.0f);
+		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 15.0f);
 		m_pUISystem->SetControlText(hTestLabel, "Resolution");
 
 		hTestLabel2 = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUISystem->SetControlParent(hTestLabel2, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel2, 36, 95);
+		m_pUISystem->SetControlFont(hTestLabel2, "Assets/Fonts/UbuntuMono-R.ttf", 15.0f);
 		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");
 
 		//hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);

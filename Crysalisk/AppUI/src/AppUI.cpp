@@ -125,8 +125,8 @@ namespace AppUI
 		}
 
 		pRenderPacket->pEditorExtendedData = &renderables[0];
-		pRenderPacket->pEditorTextTest = &labels[0];
-		pRenderPacket->pEditorTextTest2 = &labels[1];
+		pRenderPacket->pEditorTextTest = &renderables[1];
+		pRenderPacket->pEditorTextTest2 = &renderables[2];
 		pRenderPacket->UIProjectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 	}
 
@@ -394,7 +394,7 @@ namespace AppUI
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
 		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
 
-		SetLabelText(pLabel, pRenderable, pszText);
+		SetLabelText(pLabel, pRenderable, &renderContext, pszText);
 	}
 
 	void CAppUI::SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize)
@@ -403,9 +403,8 @@ namespace AppUI
 		UIBaseControl_t* pBase = &baseControls[hControl];
 		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_LABEL, "SetControlFont - This function must only be called for UI elements that support text!");
 
-		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
-		pLabel->hFont = pFontSystem->AcquireFontResources(pszFontName, flFontSize);
+		SetLabelFont(pLabel, &renderables[pBase->m_iRenderableIdx], &renderContext, pszFontName, flFontSize);
 	}
 
 	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)
@@ -461,7 +460,7 @@ namespace AppUI
 	{
 		for (u32 iRenderable = 0; iRenderable < pUIContext->renderables.Count(); iRenderable++)
 		{
-			if (pUIContext->renderables[iRenderable].vertexCount == kInvalidID_U64)
+			if (pUIContext->renderables[iRenderable].vertexCount == kInvalidID_U64 && pUIContext->renderables[iRenderable].geo.vertexCount == kInvalidID_U64)
 			{
 				// Found an empty slot!
 				return iRenderable;

@@ -69,8 +69,9 @@ using FontHandle_t = u32;
 struct Font
 {
 public:
+	f32				m_flFontSize{ 0.0f };
 	// The internal shader instance ID used for rendering this font.
-	u32		m_InternalInstanceID{ kInvalidID_U32 };
+	u32				m_InternalInstanceID{ kInvalidID_U32 };
 	// The font atlas texture map.
 	TextureHandle_t	m_hFontTexture{ kInvalidID_U32 };
 	// The height between lines in this font.

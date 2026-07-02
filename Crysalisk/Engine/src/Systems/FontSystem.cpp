@@ -59,8 +59,11 @@ class CFontSystem : public IFontSystem
 	virtual void				BindFontInstance(FontHandle_t hFont) const override;
 
 	// Generates the geometry necessary to render a piece of text.
+	virtual GeometryConfig2D_t	AcquireConfigForText(FontHandle_t hFont, Vector2D vecTextPos, const char* pszText) override;
 	virtual GeometryConfig2D_t	AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize) override;
 	virtual GeometryConfig_t	Acquire3DConfigForText(FontHandle_t hFont, f32 flTextSize, const char* pszText) override;
+
+	virtual FontHandle_t		GetDefaultFont() const override { return m_hDefaultFont; }
 
 private:
 	// Returns the first available handle in the font dictionary.
@@ -203,7 +206,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFo
 	}
 
 	char szLookupStringBuffer[1000];
-	Utl::StringFormat_V("%s_%f", szLookupStringBuffer, pszFontName, flFontSize);
+	Utl::StringFormat_V("%s_%d", szLookupStringBuffer, pszFontName, (i32)flFontSize);
 
 	// Check to see if the font is already loaded.
 	pFontLookup = &m_FontDictionary.m_FontHashmap[szLookupStringBuffer];
@@ -227,7 +230,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFo
 		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
 
 		// Get our shader instance data and bind the font atlas.
-		m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, pszFontName);
+		m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, szLookupStringBuffer);
 		m_Config.pShaderSystem->SetShaderUniform(m_hDefaultUIShader, s_UIShaderLocations.texture_maps, 0, pFont->m_InternalInstanceID, &hFontAtlas);
 		pFont->m_hFontTexture = hFontAtlas;
 
@@ -238,6 +241,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFo
 
 		pFontLookup->FontIndex = fontHandle;
 		pFontLookup->FontSize = flFontSize;
+		pFont->m_flFontSize = flFontSize;
 	}
 	else
 	{
@@ -276,10 +280,104 @@ void CFontSystem::BindFontInstance(FontHandle_t hFont) const
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+// Make sure that the appropriate shader is bound prior to calling this!
+//-------------------------------------------------------------------------
+GeometryConfig2D_t CFontSystem::AcquireConfigForText(FontHandle_t hFont, Vector2D vecTextPos, const char* pszText)
+{
+	GeometryConfig2D_t			newConfig{};
+	InternalFontAtlasData_t*	pInternalAtlas = reinterpret_cast<InternalFontAtlasData_t*>(m_FontDictionary.m_FontArray[hFont].m_pInternalFontAtlasData);
+	f32							flFontSize = m_FontDictionary.m_FontArray[hFont].m_flFontSize;
+	FontLoader::FontCharData_t* pCurGlyph = pInternalAtlas->glyphs.Data();
+
+	u64							iStringLength = Utl::StringLength(pszText);
+	i32							iCurNonWhitespaceCharCount = 0;
+
+	// Geometry data.
+	Vector2D					vecCurPos = vecTextPos;
+	f32							width, height;
+	Vector2D					vecGlyphBottomLeftPos = {};
+	Vector2D					vecCharVertices[4] = {};
+	Vector2D					vecCharTexCoords[4] = {};
+
+	for (i32 ch = 0; ch < iStringLength; ch++)
+	{
+		// Skip escape codes for now.
+		// LEFTOFF: Implement
+		if (pszText[ch] == '\n' || pszText[ch] == '\t')
+		{
+			// Escape chars!
+			if (pszText[ch] == '\n')
+			{
+				vecCurPos.x = vecTextPos.x;
+				vecCurPos.y += m_FontDictionary.m_FontArray[hFont].m_iLineHeight;
+
+				continue;
+			}
+		}
+
+		// Make sure the glyph is actually in the atlas.
+		if (pszText[ch] < kCodePointOfFirstChar || pszText[ch] > kCodePointOfFirstChar + kCharsToIncludeInFontAtlas)
+			continue;
+
+		pCurGlyph = &pInternalAtlas->glyphs[pszText[ch] - kCodePointOfFirstChar];
+		width = (f32)(pCurGlyph->xMax - pCurGlyph->xMin);
+		height = (f32)(pCurGlyph->yMax - pCurGlyph->yMin);
+
+		f32 flMinX = (vecCurPos.x + pCurGlyph->xOffset);
+		f32 flMinY = (vecCurPos.y + pCurGlyph->yOffset);
+		f32 flMaxX = (flMinX + width);
+		f32 flMaxY = (flMinY + height);
+		f32 flTexMinX = pCurGlyph->sMin;
+		f32 flTexMaxX = pCurGlyph->sMax;
+		// Flip the y-coord around.
+		f32 flTexMinY = 1.0f - pCurGlyph->tMin;
+		f32 flTexMaxY = 1.0f - pCurGlyph->tMax;
+
+		// Vertices:
+		vecCharVertices[0] = { flMinX, flMinY };
+		vecCharVertices[1] = { flMaxX, flMinY };
+		vecCharVertices[2] = { flMaxX, flMaxY };
+		vecCharVertices[3] = { flMinX, flMaxY };
+
+		// Vertex texcoords.
+		vecCharTexCoords[0] = { flTexMinX, flTexMinY };
+		vecCharTexCoords[1] = { flTexMaxX, flTexMinY };
+		vecCharTexCoords[2] = { flTexMaxX, flTexMaxY };
+		vecCharTexCoords[3] = { flTexMinX, flTexMaxY };
+
+		// Add these to the geometry config.
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[0], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[0] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[2], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[2] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[3], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[3] });
+		newConfig.Vertices.PushBack(Vertex2D{ vecCharVertices[1], Vector4D(1.0, 1.0, 1.0, 1.0), vecCharTexCoords[1] });
+
+		i32 indexOrder[6] = { 2, 1, 0, 3, 0, 1 };
+
+		// Fill up the index buffer as well.
+		for (i32 idx = 0; idx < 6; idx++)
+		{
+			newConfig.Indices.PushBack((4 * iCurNonWhitespaceCharCount) + indexOrder[idx]);
+		}
+
+		// Advance the x-position over.
+		vecCurPos.x += pCurGlyph->flAdvance;
+
+		// NOTE: This is needed to ensure the index buffer is properly setup for characters that directly follow escape codes...
+		// If we use the 'ch' iterator instead, our index buffer will be offset to the wrong character
+		// as 'ch' includes escape codes, while 'iCurNonWhitespaceCharCount' does not.
+		iCurNonWhitespaceCharCount++;
+	}
+
+	return newConfig;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Generates the geometry necessary to render a piece of text.
 // Input:	pTextObject - The text object to acquire resources for.
 //			hFont - The font associated with this text object.
 // Output:	Returns a new geometry config to use in rendering the new string.
+// TODO: DEPRECATE!
 //-------------------------------------------------------------------------
 GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, FontHandle_t hFont, f32 flTextSize)
 {
@@ -292,7 +390,7 @@ GeometryConfig2D_t CFontSystem::AcquireConfigForText(TextObject& pTextObject, Fo
 
 	// Geometry data.
 	Vector2D					vecCurPos = pTextObject.m_vecPos;
-	f32						width, height;
+	f32							width, height;
 	Vector2D					vecGlyphBottomLeftPos = {};
 	Vector2D					vecCharVertices[4] = {};
 	Vector2D					vecCharTexCoords[4] = {};

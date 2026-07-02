@@ -96,18 +96,18 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 #define GIBIBYTES(x) (x * (1024 * 1024 * 1024))
 
 // Invalid IDs
-const unsigned int kInvalidID_U8 = 255;
-const unsigned short kInvalidID_U16 = 65535;
-const unsigned int kInvalidID_U32 = 4294967294;
-const unsigned long long kInvalidID_U64 = 18446744073709551614;
+const u8 kInvalidID_U8 = 255;
+const u16 kInvalidID_U16 = 65535;
+const u32 kInvalidID_U32 = 4294967294;
+const u64 kInvalidID_U64 = 18446744073709551614;
 
 // Limits
-const float kFLT_MAX = 3.402823466e+38f;
-const float kFLT_MIN = 1.175494351e-38f;
+const f32 kFLT_MAX = 3.402823466e+38f;
+const f32 kFLT_MIN = 1.175494351e-38f;
 
 // Utility Functions
 
-static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
+static inline bool IsNumberAPowerOfTwo(u64 x) { return (x & (x - 1)) == 0; }
 
 static void intClamp(i32* val, i32* min, i32* max)
 {
@@ -121,22 +121,22 @@ static void intClamp(i32* val, i32* min, i32* max)
 	}
 }
 
-static inline int IntMin(int a, int b)
+static inline i32 IntMin(i32 a, i32 b)
 {
 	return (a < b) ? a : b;
 }
 
-static inline int IntMax(int a, int b)
+static inline i32 IntMax(i32 a, i32 b)
 {
 	return (a > b) ? a : b;
 }
 
-static inline float FloatMin(float a, float b)
+static inline f32 FloatMin(f32 a, f32 b)
 {
 	return (a < b) ? a : b;
 }
 
-static inline float FloatMax(float a, float b)
+static inline f32 FloatMax(f32 a, f32 b)
 {
 	return (a > b) ? a : b;
 }

@@ -142,6 +142,9 @@ namespace FontLoader
 					&alignedQuads[charIdx], 0);
 			}
 
+			// Get kerning data.
+			i32 kerningCount = stbtt_GetKerningTableLength(&fontInfo);
+
 			// Save out all of our glyph data to the resource.
 			for (i32 charIdx = 0; charIdx < kCharsToIncludeInFontAtlas; charIdx++)
 			{

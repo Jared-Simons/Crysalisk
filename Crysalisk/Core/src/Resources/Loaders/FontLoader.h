@@ -22,14 +22,16 @@ namespace FontLoader
 		u16	xMax;
 		u16	yMin;
 		u16	yMax;
-		f32			xOffset;
-		f32			yOffset;
-		f32			flAdvance;
+
+		f32 kerning;
+		f32	xOffset;
+		f32	yOffset;
+		f32	flAdvance;
 		
-		f32			sMin;
-		f32			tMin;
-		f32			sMax;
-		f32			tMax;
+		f32	sMin;
+		f32	tMin;
+		f32	sMax;
+		f32	tMax;
 	};
 
 	// A font resource generated from a file on disk.

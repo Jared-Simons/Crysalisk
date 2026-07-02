@@ -27,10 +27,14 @@ namespace AppUI
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 		IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
 		pLabel->text.m_flTextSize = 0.99f;
-		pLabel->text.m_hFont = pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
+		pLabel->text.m_hFont = pFontSystem->GetDefaultFont();
 		pLabel->text.m_vecPos = { 100.0f, 500.0f };	// LEFTOFF: Figure out the dimensions to use here. (1080x720?)
+
 		pLabel->text.m_Geometry.hShader = pShaderSystem->AcquireShader("Core.UI");
-		pLabel->text.m_Geometry.hShaderInstance = 1; // FIXME: Don't hardcode!
+		pLabel->text.m_Geometry.hShaderInstance = pLabel->text.m_hFont; // FIXME: Get this from somewhere better?
+		pLabel->hFont = pLabel->text.m_hFont;
+		pRenderable->hShader = pLabel->text.m_Geometry.hShader;
+		pRenderable->iShaderInstance = pLabel->text.m_Geometry.hShaderInstance;
 	}
 
 	void SetLabelPosition(UIControlLabel_t* pLabelData, u16 x, u16 y)
@@ -44,14 +48,27 @@ namespace AppUI
 		pLabelData->text.SetText(pRenderer, pFontSystem, pLabelData->text.m_pszText);	// NOTE: We have to call this again because this is the only way to regenerate text geo currently.
 	}
 
-	void SetLabelText(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, const char* pszText)
+	void SetLabelFont(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, const char* pszFontName, f32 flFontSize)
+	{
+		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
+		pLabelData->hFont = pFontSystem->AcquireFontResources(pszFontName, flFontSize);
+		pLabelData->text.m_Geometry.hShaderInstance = pLabelData->hFont; // FIXME: Get this from somewhere better?
+		pRenderable->iShaderInstance = pLabelData->text.m_Geometry.hShaderInstance;
+	}
+
+	void SetLabelText(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, const char* pszText)
 	{
 		CAssert(pLabelData && pRenderable && pszText);
 
-		IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 
-		pLabelData->text.SetText(pRenderer, pFontSystem, pszText);
+		pLabelData->text.SetText(pRenderContext->m_pRenderer, pFontSystem, pszText);
+
+		pLabelData->pszText = Utl::StringDuplicate(pszText);
+		GeometryConfig2D_t textGeoConfig = pFontSystem->AcquireConfigForText(pLabelData->hFont, pLabelData->text.m_vecPos, pszText);	// FIXME: Store pos somewhere else.
+		pRenderContext->m_pRenderer->AcquireGeometryResources(*pRenderContext->m_pVertexBuffer, *pRenderContext->m_pIndexBuffer, 
+															  textGeoConfig.Vertices.Count(), textGeoConfig.Vertices.Stride(), 0, textGeoConfig.Vertices.Data(),
+															  textGeoConfig.Indices.Count(), textGeoConfig.Indices.Data(), &pRenderable->geo);
 	}
 
 } // namespace AppUI
