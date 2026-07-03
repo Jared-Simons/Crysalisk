@@ -53,6 +53,7 @@ class CFontSystem : public IFontSystem
 
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName, f32 flFontSize) override;
+	virtual void				ReleaseFontResources(FontHandle_t hFont) override;
 
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const override;
 
@@ -182,6 +183,14 @@ void CFontSystem::PostInitialize()
 //-------------------------------------------------------------------------
 void CFontSystem::Shutdown()
 {
+	for (u32 iFont = 0; iFont < m_Config.MaxFonts; iFont++)
+	{
+		if (m_FontDictionary.m_FontArray[iFont].m_pInternalFontAtlasData)
+		{
+			ReleaseFontResources(iFont);
+		}
+	}
+
 	delete[] m_FontDictionary.m_FontArray;
 	m_FontDictionary.m_FontArray = nullptr;
 }
@@ -227,7 +236,7 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFo
 		pFont->m_iLineHeight = fontResource.lineHeight;
 
 		// Load up the texture data.
-		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, pszFontName, true);
+		TextureHandle_t hFontAtlas = m_Config.pTextureSystem->AcquireTextureFromResource(fontResource.FontAtlasResource, szLookupStringBuffer, true);
 
 		// Get our shader instance data and bind the font atlas.
 		m_Config.pShaderSystem->AcquireShaderInstanceResources(m_hDefaultUIShader, &pFont->m_InternalInstanceID, szLookupStringBuffer);
@@ -250,6 +259,30 @@ FontHandle_t CFontSystem::AcquireFontResources(const char* pszFontName, f32 flFo
 	}
 
 	return fontHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CFontSystem::ReleaseFontResources(FontHandle_t hFont)
+{
+	CAssert(hFont < m_Config.MaxFonts);
+	Font* pFont = &m_FontDictionary.m_FontArray[hFont];
+
+	CAssert(pFont->m_pInternalFontAtlasData);
+
+	// Release shader instances.
+	m_Config.pShaderSystem->ReleaseShaderInstanceResources(m_hDefaultUIShader, pFont->m_InternalInstanceID);
+	pFont->m_InternalInstanceID = kInvalidID_U32;
+
+	// Release the font atlas.
+	m_Config.pTextureSystem->ReleaseTexture(pFont->m_hFontTexture);
+
+	delete pFont->m_pInternalFontAtlasData;
+	pFont->m_pInternalFontAtlasData = nullptr;
+
+	// Zero out the struct.
+	Platform::MemorySet(pFont, 0, sizeof(Font));
 }
 
 //-------------------------------------------------------------------------

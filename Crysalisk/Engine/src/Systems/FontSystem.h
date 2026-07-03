@@ -62,6 +62,7 @@ public:
 
 	// Acquires the resources for a given font.
 	virtual FontHandle_t		AcquireFontResources(const char* pFontName, f32 flFontSize) = 0;
+	virtual void				ReleaseFontResources(FontHandle_t hFont) = 0;
 
 	virtual TextureHandle_t		AcquireFontAtlasTexture(FontHandle_t hFont) const = 0;
 
