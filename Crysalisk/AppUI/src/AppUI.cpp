@@ -415,7 +415,7 @@ namespace AppUI
 		// We need to stretch/squish the values for the new controls to that they are correct proportionally at the new resolution.
 		// FIXME: Make resizing/proportional elements optional.
 		// FIXME: When the resolution is decreased, the elements are not properly fixed.
-		for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
+		/*for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
 		{
 			UIBaseControl_t* pCurrentBase = &baseControls[iControl];
 			if (pCurrentBase->m_eControlType != CONTROL_TYPE_UNDEFINED)
@@ -435,7 +435,7 @@ namespace AppUI
 				SetPanelControlPosition(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->x, pCurrentControl->y);
 				SetPanelControlDimensions(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->width, pCurrentControl->height);
 			}
-		}
+		}*/
 
 		// Lastly, store off these new values.
 		renderContext.currentSurfaceWidth = newWidth;

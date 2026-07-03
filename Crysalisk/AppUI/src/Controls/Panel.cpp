@@ -89,9 +89,9 @@ namespace AppUI
 
 		// FIXME: Would be nice to not have to use GeometryInstance_t everywhere.
 		GeometryInstance_t outGeometryInstance{};
-		pRenderContext->m_pRenderer->AcquireGeometryResources(*pRenderContext->m_pVertexBuffer, *pRenderContext->m_pIndexBuffer, 
-															  4, sizeof(Vector2D), 0, verts,
-															  6, indices, &outGeometryInstance);
+		pRenderContext->m_pRenderer->AcquireGeometryResources(*pRenderContext->m_pVertexBuffer, *pRenderContext->m_pIndexBuffer,
+			4, sizeof(Vector2D), 0, verts,
+			6, indices, &outGeometryInstance);
 
 		pRenderable->vertexCount = outGeometryInstance.vertexCount;
 		pRenderable->vertexDataOffset = outGeometryInstance.vertexDataOffset;
@@ -100,12 +100,15 @@ namespace AppUI
 		pRenderable->geo = outGeometryInstance;
 
 		// Acquire shader resources.
-		ShaderHandle_t hShader = pRenderContext->m_pShaderSystem->AcquireShader("App_UI");
-		CAssert(hShader != kInvalidID_U32);
-		pRenderable->hShader = hShader;
-		pRenderContext->m_pShaderSystem->AcquireShaderInstanceResources(hShader, &pRenderable->iShaderInstance, "App_UI_Panel");
-		pRenderContext->m_pShaderSystem->SetShaderUniform(hShader,
-			pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+		if (pRenderable->hShader == kInvalidID_U32 && pRenderable->iShaderInstance == kInvalidID_U32)
+		{
+			ShaderHandle_t hShader = pRenderContext->m_pShaderSystem->AcquireShader("App_UI");
+			CAssert(hShader != kInvalidID_U32);
+			pRenderable->hShader = hShader;
+			pRenderContext->m_pShaderSystem->AcquireShaderInstanceResources(hShader, &pRenderable->iShaderInstance, "App_UI_Panel");
+			pRenderContext->m_pShaderSystem->SetShaderUniform(hShader,
+				pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+		}
 	}
 
 } // namespace AppUI
