@@ -20,11 +20,11 @@ i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig)
 	engineConfig.isHeadless = false;
 	engineConfig.pAppConfig = &pAppConfig;
 
-	if (!g_pEngine->Initialize(engineConfig))
+	if (!pAppConfig.pEngine->Initialize(engineConfig))
 	{
 		return -1;
 	}
-	g_pEngine->Run();
+	pAppConfig.pEngine->Run();
 
 	return 0;
 }

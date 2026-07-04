@@ -793,7 +793,9 @@ namespace Platform
 			return nullptr;
 		}
 
-		CSysModule* pNewModule = new CSysModule;
+		s_ModuleRegistry.PushBack(Platform::CSysModule{});
+
+		CSysModule* pNewModule = &s_ModuleRegistry.Back();
 		pNewModule->m_Module = LoadLibraryA(pszModulePath);
 
 		if (!pNewModule->m_Module)
@@ -814,9 +816,6 @@ namespace Platform
 		}
 
 		pNewModule->m_szModuleName = Utl::StringDuplicate(pszModulePath);
-
-		// Register this module.
-		s_ModuleRegistry.PushBack(pNewModule);
 
 		return pNewModule;
 	}

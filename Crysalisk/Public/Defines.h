@@ -7,29 +7,27 @@
 //=============================================================================
 #pragma once
 
-#include <cstdint>
-
 //-----------------------------------------------
 // Primitive Typedefs
 //-----------------------------------------------
 
 // Unsigned integer types
-typedef uint8_t			u8;
-typedef uint16_t		u16;
-typedef uint32_t		u32;
-typedef uint64_t		u64;
+typedef unsigned char		u8;
+typedef unsigned short		u16;
+typedef unsigned int		u32;
+typedef unsigned long long	u64;
 
 // Signed integer types
-typedef int8_t			i8;
-typedef int16_t			i16;
-typedef int32_t			i32;
-typedef int64_t			i64;
+typedef signed char			i8;
+typedef signed short		i16;
+typedef signed int			i32;
+typedef signed long long	i64;
 
 // Floating point types
-typedef float			f32;
-typedef double			f64;
+typedef float				f32;
+typedef double				f64;
 
-typedef unsigned char byte;
+typedef unsigned char		byte;
 
 // Type assertions
 // These exist to ensure that our primitive typedefs will be the correct size at compile time.
@@ -73,6 +71,7 @@ static_assert(sizeof(f64) == 8, "Expected f32 to be 8 bytes.");
 #endif
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
+#define DLL_IMPORT extern "C" __declspec(dllimport)
 
 // Platform detection
 
@@ -101,7 +100,7 @@ const float kFLT_MIN = 1.175494351e-38f;
 
 // Utility Functions
 
-static inline bool IsNumberAPowerOfTwo(size_t x) { return (x & (x - 1)) == 0; }
+static inline bool IsNumberAPowerOfTwo(u64 x) { return (x & (x - 1)) == 0; }
 
 static inline void IntClamp(i32* val, i32* min, i32* max)
 {

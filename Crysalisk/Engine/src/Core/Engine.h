@@ -66,8 +66,11 @@ public:
 	virtual inline const EngineInterfaces_t*		GetEngineInterfaces() const = 0;
 };
 
+// Sets up an instance of the engine.
+ENGINE_API bool CreateEngineInstance(struct ApplicationConfig_t* pAppConfig);
+
 // Global interface to the engine context.
 ENGINE_API extern IEngine* g_pEngine;
 
 ENGINE_API bool WindowResizeHandler(u32 width, u32 height);
-void WindowClosedHandler();
+ENGINE_API void WindowClosedHandler();

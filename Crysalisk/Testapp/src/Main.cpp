@@ -4,6 +4,7 @@
 // 
 // Purpose: The game executable's entrypoint.
 //=============================================================================
+#include <EntryPoint.h>
 #include <Application.h>
 
 #include <Core/Engine.h>
@@ -50,14 +51,6 @@ private:
 static CGameApp s_GameApp{};
 
 static bool Event_WindowResized(void* pEventListener, EventData_t data);
-
-i32 main(i32 argc, char** argv)
-{
-	ApplicationConfig_t appConfig{};
-	appConfig.pApplication = &s_GameApp;
-
-	return Crysalisk_Main(appConfig);
-}
 
 bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
@@ -129,4 +122,12 @@ static bool Event_WindowResized(void* pEventListener, EventData_t data)
 
 	// Allow other handlers to get this event.
 	return false;
+}
+
+bool CreateApplication(ApplicationConfig_t* pAppConfig)
+{
+	// NOTE: Just a stub for now.
+	pAppConfig->pApplication = &s_GameApp;
+
+	return true;
 }

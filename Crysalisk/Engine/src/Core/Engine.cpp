@@ -29,6 +29,9 @@ static bool s_bApplicationQuitCalled{ false };
 static bool s_bApplicationSuspended{ false };
 bool		s_bLevelGeometryLoaded{ false };
 
+// Function defined in user code to setup application state.
+extern bool CreateApplication(ApplicationConfig_t* pAppConfig);
+
 // Engine Event Handlers
 static bool Event_ApplicationQuit(void* pEventListener, EventData_t data);
 static bool Event_KeyPressed(void* pEventListener, EventData_t data);
@@ -73,6 +76,7 @@ private:
 	// These need access to our members.
 	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 	friend static bool Event_MouseButtonReleased(void* pEventListener, EventData_t data);
+	friend bool CreateEngineInstance(struct ApplicationConfig_t* pAppConfig);
 };
 
 // Engine context.
@@ -80,16 +84,16 @@ static CEngine s_Engine;
 IEngine* g_pEngine = &s_Engine;
 
 //-------------------------------------------------------------------------
-// Purpose: Initialize the engine and it's required subsystems.
-// Input:	engineConfig - A configuration passed in by the calling application.
-// Output:	bool - Returns true on successful initialization, otherwise false.
+// Purpose: Standup base engine state and systems.
+// Input:	pAppConfig - A configuration passed in by the calling application.
+// Output:	bool - Returns true on successful setup, otherwise false.
 //-------------------------------------------------------------------------
-bool CEngine::Initialize(EngineConfig_t engineConfig)
+bool CreateEngineInstance(struct ApplicationConfig_t* pAppConfig)
 {
-	Clock initializationClock{};
-	initializationClock.Start();
+	pAppConfig->pEngine = g_pEngine;
+	CAssert(pAppConfig->pEngine);
 
-	m_engineConfig = engineConfig;
+	CEngine* pEngine = (CEngine*)pAppConfig->pEngine;
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
@@ -102,9 +106,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Logger.
-	m_EngineInterfaces.pLogger = new LogSystem;
-	g_pLog = m_EngineInterfaces.pLogger;	// We need this global var for our logging macros.
-	if (!m_EngineInterfaces.pLogger->Init((i32)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
+	pEngine->m_EngineInterfaces.pLogger = new LogSystem;
+	g_pLog = pEngine->m_EngineInterfaces.pLogger;	// We need this global var for our logging macros.
+	if (!pEngine->m_EngineInterfaces.pLogger->Init((i32)eLogLevel::LOG_LEVEL_VERBOSE)) // Log all messages
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
@@ -112,12 +116,27 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	}
 
 	// Event System.
-	IEventSystem::AllocateEventSystemState(&m_EngineInterfaces.pEngineEventHandler);
-	if (!m_EngineInterfaces.pEngineEventHandler->Initialize())
+	IEventSystem::AllocateEventSystemState(&pEngine->m_EngineInterfaces.pEngineEventHandler);
+	if (!pEngine->m_EngineInterfaces.pEngineEventHandler->Initialize())
 	{
 		LOG_FATAL("Event system failed to initialize! Application cannot continue.");
 		return false;
 	}
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Initialize the engine and it's required subsystems.
+// Input:	engineConfig - A configuration passed in by the calling application.
+// Output:	bool - Returns true on successful initialization, otherwise false.
+//-------------------------------------------------------------------------
+bool CEngine::Initialize(EngineConfig_t engineConfig)
+{
+	Clock initializationClock{};
+	initializationClock.Start();
+
+	m_engineConfig = engineConfig;
 
 	// Let the application set up some state.
 	if (!engineConfig.pAppConfig->pApplication)

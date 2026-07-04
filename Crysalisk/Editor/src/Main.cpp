@@ -4,17 +4,13 @@
 // 
 // Purpose: The entry point for the main editor executable.
 //=============================================================================
+#include <EntryPoint.h>
+
 #include <Application.h>
 #include <Core/Assertions.h>
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 #include <Strings/String_Utils.h>
-
-// Cryaslisk Engine entry point.
-extern "C"
-{
-	__declspec(dllimport) i32 Crysalisk_Main(ApplicationConfig_t& pAppConfig);
-}
 
 typedef bool (*PFN_Tool_Initialize)();
 typedef bool (*PFN_Tool_Run)();
@@ -25,25 +21,15 @@ PFN_Tool_Run pfnRun = nullptr;
 
 bool LoadTool(const char* pszToolName);
 
-i32 main(i32 argc, char** argv)
+bool CreateApplication(ApplicationConfig_t* pAppConfig)
 {
 	// Load up the editor library.
-	// FIXME: There's a string leak happening here on shutdown.
 	Platform::ISysModule* pEditorHubDLL = Platform::LoadSysModule("EditorHub");
 	PFN_Get_Application_State pfnGetAppState = (PFN_Get_Application_State)pEditorHubDLL->GetFuncAddr("GetApplicationState");
 	CAssert(pfnGetAppState);
+	pAppConfig->pApplication = pfnGetAppState();
 
-	// We need to launch the engine as well.
-	ApplicationConfig_t appConfig{};
-
-	appConfig.pApplication = pfnGetAppState();
-
-	// Start up the engine.
-	Crysalisk_Main(appConfig);
-
-	// EDITORTODO: Launch the tool specified by some argument (command-line? tool-selector menu?)
-
-	return 0;
+	return true;
 }
 
 bool LoadTool(const char* pszToolName)
