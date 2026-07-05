@@ -18,5 +18,6 @@ namespace AppUI
 	void				SetLabelPosition(UIControlLabel_t* pLabelData, u16 x, u16 y);
 	void				SetLabelFont(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, const char* pszFontName, f32 flFontSize);
 	void				SetLabelText(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, const char* pszText);
+	void				RegenerateLabelGeometry(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
 
 } // namespace AppUI

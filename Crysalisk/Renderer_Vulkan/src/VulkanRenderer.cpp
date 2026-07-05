@@ -1749,7 +1749,6 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			CAssert(0);
 			break;
 		}
-		//CAssert(uniformOffset != 256);
 
 		// Copy data over to the GPU.
 		for (u32 idx = 0; idx < m_MaxImagesInFlight; idx++)

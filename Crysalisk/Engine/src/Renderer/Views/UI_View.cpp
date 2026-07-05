@@ -139,7 +139,10 @@ void CUIRenderView::Render(RenderPacket_t* pRenderData)
 		if (m_bUIOverlayEnabled)
 		{
 			// Draw stuff here.
-			m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
+			// This was breaking text setting on window resize.
+			// FIXME: Move this over to the AppUI
+			// FIXME: Add text justification (This should be placed near the bottom of the window).
+			//m_pShaderSystem->SetShaderUniform(m_hUIShader, 0, 0, 1, &matProjection);
 			m_pShaderSystem->BindShader(m_hUIShader);
 			m_pShaderSystem->BindPerInstanceUniforms(1);
 			m_pRenderer->DrawGeometry(m_TestText.m_Geometry, m_pUIVertexBuffer, m_pUIIndexBuffer);

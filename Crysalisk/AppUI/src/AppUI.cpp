@@ -236,14 +236,19 @@ namespace AppUI
 
 		case CONTROL_TYPE_BUTTON:
 			{	
-				// LEFTOFF: Make this work properly.
-				/*UIControlButton_t* pButtonData = &buttons[0];
+				UIControlHandle_t hButtonPanel = CreateUIControl(CONTROL_TYPE_PANEL);
+				CAssert(hButtonPanel != kInvalidID_U32);
 
-				CreateButton(pBasePanel, pRenderable, pButtonData, &renderContext);
+				buttons.PushBack(UIControlButton_t{});
+				UIControlButton_t* pButtonData = &buttons.Back();
+
+				pButtonData->pPanel = &panels[hButtonPanel];
+
+				CreateButton(pButtonData->pPanel, pRenderable, pButtonData, &renderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(pBasePanel, &renderables[pBasePanel->m_iRenderableIdx], &renderContext, pBasePanel->x, pBasePanel->y);
-				SetPanelControlDimensions(pBasePanel, &renderables[pBasePanel->m_iRenderableIdx], &renderContext, pBasePanel->width, pBasePanel->height);
-				*/
+				SetPanelControlPosition(pButtonData->pPanel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->pPanel->x, pButtonData->pPanel->y);
+				SetPanelControlDimensions(pButtonData->pPanel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->pPanel->width, pButtonData->pPanel->height);
+				
 			}
 			break;
 
@@ -413,29 +418,29 @@ namespace AppUI
 		u32 oldSurfaceHeight = renderContext.currentSurfaceHeight;
 
 		// We need to stretch/squish the values for the new controls to that they are correct proportionally at the new resolution.
-		// FIXME: Make resizing/proportional elements optional.
-		// FIXME: When the resolution is decreased, the elements are not properly fixed.
-		/*for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
+		for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
 		{
 			UIBaseControl_t* pCurrentBase = &baseControls[iControl];
 			if (pCurrentBase->m_eControlType != CONTROL_TYPE_UNDEFINED)
 			{
-				UIControlPanel_t* pCurrentControl = &panels[pCurrentBase->m_iControlDataIdx];
+				if (pCurrentBase->m_eControlType != CONTROL_TYPE_LABEL)
+				{
+					UIControlPanel_t* pCurrentControl = &panels[pCurrentBase->m_iControlDataIdx];
 
-				u16 oldX = pCurrentControl->x;
-				u16 oldY = pCurrentControl->y;
-				u16 oldWidth = pCurrentControl->width;
-				u16 oldHeight = pCurrentControl->height;
+					// These will regenerate control geometry. FIXME: Just regenerate without setting fields?
+					SetPanelControlPosition(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->x, pCurrentControl->y);
+					SetPanelControlDimensions(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->width, pCurrentControl->height);
+				}
+				else
+				{
+					// Label case.
+					UIControlLabel_t* pLabel = &labels[pCurrentBase->m_iControlDataIdx];
+					UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 
-				pCurrentControl->x = (u16)((oldX / (float)oldSurfaceWidth) * newWidth);
-				pCurrentControl->y = (u16)((oldY / (float)oldSurfaceHeight) * newHeight);
-				pCurrentControl->width = (u16)((oldWidth / (float)oldSurfaceWidth) * newWidth);
-				pCurrentControl->height = (u16)((oldHeight / (float)oldSurfaceHeight) * newHeight);
-
-				SetPanelControlPosition(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->x, pCurrentControl->y);
-				SetPanelControlDimensions(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->width, pCurrentControl->height);
+					RegenerateLabelGeometry(pLabel, pRenderable, &renderContext);
+				}
 			}
-		}*/
+		}
 
 		// Lastly, store off these new values.
 		renderContext.currentSurfaceWidth = newWidth;
