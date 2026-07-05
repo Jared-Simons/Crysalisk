@@ -19,7 +19,9 @@
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Renderer/Views/Debug_Render_View.h>
-#include <Renderer/Views/UI_View.h>
+
+// UI Framework.
+#include <AppUI.h>
 
 // Cryaslisk Engine entry point.
 extern "C"
@@ -32,9 +34,10 @@ class CGameApp : public ICrysApplication
 public:
 	virtual bool	PreInitialize(ApplicationConfig_t* pAppConfig) override;
 	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) override;
+	virtual void	Shutdown() override;
+
 	virtual bool	Run() override;
 	virtual bool	Render() override;
-	virtual void	Shutdown() override;
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
@@ -43,6 +46,9 @@ public:
 private:
 	ApplicationConfig_t*	m_pApplicationConfig{ nullptr };
 	Camera_t				m_MainCamera{};
+
+	AppUI::IAppUI*				m_pUISystem{ nullptr };
+	AppUI::UIControlHandle_t	m_hProfilingText{ kInvalidID_U32 };
 	
 	// These need access to our members.
 	friend static bool Event_WindowResized(void* pEventListener, EventData_t data);
@@ -59,7 +65,14 @@ bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	// Setup our render-views.
 	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
 	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
-	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
+
+	// Load the UI library.
+	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
+	PFN_GetAppFrameworkState pfnGetPluginInterface = (PFN_GetAppFrameworkState)pAppUILibrary->GetFuncAddr("GetUIPluginInterface");
+	CAssert(pfnGetPluginInterface);
+
+	m_pUISystem = pfnGetPluginInterface();
+	m_pUISystem->PreInitialize(pAppConfig);
 
 	return true;
 }
@@ -67,6 +80,13 @@ bool CGameApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_DEBUG("Initializing Testapp");
+
+	m_pUISystem->Initialize(pAppConfig);
+
+	// Setup profiling text control.
+	m_hProfilingText = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+	m_pUISystem->SetControlPosition(m_hProfilingText, 25, 575);
+	m_pUISystem->SetControlFont(m_hProfilingText, "Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
 
 	// Start listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -97,8 +117,29 @@ bool CGameApp::Run()
 
 void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
+	// Profiling data.
+	// FIXME: Make sure the metrics data is always available.
+	// FIXME: The engine can't link with AppUI because AppUI depends on engine. But I would like this text (and all UI tools) to be able to be shared between engine and tools. Investigate.
+	if (pRenderPacket->pMetrics)
+	{
+		RenderMetrics_t& pMetrics = *pRenderPacket->pMetrics;
+		char szMetricsString[512]{};
+		Utl::StringFormat_V("Frametime: %.5f s (FPS: %d)\nDraw calls: %d (Geometry culled: %d)\nCurrent memory pool usage: %.5f\nPosition: %.3f, %.3f, %.3f\nDebug vis mode: %s",
+			szMetricsString,
+			pMetrics.FrameTime, pMetrics.PreviousFrameFPS,
+			pMetrics.NumDrawCalls, pRenderPacket->pMetrics->NumGeometriesFrustumCulled,
+			g_pMemoryManager->GetPercentAllocated(),
+			m_MainCamera.vecPosition.x,
+			m_MainCamera.vecPosition.y,
+			m_MainCamera.vecPosition.z,
+			m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer->GetRendererDebugVisModeName());
+		m_pUISystem->SetControlText(m_hProfilingText, szMetricsString);
+	}
+
 	m_MainCamera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	pRenderPacket->pCamera = &m_MainCamera;
+
+	m_pUISystem->FramePrepare(pRenderPacket);
 }
 
 bool CGameApp::Render()

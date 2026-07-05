@@ -16,7 +16,6 @@
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Renderer/Views/Debug_Render_View.h>
-#include <Renderer/Views/UI_View.h>
 
 // UI Framework
 #include <AppUI.h>
@@ -48,7 +47,6 @@ private:
 CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
-typedef AppUI::IAppUI* (*PFN_GetAppFrameworkState)();
 
 bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
@@ -67,8 +65,6 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	m_pUISystem = pfnGetPluginInterface();
 	CAssert(m_pUISystem);
 	m_pUISystem->PreInitialize(pAppConfig);
-
-	pAppConfig->pViews.PushBack(RenderViewCreate_UIView());
 
 	return true;
 }

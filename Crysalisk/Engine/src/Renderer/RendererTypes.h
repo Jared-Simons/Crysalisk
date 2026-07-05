@@ -37,6 +37,9 @@ enum eRenderViewType
 	RENDER_VIEW_TYPE_UNDEFINED = -1,
 	RENDER_VIEW_TYPE_3D_SCENE = 0,
 	RENDER_VIEW_TYPE_DEBUG,
+	RENDER_VIEW_TYPE_APPUI,
+
+	// FIXME: Deprecate/Remove this view
 	RENDER_VIEW_TYPE_UI,
 
 	RENDER_VIEW_MAX_TYPES,
@@ -59,15 +62,6 @@ struct RenderPacket_t
 	Utl::LinearAllocator*		pFrameAllocator{ nullptr };
 
 	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
-
-	// FIXME: This is required because the editor will not always be used. Make the above a dynamic array?
-	void*						pEditorExtendedData{ nullptr };	
-	void*						pEditorTextTest{ nullptr };
-	void*						pEditorTextTest2{ nullptr };
-	
-	Matrix4x4					UIProjectionMatrix{};
-	class RenderBuffer*			pUIVertexBuffer{ nullptr };
-	class RenderBuffer*			pUIIndexBuffer{ nullptr };
 };
 
 //-------------------------------------------------------------------------

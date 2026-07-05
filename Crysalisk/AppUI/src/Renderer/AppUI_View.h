@@ -21,7 +21,12 @@ namespace AppUI
 {
 	struct AppUIView_ExtendedData_t
 	{
-		Utl::CVector<struct GeometryInstance_t> renderables{};
+		Utl::CVector<struct UIControlRenderData_t*> renderables{};
+
+		RenderBuffer* pVertexBuffer{ nullptr };
+		RenderBuffer* pIndexBuffer{ nullptr };
+
+		Matrix4x4	projectionMatrix{ 1.0f };
 	};
 
 	IRenderView* RenderViewCreate_AppUIView();

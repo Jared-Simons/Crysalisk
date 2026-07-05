@@ -60,6 +60,11 @@ namespace AppUI
 	{
 		CAssert(pLabelData && pRenderable && pszText);
 
+		if (pLabelData->pszText)
+		{
+			Utl::StringFree(pLabelData->pszText);
+		}
+
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 
 		pLabelData->text.SetText(pRenderContext->m_pRenderer, pFontSystem, pszText);

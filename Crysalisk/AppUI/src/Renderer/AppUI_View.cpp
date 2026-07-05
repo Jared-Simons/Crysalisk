@@ -35,6 +35,7 @@ namespace AppUI
 
 		IShaderSystem*	m_pShaderSystem{ nullptr };
 		ShaderHandle_t	m_hUIShader{ kInvalidID_U32 };
+		ShaderHandle_t	m_hTextShader{ kInvalidID_U32 };
 	};
 
 	bool CAppUI_RenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
@@ -57,7 +58,7 @@ namespace AppUI
 		appUIPassConfig.attachmentConfigs.PushBack(colorAttachment);
 		appUIPassConfig.attachmentConfigs.PushBack(depthAttachment);
 		appUIPassConfig.clearFlags = RENDERPASS_CLEAR_NONE;
-		appUIPassConfig.bPresentsAfter = false;
+		appUIPassConfig.bPresentsAfter = true;
 
 		pEngineSystems->pRenderer->CreateRenderpass(&appUIPassConfig, &m_Renderpass);
 
@@ -80,7 +81,9 @@ namespace AppUI
 		pEngineSystems->pRenderer->RegisterRenderView(this);
 
 		// Shaders
-		m_hUIShader = pEngineSystems->pShaderSystem->AcquireShader("App_UI");
+		// Cache these off for quick lookups later.
+		m_hUIShader = m_pShaderSystem->AcquireShader("App_UI");
+		m_hTextShader = m_pShaderSystem->AcquireShader("Core.UI");
 
 		return true;
 	}
@@ -99,33 +102,30 @@ namespace AppUI
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 		if (m_pRenderer->BeginRenderpass(&m_Renderpass))
 		{
-			// Render hack!
-			// FIXME: Make this generic/create render packet structures.
-			if (pRenderData->pEditorExtendedData)
-			{
-				UIControlRenderData_t* pRenderable = (UIControlRenderData_t*)pRenderData->pEditorExtendedData;
-				m_pShaderSystem->BindShader(pRenderable->hShader);
-				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pRenderData->UIProjectionMatrix);
-				m_pShaderSystem->BindPerInstanceUniforms(pRenderable->iShaderInstance);
-				m_pRenderer->DrawGeometry(pRenderable->geo, m_pVertexBuffer, m_pIndexBuffer);
-			}
+			AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
 
-			if (pRenderData->pEditorTextTest)
+			for (u32 iRenderable = 0; iRenderable < pViewData->renderables.Count(); iRenderable++)
 			{
-				UIControlRenderData_t* pRenderable = (UIControlRenderData_t*)pRenderData->pEditorTextTest;
-				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pRenderData->UIProjectionMatrix);
+				UIControlRenderData_t* pRenderable = pViewData->renderables[iRenderable];
+				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pViewData->projectionMatrix);
 				m_pShaderSystem->BindShader(pRenderable->hShader);
-				pFontSystem->BindFontInstance(pRenderable->iShaderInstance);
-				m_pRenderer->DrawGeometry(pRenderable->geo, m_pVertexBuffer, m_pIndexBuffer);
-			}
 
-			if (pRenderData->pEditorTextTest2)
-			{
-				UIControlRenderData_t* pRenderable = (UIControlRenderData_t*)pRenderData->pEditorTextTest2;
-				m_pShaderSystem->BindShader(pRenderable->hShader);
-				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pRenderData->UIProjectionMatrix);
-				pFontSystem->BindFontInstance(pRenderable->iShaderInstance);
-				m_pRenderer->DrawGeometry(pRenderable->geo, m_pVertexBuffer, m_pIndexBuffer);
+				if (pRenderable->hShader == m_hUIShader)
+				{
+					// For default control geometry.
+					m_pShaderSystem->BindPerInstanceUniforms(pRenderable->iShaderInstance);
+				}
+				else if (pRenderable->hShader == m_hTextShader)
+				{
+					// For text rendering.
+					pFontSystem->BindFontInstance(pRenderable->iShaderInstance);
+				}
+				else
+				{
+					// Unknown shader.
+					CAssert(0);
+				}
+				m_pRenderer->DrawGeometry(pRenderable->geo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
 			}
 
 			m_pRenderer->EndRenderpass();

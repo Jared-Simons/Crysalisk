@@ -32,6 +32,14 @@ namespace AppUI
 		UI_CONTROL_FLAG_GEOMETRY_UPDATED = 0x01,
 	};
 
+	enum eControlJustification
+	{
+		UI_CONTROL_JUSTIFICATION_RIGHT = 0x0,
+		UI_CONTROL_JUSTIFICATION_LEFT = 0x1,
+		UI_CONTROL_JUSTIFICATION_TOP = 0x2,
+		UI_CONTROL_JUSTIFICATION_BOTTOM = 0x3,
+	};
+
 	struct UIControlRenderData_t
 	{
 		u64				vertexCount{ kInvalidID_U64 };

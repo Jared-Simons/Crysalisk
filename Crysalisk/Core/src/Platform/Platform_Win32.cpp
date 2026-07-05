@@ -758,6 +758,15 @@ namespace Platform
 	public:
 		CSysModule() {}
 
+		CSysModule(const CSysModule& pOther)
+		{
+			if (pOther.m_szModuleName)
+			{
+				m_szModuleName = Utl::StringDuplicate(pOther.m_szModuleName);
+			}
+			m_Module = pOther.m_Module;
+		}
+
 		~CSysModule()
 		{
 			if (m_szModuleName)
@@ -770,9 +779,6 @@ namespace Platform
 		{
 			return GetProcAddress(m_Module, pFuncName);
 		}
-
-	private:
-		CSysModule(CSysModule& pOther) {}; // No copying!
 
 	public:
 		// These can be public, they can't be touched by another file w/o the windows headers anyways ¯\_(ツ)_/¯
@@ -791,6 +797,15 @@ namespace Platform
 		{
 			LOG_ERROR("Platform::LoadSysModule requires a pszPath to the module to load! Returning nullptr.");
 			return nullptr;
+		}
+
+		// Check to see if the library has already been loaded.
+		for (u32 i = 0; i < s_ModuleRegistry.Count(); i++)
+		{
+			if (Utl::StringCompare(s_ModuleRegistry[i].m_szModuleName, pszModulePath))
+			{
+				return &s_ModuleRegistry[i];
+			}
 		}
 
 		s_ModuleRegistry.PushBack(Platform::CSysModule{});

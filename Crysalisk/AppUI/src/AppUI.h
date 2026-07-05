@@ -56,6 +56,8 @@ namespace AppUI
 
 } // namespace AppUI
 
+typedef AppUI::IAppUI* (*PFN_GetAppFrameworkState)();
+
 extern AppUI::IAppUI* g_pUISystem;
 
 extern "C" APPUI_API AppUI::IAppUI* GetUIPluginInterface();

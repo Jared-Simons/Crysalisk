@@ -53,6 +53,9 @@ namespace AppUI
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
 
+		enum ePluginInitializeState{ PLUGIN_STATE_NOT_INITIALIZED = 0, PLUGIN_STATE_PRE_INITIALIZED, PLUGIN_STATE_INITIALIZED };
+		u8 pluginState{ PLUGIN_STATE_NOT_INITIALIZED };
+
 		AppUIRenderContext_t	renderContext{};
 
 		Utl::CVector<UIControlRenderData_t>	renderables{};
@@ -70,9 +73,17 @@ namespace AppUI
 
 	bool CAppUI::PreInitialize(struct ApplicationConfig_t* pAppConfig)
 	{
+		// This plugin can be accessed from numerous different users at once. Make sure we only initialize once.
+		if (pluginState > PLUGIN_STATE_NOT_INITIALIZED)
+		{
+			return true;
+		}
+
 		CAssert(pAppConfig);
 
 		pAppConfig->pViews.PushBack(RenderViewCreate_AppUIView());
+
+		pluginState = PLUGIN_STATE_PRE_INITIALIZED;
 
 		return true;
 	}
@@ -80,6 +91,12 @@ namespace AppUI
 	bool CAppUI::Initialize(struct ApplicationConfig_t* pAppConfig)
 	{
 		CAssert(pAppConfig);
+
+		// This plugin can be accessed from numerous different users at once. Make sure we only initialize once.
+		if (pluginState > PLUGIN_STATE_PRE_INITIALIZED)
+		{
+			return true;
+		}
 
 		LOG_INFO("Initializing AppUI framework");
 
@@ -98,36 +115,41 @@ namespace AppUI
 		renderContext.m_pVertexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
 		renderContext.m_pIndexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
 
-		renderables.Resize(32);
-		renderables.SetCount(32);	// FIXME: We need to get rid of this pattern.
-
-		baseControls.Resize(32);
-		baseControls.SetCount(32);
-
-		panels.Resize(32);
-
-		frames.Resize(32);
-
-		labels.Resize(32);
-
-		buttons.Resize(32);
-		buttons.SetCount(32);
+		pluginState = PLUGIN_STATE_INITIALIZED;
 
 		return true;
 	}
 
-	void CAppUI::FramePrepare(struct RenderPacket_t* pRenderPacket)
+	void CAppUI::FramePrepare(RenderPacket_t* pRenderPacket)
 	{
-		if (!pRenderPacket->pUIVertexBuffer)
+		if (pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI] == nullptr)
 		{
-			pRenderPacket->pUIVertexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("UI_Vertex_Buffer");
-			pRenderPacket->pUIIndexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("UI_Index_Buffer");
+			pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI] = new AppUIView_ExtendedData_t;
+			AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
+
+			pViewData->pVertexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
+			pViewData->pIndexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
+
+			// Allocate geometry data using the frame allocator.
+			pViewData->renderables.SetAllocator(pRenderPacket->pFrameAllocator);
 		}
 
-		pRenderPacket->pEditorExtendedData = &renderables[0];
-		pRenderPacket->pEditorTextTest = &renderables[1];
-		pRenderPacket->pEditorTextTest2 = &renderables[2];
-		pRenderPacket->UIProjectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
+		AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
+
+		// FIXME: Put this in a post render method?
+		// Clear out data from previous frame.
+		pViewData->renderables.Clear();
+
+		pViewData->renderables.Resize(renderables.Count());
+		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
+
+		for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
+		{
+			if (renderables[iRenderable].vertexCount)
+			{
+				pViewData->renderables.PushBack(&renderables[iRenderable]);
+			}
+		}
 	}
 
 	void CAppUI::Update()
@@ -457,8 +479,9 @@ namespace AppUI
 				return iBase;
 			}
 		}
-		CASSERTMSG(0, "Failed to find an available panel UI control!");
-		return kInvalidID_U32;
+
+		// Failed to find a control, push a new one.
+		return (u32)pUIContext->baseControls.PushBack(UIBaseControl_t{});
 	}
 
 	static u32 GetAvailableRenderableIndex(CAppUI* pUIContext)
@@ -471,8 +494,9 @@ namespace AppUI
 				return iRenderable;
 			}
 		}
-		CASSERTMSG(0, "Failed to find an available UI renderable data slot!");
-		return kInvalidID_U32;
+
+		// Failed to find a renderable, push a new one.
+		return (u32)pUIContext->renderables.PushBack(UIControlRenderData_t{});
 	}
 
 } // namespace AppUI
