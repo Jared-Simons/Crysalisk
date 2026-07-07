@@ -75,7 +75,7 @@ namespace AppUI
 
 	struct UIControlFrame_t
 	{
-		UIControlPanel_t*	pPanel{ nullptr };
+		UIControlPanel_t*	panel{ nullptr };
 
 		// FIXME: Have the option of a textbox/label here.
 	};
@@ -91,7 +91,7 @@ namespace AppUI
 
 	struct UIControlButton_t
 	{
-		UIControlPanel_t*	pPanel{ nullptr };
+		UIControlPanel_t	panel{};
 
 		// The color of the button when the mouse is hovered over it.
 		// The color in the base control is used when the button does not have the cursor over it.

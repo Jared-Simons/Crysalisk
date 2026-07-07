@@ -17,21 +17,20 @@ namespace AppUI
 {
 	static void TestButtonClickedCallback();
 
-	void CreateButton(UIControlPanel_t* pBase, UIControlRenderData_t* pRenderable, UIControlButton_t* pButtonControl, AppUIRenderContext_t* pRenderContext)
+	void CreateButton(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlButton_t* pButtonControl, AppUIRenderContext_t* pRenderContext)
 	{
-		CAssert(pBase && pRenderable && pButtonControl && pRenderContext);
+		CAssert(pRenderable && pButtonControl && pRenderContext);
 
 		// FIXME: Make this work
-		//pBase->m_eControlType = CONTROL_TYPE_BUTTON;
+		pBase->m_eControlType = CONTROL_TYPE_BUTTON;
 
 		// Set some defaults here, the caller can override after creation.
-		pBase->x = 0;
-		pBase->y = 0;
-		pBase->width = 100;
-		pBase->height = 100;
-		pBase->color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
+		pButtonControl->panel.x = 0;
+		pButtonControl->panel.y = 0;
+		pButtonControl->panel.width = 100;
+		pButtonControl->panel.height = 100;
+		pButtonControl->panel.color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
 
-		pButtonControl->pPanel = pBase;
 		pButtonControl->PFN_UI_Button_Control_Clicked = TestButtonClickedCallback;
 	}
 

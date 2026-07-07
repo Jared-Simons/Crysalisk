@@ -154,30 +154,30 @@ namespace AppUI
 
 	void CAppUI::Update()
 	{
-		UIBaseControl_t* pCurrentControl = nullptr;
 		// Update our controls.
 		for (u32 iControl = 0; iControl < baseControls.Count(); iControl++)
 		{
-			pCurrentControl = &baseControls[iControl];
+			UIBaseControl_t* pCurrentBase = &baseControls[iControl];
 
-			if (pCurrentControl->m_eControlType != CONTROL_TYPE_UNDEFINED)
+			if (pCurrentBase->m_eControlType != CONTROL_TYPE_UNDEFINED)
 			{
-				switch (pCurrentControl->m_eControlType)
+				switch (pCurrentBase->m_eControlType)
 				{
 				case CONTROL_TYPE_BUTTON:
 					{
+						UIControlButton_t* pCurrentControl = &buttons[pCurrentBase->m_iControlDataIdx];
+
 						// FIXME: Make this work.
-						/*
 						// Is the mouse hovering over the button?
 						i32 xPos, yPos;
 						g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(xPos, yPos);
-						if ((xPos >= pCurrentControl->x && xPos <= pCurrentControl->x + pCurrentControl->width) &&
-						   (yPos >= pCurrentControl->y && yPos <= pCurrentControl->y + pCurrentControl->height))
+						if ((xPos >= pCurrentControl->panel.x && xPos <= pCurrentControl->panel.x + pCurrentControl->panel.width) &&
+						   (yPos >= pCurrentControl->panel.y && yPos <= pCurrentControl->panel.y + pCurrentControl->panel.height))
 						{
 							// Button is hovered over, make sure we update our state.
 							Vector4D hoveredColor{ 0.0f, 1.0f, 0.0f, 1.0f };
 
-							UIControlRenderData_t* pRenderable = &renderables[pCurrentControl->m_iRenderableIdx];
+							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 							renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
 								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
 
@@ -193,10 +193,10 @@ namespace AppUI
 							// Button is not hovered over, reset state.
 							Vector4D notHoveredColor{ 1.0f, 0.0f, 0.0f, 1.0f };
 
-							UIControlRenderData_t* pRenderable = &renderables[pCurrentControl->m_iRenderableIdx];
+							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 							renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
 								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &notHoveredColor);
-						}*/
+						}
 					}
 					break;
 
@@ -218,6 +218,8 @@ namespace AppUI
 
 		pNewBase->m_iRenderableIdx = GetAvailableRenderableIndex(this);
 		UIControlRenderData_t* pRenderable = &renderables[pNewBase->m_iRenderableIdx];
+
+		pNewBase->m_eControlType = controlType;
 
 		switch (controlType)
 		{
@@ -257,19 +259,15 @@ namespace AppUI
 			break;
 
 		case CONTROL_TYPE_BUTTON:
-			{	
-				UIControlHandle_t hButtonPanel = CreateUIControl(CONTROL_TYPE_PANEL);
-				CAssert(hButtonPanel != kInvalidID_U32);
-
+			{
 				buttons.PushBack(UIControlButton_t{});
 				UIControlButton_t* pButtonData = &buttons.Back();
+				pNewBase->m_iControlDataIdx = (u32)buttons.Count() - 1;
 
-				pButtonData->pPanel = &panels[hButtonPanel];
-
-				CreateButton(pButtonData->pPanel, pRenderable, pButtonData, &renderContext);
+				CreateButton(pNewBase, pRenderable, pButtonData, &renderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(pButtonData->pPanel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->pPanel->x, pButtonData->pPanel->y);
-				SetPanelControlDimensions(pButtonData->pPanel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->pPanel->width, pButtonData->pPanel->height);
+				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->panel.x, pButtonData->panel.y);
+				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->panel.width, pButtonData->panel.height);
 				
 			}
 			break;
@@ -286,11 +284,11 @@ namespace AppUI
 	{
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		UIControlPanel_t* pPanel = &panels[pBase->m_iControlDataIdx];
+		UIControlPanel_t* panel = &panels[pBase->m_iControlDataIdx];
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
-			DestroyPanel(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext);
+			DestroyPanel(panel, &renderables[pBase->m_iRenderableIdx], &renderContext);
 			break;
 
 		default:
@@ -303,7 +301,7 @@ namespace AppUI
 	{
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		UIControlPanel_t* pPanel = nullptr;
+		UIControlPanel_t* panel = nullptr;
 
 		// A control's position is defined relative to its parent, if it has one.
 		UIBaseControl_t* pParentBase = nullptr;
@@ -317,29 +315,29 @@ namespace AppUI
 			switch (pParentBase->m_eControlType)
 			{
 			case CONTROL_TYPE_PANEL:	
-				pPanel = &panels[pParentBase->m_iControlDataIdx];
+				panel = &panels[pParentBase->m_iControlDataIdx];
 				break;
 			case CONTROL_TYPE_FRAME:
-				pPanel = frames[pParentBase->m_iControlDataIdx].pPanel;
+				panel = frames[pParentBase->m_iControlDataIdx].panel;
 				break;
 			default:
 				CAssert(0);
 				break;
 			}
 
-			parentedX += pPanel->x;
-			parentedY += pPanel->y;
+			parentedX += panel->x;
+			parentedY += panel->y;
 		}
 
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
-			pPanel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			panel = &panels[pBase->m_iControlDataIdx];
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
 			break;
 		case CONTROL_TYPE_FRAME:
-			pPanel = frames[pBase->m_iControlDataIdx].pPanel;
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			panel = frames[pBase->m_iControlDataIdx].panel;
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
 			break;
 		case CONTROL_TYPE_LABEL:
 			{
@@ -348,8 +346,11 @@ namespace AppUI
 			}
 			break;
 		case CONTROL_TYPE_BUTTON:
-			// FIXME: Make this work.
-			SetPanelControlPosition(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			{
+				// Get our own panel.
+				panel = &buttons[pBase->m_iControlDataIdx].panel;
+				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			}
 			break;
 
 		default:
@@ -362,20 +363,20 @@ namespace AppUI
 	{
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		UIControlPanel_t* pPanel = nullptr;
+		UIControlPanel_t* panel = nullptr;
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
-			pPanel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlDimensions(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			panel = &panels[pBase->m_iControlDataIdx];
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
 			break;
 		case CONTROL_TYPE_FRAME:
-			pPanel = frames[pBase->m_iControlDataIdx].pPanel;
-			SetPanelControlDimensions(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			panel = frames[pBase->m_iControlDataIdx].panel;
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
 			break;
 		case CONTROL_TYPE_BUTTON:
-			// FIXME: Make this work.
-			SetPanelControlDimensions(pPanel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			panel = &buttons[pBase->m_iControlDataIdx].panel;
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
 			break;
 
 		default:
@@ -395,8 +396,22 @@ namespace AppUI
 	{
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		UIControlPanel_t* pPanel = &panels[hControl];
+		UIControlPanel_t* panel = nullptr;
 		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
+
+		switch (pBase->m_eControlType)
+		{
+		case CONTROL_TYPE_PANEL:
+			panel = &panels[pBase->m_iControlDataIdx];
+			break;
+		case CONTROL_TYPE_BUTTON:
+			panel = &buttons[pBase->m_iControlDataIdx].panel;
+			break;
+		}
+
+		// FIXME: Set label color?
+
+		CAssert(panel);
 
 		// Convert the color range from [0-256] to [0-1].
 		float flR = (float)(r / 256.0f);
@@ -404,12 +419,12 @@ namespace AppUI
 		float flB = (float)(b / 256.0f);
 		float flA = (float)(a / 256.0f);
 		
-		pPanel->color.x = flR;
-		pPanel->color.y = flG;
-		pPanel->color.z = flB;
-		pPanel->color.w = flA;
+		panel->color.x = flR;
+		panel->color.y = flG;
+		panel->color.z = flB;
+		panel->color.w = flA;
 		renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 
-			renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+			renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &panel->color);
 	}
 
 	void CAppUI::SetControlText(UIControlHandle_t hControl, const char* pszText)
@@ -471,7 +486,7 @@ namespace AppUI
 
 	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext)
 	{
-		for (u32 iBase = 0; iBase < pUIContext->baseControls.Capacity(); iBase++)
+		for (u32 iBase = 0; iBase < pUIContext->baseControls.Count(); iBase++)
 		{
 			if (pUIContext->baseControls[iBase].m_eControlType == CONTROL_TYPE_UNDEFINED)
 			{

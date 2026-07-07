@@ -57,7 +57,6 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
 
 	// Load up UI library.
-	// FIXME: Putting this here so that the UI Plugin's render view gets added before the UI view below. There's gotta be a better way to do this.
 	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
 	PFN_GetAppFrameworkState pfnGetPluginInterface = (PFN_GetAppFrameworkState)pAppUILibrary->GetFuncAddr("GetUIPluginInterface");
 	CAssert(pfnGetPluginInterface);
@@ -99,7 +98,14 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		m_pUISystem->SetControlDimensions(hTestFrame, 496, 312);
 		m_pUISystem->SetControlColor(hTestFrame, 255, 255, 255, 200);
 
-		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		// LEFTOFF: Make rendering generic and buttons work again.
+		hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+		m_pUISystem->SetControlParent(hTestButton, hTestFrame);
+		m_pUISystem->SetControlPosition(hTestButton, 0, 0);
+		m_pUISystem->SetControlDimensions(hTestButton, 100, 25);
+		m_pUISystem->SetControlColor(hTestButton, 255, 100, 0, 255);
+
+		/*hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
 		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
@@ -109,14 +115,7 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		m_pUISystem->SetControlParent(hTestLabel2, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel2, 36, 95);
 		m_pUISystem->SetControlFont(hTestLabel2, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
-		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");
-
-		// LEFTOFF: Make rendering generic and buttons work again.
-		/*hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-		m_pUISystem->SetControlParent(hTestButton, hTestFrame);
-		m_pUISystem->SetControlPosition(hTestButton, 36, 40);
-		m_pUISystem->SetControlDimensions(hTestButton, 10, 10);
-		m_pUISystem->SetControlColor(hTestButton, 255, 0, 0, 255);*/
+		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");*/
 	}
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.

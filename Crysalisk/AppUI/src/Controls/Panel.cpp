@@ -48,23 +48,23 @@ namespace AppUI
 		pRenderable->vertexCount = kInvalidID_U64;
 	}
 
-	void SetPanelControlPosition(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
+	void SetPanelControlPosition(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
 	{
-		pPanel->x = x;
-		pPanel->y = y;
-		GenerateControlGeometry(pPanel, pRenderable, pRenderContext);
+		panel->x = x;
+		panel->y = y;
+		GenerateControlGeometry(panel, pRenderable, pRenderContext);
 	}
 
-	void SetPanelControlDimensions(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
+	void SetPanelControlDimensions(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
 	{
-		pPanel->width = width;
-		pPanel->height = height;
-		GenerateControlGeometry(pPanel, pRenderable, pRenderContext);
+		panel->width = width;
+		panel->height = height;
+		GenerateControlGeometry(panel, pRenderable, pRenderContext);
 	}
 
-	static void GenerateControlGeometry(UIControlPanel_t* pPanel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
 	{
-		CAssert(pPanel && pRenderable && pRenderContext);
+		CAssert(panel && pRenderable && pRenderContext);
 
 		// Release any existing geo resources.
 		if (pRenderable->geo.vertexCount != kInvalidID_U64)
@@ -75,10 +75,10 @@ namespace AppUI
 		Vector2D	verts[4];
 		u32			indices[6];
 
-		verts[0] = { (f32)pPanel->x, (f32)pPanel->y };
-		verts[1] = { (f32)pPanel->x + (f32)pPanel->width, (f32)pPanel->y + (f32)pPanel->height };
-		verts[2] = { (f32)pPanel->x, (f32)pPanel->y + (f32)pPanel->height };
-		verts[3] = { (f32)pPanel->x + (f32)pPanel->width, (f32)pPanel->y };
+		verts[0] = { (f32)panel->x, (f32)panel->y };
+		verts[1] = { (f32)panel->x + (f32)panel->width, (f32)panel->y + (f32)panel->height };
+		verts[2] = { (f32)panel->x, (f32)panel->y + (f32)panel->height };
+		verts[3] = { (f32)panel->x + (f32)panel->width, (f32)panel->y };
 
 		indices[0] = 2;
 		indices[1] = 1;
@@ -107,7 +107,7 @@ namespace AppUI
 			pRenderable->hShader = hShader;
 			pRenderContext->m_pShaderSystem->AcquireShaderInstanceResources(hShader, &pRenderable->iShaderInstance, "App_UI_Panel");
 			pRenderContext->m_pShaderSystem->SetShaderUniform(hShader,
-				pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+				pRenderContext->m_pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, pRenderable->iShaderInstance, &panel->color);
 		}
 	}
 
