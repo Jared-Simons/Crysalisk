@@ -107,6 +107,12 @@ namespace AppUI
 			for (u32 iRenderable = 0; iRenderable < pViewData->renderables.Count(); iRenderable++)
 			{
 				UIControlRenderData_t* pRenderable = pViewData->renderables[iRenderable];
+
+				if (pRenderable->geo.vertexCount == kInvalidID_U64)
+				{
+					continue;
+				}
+
 				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pViewData->projectionMatrix);
 				m_pShaderSystem->BindShader(pRenderable->hShader);
 

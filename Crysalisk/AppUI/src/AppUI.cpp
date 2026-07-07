@@ -48,7 +48,9 @@ namespace AppUI
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) override;
 		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) override;
 
+		virtual char*	GetControlText(UIControlHandle_t hControl) override;
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) override;
+
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) override;
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
@@ -68,8 +70,9 @@ namespace AppUI
 		Utl::CVector<UIControlButton_t>		buttons{};
 	};
 
-	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext);
-	static u32				 GetAvailableRenderableIndex(CAppUI* pUIContext);
+	static UIControlHandle_t	GetAvailableBaseControl(CAppUI* pUIContext);
+	static u32					GetAvailableRenderableIndex(CAppUI* pUIContext);
+	static const char*			GetStringForControlType(u16 controlType);
 
 	bool CAppUI::PreInitialize(struct ApplicationConfig_t* pAppConfig)
 	{
@@ -167,7 +170,6 @@ namespace AppUI
 					{
 						UIControlButton_t* pCurrentControl = &buttons[pCurrentBase->m_iControlDataIdx];
 
-						// FIXME: Make this work.
 						// Is the mouse hovering over the button?
 						i32 xPos, yPos;
 						g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(xPos, yPos);
@@ -184,18 +186,17 @@ namespace AppUI
 							// If the left mouse button is pressed, do the callback.
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 							{
-								// FIXME: Don't hardcode the control index.
-								buttons[0].PFN_UI_Button_Control_Clicked();
+								pCurrentControl->PFN_UI_Button_Control_Clicked();
 							}
 						}
 						else
 						{
 							// Button is not hovered over, reset state.
-							Vector4D notHoveredColor{ 1.0f, 0.0f, 0.0f, 1.0f };
-
+							// FIXME: Cache off shader uniform locations.
+							UIControlPanel_t* pPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
 							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 							renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
-								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &notHoveredColor);
+								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
 						}
 					}
 					break;
@@ -427,6 +428,21 @@ namespace AppUI
 			renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &panel->color);
 	}
 
+	char* CAppUI::GetControlText(UIControlHandle_t hControl)
+	{
+		UIBaseControl_t* pBase = &baseControls[hControl];
+
+		switch (pBase->m_eControlType)
+		{
+		case CONTROL_TYPE_LABEL:
+			return labels[pBase->m_iControlDataIdx].pszText;
+		default:
+			const char* typeStr = GetStringForControlType(pBase->m_eControlType);
+			LOG_ERROR("GetControlText() cannot get text for control type '%s'!", typeStr);
+			return nullptr;
+		}
+	}
+
 	void CAppUI::SetControlText(UIControlHandle_t hControl, const char* pszText)
 	{
 		CAssert(hControl != kInvalidID_U32 && pszText);
@@ -454,7 +470,6 @@ namespace AppUI
 		u32 oldSurfaceWidth = renderContext.currentSurfaceWidth;
 		u32 oldSurfaceHeight = renderContext.currentSurfaceHeight;
 
-		// We need to stretch/squish the values for the new controls to that they are correct proportionally at the new resolution.
 		for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
 		{
 			UIBaseControl_t* pCurrentBase = &baseControls[iControl];
@@ -462,11 +477,24 @@ namespace AppUI
 			{
 				if (pCurrentBase->m_eControlType != CONTROL_TYPE_LABEL)
 				{
-					UIControlPanel_t* pCurrentControl = &panels[pCurrentBase->m_iControlDataIdx];
+					UIControlPanel_t* pCurrentPanel = nullptr;
+					switch (pCurrentBase->m_eControlType)
+					{
+					case CONTROL_TYPE_PANEL:
+						pCurrentPanel = &panels[pCurrentBase->m_iControlDataIdx];
+						break;
+					case CONTROL_TYPE_BUTTON:
+						pCurrentPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
+						break;
+					default:
+						CAssert(0);
+						break;
+					}
+					CAssert(pCurrentPanel);
 
 					// These will regenerate control geometry. FIXME: Just regenerate without setting fields?
-					SetPanelControlPosition(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->x, pCurrentControl->y);
-					SetPanelControlDimensions(pCurrentControl, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentControl->width, pCurrentControl->height);
+					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentPanel->x, pCurrentPanel->y);
+					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentPanel->width, pCurrentPanel->height);
 				}
 				else
 				{
@@ -512,6 +540,31 @@ namespace AppUI
 
 		// Failed to find a renderable, push a new one.
 		return (u32)pUIContext->renderables.PushBack(UIControlRenderData_t{});
+	}
+
+	static const char* GetStringForControlType(u16 controlType)
+	{
+		switch (controlType)
+		{
+		default:
+		case CONTROL_TYPE_PANEL:
+			return "Panel";
+			break;
+		case CONTROL_TYPE_FRAME:
+			return "Frame";
+			break;
+		case CONTROL_TYPE_LABEL:
+			return "Label";
+			break;
+		case CONTROL_TYPE_BUTTON:
+			return "Button";
+			break;
+		case CONTROL_TYPE_UNDEFINED:
+			CAssert(0);
+			break;
+		}
+
+		return nullptr;
 	}
 
 } // namespace AppUI

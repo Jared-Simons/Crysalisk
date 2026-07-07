@@ -25,6 +25,8 @@ set(CRYSALISK_APPUI_SRC_FILES
 	${APPUI_ROOT}/src/Renderer/AppUI_View.h
 	${APPUI_ROOT}/src/AppUI.cpp
 	${APPUI_ROOT}/src/AppUI.h
+	${APPUI_ROOT}/src/DeveloperConsole.cpp
+	${APPUI_ROOT}/src/DeveloperConsole.h
 	${APPUI_ROOT}/src/MemOverride.cpp
 	${APPUI_ROOT}/src/UI_Types.h
 )

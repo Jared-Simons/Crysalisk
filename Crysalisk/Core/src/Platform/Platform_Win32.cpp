@@ -365,6 +365,10 @@ namespace Platform
 	{
 		switch (wParam)
 		{
+		case 0x08:
+			return KEY_BACKSPACE;
+			break;
+
 		case 0x11:
 			return KEY_CTRL;
 			break;

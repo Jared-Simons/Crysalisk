@@ -10,7 +10,6 @@
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 #include <Renderer/Camera.h>
-#include <Renderer/Renderer.h>
 #include <Strings/String_Utils.h>
 
 // Render views.
@@ -19,6 +18,7 @@
 
 // UI Framework
 #include <AppUI.h>
+#include <DeveloperConsole.h>
 
 #include "ToolsTypes.h"
 
@@ -42,6 +42,8 @@ private:
 	Camera_t						m_Camera{};
 
 	AppUI::IAppUI*					m_pUISystem{ nullptr };
+
+	DeveloperConsole				m_Console{};
 };
 
 CEditorHubApp s_EditorHubApp{};
@@ -92,20 +94,18 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	{
 		// NOTE: Base resolution that UI elements are defined in is 1080x720.
 		
-		//hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_FRAME);
-		hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		/*hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
 		m_pUISystem->SetControlPosition(hTestFrame, 50, 50);
 		m_pUISystem->SetControlDimensions(hTestFrame, 496, 312);
 		m_pUISystem->SetControlColor(hTestFrame, 255, 255, 255, 200);
 
-		// LEFTOFF: Make rendering generic and buttons work again.
 		hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 		m_pUISystem->SetControlParent(hTestButton, hTestFrame);
-		m_pUISystem->SetControlPosition(hTestButton, 0, 0);
-		m_pUISystem->SetControlDimensions(hTestButton, 100, 25);
+		m_pUISystem->SetControlPosition(hTestButton, 36, 40);
+		m_pUISystem->SetControlDimensions(hTestButton, 140, 24);
 		m_pUISystem->SetControlColor(hTestButton, 255, 100, 0, 255);
 
-		/*hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
 		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
 		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
@@ -116,6 +116,13 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		m_pUISystem->SetControlPosition(hTestLabel2, 36, 95);
 		m_pUISystem->SetControlFont(hTestLabel2, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
 		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");*/
+	}
+
+	// Console.
+	if (!ConsoleCreate(m_pUISystem, &m_Console))
+	{
+		LOG_ERROR("Failed to initialize developer console!");
+		return false;
 	}
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
@@ -157,6 +164,8 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
+	ConsoleDestroy(m_pUISystem, &m_Console);
+
 	//m_pUISystem->DestroyUIControl(hTestButton);
 	//m_pUISystem->DestroyUIControl(hTestPanel);
 }

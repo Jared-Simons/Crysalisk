@@ -100,7 +100,7 @@ namespace AppUI
 		bool				hovered{ false }; // FIXME: Make a flag?
 
 		// FIXME: Better pfn signature here.
-		void (*PFN_UI_Button_Control_Clicked)();
+		void (*PFN_UI_Button_Control_Clicked)() { nullptr };
 	};
 
 } // namespace AppUI

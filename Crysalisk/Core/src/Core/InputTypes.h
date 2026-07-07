@@ -27,6 +27,8 @@ enum eKeyTable
 
 	KEY_CTRL = 17,
 
+	KEY_BACKSPACE = 23,
+
 	KEY_ESCAPE = 27,
 
 	KEY_SPACE = 32,

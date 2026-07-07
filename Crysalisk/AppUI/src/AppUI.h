@@ -50,7 +50,9 @@ namespace AppUI
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) = 0;
 		virtual void	SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a) = 0;
 
+		virtual char*	GetControlText(UIControlHandle_t hControl) = 0;
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) = 0;
+
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) = 0;
 	};
 

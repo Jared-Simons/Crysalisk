@@ -71,9 +71,13 @@ namespace AppUI
 
 		pLabelData->pszText = Utl::StringDuplicate(pszText);
 		GeometryConfig2D_t textGeoConfig = pFontSystem->AcquireConfigForText(pLabelData->hFont, pLabelData->text.m_vecPos, pszText);	// FIXME: Store pos somewhere else.
-		pRenderContext->m_pRenderer->AcquireGeometryResources(*pRenderContext->m_pVertexBuffer, *pRenderContext->m_pIndexBuffer, 
-															  textGeoConfig.Vertices.Count(), textGeoConfig.Vertices.Stride(), 0, textGeoConfig.Vertices.Data(),
-															  textGeoConfig.Indices.Count(), textGeoConfig.Indices.Data(), &pRenderable->geo);
+
+		if (textGeoConfig.Vertices.Count() > 0)
+		{
+			pRenderContext->m_pRenderer->AcquireGeometryResources(*pRenderContext->m_pVertexBuffer, *pRenderContext->m_pIndexBuffer,
+				textGeoConfig.Vertices.Count(), textGeoConfig.Vertices.Stride(), 0, textGeoConfig.Vertices.Data(),
+				textGeoConfig.Indices.Count(), textGeoConfig.Indices.Data(), &pRenderable->geo);
+		}
 	}
 
 	void RegenerateLabelGeometry(UIControlLabel_t* pLabelData, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
