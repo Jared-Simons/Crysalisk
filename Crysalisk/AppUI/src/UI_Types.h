@@ -50,6 +50,9 @@ namespace AppUI
 		ShaderHandle_t	hShader{ kInvalidID_U32 };
 		u32				iShaderInstance{ kInvalidID_U32 };
 
+		// Should this control be rendered?
+		bool bVisible{ true };
+
 		GeometryInstance_t geo{};	// FIXME: This is temporary until we can render without it.
 	};
 

@@ -14,17 +14,6 @@ enum eKeyTable
 {
 	KEY_UNDEFINED = -1,
 
-	KEY_0 = 0,
-	KEY_1,
-	KEY_2,
-	KEY_3,
-	KEY_4,
-	KEY_5,
-	KEY_6,
-	KEY_7,
-	KEY_8,
-	KEY_9,
-
 	KEY_CTRL = 17,
 
 	KEY_BACKSPACE = 23,
@@ -37,6 +26,17 @@ enum eKeyTable
 	KEY_UP,
 	KEY_RIGHT,
 	KEY_DOWN,
+
+	KEY_0 = 48,
+	KEY_1,
+	KEY_2,
+	KEY_3,
+	KEY_4,
+	KEY_5,
+	KEY_6,
+	KEY_7,
+	KEY_8,
+	KEY_9,
 
 	KEY_A = 65,
 	KEY_B,
@@ -64,6 +64,11 @@ enum eKeyTable
 	KEY_X,
 	KEY_Y,
 	KEY_Z,
+
+	KEY_TILDE,
+
+	KEY_SHIFT,
+	KEY_ENTER,
 
 	MAX_INPUT_KEYS
 };

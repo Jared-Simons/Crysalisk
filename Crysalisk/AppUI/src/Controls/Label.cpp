@@ -67,7 +67,11 @@ namespace AppUI
 
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 
-		pLabelData->text.SetText(pRenderContext->m_pRenderer, pFontSystem, pszText);
+		// Quick check: If the string is empty, use a space instead.
+		if (Utl::StringLength(pszText) < 1)
+		{
+			pszText = " ";
+		}
 
 		pLabelData->pszText = Utl::StringDuplicate(pszText);
 		GeometryConfig2D_t textGeoConfig = pFontSystem->AcquireConfigForText(pLabelData->hFont, pLabelData->text.m_vecPos, pszText);	// FIXME: Store pos somewhere else.

@@ -520,7 +520,7 @@ bool Event_KeyReleased(void* pEventListener, EventData_t data)
 	{
 		g_pMemoryManager->PrintMemoryStats();
 	}
-	else if (keycode == 'L')
+	/*else if (keycode == 'L')
 	{
 		Clock mapLoadTimer{};
 		mapLoadTimer.Start();
@@ -532,7 +532,7 @@ bool Event_KeyReleased(void* pEventListener, EventData_t data)
 
 			s_Engine.m_EngineInterfaces.pCurrentScene = &s_Engine.m_CurrentMap;
 		}
-	}
+	}*/
 	else if (keycode == 'U')
 	{
 		if (s_Engine.m_CurrentMap.IsMapLoaded())

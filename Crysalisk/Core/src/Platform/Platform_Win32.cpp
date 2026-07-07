@@ -503,6 +503,18 @@ namespace Platform
 		case 0x5A:
 			return KEY_Z;
 			break;
+
+		case 0xC0:
+			return KEY_TILDE;
+			break;
+
+		case VK_SHIFT:
+			return KEY_SHIFT;
+			break;
+		case VK_RETURN:
+			return KEY_ENTER;
+			break;
+
 		default:
 			return KEY_UNDEFINED;
 			break;

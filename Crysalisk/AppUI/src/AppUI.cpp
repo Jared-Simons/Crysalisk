@@ -43,6 +43,8 @@ namespace AppUI
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
 
+		virtual void	SetControlVisible(UIControlHandle_t hControl, bool bVisible) override;
+
 		virtual void	SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent) override;
 		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) override;
 		virtual void	SetControlDimensions(UIControlHandle_t hControl, u16 width, u16 height) override;
@@ -384,6 +386,13 @@ namespace AppUI
 			CAssert(0);
 			break;
 		}
+	}
+
+	void CAppUI::SetControlVisible(UIControlHandle_t hControl, bool bVisible)
+	{
+		CAssert(hControl != kInvalidID_U32);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+		renderables[pBase->m_iRenderableIdx].bVisible = bVisible;
 	}
 
 	void CAppUI::SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent)

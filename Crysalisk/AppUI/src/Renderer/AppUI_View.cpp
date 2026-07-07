@@ -112,6 +112,10 @@ namespace AppUI
 				{
 					continue;
 				}
+				else if (!pRenderable->bVisible)
+				{
+					continue;
+				}
 
 				m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 0, 0, pRenderable->iShaderInstance, &pViewData->projectionMatrix);
 				m_pShaderSystem->BindShader(pRenderable->hShader);

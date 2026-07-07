@@ -17,7 +17,11 @@ LogSystem* g_pLog;
 i32 LogSystem::m_LogVerbosity = 6;
 
 // File to write logging entries out to.
-FileHandle_t s_LoggerFile{};
+static FileHandle_t s_LoggerFile{};
+
+// PFN callback to send logged messages to the console.
+static void (*s_ConsoleEvent_MessageSent)(void* pConsole, const char* pszMessage) { nullptr };
+static void* s_pConsoleListener{ nullptr };
 
 // NOTE: This MUST stay aligned with the eLogLevel enum
 static const char* logLevelStrings[6] =
@@ -84,6 +88,12 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 	vsprintf_s(formattedMessageBuffer, tempMessageBuffer, va_args);
 	va_end(va_args);
 
+	// Send it to the dev console, if available.
+	if (s_ConsoleEvent_MessageSent && s_pConsoleListener)
+	{
+		s_ConsoleEvent_MessageSent(s_pConsoleListener, formattedMessageBuffer);
+	}
+
 	// Prepend channel string to the message
 	char finalOutBuffer[4092];
 	sprintf_s(finalOutBuffer, "%s%s\n", logLevelStrings[logLevel], formattedMessageBuffer);
@@ -95,4 +105,22 @@ void LogSystem::LogMessage(eLogLevel level, const char* message, ...)
 	}
 
 	Platform::LogMessage(logLevel, finalOutBuffer);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void LogSystem::RegisterConsoleWriteCallback(void* pConsole, void (*PFN_ConsoleEvent_MessageSent)(void* pConsole, const char* pszMessage))
+{
+	s_ConsoleEvent_MessageSent = PFN_ConsoleEvent_MessageSent;
+	s_pConsoleListener = pConsole;
+}
+
+void LogSystem::UnregisterConsoleWriteCallback(void* pConsole)
+{
+	if (pConsole == s_pConsoleListener)
+	{
+		s_pConsoleListener = nullptr;
+		s_ConsoleEvent_MessageSent = nullptr;
+	}
 }

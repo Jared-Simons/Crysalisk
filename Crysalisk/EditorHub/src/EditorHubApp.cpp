@@ -7,6 +7,7 @@
 #include <Application.h>
 #include <Containers/CVector.h>
 #include <Core/Engine.h>
+#include <Core/Event.h>
 #include <Core/Logging.h>
 #include <Platform/Platform.h>
 #include <Renderer/Camera.h>
@@ -44,11 +45,17 @@ private:
 	AppUI::IAppUI*					m_pUISystem{ nullptr };
 
 	DeveloperConsole				m_Console{};
+
+	// These need access to our members.
+	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 };
 
 CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
+
+// Event handlers
+static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 
 bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
@@ -125,6 +132,10 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		return false;
 	}
 
+	// Event callbacks.
+	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
+
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
 
@@ -164,6 +175,9 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
+	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
+
 	ConsoleDestroy(m_pUISystem, &m_Console);
 
 	//m_pUISystem->DestroyUIControl(hTestButton);
@@ -188,6 +202,23 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 	m_pTools.Back()->Tool_Init();
 
 	return true;
+}
+
+static bool Event_KeyReleased(void* pEventListener, EventData_t data)
+{
+	if (data.c[0] == KEY_TILDE)
+	{
+		// Toggle visiblity of the dev console.
+		CEditorHubApp* pApp = (CEditorHubApp*)pEventListener;
+		CAssert(pApp);
+
+		static bool consoleVisible = false;
+		consoleVisible = !consoleVisible;
+		SetConsoleVisible(pApp->m_pUISystem, &pApp->m_Console, consoleVisible);
+	}
+
+	// Let other listeners handle this event.
+	return false;
 }
 
 ICrysApplication* GetApplicationState()

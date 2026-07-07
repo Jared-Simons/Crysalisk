@@ -30,6 +30,10 @@ public:
 
 	void	LogMessage(eLogLevel level, const char* message, ...);
 
+	// Use this to register a console as a listener to receive messages to display.
+	void	RegisterConsoleWriteCallback(void* pConsole, void (*PFN_ConsoleEvent_MessageSent)(void* pConsole, const char* pszMessage));
+	void	UnregisterConsoleWriteCallback(void* pConsole);
+
 private:
 	static i32 m_LogVerbosity;
 };
