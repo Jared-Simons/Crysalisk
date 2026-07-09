@@ -16,9 +16,13 @@
 #include <Core/Event.h>
 #include <Core/Input.h>
 
+static void ExecuteConsoleCommand(DeveloperConsole* pConsole);
+
 // Console event handlers.
 static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data);
+static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data);
 static void ConsoleEvent_MessageReceived(void* pConsole, const char* pszMessage);
+static void ConsoleEvent_OnSubmitButtonPressed(void* pListenerInst);
 
 bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 {
@@ -27,7 +31,7 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	// Background panel.
 	pOutConsole->hBackgroundPanel = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
 	pUISystem->SetControlPosition(pOutConsole->hBackgroundPanel, 0, 0);
-	pUISystem->SetControlDimensions(pOutConsole->hBackgroundPanel, 1080, 180);	// FIXME: Make it so that this control DOES resize proportionately when the window resizes! The width of the panel should always cover the surface.
+	pUISystem->SetControlDimensions(pOutConsole->hBackgroundPanel, 1080, 180);
 	pUISystem->SetControlColor(pOutConsole->hBackgroundPanel, 76, 76, 76, 215);
 
 	// Readout panel.
@@ -44,6 +48,7 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pUISystem->SetControlPosition(pOutConsole->hCommandSubmitButton, 980, 130);
 	pUISystem->SetControlDimensions(pOutConsole->hCommandSubmitButton, 50, 50);
 	pUISystem->SetControlColor(pOutConsole->hCommandSubmitButton, 50, 50, 50, 215);
+	pUISystem->SetControlPressedCallback(pOutConsole->hCommandSubmitButton, ConsoleEvent_OnSubmitButtonPressed, pOutConsole);
 
 	// Label for console readout.
 	pOutConsole->hConsoleReadout = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
@@ -62,6 +67,7 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	// Register for events.
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_PRESSED, pOutConsole, ConsoleEvent_KeyPressed);
+	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, pOutConsole, ConsoleEvent_WindowResized);
 	pOutConsole->pUIContext = pUISystem;
 
 	// Register this system with the engine's logger.
@@ -83,6 +89,7 @@ void ConsoleDestroy(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 
 	// Unregister for events.
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, pConsole, ConsoleEvent_WindowResized);
 	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, pConsole, ConsoleEvent_KeyPressed);
 
 	// Command submit button.
@@ -98,17 +105,73 @@ void ConsoleDestroy(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 	pConsole->hBackgroundPanel = kInvalidID_U32;
 }
 
-void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, bool bVisible)
+void ConsoleRegisterCommand(DeveloperConsole* pConsole, char* commandName, PFN_ConsoleCommand_Callback callback, void* pInitialValue)
+{
+	CASSERTMSG(pConsole && commandName && callback, "ConsoleRegisterCommand() requires a pointer to a console, command name, and callback function!");
+
+	pConsole->registeredCommands.PushBack(ConsoleCommand{});
+	ConsoleCommand* pNewCommand = &pConsole->registeredCommands.Back();
+
+	pNewCommand->commandName = Utl::StringDuplicate(commandName);
+	pNewCommand->callback = callback;
+
+	// LEFTOFF: Figure out command data passing.
+}
+
+void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, bool visible)
 {
 	CASSERTMSG(pUISystem && pConsole, "SetConsoleVisible() requires a pointer to a console and AppUI system!");
 
-	pUISystem->SetControlVisible(pConsole->hBackgroundPanel, bVisible);
-	pUISystem->SetControlVisible(pConsole->hCommandSubmitButton, bVisible);
-	pUISystem->SetControlVisible(pConsole->hReadoutPanel, bVisible);
-	pUISystem->SetControlVisible(pConsole->hConsoleReadout, bVisible);
-	pUISystem->SetControlVisible(pConsole->hTextEntryControl, bVisible);
+	pUISystem->SetControlVisible(pConsole->hBackgroundPanel, visible);
+	pUISystem->SetControlVisible(pConsole->hCommandSubmitButton, visible);
+	pUISystem->SetControlVisible(pConsole->hReadoutPanel, visible);
+	pUISystem->SetControlVisible(pConsole->hConsoleReadout, visible);
+	pUISystem->SetControlVisible(pConsole->hTextEntryControl, visible);
 
-	pConsole->bVisible = bVisible;
+	pConsole->visible = visible;
+}
+
+static void ExecuteConsoleCommand(DeveloperConsole* pConsole)
+{
+	char* pCurrentEntryText = pConsole->pUIContext->GetControlText(pConsole->hTextEntryControl);
+	char* pszTrimmedEntry = Utl::StringTrim(pCurrentEntryText);
+
+	if (Utl::StringLength(pszTrimmedEntry) == 0)
+	{
+		goto cleanup_and_exit;
+	}
+
+	// Attempt to execute the command (LEFTOFF: Implement)
+	// Also send it to the logger.
+	LOG_INFO("%s", pszTrimmedEntry);
+
+	// Search to find a named command.
+	bool foundCommand = false;
+	for (u32 iCmd = 0; iCmd < pConsole->registeredCommands.Count(); iCmd++)
+	{
+		if (Utl::StringCompare(pConsole->registeredCommands[iCmd].commandName, pszTrimmedEntry))	// FIXME: The extra space in the text entry is causing issues.
+		{
+			// Execute it.
+			pConsole->registeredCommands[iCmd].callback(&pConsole->registeredCommands[iCmd], nullptr);	// FIXME: This will not work with more commands requiring data or parameters.
+			foundCommand = true;
+		}
+	}
+
+	if (!foundCommand)
+	{
+		LOG_ERROR("Command '%s' does not exist.", pszTrimmedEntry);
+	}
+
+	// Clear out the text entry control.
+	// FIXME: We need to be able to clear the text without needing a space in there.
+	pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, "");
+
+cleanup_and_exit:
+	if (pszTrimmedEntry)
+	{
+		Utl::StringFree(pszTrimmedEntry);
+		pszTrimmedEntry = nullptr;
+	}
 }
 
 static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
@@ -116,7 +179,7 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 	DeveloperConsole* pConsole = (DeveloperConsole*)pListener;
 
 	// Only process if the console is enabled.
-	if (!pConsole->bVisible)
+	if (!pConsole->visible)
 	{
 		return false;
 	}
@@ -132,16 +195,16 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 	// Get the current text in the control.
 	char* pCurrentEntryText = pConsole->pUIContext->GetControlText(pConsole->hTextEntryControl);
 
+	u64 length = Utl::StringLength(pCurrentEntryText);
+
+	if (length < 1)
+	{
+		return false;
+	}
+
 	if (c == KEY_ENTER)
 	{
-		// Attempt to execute the command (LEFTOFF: Implement)
-		// Also send it to the logger.
-		LOG_INFO("%s", pCurrentEntryText);
-
-		// Clear out the text entry control.
-		// FIXME: We need to be able to clear the text without needing a space in there.
-		pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, "");
-
+		ExecuteConsoleCommand(pConsole);
 		return false;
 	}
 
@@ -151,8 +214,6 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 	if (c == KEY_BACKSPACE)
 	{
 		// Take the current text, and remove one character from it.
-		u64 length = Utl::StringLength(pCurrentEntryText);
-
 		if (length < 1)
 		{
 			return false;
@@ -231,6 +292,21 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 	return false;
 }
 
+static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
+{
+	// Resize the elements so that they are proportional (the panel should stretch across the whole screen).
+	DeveloperConsole* pConsole = (DeveloperConsole*)pListener;
+	AppUI::IAppUI* pUISystem = pConsole->pUIContext;
+
+	u32 width = data.u32[0];
+	u32 height = data.u32[1];
+
+	pUISystem->SetControlDimensions(pConsole->hBackgroundPanel, width, height * 0.25f);
+
+	// Let other listeners get this.
+	return false;
+}
+
 static void ConsoleEvent_MessageReceived(void* pListener, const char* pszMessage)
 {
 	DeveloperConsole* pConsole = (DeveloperConsole*)pListener;
@@ -252,4 +328,9 @@ static void ConsoleEvent_MessageReceived(void* pListener, const char* pszMessage
 	}
 
 	pConsole->pUIContext->SetControlText(pConsole->hConsoleReadout, szOutBuffer);
+}
+
+static void ConsoleEvent_OnSubmitButtonPressed(void* pListenerInst)
+{
+	ExecuteConsoleCommand((DeveloperConsole*)pListenerInst);
 }

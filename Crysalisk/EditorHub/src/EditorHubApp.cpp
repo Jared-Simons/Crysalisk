@@ -57,6 +57,9 @@ typedef IToolApp* (*PFN_Get_Tool_App_State)();
 // Event handlers
 static bool Event_KeyReleased(void* pEventListener, EventData_t data);
 
+// Console command callbacks.
+static void ConsoleCommand_ExitApp(struct ConsoleCommand* pCommand, void* pValue);
+
 bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
 	m_pApplicationConfig = pAppConfig;
@@ -131,6 +134,9 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 		LOG_ERROR("Failed to initialize developer console!");
 		return false;
 	}
+
+	// Register console commands.
+	ConsoleRegisterCommand(&m_Console, "exit", ConsoleCommand_ExitApp, nullptr);
 
 	// Event callbacks.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -219,6 +225,12 @@ static bool Event_KeyReleased(void* pEventListener, EventData_t data)
 
 	// Let other listeners handle this event.
 	return false;
+}
+
+static void ConsoleCommand_ExitApp(struct ConsoleCommand* pCommand, void* pValue)
+{
+	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});
 }
 
 ICrysApplication* GetApplicationState()

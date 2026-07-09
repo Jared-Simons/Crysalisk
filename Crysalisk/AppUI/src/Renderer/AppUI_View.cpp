@@ -112,7 +112,7 @@ namespace AppUI
 				{
 					continue;
 				}
-				else if (!pRenderable->bVisible)
+				else if (!pRenderable->visible)
 				{
 					continue;
 				}

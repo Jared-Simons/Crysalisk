@@ -51,7 +51,7 @@ namespace AppUI
 		u32				iShaderInstance{ kInvalidID_U32 };
 
 		// Should this control be rendered?
-		bool bVisible{ true };
+		bool visible{ true };
 
 		GeometryInstance_t geo{};	// FIXME: This is temporary until we can render without it.
 	};
@@ -92,6 +92,9 @@ namespace AppUI
 		TextObject	text{};
 	};
 
+	// Callback for button presses.
+	typedef void (*PFN_UI_Button_Control_Clicked)(void* pListenerInst);
+
 	struct UIControlButton_t
 	{
 		UIControlPanel_t	panel{};
@@ -103,7 +106,8 @@ namespace AppUI
 		bool				hovered{ false }; // FIXME: Make a flag?
 
 		// FIXME: Better pfn signature here.
-		void (*PFN_UI_Button_Control_Clicked)() { nullptr };
+		PFN_UI_Button_Control_Clicked onPressedCallback{ nullptr };
+		void* callbackListenerInst{ nullptr };
 	};
 
 } // namespace AppUI

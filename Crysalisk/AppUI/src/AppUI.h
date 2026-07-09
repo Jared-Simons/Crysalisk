@@ -45,7 +45,7 @@ namespace AppUI
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) = 0;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) = 0;
 
-		virtual void	SetControlVisible(UIControlHandle_t hControl, bool bVisible) = 0;
+		virtual void	SetControlVisible(UIControlHandle_t hControl, bool visible) = 0;
 
 		virtual void	SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent) = 0;
 		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) = 0;
@@ -57,6 +57,8 @@ namespace AppUI
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) = 0;
 
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) = 0;
+
+		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) = 0;
 	};
 
 } // namespace AppUI

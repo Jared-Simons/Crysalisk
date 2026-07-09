@@ -43,7 +43,7 @@ namespace AppUI
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
 
-		virtual void	SetControlVisible(UIControlHandle_t hControl, bool bVisible) override;
+		virtual void	SetControlVisible(UIControlHandle_t hControl, bool visible) override;
 
 		virtual void	SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent) override;
 		virtual void	SetControlPosition(UIControlHandle_t hControl, u16 x, u16 y) override;
@@ -54,6 +54,8 @@ namespace AppUI
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) override;
 
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) override;
+
+		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) override;
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
 
@@ -188,7 +190,7 @@ namespace AppUI
 							// If the left mouse button is pressed, do the callback.
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 							{
-								pCurrentControl->PFN_UI_Button_Control_Clicked();
+								pCurrentControl->onPressedCallback(pCurrentControl->callbackListenerInst);
 							}
 						}
 						else
@@ -388,11 +390,11 @@ namespace AppUI
 		}
 	}
 
-	void CAppUI::SetControlVisible(UIControlHandle_t hControl, bool bVisible)
+	void CAppUI::SetControlVisible(UIControlHandle_t hControl, bool visible)
 	{
 		CAssert(hControl != kInvalidID_U32);
 		UIBaseControl_t* pBase = &baseControls[hControl];
-		renderables[pBase->m_iRenderableIdx].bVisible = bVisible;
+		renderables[pBase->m_iRenderableIdx].visible = visible;
 	}
 
 	void CAppUI::SetControlParent(UIControlHandle_t hChild, UIControlHandle_t hParent)
@@ -472,6 +474,16 @@ namespace AppUI
 
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
 		SetLabelFont(pLabel, &renderables[pBase->m_iRenderableIdx], &renderContext, pszFontName, flFontSize);
+	}
+
+	void CAppUI::SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener)
+	{
+		CAssert(hControl != kInvalidID_U32 && callback);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_BUTTON, "SetControlPressedCallback - This function must only be called for UI elements that can be pressed!");
+
+		buttons[pBase->m_iControlDataIdx].onPressedCallback = callback;
+		buttons[pBase->m_iControlDataIdx].callbackListenerInst = pListener;
 	}
 
 	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)

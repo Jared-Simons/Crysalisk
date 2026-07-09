@@ -15,8 +15,6 @@
 
 namespace AppUI
 {
-	static void TestButtonClickedCallback();
-
 	void CreateButton(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlButton_t* pButtonControl, AppUIRenderContext_t* pRenderContext)
 	{
 		CAssert(pRenderable && pButtonControl && pRenderContext);
@@ -31,12 +29,7 @@ namespace AppUI
 		pButtonControl->panel.height = 100;
 		pButtonControl->panel.color = Vector4D{ 0.4f, 0.4f, 0.4f, 0.9f };
 
-		pButtonControl->PFN_UI_Button_Control_Clicked = TestButtonClickedCallback;
-	}
-
-	static void TestButtonClickedCallback()
-	{
-		LOG_DEBUG("BUTTON PRESSED!");
+		pButtonControl->onPressedCallback = nullptr;
 	}
 
 } // namespace AppUI
