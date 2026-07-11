@@ -44,6 +44,9 @@ public:
 	virtual void	Shutdown() = 0;
 	virtual void	Update() = 0;
 
+	virtual void	PushInputMap(InputMap_t* pInputMap) = 0;
+	virtual void	PopInputMap() = 0;
+
 	virtual void	ProcessKeyInput(const i32 processedKeyInput, bool pressed) = 0;
 	virtual void	ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed) = 0;
 	virtual void	ProcessMousePositionInput(const i32 mouseXPos, const i32 mouseYPos) = 0;

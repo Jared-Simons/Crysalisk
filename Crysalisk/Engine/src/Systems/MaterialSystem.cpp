@@ -8,6 +8,8 @@
 #include "MaterialSystem.h"
 
 #include <Containers/CHashMap.h>
+#include <Core/ConVar.h>
+#include "Core/Engine.h"
 #include <Core/Logging.h>
 #include <Platform/FileSystem.h>
 #include "Renderer/Renderer.h"
@@ -46,7 +48,7 @@ class CMaterialSystem : public IMaterialSystem
 public:
 	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) override;
-	virtual void				PostInitialize() override;
+	virtual void				PostInitialize(struct EngineInterfaces_t* pEngineSystems) override;
 	virtual void				Shutdown() override;
 
 	// Acquires the resources for the provided material.
@@ -160,7 +162,13 @@ private:
 		f32		flInnerCutoff{};
 		f32		flOuterCutoff{};
 	} spotLight;
+
+	// These need access to our members.
+	friend static void ConVar_SetDebugVisMode(struct ConVar_t* pCommand, void* pValue);
 };
+
+// Console command callbacks.
+static void ConVar_SetDebugVisMode(struct ConVar_t* pCommand, void* pValue);
 
 //-------------------------------------------------------------------------
 // Purpose - TODO: Documentation.
@@ -192,12 +200,20 @@ bool CMaterialSystem::Initialize(MaterialSystemConfig_t config)
 	return true;
 }
 
-
 //-------------------------------------------------------------------------
 // TODO: Documentation.
 //-------------------------------------------------------------------------
-void CMaterialSystem::PostInitialize()
+void CMaterialSystem::PostInitialize(struct EngineInterfaces_t* pEngineSystems)
 {
+	CAssert(pEngineSystems);
+
+	// Material system convars.
+	//ConsoleCommandRegister(pEngineSystems->pConVar, "mat_debugvismode", CONVAR_VALUETYPE_INT, ConVar_SetDebugVisMode, this);
+	//ConsoleCommandSet_Int(pEngineSystems->pConVar, "mat_debugvismode", 0);
+
+	ConsoleCommandRegister(pEngineSystems->pConVar, "test", CONVAR_VALUETYPE_INT, ConVar_SetDebugVisMode, this);
+	ConsoleCommandSet_Int(pEngineSystems->pConVar, "test", 0);
+	
 	// Setup shader locations.
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
 	m_DefaultMaterialShader = pShaderSystem->AcquireShader("Core.Phong");
@@ -564,7 +580,7 @@ void CMaterialSystem::ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4
 	pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.projection, 0, 0, &pMatProjection);
 	pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.view, 0, 0, &pMatView);
 	pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.viewPos, 0, 0, &pVecPosition);
-	pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.renderMode, 0, 0, &renderDebugMode);
+	//pShaderSystem->SetShaderUniform(m_DefaultMaterialShader, s_PhongShaderLocations.renderMode, 0, 0, &renderDebugMode);
 
 	// Clear out the currently bound material instance!
 	// This is necessary so that we properly re-bind material instances every frame.
@@ -756,4 +772,14 @@ MaterialHandle_t CMaterialSystem::FindFirstFreeMaterialHandle() const
 
 	LOG_ERROR("Failed to find a free slot in the material dictionary. Adjust config to allow for more.");
 	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+static void ConVar_SetDebugVisMode(struct ConVar_t* pCommand, void* pValue)
+{
+	CMaterialSystem* pMaterialSystem = (CMaterialSystem*)pCommand->listenerInst;
+	i32 typedValue = *(i32*)pValue;
+	pMaterialSystem->m_Config.pShaderSystem->SetShaderUniform(pMaterialSystem->m_DefaultMaterialShader, s_PhongShaderLocations.renderMode, 0, 0, &typedValue);
 }

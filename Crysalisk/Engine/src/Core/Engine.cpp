@@ -7,6 +7,7 @@
 #include "Engine.h"
 
 #include "Application.h"
+#include <Core/ConVar.h>
 #include <Core/Event.h>
 #include <Core/Logging.h>
 #include <Memory/MemoryManager.h>
@@ -70,7 +71,7 @@ private:
 
 	CMap			m_CurrentMap{};
 
-	Clock			m_UpdateClock{};
+	Clock		m_UpdateClock{};
 	f64			m_LastUpdateTime{ 0.0f };
 
 	// These need access to our members.
@@ -112,6 +113,14 @@ bool CreateEngineInstance(struct ApplicationConfig_t* pAppConfig)
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically failed to initialize.
 		Platform::DisplayMessageBox(nullptr, "Logger failed to initialize! Application cannot continue.", "Engine Error", false);
+		return false;
+	}
+
+	// ConVar system.
+	AllocateConVarSystemState(&pEngine->m_EngineInterfaces.pConVar);
+	if (!InitializeConVarSystem(pEngine->m_EngineInterfaces.pConVar))
+	{
+		LOG_ERROR("ConVar system failed to initialize! Application cannot continue.");
 		return false;
 	}
 
@@ -312,7 +321,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Run Post-Engine initialize routines.
 	m_EngineInterfaces.pRenderer->PostInitialize(m_FrameRenderData);
-	m_EngineInterfaces.pMaterialSystem->PostInitialize();
+	m_EngineInterfaces.pMaterialSystem->PostInitialize(&m_EngineInterfaces);
 	m_EngineInterfaces.pFontSystem->PostInitialize();
 
 	// Initialize the application.
@@ -478,6 +487,10 @@ void CEngine::Shutdown()
 	m_EngineInterfaces.pEngineEventHandler->Shutdown();
 	delete m_EngineInterfaces.pEngineEventHandler;
 	m_EngineInterfaces.pEngineEventHandler = nullptr;
+
+	ShutdownConVarSystem(m_EngineInterfaces.pConVar);
+	delete m_EngineInterfaces.pConVar;
+	m_EngineInterfaces.pConVar = nullptr;
 	
 	m_EngineInterfaces.pLogger->Shutdown();
 	delete m_EngineInterfaces.pLogger;
@@ -520,7 +533,7 @@ bool Event_KeyReleased(void* pEventListener, EventData_t data)
 	{
 		g_pMemoryManager->PrintMemoryStats();
 	}
-	/*else if (keycode == 'L')
+	else if (keycode == 'L')
 	{
 		Clock mapLoadTimer{};
 		mapLoadTimer.Start();
@@ -532,7 +545,7 @@ bool Event_KeyReleased(void* pEventListener, EventData_t data)
 
 			s_Engine.m_EngineInterfaces.pCurrentScene = &s_Engine.m_CurrentMap;
 		}
-	}*/
+	}
 	else if (keycode == 'U')
 	{
 		if (s_Engine.m_CurrentMap.IsMapLoaded())

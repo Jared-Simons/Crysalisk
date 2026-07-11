@@ -504,6 +504,10 @@ namespace Platform
 			return KEY_Z;
 			break;
 
+		case 0xBD:
+			return KEY_HYPHEN;
+			break;
+
 		case 0xC0:
 			return KEY_TILDE;
 			break;

@@ -6,10 +6,11 @@
 //=============================================================================
 #include "Core/Input.h"
 
-#include "Core/Engine.h"
 #include "Core/Event.h"
-#include "Core/Logging.h"
-#include <Memory/MemoryManager.h>
+
+// Core
+#include <Containers/CStack.h>
+#include <Core/Logging.h>
 
 //-------------------------------------------------------------------------
 // Engine input system implementation.
@@ -23,6 +24,9 @@ public:
 	bool		Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSystem* pEngineEventHandler) override;
 	void		Shutdown() override;
 	void		Update() override;
+
+	virtual void	PushInputMap(InputMap_t* pInputMap) override;
+	virtual void	PopInputMap() override;
 
 	// Input processing.
 	void		ProcessKeyInput(const i32 processedKeyInput, bool pressed) override;
@@ -49,6 +53,9 @@ private:
 
 	// Holds a pointer to the engine's event system.
 	IEventSystem*	m_pEventSystem{ nullptr };
+
+	// Input handler stack.
+	Utl::CStack<InputMap_t*> m_InputHandlers{};
 };
 
 // Internal pointer to input system.
@@ -105,6 +112,9 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSy
 	pEngineWindow.SetMouseButtonEventCallback(API_ProcessMouseButtonInput);
 	pEngineWindow.SetMouseMoveEventCallback(API_ProcessMouseMoveInput);
 
+	// Allocate memory for input stacks.
+	m_InputHandlers.Resize(2);
+
 	LOG_INFO("Input System Initialized!");
 
 	return true;
@@ -115,6 +125,7 @@ bool CInputSystem::Initialize(Platform::IPlatformWindow& pEngineWindow, IEventSy
 //-------------------------------------------------------------------------
 void CInputSystem::Shutdown()
 {
+	m_InputHandlers.Clear();
 	s_InputSystem = nullptr;
 }
 
@@ -145,16 +156,40 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed)
 	{
 		EventData_t eventData;
 		eventData.c[0] = processedKeyInput;
+
+		bool stopEvent = false;
+
 		if (pressed)
 		{
 			eventData.c[0] = processedKeyInput;
+			bool repeat = m_PrevKeysState[processedKeyInput].m_bPressed;
 			m_KeysState[processedKeyInput].m_bPressed = true;
-			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
+
+			if (m_InputHandlers.Count())
+			{
+				const InputMap_t* pCurMap = m_InputHandlers.Peek();
+				stopEvent = pCurMap->PFN_KeyEvent_Callback(pCurMap->pListenerInst, (u16)processedKeyInput, pressed, repeat ? KEY_MESSAGE_FLAG_REPEATING : 0);
+			}
+
+			if (!stopEvent)
+			{
+				m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_PRESSED, nullptr, eventData);
+			}
 		}
 		else
 		{
 			m_KeysState[processedKeyInput].m_bPressed = false;
-			m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
+
+			if (m_InputHandlers.Count())
+			{
+				const InputMap_t* pCurMap = m_InputHandlers.Peek();
+				stopEvent = pCurMap->PFN_KeyEvent_Callback(pCurMap->pListenerInst, (u16)processedKeyInput, pressed, 0);
+			}
+
+			if (!stopEvent)
+			{
+				m_pEventSystem->EventFire(eEventCategory::INPUT_KEY_RELEASED, nullptr, eventData);
+			}
 		}
 	}
 	else
@@ -207,6 +242,23 @@ void CInputSystem::ProcessMousePositionInput(const i32 mouseXPos, const i32 mous
 
 	m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
 	return;
+}
+
+//-------------------------------------------------------------------------
+// Purpose TODO: Documentation.
+//-------------------------------------------------------------------------
+void CInputSystem::PushInputMap(InputMap_t* pInputMap)
+{
+	CAssert(pInputMap);
+	m_InputHandlers.Push(pInputMap);
+}
+
+//-------------------------------------------------------------------------
+// Purpose TODO: Documentation.
+//-------------------------------------------------------------------------
+void CInputSystem::PopInputMap()
+{
+	m_InputHandlers.Pop();
 }
 
 //-------------------------------------------------------------------------

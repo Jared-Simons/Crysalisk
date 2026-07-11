@@ -3,14 +3,11 @@
 // Date Created: 5/6/2024
 // 
 // Purpose: A Custom Dynamically-Resizable Array.
-// 
 //=============================================================================
 #pragma once
 
 #include "Core/Assertions.h"
 #include "Memory/IMemoryAllocator.h"
-#include "Memory/MemoryManager.h"
-#include "Platform/Platform.h"
 
 #include <new>	// For placement new.
 
@@ -425,7 +422,7 @@ namespace Utl
 
 		// Returns the current number of elements in the vector.
 		inline u64 Count() const { return m_Count; }
-		inline void	  SetCount(u64 count) { m_Count = count; }
+		inline void SetCount(u64 count) { m_Count = count; }
 
 		// Returns the number of bytes between elements in the vector.
 		inline u64 Stride() const { return m_ValueStride; }

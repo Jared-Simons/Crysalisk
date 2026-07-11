@@ -6,6 +6,7 @@
 //=============================================================================
 #include <Application.h>
 #include <Containers/CVector.h>
+#include <Core/ConVar.H>
 #include <Core/Engine.h>
 #include <Core/Event.h>
 #include <Core/Logging.h>
@@ -42,23 +43,29 @@ private:
 	Utl::CVector<IToolApp*>			m_pTools{};
 	Camera_t						m_Camera{};
 
+	InputMap_t						m_InputHandler{};
+
 	AppUI::IAppUI*					m_pUISystem{ nullptr };
 
 	DeveloperConsole				m_Console{};
 
 	// These need access to our members.
-	friend static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+	friend static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
+	friend static bool Event_KeyPressed(void* pEventListener, EventData_t data);
 };
 
 CEditorHubApp s_EditorHubApp{};
 
 typedef IToolApp* (*PFN_Get_Tool_App_State)();
 
+// Input handlers
+static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
+
 // Event handlers
-static bool Event_KeyReleased(void* pEventListener, EventData_t data);
+static bool Event_KeyPressed(void* pEventListener, EventData_t data);
 
 // Console command callbacks.
-static void ConsoleCommand_ExitApp(struct ConsoleCommand* pCommand, void* pValue);
+static void ConsoleCommand_ExitApp(struct ConVar_t* pCommand, void* pValue);
 
 bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 {
@@ -136,11 +143,18 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	}
 
 	// Register console commands.
-	ConsoleRegisterCommand(&m_Console, "exit", ConsoleCommand_ExitApp, nullptr);
+	//ConsoleRegisterCommand(&m_Console, "exit", ConsoleCommand_ExitApp, nullptr);
+	struct ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
+	ConsoleCommandRegister(pConVar, "exit", CONVAR_VALUETYPE_NONE, ConsoleCommand_ExitApp, nullptr);
 
 	// Event callbacks.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
+	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_PRESSED, this, Event_KeyPressed);
+
+	// Setup input handler.
+	m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
+	m_InputHandler.pListenerInst = this;
+	pAppConfig->pEngine->GetEngineInterfaces()->pInputSystem->PushInputMap(&m_InputHandler);
 
 	// EDITORTODO: For now, we're just gonna hard-code to opening the level editor.
 	//LoadTool("Tools_LevelEditor");
@@ -150,6 +164,11 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 bool CEditorHubApp::Run()
 {
+	if (m_Console.visible)
+	{
+		ConsoleUpdate(m_pUISystem, &m_Console);
+	}
+
 	// Update the UI plugin.
 	m_pUISystem->Update();
 
@@ -165,12 +184,14 @@ bool CEditorHubApp::Run()
 
 void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
-	// LEFTOFF: We need a way to populate UI-specific geometry data in the render packet from this point.
-	// We can't do the 'extended data' that we did with other geometries by simply indexing the void* array
-	// because this view will not exist in every build.
 	m_pUISystem->FramePrepare(pRenderPacket);
 
-	m_Camera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
+	if (!m_Console.visible)
+	{
+		// Don't move the camera if the UI is active.
+		// TODO: This is probably not the best way to handle this.
+		m_Camera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
+	}
 	pRenderPacket->pCamera = &m_Camera;
 }
 
@@ -182,7 +203,7 @@ bool CEditorHubApp::Render()
 void CEditorHubApp::Shutdown()
 {
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_RELEASED, this, Event_KeyReleased);
+	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, this, Event_KeyPressed);
 
 	ConsoleDestroy(m_pUISystem, &m_Console);
 
@@ -210,24 +231,64 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 	return true;
 }
 
-static bool Event_KeyReleased(void* pEventListener, EventData_t data)
+static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags)
 {
-	if (data.c[0] == KEY_TILDE)
+	if (keyCode == KEY_TILDE)
 	{
 		// Toggle visiblity of the dev console.
-		CEditorHubApp* pApp = (CEditorHubApp*)pEventListener;
+		CEditorHubApp* pApp = (CEditorHubApp*)pListener;
 		CAssert(pApp);
 
 		static bool consoleVisible = false;
 		consoleVisible = !consoleVisible;
 		SetConsoleVisible(pApp->m_pUISystem, &pApp->m_Console, consoleVisible);
+
+		if (consoleVisible)
+		{
+			// Give input focus over to the UI system.
+			pApp->m_pUISystem->AcquireInputFocus();
+
+			// Focus on the input text control.
+			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl);
+		}
+	}
+
+	// Let other listeners get this.
+	return false;
+}
+
+static bool Event_KeyPressed(void* pEventListener, EventData_t data)
+{
+	CEditorHubApp* pApp = (CEditorHubApp*)pEventListener;
+	CAssert(pApp);
+
+	if (data.c[0] == KEY_TILDE)
+	{
+		// Toggle visiblity of the dev console.
+		static bool consoleVisible = false;
+		consoleVisible = !consoleVisible;
+		SetConsoleVisible(pApp->m_pUISystem, &pApp->m_Console, consoleVisible);
+
+		if (consoleVisible)
+		{
+			// Give input focus over to the UI system.
+			pApp->m_pUISystem->AcquireInputFocus();
+
+			// Focus on the input text control.
+			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl);
+		}
+	}
+	else if (data.c[0] == KEY_ENTER && pApp->m_Console.visible)
+	{
+		// Attempt to execute and queued commands.
+		ConsoleSubmitCommand(pApp->m_pUISystem, &pApp->m_Console);
 	}
 
 	// Let other listeners handle this event.
 	return false;
 }
 
-static void ConsoleCommand_ExitApp(struct ConsoleCommand* pCommand, void* pValue)
+static void ConsoleCommand_ExitApp(struct ConVar_t* pCommand, void* pValue)
 {
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventFire(eEventCategory::APPLICATION_QUIT, nullptr, EventData_t{});

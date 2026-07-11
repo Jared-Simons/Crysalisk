@@ -8,7 +8,9 @@
 
 // Core
 #include <Core/Assertions.h>
+#include <Core/ConVar.H>
 #include <Core/Logging.h>
+#include <Platform/Platform.h>
 #include <Strings/String_Utils.h>
 
 // Engine
@@ -16,17 +18,20 @@
 #include <Core/Event.h>
 #include <Core/Input.h>
 
-static void ExecuteConsoleCommand(DeveloperConsole* pConsole);
-
 // Console event handlers.
 static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data);
 static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data);
 static void ConsoleEvent_MessageReceived(void* pConsole, const char* pszMessage);
 static void ConsoleEvent_OnSubmitButtonPressed(void* pListenerInst);
 
+// Mutex for multi-threaded logging.
+// NOTE: This assumes only one console!
+static Platform::ISystemMutex* s_pConsoleMutex = nullptr;
+
 bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 {
 	CASSERTMSG(pUISystem && pOutConsole, "ConsoleCreate() requires a pointer to a console and AppUI system!");
+	CASSERTMSG(!s_pConsoleMutex, "Dev console currently only supports one instance!");
 
 	// Background panel.
 	pOutConsole->hBackgroundPanel = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
@@ -76,6 +81,12 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	// Default to the console being disabled.
 	SetConsoleVisible(pUISystem, pOutConsole, false);
 
+	// Setup mutex for multithreaded logging.
+	s_pConsoleMutex = Platform::CreateSystemMutex();
+
+	// Store off ConVar system state.
+	pOutConsole->pConVar = g_pEngine->GetEngineInterfaces()->pConVar;
+
 	LOG_DEBUG("Console Initialized");
 
 	return true;
@@ -84,6 +95,9 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 void ConsoleDestroy(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 {
 	CASSERTMSG(pUISystem && pConsole, "ConsoleDestroy() requires a pointer to a console and AppUI system!");
+
+	Platform::DestroySystemMutex(s_pConsoleMutex);
+	s_pConsoleMutex = nullptr;
 
 	g_pLog->UnregisterConsoleWriteCallback(pConsole);
 
@@ -105,17 +119,37 @@ void ConsoleDestroy(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 	pConsole->hBackgroundPanel = kInvalidID_U32;
 }
 
-void ConsoleRegisterCommand(DeveloperConsole* pConsole, char* commandName, PFN_ConsoleCommand_Callback callback, void* pInitialValue)
+void ConsoleUpdate(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 {
-	CASSERTMSG(pConsole && commandName && callback, "ConsoleRegisterCommand() requires a pointer to a console, command name, and callback function!");
+	CASSERTMSG(pUISystem && pConsole, "ConsoleUpdate() requires a pointer to a console and AppUI system!");
+	if (pConsole->pendingStrings.Count() > 0)
+	{
+		Utl::CVector<char*>* pConsoleReadoutStrings = &pConsole->readoutStrings;
 
-	pConsole->registeredCommands.PushBack(ConsoleCommand{});
-	ConsoleCommand* pNewCommand = &pConsole->registeredCommands.Back();
+		for (u32 pMsg = 0; pMsg < pConsole->pendingStrings.Count(); pMsg++)
+		{
+			pConsoleReadoutStrings->PushBack(pConsole->pendingStrings.Data()[pMsg]);
+		}
 
-	pNewCommand->commandName = Utl::StringDuplicate(commandName);
-	pNewCommand->callback = callback;
+		// FIXME: Custom allocator?
+		pConsole->pendingStrings.Clear();
+		
+		char szOutBuffer[10000]{};	// FIXME: Higher limit?
 
-	// LEFTOFF: Figure out command data passing.
+		u32 iLines = IntMin((u32)pConsoleReadoutStrings->Count(), 6);
+
+		// Regenerate the readout text.
+		if (pConsoleReadoutStrings->Count() > 1)
+		{
+			for (u32 iMessage = (u32)pConsoleReadoutStrings->Count() - iLines; iMessage < pConsoleReadoutStrings->Count(); iMessage++)
+			{
+				Utl::StringFormat_V("%s\n%s", szOutBuffer, szOutBuffer, pConsoleReadoutStrings->Data()[iMessage]);
+			}
+		}
+
+		pConsole->pUIContext->SetControlText(pConsole->hConsoleReadout, szOutBuffer);
+		pConsole->pUIContext->SetControlPosition(pConsole->hConsoleReadout, 0, IntMax(75 - (30 * iLines), 0));
+	}
 }
 
 void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, bool visible)
@@ -131,7 +165,7 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	pConsole->visible = visible;
 }
 
-static void ExecuteConsoleCommand(DeveloperConsole* pConsole)
+void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 {
 	char* pCurrentEntryText = pConsole->pUIContext->GetControlText(pConsole->hTextEntryControl);
 	char* pszTrimmedEntry = Utl::StringTrim(pCurrentEntryText);
@@ -145,26 +179,11 @@ static void ExecuteConsoleCommand(DeveloperConsole* pConsole)
 	// Also send it to the logger.
 	LOG_INFO("%s", pszTrimmedEntry);
 
-	// Search to find a named command.
-	bool foundCommand = false;
-	for (u32 iCmd = 0; iCmd < pConsole->registeredCommands.Count(); iCmd++)
-	{
-		if (Utl::StringCompare(pConsole->registeredCommands[iCmd].commandName, pszTrimmedEntry))	// FIXME: The extra space in the text entry is causing issues.
-		{
-			// Execute it.
-			pConsole->registeredCommands[iCmd].callback(&pConsole->registeredCommands[iCmd], nullptr);	// FIXME: This will not work with more commands requiring data or parameters.
-			foundCommand = true;
-		}
-	}
-
-	if (!foundCommand)
-	{
-		LOG_ERROR("Command '%s' does not exist.", pszTrimmedEntry);
-	}
+	ConsoleCommandExecute(pConsole->pConVar, pszTrimmedEntry);
 
 	// Clear out the text entry control.
 	// FIXME: We need to be able to clear the text without needing a space in there.
-	pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, "");
+	pUISystem->SetControlText(pConsole->hTextEntryControl, "");
 
 cleanup_and_exit:
 	if (pszTrimmedEntry)
@@ -204,89 +223,9 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 
 	if (c == KEY_ENTER)
 	{
-		ExecuteConsoleCommand(pConsole);
+		ConsoleSubmitCommand(pConsole->pUIContext, pConsole);
 		return false;
 	}
-
-	char szOutBuffer[10000]{};
-
-	// Handle special cases
-	if (c == KEY_BACKSPACE)
-	{
-		// Take the current text, and remove one character from it.
-		if (length < 1)
-		{
-			return false;
-		}
-
-		Platform::MemoryCopy(szOutBuffer, pCurrentEntryText, length - 1);
-		szOutBuffer[length] = 0;
-	}
-	else
-	{
-		// Default case.
-
-		// Check shift key state.
-		bool bShiftPressed = g_pEngine->GetEngineInterfaces()->pInputSystem->IsKeyPressed(KEY_SHIFT);
-
-		if (!bShiftPressed)
-		{
-			if (c >= KEY_A && c <= KEY_Z)
-			{
-				// Lowercase letters if necessary.
-				c += ('a' - 'A');
-			}
-		}
-		else
-		{
-			if (c >= KEY_0 && c <= KEY_9)
-			{
-				// Numbers/symbol case.
-				// Map the key to the correct symbol.
-				switch (c)
-				{
-				case KEY_0:
-					c = 41;
-					break;
-				case KEY_1:
-					c = 33;
-					break;
-				case KEY_2:
-					c = 64;
-					break;
-				case KEY_3:
-					c = 35;
-					break;
-				case KEY_4:
-					c = 36;
-					break;
-				case KEY_5:
-					c = 37;
-					break;
-				case KEY_6:
-					c = 94;
-					break;
-				case KEY_7:
-					c = 38;
-					break;
-				case KEY_8:
-					c = 42;
-					break;
-				case KEY_9:
-					c = 40;
-					break;
-				default:
-					CAssert(0);
-				}
-			}
-		}
-
-		// Append the new char to it.
-		Utl::StringFormat_V("%s%c", szOutBuffer, pCurrentEntryText, c);
-	}
-
-	// Apply to the control.
-	pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, szOutBuffer);
 
 	// Let other listeners get this.
 	return false;
@@ -301,7 +240,7 @@ static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
 	u32 width = data.u32[0];
 	u32 height = data.u32[1];
 
-	pUISystem->SetControlDimensions(pConsole->hBackgroundPanel, width, height * 0.25f);
+	pUISystem->SetControlDimensions(pConsole->hBackgroundPanel, width, (u16)(height * 0.25f));
 
 	// Let other listeners get this.
 	return false;
@@ -310,27 +249,13 @@ static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
 static void ConsoleEvent_MessageReceived(void* pListener, const char* pszMessage)
 {
 	DeveloperConsole* pConsole = (DeveloperConsole*)pListener;
-
-	pConsole->readoutStrings.PushBack(Utl::StringDuplicate(pszMessage));
-
-	char szOutBuffer[10000]{};	// FIXME: Higher limit?
-	Utl::StringFormat_V("%s", szOutBuffer, pConsole->readoutStrings.Back());
-
-	// Regenerate the readout text.
-	if (pConsole->readoutStrings.Count() > 1)
-	{
-		u8 messagesWritten{ 0 };
-		for (u32 iMessage = (u32)pConsole->readoutStrings.Count() - 2; iMessage > 0 && messagesWritten < 10; iMessage--)
-		{
-			Utl::StringFormat_V("%s\n%s", szOutBuffer, szOutBuffer, pConsole->readoutStrings[iMessage]);
-			messagesWritten++;
-		}
-	}
-
-	pConsole->pUIContext->SetControlText(pConsole->hConsoleReadout, szOutBuffer);
+	s_pConsoleMutex->Lock();
+	pConsole->pendingStrings.PushBack(Utl::StringDuplicate(pszMessage));
+	s_pConsoleMutex->Unlock();
 }
 
 static void ConsoleEvent_OnSubmitButtonPressed(void* pListenerInst)
 {
-	ExecuteConsoleCommand((DeveloperConsole*)pListenerInst);
+	DeveloperConsole* pConsole = (DeveloperConsole*)pListenerInst;
+	ConsoleSubmitCommand(pConsole->pUIContext, pConsole);
 }

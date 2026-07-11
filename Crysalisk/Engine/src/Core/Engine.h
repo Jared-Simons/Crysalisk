@@ -28,6 +28,7 @@ struct EngineConfig_t
 struct EngineInterfaces_t
 {
 	class LogSystem*		pLogger{ nullptr };
+	struct ConVarSystemState*	pConVar{ nullptr };
 	class IEventSystem*		pEngineEventHandler{ nullptr };
 	class IInputSystem*		pInputSystem{ nullptr };
 	class IRenderer*		pRenderer{ nullptr };

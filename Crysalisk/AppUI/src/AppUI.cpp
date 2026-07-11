@@ -15,6 +15,7 @@
 #include "Controls/Button.h"
 
 // Core
+#include <Core/InputTypes.h>
 #include <Core/Logging.h>
 
 // Engine
@@ -40,6 +41,11 @@ namespace AppUI
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 		virtual void	Update() override;
 
+		virtual void	AcquireInputFocus() override;
+		virtual void	LoseInputFocus() override;
+
+		virtual void	SetActiveControl(UIControlHandle_t hControl) override { hActiveControl = hControl; }
+
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
 
@@ -62,7 +68,10 @@ namespace AppUI
 		enum ePluginInitializeState{ PLUGIN_STATE_NOT_INITIALIZED = 0, PLUGIN_STATE_PRE_INITIALIZED, PLUGIN_STATE_INITIALIZED };
 		u8 pluginState{ PLUGIN_STATE_NOT_INITIALIZED };
 
-		AppUIRenderContext_t	renderContext{};
+		AppUIRenderContext_t	m_RenderContext{};
+		IInputSystem*			m_pInputSystem{ nullptr };
+
+		InputMap_t m_InputHandler{};
 
 		Utl::CVector<UIControlRenderData_t>	renderables{};
 
@@ -72,11 +81,15 @@ namespace AppUI
 		Utl::CVector<UIControlFrame_t>		frames{};
 		Utl::CVector<UIControlLabel_t>		labels{};
 		Utl::CVector<UIControlButton_t>		buttons{};
+
+		UIControlHandle_t					hActiveControl{ kInvalidID_U32 };
 	};
 
 	static UIControlHandle_t	GetAvailableBaseControl(CAppUI* pUIContext);
 	static u32					GetAvailableRenderableIndex(CAppUI* pUIContext);
 	static const char*			GetStringForControlType(u16 controlType);
+
+	static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
 
 	bool CAppUI::PreInitialize(struct ApplicationConfig_t* pAppConfig)
 	{
@@ -111,16 +124,21 @@ namespace AppUI
 		pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 		// FIXME: Don't hardcode these.
-		renderContext.currentSurfaceWidth = 1080;
-		renderContext.currentSurfaceHeight = 720;
+		m_RenderContext.currentSurfaceWidth = 1080;
+		m_RenderContext.currentSurfaceHeight = 720;
 
-		renderContext.m_pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
-		renderContext.m_pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
+		m_RenderContext.m_pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
+		m_RenderContext.m_pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
+		m_pInputSystem = pAppConfig->pEngine->GetEngineInterfaces()->pInputSystem;
 
 		// Get renderbuffer pointers.
 		// FIXME: We need a better way creating renderbuffers.
-		renderContext.m_pVertexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
-		renderContext.m_pIndexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
+		m_RenderContext.m_pVertexBuffer = m_RenderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
+		m_RenderContext.m_pIndexBuffer = m_RenderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
+
+		// Setup event handlers.
+		m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
+		m_InputHandler.pListenerInst = this;
 
 		pluginState = PLUGIN_STATE_INITIALIZED;
 
@@ -134,8 +152,8 @@ namespace AppUI
 			pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI] = new AppUIView_ExtendedData_t;
 			AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
 
-			pViewData->pVertexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
-			pViewData->pIndexBuffer = renderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
+			pViewData->pVertexBuffer = m_RenderContext.m_pRenderer->GetRenderBufferByName("AppUI_Vertex_Buffer");
+			pViewData->pIndexBuffer = m_RenderContext.m_pRenderer->GetRenderBufferByName("AppUI_Index_Buffer");
 
 			// Allocate geometry data using the frame allocator.
 			pViewData->renderables.SetAllocator(pRenderPacket->pFrameAllocator);
@@ -148,7 +166,7 @@ namespace AppUI
 		pViewData->renderables.Clear();
 
 		pViewData->renderables.Resize(renderables.Count());
-		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)renderContext.currentSurfaceWidth, 0.0f, (f32)renderContext.currentSurfaceHeight, 0.1f, 1000.0f);
+		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)m_RenderContext.currentSurfaceWidth, 0.0f, (f32)m_RenderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 
 		for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
 		{
@@ -184,8 +202,8 @@ namespace AppUI
 							Vector4D hoveredColor{ 0.0f, 1.0f, 0.0f, 1.0f };
 
 							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
-							renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
-								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
+							m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
+								m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
 
 							// If the left mouse button is pressed, do the callback.
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
@@ -199,8 +217,8 @@ namespace AppUI
 							// FIXME: Cache off shader uniform locations.
 							UIControlPanel_t* pPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
 							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
-							renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
-								renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+							m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
+								m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
 						}
 					}
 					break;
@@ -214,6 +232,18 @@ namespace AppUI
 				}
 			}
 		}
+	}
+
+	// LEFTOFF: Popping this map open circles back to pushing it on the same frame,
+	// allowing the console to be written to when not active. Investigate.
+	void CAppUI::AcquireInputFocus()
+	{
+		m_pInputSystem->PushInputMap(&m_InputHandler);
+	}
+
+	void CAppUI::LoseInputFocus()
+	{
+		m_pInputSystem->PopInputMap();
 	}
 
 	UIControlHandle_t CAppUI::CreateUIControl(eControlType controlType)
@@ -234,10 +264,10 @@ namespace AppUI
 				UIControlPanel_t* pPanelData = &panels.Back();
 				pNewBase->m_iControlDataIdx = (u32)panels.Count() - 1;
 
-				CreatePanel(pNewBase, pRenderable, pPanelData, &renderContext);
+				CreatePanel(pNewBase, pRenderable, pPanelData, &m_RenderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pPanelData->x, pPanelData->y);
-				SetPanelControlDimensions(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pPanelData->width, pPanelData->height);
+				SetPanelControlPosition(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->x, pPanelData->y);
+				SetPanelControlDimensions(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->width, pPanelData->height);
 			}
 			break;
 
@@ -259,7 +289,7 @@ namespace AppUI
 				UIControlLabel_t* pLabelData = &labels.Back();
 				pNewBase->m_iControlDataIdx = (u32)labels.Count() - 1;
 
-				CreateLabelControl(pNewBase, pRenderable, pLabelData, &renderContext);
+				CreateLabelControl(pNewBase, pRenderable, pLabelData, &m_RenderContext);
 			}
 			break;
 
@@ -269,10 +299,10 @@ namespace AppUI
 				UIControlButton_t* pButtonData = &buttons.Back();
 				pNewBase->m_iControlDataIdx = (u32)buttons.Count() - 1;
 
-				CreateButton(pNewBase, pRenderable, pButtonData, &renderContext);
+				CreateButton(pNewBase, pRenderable, pButtonData, &m_RenderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->panel.x, pButtonData->panel.y);
-				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &renderContext, pButtonData->panel.width, pButtonData->panel.height);
+				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y);
+				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height);
 				
 			}
 			break;
@@ -293,7 +323,7 @@ namespace AppUI
 		switch (pBase->m_eControlType)
 		{
 		case CONTROL_TYPE_PANEL:
-			DestroyPanel(panel, &renderables[pBase->m_iRenderableIdx], &renderContext);
+			DestroyPanel(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext);
 			break;
 
 		default:
@@ -338,11 +368,11 @@ namespace AppUI
 		{
 		case CONTROL_TYPE_PANEL:
 			panel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
 			break;
 		case CONTROL_TYPE_FRAME:
 			panel = frames[pBase->m_iControlDataIdx].panel;
-			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
 			break;
 		case CONTROL_TYPE_LABEL:
 			{
@@ -354,7 +384,7 @@ namespace AppUI
 			{
 				// Get our own panel.
 				panel = &buttons[pBase->m_iControlDataIdx].panel;
-				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, parentedX, parentedY);
+				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
 			}
 			break;
 
@@ -373,15 +403,15 @@ namespace AppUI
 		{
 		case CONTROL_TYPE_PANEL:
 			panel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
 			break;
 		case CONTROL_TYPE_FRAME:
 			panel = frames[pBase->m_iControlDataIdx].panel;
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
 			break;
 		case CONTROL_TYPE_BUTTON:
 			panel = &buttons[pBase->m_iControlDataIdx].panel;
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &renderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
 			break;
 
 		default:
@@ -435,8 +465,8 @@ namespace AppUI
 		panel->color.y = flG;
 		panel->color.z = flB;
 		panel->color.w = flA;
-		renderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 
-			renderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &panel->color);
+		m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader, 
+			m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &panel->color);
 	}
 
 	char* CAppUI::GetControlText(UIControlHandle_t hControl)
@@ -463,7 +493,7 @@ namespace AppUI
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
 		UIControlRenderData_t* pRenderable = &renderables[pBase->m_iRenderableIdx];
 
-		SetLabelText(pLabel, pRenderable, &renderContext, pszText);
+		SetLabelText(pLabel, pRenderable, &m_RenderContext, pszText);
 	}
 
 	void CAppUI::SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize)
@@ -473,7 +503,7 @@ namespace AppUI
 		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_LABEL, "SetControlFont - This function must only be called for UI elements that support text!");
 
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
-		SetLabelFont(pLabel, &renderables[pBase->m_iRenderableIdx], &renderContext, pszFontName, flFontSize);
+		SetLabelFont(pLabel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, pszFontName, flFontSize);
 	}
 
 	void CAppUI::SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener)
@@ -488,8 +518,8 @@ namespace AppUI
 
 	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)
 	{
-		u32 oldSurfaceWidth = renderContext.currentSurfaceWidth;
-		u32 oldSurfaceHeight = renderContext.currentSurfaceHeight;
+		u32 oldSurfaceWidth = m_RenderContext.currentSurfaceWidth;
+		u32 oldSurfaceHeight = m_RenderContext.currentSurfaceHeight;
 
 		for (u32 iControl = 0; iControl < baseControls.Count(); ++iControl)
 		{
@@ -514,8 +544,8 @@ namespace AppUI
 					CAssert(pCurrentPanel);
 
 					// These will regenerate control geometry. FIXME: Just regenerate without setting fields?
-					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentPanel->x, pCurrentPanel->y);
-					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &renderContext, pCurrentPanel->width, pCurrentPanel->height);
+					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->x, pCurrentPanel->y);
+					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->width, pCurrentPanel->height);
 				}
 				else
 				{
@@ -523,14 +553,14 @@ namespace AppUI
 					UIControlLabel_t* pLabel = &labels[pCurrentBase->m_iControlDataIdx];
 					UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 
-					RegenerateLabelGeometry(pLabel, pRenderable, &renderContext);
+					RegenerateLabelGeometry(pLabel, pRenderable, &m_RenderContext);
 				}
 			}
 		}
 
 		// Lastly, store off these new values.
-		renderContext.currentSurfaceWidth = newWidth;
-		renderContext.currentSurfaceHeight = newHeight;
+		m_RenderContext.currentSurfaceWidth = newWidth;
+		m_RenderContext.currentSurfaceHeight = newHeight;
 	}
 
 	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext)
@@ -586,6 +616,145 @@ namespace AppUI
 		}
 
 		return nullptr;
+	}
+
+	static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags)
+	{
+		CAppUI* pUIContext = (CAppUI*)pListener;
+		char c = (char)keyCode;
+
+		if (c == KEY_ESCAPE)
+		{
+			// Let this fall through to the engine.
+			return false;
+		}
+
+		if (c == KEY_TILDE && pressed && ((flags & KEY_MESSAGE_FLAG_REPEATING) == 0))
+		{
+			pUIContext->LoseInputFocus();
+			return false;
+		}
+
+		UIBaseControl_t* pActiveBase = &pUIContext->baseControls[pUIContext->hActiveControl];
+
+		if (pActiveBase->m_eControlType == CONTROL_TYPE_LABEL && pressed)
+		{
+			UIControlLabel_t* pLabelData = &pUIContext->labels[pActiveBase->m_iControlDataIdx];
+
+			if (c == KEY_SHIFT)
+			{
+				return true;
+			}
+
+			// Get the current text in the control.
+			char* pCurrentEntryText = pLabelData->pszText;
+			u64 length = Utl::StringLength(pCurrentEntryText);
+
+			if (length < 1)
+			{
+				return true;
+			}
+
+			if (c == KEY_ENTER)
+			{
+				// Pass this down the chain. Console will use it to execute a command.
+				// FIXME: Labels currently don't support typing newline codes.
+				return false;
+			}
+
+			char szOutBuffer[10000]{};
+
+			// Handle special cases
+			if (c == KEY_BACKSPACE)
+			{
+				// Take the current text, and remove one character from it.
+				if (length < 1)
+				{
+					return true;
+				}
+
+				Platform::MemoryCopy(szOutBuffer, pCurrentEntryText, length - 1);
+				szOutBuffer[length] = 0;
+			}
+			else
+			{
+				// Default case.
+
+				// Check shift key state.
+				// FIXME: This translation should be handled by the input system.
+				bool bShiftPressed = g_pEngine->GetEngineInterfaces()->pInputSystem->IsKeyPressed(KEY_SHIFT);
+
+				if (!bShiftPressed)
+				{
+					if (c >= KEY_A && c <= KEY_Z)
+					{
+						// Lowercase letters if necessary.
+						c += ('a' - 'A');
+					}
+				}
+				else
+				{
+					if (c >= KEY_0 && c <= KEY_9)
+					{
+						// Numbers/symbol case.
+						// Map the key to the correct symbol.
+						switch (c)
+						{
+						case KEY_0:
+							c = 41;
+							break;
+						case KEY_1:
+							c = 33;
+							break;
+						case KEY_2:
+							c = 64;
+							break;
+						case KEY_3:
+							c = 35;
+							break;
+						case KEY_4:
+							c = 36;
+							break;
+						case KEY_5:
+							c = 37;
+							break;
+						case KEY_6:
+							c = 94;
+							break;
+						case KEY_7:
+							c = 38;
+							break;
+						case KEY_8:
+							c = 42;
+							break;
+						case KEY_9:
+							c = 40;
+							break;
+						default:
+							CAssert(0);
+						}
+					}
+					else if (c == KEY_HYPHEN)
+					{
+						c = 95;	// to underscore
+					}
+				}
+
+				// Append the new char to it.
+				Utl::StringFormat_V("%s%c", szOutBuffer, pCurrentEntryText, c);
+			}
+
+			// Apply to the control.
+			pUIContext->SetControlText(pUIContext->hActiveControl, szOutBuffer);
+		}
+		else
+		{
+			// These cases not yet supported.
+			CAssert(pActiveBase->m_eControlType == CONTROL_TYPE_LABEL);
+		}
+
+		// Don't let other listeners have this event.
+		return true;
 	}
 
 } // namespace AppUI

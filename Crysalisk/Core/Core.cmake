@@ -16,10 +16,13 @@ set(CRYSALISK_CORE_SRC_FILES
 	${CORE_ROOT}/Containers/CDeque.h
 	${CORE_ROOT}/Containers/CFreeList.h
 	${CORE_ROOT}/Containers/CHashMap.h
+	${CORE_ROOT}/Containers/CStack.h
 	${CORE_ROOT}/Containers/CVector.h
 	${CORE_ROOT}/Core/Assertions.h
 	${CORE_ROOT}/Core/Clock.cpp
 	${CORE_ROOT}/Core/Clock.h
+	${CORE_ROOT}/Core/ConVar.cpp
+	${CORE_ROOT}/Core/ConVar.h
 	${CORE_ROOT}/Core/InputTypes.h
 	${CORE_ROOT}/Core/Logging.cpp
 	${CORE_ROOT}/Core/Logging.h

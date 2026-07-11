@@ -6,6 +6,8 @@
 //=============================================================================
 #pragma once
 
+#include <Defines.h>
+
 //-------------------------------------------------------------------------
 // A table of keycodes.
 // NOTE: The alphanumeric codes are aligned with their ASCII-counterparts.
@@ -26,6 +28,8 @@ enum eKeyTable
 	KEY_UP,
 	KEY_RIGHT,
 	KEY_DOWN,
+
+	KEY_HYPHEN = 45,
 
 	KEY_0 = 48,
 	KEY_1,
@@ -73,6 +77,13 @@ enum eKeyTable
 	MAX_INPUT_KEYS
 };
 
+enum eKeyMessageFlags
+{
+	KEY_MESSAGE_FLAG_REPEATING = 0x1,
+};
+
+typedef u16 keyMessageFlagBits;
+
 //-------------------------------------------------------------------------
 // Mouse Button Table
 //-------------------------------------------------------------------------
@@ -87,6 +98,14 @@ enum eMouseButtonTable
 	MAX_MOUSE_BUTTONS
 };
 
+// A collection of pointers used to route inputs through the appropriate channels.
+struct InputMap_t
+{
+	bool (*PFN_KeyEvent_Callback)(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags) { nullptr };
+
+	void* pListenerInst{ nullptr };
+};
+
 //-------------------------------------------------------------------------
 // String representations of the key table above.
 //-------------------------------------------------------------------------
@@ -96,12 +115,29 @@ static const char* e_KeyTable_Strings[MAX_INPUT_KEYS] = {
 
 	"CTRL",
 
+	"BACKSPACE",
+
 	"ESC",
 
 	"SPACE",
 
+	"LEFT",
+	"RIGHT",
 	"UP",
 	"DOWN",
+
+	"-",
+
+	"0",
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6",
+	"7",
+	"8",
+	"9",
 
 	"A",
 	"B",
@@ -129,6 +165,11 @@ static const char* e_KeyTable_Strings[MAX_INPUT_KEYS] = {
 	"X",
 	"Y",
 	"Z",
+
+	"`"
+
+	"SHIFT",
+	"ENTER",
 };
 
 //-------------------------------------------------------------------------

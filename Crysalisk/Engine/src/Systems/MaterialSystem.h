@@ -33,7 +33,7 @@ public:
 
 	// Initialization, shutdown.
 	virtual bool				Initialize(MaterialSystemConfig_t config) = 0;
-	virtual void				PostInitialize() = 0;
+	virtual void				PostInitialize(struct EngineInterfaces_t* pEngineSystems) = 0;
 	virtual void				Shutdown() = 0;
 
 	// Acquires the resources for a given material.

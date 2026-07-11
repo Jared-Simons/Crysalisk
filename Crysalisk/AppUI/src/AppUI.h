@@ -42,6 +42,11 @@ namespace AppUI
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 		virtual void	Update() = 0;
 
+		virtual void	AcquireInputFocus() = 0;
+		virtual void	LoseInputFocus() = 0;
+
+		virtual void	SetActiveControl(UIControlHandle_t hControl) = 0;
+
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) = 0;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) = 0;
 
