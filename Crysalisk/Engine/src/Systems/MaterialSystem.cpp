@@ -208,11 +208,8 @@ void CMaterialSystem::PostInitialize(struct EngineInterfaces_t* pEngineSystems)
 	CAssert(pEngineSystems);
 
 	// Material system convars.
-	//ConsoleCommandRegister(pEngineSystems->pConVar, "mat_debugvismode", CONVAR_VALUETYPE_INT, ConVar_SetDebugVisMode, this);
-	//ConsoleCommandSet_Int(pEngineSystems->pConVar, "mat_debugvismode", 0);
-
-	ConsoleCommandRegister(pEngineSystems->pConVar, "test", CONVAR_VALUETYPE_INT, ConVar_SetDebugVisMode, this);
-	ConsoleCommandSet_Int(pEngineSystems->pConVar, "test", 0);
+	ConsoleCommandRegister(pEngineSystems->pConVar, "mat_debugvismode", CONVAR_VALUETYPE_INT, ConVar_SetDebugVisMode, this);
+	ConsoleCommandSet_Int(pEngineSystems->pConVar, "mat_debugvismode", 0);
 	
 	// Setup shader locations.
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;

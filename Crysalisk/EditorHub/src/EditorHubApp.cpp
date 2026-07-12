@@ -51,7 +51,6 @@ private:
 
 	// These need access to our members.
 	friend static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
-	friend static bool Event_KeyPressed(void* pEventListener, EventData_t data);
 };
 
 CEditorHubApp s_EditorHubApp{};
@@ -60,9 +59,6 @@ typedef IToolApp* (*PFN_Get_Tool_App_State)();
 
 // Input handlers
 static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
-
-// Event handlers
-static bool Event_KeyPressed(void* pEventListener, EventData_t data);
 
 // Console command callbacks.
 static void ConsoleCommand_ExitApp(struct ConVar_t* pCommand, void* pValue);
@@ -147,10 +143,6 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	struct ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
 	ConsoleCommandRegister(pConVar, "exit", CONVAR_VALUETYPE_NONE, ConsoleCommand_ExitApp, nullptr);
 
-	// Event callbacks.
-	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_PRESSED, this, Event_KeyPressed);
-
 	// Setup input handler.
 	m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
 	m_InputHandler.pListenerInst = this;
@@ -202,9 +194,6 @@ bool CEditorHubApp::Render()
 
 void CEditorHubApp::Shutdown()
 {
-	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
-	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, this, Event_KeyPressed);
-
 	ConsoleDestroy(m_pUISystem, &m_Console);
 
 	//m_pUISystem->DestroyUIControl(hTestButton);
@@ -233,12 +222,11 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 
 static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags)
 {
+	CEditorHubApp* pApp = (CEditorHubApp*)pListener;
+	CAssert(pApp);
 	if (keyCode == KEY_TILDE)
 	{
 		// Toggle visiblity of the dev console.
-		CEditorHubApp* pApp = (CEditorHubApp*)pListener;
-		CAssert(pApp);
-
 		static bool consoleVisible = false;
 		consoleVisible = !consoleVisible;
 		SetConsoleVisible(pApp->m_pUISystem, &pApp->m_Console, consoleVisible);
@@ -254,37 +242,6 @@ static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, k
 	}
 
 	// Let other listeners get this.
-	return false;
-}
-
-static bool Event_KeyPressed(void* pEventListener, EventData_t data)
-{
-	CEditorHubApp* pApp = (CEditorHubApp*)pEventListener;
-	CAssert(pApp);
-
-	if (data.c[0] == KEY_TILDE)
-	{
-		// Toggle visiblity of the dev console.
-		static bool consoleVisible = false;
-		consoleVisible = !consoleVisible;
-		SetConsoleVisible(pApp->m_pUISystem, &pApp->m_Console, consoleVisible);
-
-		if (consoleVisible)
-		{
-			// Give input focus over to the UI system.
-			pApp->m_pUISystem->AcquireInputFocus();
-
-			// Focus on the input text control.
-			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl);
-		}
-	}
-	else if (data.c[0] == KEY_ENTER && pApp->m_Console.visible)
-	{
-		// Attempt to execute and queued commands.
-		ConsoleSubmitCommand(pApp->m_pUISystem, &pApp->m_Console);
-	}
-
-	// Let other listeners handle this event.
 	return false;
 }
 

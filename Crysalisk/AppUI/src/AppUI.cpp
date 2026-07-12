@@ -234,8 +234,6 @@ namespace AppUI
 		}
 	}
 
-	// LEFTOFF: Popping this map open circles back to pushing it on the same frame,
-	// allowing the console to be written to when not active. Investigate.
 	void CAppUI::AcquireInputFocus()
 	{
 		m_pInputSystem->PushInputMap(&m_InputHandler);
