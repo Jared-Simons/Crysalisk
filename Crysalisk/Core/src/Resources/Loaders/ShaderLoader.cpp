@@ -261,7 +261,7 @@ namespace ShaderLoader
 		
 		// While we're here, we can copy over the shader type string as well.
 		commaIndex = Utl::StringIndexOf(pszTrimmedModulePath, ',');
-		pszTypeString = Utl::StringDuplicate(&pszTrimmedModulePath[commaIndex + 1]);
+		pszTypeString = Utl::StringDuplicate(&pszTrimmedModulePath[commaIndex + 2]);	// FIXME: This assumes space delimited, might be better to not assume that.
 		newShaderModule.pszStageString = Utl::StringStrip(pszTypeString, '\"');
 		 
 		// Chop off the type string from the path.
@@ -381,7 +381,7 @@ namespace ShaderLoader
 		newAttribute.pszName = Utl::StringStrip(pszTempStringBuffer, '\"');
 		Utl::StringFree(pszTempStringBuffer);
 
-		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 1]);
+		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 2]);
 		newAttribute.pszType = Utl::StringStrip(pszTempStringBuffer, '\"');
 		Utl::StringFree(pszTempStringBuffer);
 
@@ -457,7 +457,7 @@ namespace ShaderLoader
 		// Uniform name first.
 		pszTempStringBuffer = Utl::StringDuplicate_N(pszTrimmedData, commaIndex);
 		newUniform.pszName = Utl::StringStrip(pszTempStringBuffer, '\"');
-		commaIndex2 = Utl::StringIndexOf(&pszTrimmedData[commaIndex + 1], ',');
+		commaIndex2 = Utl::StringIndexOf(&pszTrimmedData[commaIndex + 2], ',');
 		if (commaIndex2 == kInvalidID_U32)
 		{
 			return false;
@@ -476,14 +476,21 @@ namespace ShaderLoader
 		else
 		{
 			// Otherwise, just copy the whole type over.
-			pszTempStringBuffer = Utl::StringDuplicate_N(&pszTrimmedData[commaIndex + 1], commaIndex2);
+			pszTempStringBuffer = Utl::StringDuplicate_N(&pszTrimmedData[commaIndex + 2], commaIndex2);
 		}
-		newUniform.pszType = Utl::StringStrip(pszTempStringBuffer, '\"');
+		char* pszTrimmedType = Utl::StringTrim(pszTempStringBuffer);
+		newUniform.pszType = Utl::StringStrip(pszTrimmedType, '\"');
+		Utl::StringFree(pszTrimmedType);
+		pszTrimmedType = nullptr;
 
 		// Uniform update group next.
 		Utl::StringFree(pszTempStringBuffer);
-		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 1 + commaIndex2 + 1]);
-		newUniform.pszFreq = Utl::StringStrip(pszTempStringBuffer, '\"');
+		pszTempStringBuffer = Utl::StringDuplicate(&pszTrimmedData[commaIndex + 2 + commaIndex2 + 1]);
+
+		char* pszTrimmedFreq = Utl::StringTrim(pszTempStringBuffer);
+		newUniform.pszFreq = Utl::StringStrip(pszTrimmedFreq, '\"');
+		Utl::StringFree(pszTrimmedFreq);
+		pszTrimmedFreq = nullptr;
 
 		// Release temp string data.
 		if (pszTempStringBuffer)

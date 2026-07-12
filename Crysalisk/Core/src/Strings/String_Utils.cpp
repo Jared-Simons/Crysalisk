@@ -256,26 +256,30 @@ namespace Utl
 	{
 		u64 strLength = StringLength(pszStr);
 
-		u64 startIndex = -1;
-		u64 endIndex = -1;
+		i64 startIndex = 0;
+		i64 endIndex = -1;
 		u64 numWhitespaceCharacters = 0;
+		bool startingCharFound = false;
 
 		for (i32 idx = 0; idx < strLength; idx++)
 		{
-			if (pszStr[idx] != ' ' && startIndex == -1)
+			if ((pszStr[idx] == ' ' || pszStr[idx] == '\t') && startIndex != -1)
+			{
+				// Only count characters at the start and end of a string.
+				if (startIndex != 0 && endIndex == -1)
+				{
+					// Whitespace token found.
+					numWhitespaceCharacters++;
+				}
+			}
+			endIndex++;
+
+			if ((pszStr[idx] != ' ' && pszStr[idx] != '\t') && !startingCharFound)
 			{
 				// Set the start index.
 				startIndex = idx;
+				startingCharFound = true;
 			}
-
-			if ((pszStr[idx] == ' ' || pszStr[idx] == '\t') && startIndex != -1)
-			{
-				// Whitespace token found.
-				numWhitespaceCharacters++;
-			}
-
-			if (startIndex != -1 && endIndex != -1)
-				break;
 		}
 
 		if (endIndex == -1)
@@ -290,15 +294,15 @@ namespace Utl
 		// Step through the string again, this time copying over all the characters BUT the whitespace characters.
 		for (i32 idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)
 		{
-			// Ignore all whitespace tokens.
-			while (pszStr[oldIdx] == ' ' || pszStr[oldIdx] == '\t')
+			// Ignore all whitespace tokens on either side of the string.
+			while ((pszStr[oldIdx] == ' ' || pszStr[oldIdx] == '\t') && (idx < startIndex || idx > endIndex))
 				oldIdx++;
 
 			pTrimmedString[idx] = pszStr[oldIdx];
 			lastNonWhitespaceIdx = idx;
 		}
 
-		pTrimmedString[lastNonWhitespaceIdx] = 0;
+		pTrimmedString[lastNonWhitespaceIdx + 1] = 0;
 		return pTrimmedString;
 	}
 
