@@ -51,9 +51,16 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pOutConsole->hCommandSubmitButton = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 	pUISystem->SetControlParent(pOutConsole->hCommandSubmitButton, pOutConsole->hBackgroundPanel);
 	pUISystem->SetControlPosition(pOutConsole->hCommandSubmitButton, 980, 130);
-	pUISystem->SetControlDimensions(pOutConsole->hCommandSubmitButton, 50, 50);
+	pUISystem->SetControlDimensions(pOutConsole->hCommandSubmitButton, 60, 50);
 	pUISystem->SetControlColor(pOutConsole->hCommandSubmitButton, 50, 50, 50, 215);
 	pUISystem->SetControlPressedCallback(pOutConsole->hCommandSubmitButton, ConsoleEvent_OnSubmitButtonPressed, pOutConsole);
+
+	// Command submit button label.
+	pOutConsole->hCommandSubmitButtonLabel = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+	pUISystem->SetControlParent(pOutConsole->hCommandSubmitButtonLabel, pOutConsole->hCommandSubmitButton);
+	pUISystem->SetControlPosition(pOutConsole->hCommandSubmitButtonLabel, 0, 35);
+	pUISystem->SetControlFont(pOutConsole->hCommandSubmitButtonLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+	pUISystem->SetControlText(pOutConsole->hCommandSubmitButtonLabel, "SUBMIT");
 
 	// Label for console readout.
 	pOutConsole->hConsoleReadout = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
@@ -75,7 +82,7 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, pOutConsole, ConsoleEvent_WindowResized);
 	pOutConsole->pUIContext = pUISystem;
 
-	// Register this system with the engine's logger.
+	// Register this console with the engine's logger.
 	g_pLog->RegisterConsoleWriteCallback(pOutConsole, ConsoleEvent_MessageReceived);
 
 	// Default to the console being disabled.
@@ -158,6 +165,7 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 
 	pUISystem->SetControlVisible(pConsole->hBackgroundPanel, visible);
 	pUISystem->SetControlVisible(pConsole->hCommandSubmitButton, visible);
+	pUISystem->SetControlVisible(pConsole->hCommandSubmitButtonLabel, visible);
 	pUISystem->SetControlVisible(pConsole->hReadoutPanel, visible);
 	pUISystem->SetControlVisible(pConsole->hConsoleReadout, visible);
 	pUISystem->SetControlVisible(pConsole->hTextEntryControl, visible);
@@ -170,7 +178,8 @@ void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 	char* pCurrentEntryText = pConsole->pUIContext->GetControlText(pConsole->hTextEntryControl);
 	char* pszTrimmedEntry = Utl::StringTrim(pCurrentEntryText);
 
-	if (Utl::StringLength(pszTrimmedEntry) == 0)
+	u64 length = Utl::StringLength(pszTrimmedEntry);
+	if (length == 0 || (length == 1 && pszTrimmedEntry[0] == ' '))
 	{
 		goto cleanup_and_exit;
 	}
@@ -180,6 +189,9 @@ void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 	LOG_INFO("%s", pszTrimmedEntry);
 
 	ConsoleCommandExecute(pConsole->pConVar, pszTrimmedEntry);
+
+	// Save off the entry.
+	pConsole->entryHistory.PushBack(Utl::StringDuplicate(pszTrimmedEntry));
 
 	// Clear out the text entry control.
 	// FIXME: We need to be able to clear the text without needing a space in there.
@@ -209,6 +221,40 @@ static bool ConsoleEvent_KeyPressed(void* pListener, EventData_t data)
 	{
 		// Ignore certian keys.
 		return false;
+	}
+
+	if (c == KEY_UP)
+	{
+		// Scroll through submitted messages.
+		if (pConsole->entryHistory.Count() < 1)
+		{
+			return true;
+		}
+
+		pConsole->currentEntryIndex = (pConsole->currentEntryIndex + 1) % pConsole->entryHistory.Count();
+		pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, pConsole->entryHistory[pConsole->currentEntryIndex]);
+
+		return true;
+	}
+	else if (c == KEY_DOWN)
+	{
+		// Scroll the other way.
+		if (pConsole->entryHistory.Count() < 1)
+		{
+			return true;
+		}
+
+		if ((i32)(pConsole->currentEntryIndex - 1) < 0)	// Handle wraparound
+		{
+			pConsole->currentEntryIndex = pConsole->entryHistory.Count() - 1;
+		}
+		else
+		{
+			pConsole->currentEntryIndex -= 1;
+		}
+		pConsole->pUIContext->SetControlText(pConsole->hTextEntryControl, pConsole->entryHistory[pConsole->currentEntryIndex]);
+
+		return true;
 	}
 
 	// Get the current text in the control.

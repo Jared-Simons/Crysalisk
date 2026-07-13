@@ -15,9 +15,7 @@
 #include "Renderer/Camera.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RendererTypes.h"
-#include "Resources/GeometryGenerator.h"
 #include "Resources/Map.h"
-#include <Strings/String_Utils.h>
 #include "Systems/DebugGeometrySystem.h"
 #include "Systems/FontSystem.h"
 #include "Systems/JobSystem.h"

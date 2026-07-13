@@ -6,12 +6,10 @@
 //=============================================================================
 #include "Panel.h"
 
+#include "Label.h"
+
 // Core
 #include <Core/Assertions.h>
-
-// Engine
-#include <Renderer/Renderer.h>
-#include <Systems/ShaderSystem.h>
 
 namespace AppUI
 {
@@ -19,7 +17,6 @@ namespace AppUI
 	{
 		CAssert(pRenderable && pButtonControl && pRenderContext);
 
-		// FIXME: Make this work
 		pBase->m_eControlType = CONTROL_TYPE_BUTTON;
 
 		// Set some defaults here, the caller can override after creation.

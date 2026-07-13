@@ -301,7 +301,6 @@ namespace AppUI
 				// These calls will generate the base control geometry.
 				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y);
 				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height);
-				
 			}
 			break;
 
@@ -353,6 +352,9 @@ namespace AppUI
 			case CONTROL_TYPE_FRAME:
 				panel = frames[pParentBase->m_iControlDataIdx].panel;
 				break;
+			case CONTROL_TYPE_BUTTON:
+				panel = &buttons[pParentBase->m_iControlDataIdx].panel;
+				break;
 			default:
 				CAssert(0);
 				break;
@@ -376,12 +378,14 @@ namespace AppUI
 			{
 				UIControlLabel_t* pLabelData = &labels[pBase->m_iControlDataIdx];
 				SetLabelPosition(pLabelData, parentedX, parentedY);
+				RegenerateLabelGeometry(pLabelData, &renderables[pBase->m_iRenderableIdx], &m_RenderContext);
 			}
 			break;
 		case CONTROL_TYPE_BUTTON:
 			{
 				// Get our own panel.
-				panel = &buttons[pBase->m_iControlDataIdx].panel;
+				UIControlButton_t* pButtonData = &buttons[pBase->m_iControlDataIdx];
+				panel = &pButtonData->panel;
 				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
 			}
 			break;
@@ -657,6 +661,11 @@ namespace AppUI
 			{
 				// Pass this down the chain. Console will use it to execute a command.
 				// FIXME: Labels currently don't support typing newline codes.
+				return false;
+			}
+			else if (c == KEY_UP || c == KEY_DOWN)
+			{
+				// Dev console can use these.
 				return false;
 			}
 

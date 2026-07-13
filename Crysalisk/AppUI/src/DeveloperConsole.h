@@ -28,9 +28,14 @@ struct DeveloperConsole
 	AppUI::UIControlHandle_t hConsoleReadout{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t hTextEntryControl{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t hCommandSubmitButton{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t hCommandSubmitButtonLabel{ kInvalidID_U32 };	// TODO: Combine this with the button?
 
 	// Lines of text to be rendered by the console.
 	Utl::CVector<char*>		readoutStrings{};
+
+	// List of commands submitted to the console by the user.
+	Utl::CVector<char*>		entryHistory{};
+	u32						currentEntryIndex{ kInvalidID_U32 };
 
 	// Lines queued to be written to the console.
 	// Used for threading.
