@@ -16,6 +16,10 @@ enum eConVar_ValueType
 	CONVAR_VALUETYPE_NONE = 0,
 	CONVAR_VALUETYPE_INT,
 	CONVAR_VALUETYPE_FLOAT,
+	CONVAR_VALUETYPE_STRING,
+
+	// A special value type used for commands that accept data as parameters, but do not store them. The callback function will need to interpret the data.
+	CONVAR_VALUETYPE_PASSTHROUGH,	
 };
 
 struct ConVar_t

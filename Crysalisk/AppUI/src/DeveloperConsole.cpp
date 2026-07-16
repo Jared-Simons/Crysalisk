@@ -184,11 +184,11 @@ void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 		goto cleanup_and_exit;
 	}
 
+	// Send it to the logger.
+	LOG_INFO("%s", pszTrimmedEntry);
+
 	// Attempt to execute the command.
 	ConsoleCommandExecute(pConsole->pConVar, pszTrimmedEntry);
-
-	// Also send it to the logger.
-	LOG_INFO("%s", pszTrimmedEntry);
 
 	// Save off the entry.
 	pConsole->entryHistory.PushBack(Utl::StringDuplicate(pszTrimmedEntry));

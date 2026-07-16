@@ -195,6 +195,7 @@ void CDebugGeometrySystem::Update()
 
 void CDebugGeometrySystem::PopulateRenderPacket(Utl::CVector<GeometryInstance_t*>& pGeometries, RenderBuffer** pOutVertexBuffer, RenderBuffer** pOutIndexBuffer)
 {
+	pGeometries.Resize(IntMin(m_iActiveGeometryInstances, m_Config.uMaxDebugGeometries));
 	pGeometries.SetCount(IntMin(m_iActiveGeometryInstances, m_Config.uMaxDebugGeometries));
 
 	*pOutVertexBuffer = m_pDebugVertexBuffer;

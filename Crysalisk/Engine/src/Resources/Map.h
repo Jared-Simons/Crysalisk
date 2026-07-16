@@ -58,4 +58,4 @@ private:
 	bool								m_bMapResourcesLoaded{ false };
 };
 
-bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource);
+ENGINE_API bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource);

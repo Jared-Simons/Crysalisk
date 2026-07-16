@@ -42,6 +42,9 @@ static bool Event_WindowResized(void* pEventListener, EventData_t data);
 static bool Event_WindowResizedPause(void* pEventListener, EventData_t data);
 static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data);
 
+// Console Command callbacks.
+static void ConsoleCommand_LoadMap(struct ConVar_t* pCommand, void* pValue);
+
 //-------------------------------------------------------------------------
 // Implementation of the core engine class.
 //-------------------------------------------------------------------------
@@ -144,6 +147,9 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	initializationClock.Start();
 
 	m_engineConfig = engineConfig;
+	
+	// NOTE: Setting the map here so that external applications can access it.
+	m_EngineInterfaces.pCurrentScene = &m_CurrentMap;
 
 	// Let the application set up some state.
 	if (!engineConfig.pAppConfig->pApplication)
@@ -262,7 +268,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 
 	// Debug renderer.
 	DebugRendererConfig_t debugRendererConfig{};
-	debugRendererConfig.uMaxDebugGeometries = 64;
+	debugRendererConfig.uMaxDebugGeometries = 4096;
 	debugRendererConfig.pRenderer = m_EngineInterfaces.pRenderer;
 	debugRendererConfig.pShaderSystem = m_EngineInterfaces.pShaderSystem;
 	
@@ -344,6 +350,10 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	LOG_INFO("Engine Finished Initialization, initialization took: %f s", initializationClock.GetElapsedTime());
 
 	LOG_DEBUG("Memory usage post-initialization: %.5f", g_pMemoryManager->GetPercentAllocated());
+
+	// Register engine console commands.
+	ConVarSystemState* pConVar = m_EngineInterfaces.pConVar;
+	ConsoleCommandRegister(pConVar, "map", CONVAR_VALUETYPE_PASSTHROUGH, ConsoleCommand_LoadMap, this);
 
 	return true;
 }
@@ -533,6 +543,7 @@ bool Event_KeyReleased(void* pEventListener, EventData_t data)
 	}
 	else if (keycode == 'L')
 	{
+		// FIXME: Remove this once the TestApp/game code has access to the developer console.
 		Clock mapLoadTimer{};
 		mapLoadTimer.Start();
 		if (!s_Engine.m_CurrentMap.IsMapLoaded())
@@ -667,6 +678,29 @@ static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data)
 {
 	s_bApplicationSuspended = false;
 	return true;
+}
+
+static void ConsoleCommand_LoadMap(struct ConVar_t* pCommand, void* pValue)
+{
+	CAssert(pValue);
+	LOG_DEBUG("Loading map: '%s'.", (char*)pValue);
+
+	Clock mapLoadTimer{};
+	mapLoadTimer.Start();
+
+	IMaterialSystem* pMaterialSystem = g_pEngine->GetEngineInterfaces()->pMaterialSystem;
+	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+	// HACK HACK: Just need the map to render.
+	EngineInterfaces_t* pInterfaces = const_cast<EngineInterfaces_t*>(g_pEngine->GetEngineInterfaces());
+
+	if (!LoadMap((char*)pValue, pMeshSystem, pMaterialSystem, *pInterfaces->pCurrentScene))
+	{
+		return;
+	}
+
+	LOG_DEBUG("Memory usage post-map resource free: %.10f", g_pMemoryManager->GetPercentAllocated());
+	LOG_WARN("Map load took %.5f", mapLoadTimer.GetElapsedTime());
 }
 
 //-------------------------------------------------------------------------

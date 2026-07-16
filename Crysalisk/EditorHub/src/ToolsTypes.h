@@ -18,7 +18,7 @@
 class EDITOR_HUB_API IToolApp
 {
 public:
-	virtual bool	Tool_Init() = 0;
+	virtual bool	Tool_Init(struct ApplicationConfig_t* pAppConfig) = 0;
 	virtual bool	Tool_Run() = 0;
 	virtual void	Tool_Shutdown() = 0;
 

@@ -208,7 +208,10 @@ namespace AppUI
 							// If the left mouse button is pressed, do the callback.
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 							{
-								pCurrentControl->onPressedCallback(pCurrentControl->callbackListenerInst);
+								if (pCurrentControl->onPressedCallback)
+								{
+									pCurrentControl->onPressedCallback(pCurrentControl->callbackListenerInst);
+								}
 							}
 						}
 						else
