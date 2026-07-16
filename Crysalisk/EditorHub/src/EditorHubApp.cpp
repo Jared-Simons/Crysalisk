@@ -139,9 +139,9 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	}
 
 	// Register console commands.
-	//ConsoleRegisterCommand(&m_Console, "exit", ConsoleCommand_ExitApp, nullptr);
 	struct ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
 	ConsoleCommandRegister(pConVar, "exit", CONVAR_VALUETYPE_NONE, ConsoleCommand_ExitApp, nullptr);
+	ConsoleCommandRegister(pConVar, "quit", CONVAR_VALUETYPE_NONE, ConsoleCommand_ExitApp, nullptr);
 
 	// Setup input handler.
 	m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;

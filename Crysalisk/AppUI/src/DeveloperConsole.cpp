@@ -184,11 +184,11 @@ void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 		goto cleanup_and_exit;
 	}
 
-	// Attempt to execute the command (LEFTOFF: Implement)
+	// Attempt to execute the command.
+	ConsoleCommandExecute(pConsole->pConVar, pszTrimmedEntry);
+
 	// Also send it to the logger.
 	LOG_INFO("%s", pszTrimmedEntry);
-
-	ConsoleCommandExecute(pConsole->pConVar, pszTrimmedEntry);
 
 	// Save off the entry.
 	pConsole->entryHistory.PushBack(Utl::StringDuplicate(pszTrimmedEntry));
@@ -287,6 +287,11 @@ static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
 	u32 height = data.u32[1];
 
 	pUISystem->SetControlDimensions(pConsole->hBackgroundPanel, width, (u16)(height * 0.25f));
+	pUISystem->SetControlPosition(pConsole->hReadoutPanel, (u16)(width * 0.09f), 0);
+	pUISystem->SetControlDimensions(pConsole->hReadoutPanel, (u16)(width * 0.81f), (u16)(height * 0.18f));
+	pUISystem->SetControlPosition(pConsole->hCommandSubmitButton, (u16)(width * 0.90f), (u16)(height * 0.18f));
+	pUISystem->SetControlPosition(pConsole->hCommandSubmitButtonLabel, 0, 35);
+	pUISystem->SetControlPosition(pConsole->hTextEntryControl, 0, (u16)(height * 0.24f));
 
 	// Let other listeners get this.
 	return false;
