@@ -9,8 +9,8 @@ stages
 }
 
 topology_type="line_list" 
-enable_depth_testing="false"
-enable_blending="false"
+enable_depth_testing="true"
+enable_blending="true"
 
 # Vertex attributes 
 attributes

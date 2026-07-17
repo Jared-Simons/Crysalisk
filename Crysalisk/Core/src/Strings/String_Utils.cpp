@@ -50,16 +50,14 @@ namespace Utl
 	//			pOutString - The string buffer to write to.
 	// Output:	none.
 	//-------------------------------------------------------------------------
-	// NOTE: This only supports strings UP TO 512 characters!
-	// This had to be shortened because the larger string sizes were blowing out the stack on deep call stacks.
 	void StringFormat_V(const char* pszFormat, char* pOutString, ...)
 	{
-		char stringBuffer[512];
+		char stringBuffer[10000];
 		va_list varArgs;
 		va_start(varArgs, pOutString);
-		vsnprintf_s(stringBuffer, 512, pszFormat, varArgs);
+		i32 len = vsnprintf_s(stringBuffer, 10000, pszFormat, varArgs);
 		va_end(varArgs);
-		strcpy_s(pOutString, 512, stringBuffer);
+		strcpy_s(pOutString, len + 1, stringBuffer);
 	}
 
 	//-------------------------------------------------------------------------
@@ -289,7 +287,7 @@ namespace Utl
 
 		u64 newStringLength = endIndex - startIndex - numWhitespaceCharacters + 1;
 		u64 lastNonWhitespaceIdx{ 0 };
-		char* pTrimmedString = new char[newStringLength];
+		char* pTrimmedString = new char[newStringLength + 1];
 
 		// Step through the string again, this time copying over all the characters BUT the whitespace characters.
 		for (i32 idx = 0, oldIdx = 0; idx < newStringLength; idx++, oldIdx++)

@@ -513,7 +513,7 @@ bool CVulkanRenderer::BeginRenderpass(Renderpass* pRenderpass)
 	beginInfo.renderArea.extent = pWindowState->m_Swapchain.m_SwapchainExtent;
 
 	VkClearValue clearColors[2]{};
-	clearColors[0].color = { 0.3f, 0.0f, 0.3f, 1.0f };
+	clearColors[0].color = { pRenderpass->clearColor.x, pRenderpass->clearColor.y, pRenderpass->clearColor.z, 1.0f };
 	clearColors[1].depthStencil = { 1.0f, 0 };
 	beginInfo.clearValueCount = 2;
 	beginInfo.pClearValues = clearColors;
@@ -1790,6 +1790,14 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 			vkUpdateDescriptorSets(m_Device.m_Device, 1, &descriptorWrite, 0, nullptr);
 		}
 	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::SetDepthTestState(bool bEnabled)
+{
+	vkCmdSetDepthTestEnable(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, (VkBool32)bEnabled);
 }
 
 //-------------------------------------------------------------------------

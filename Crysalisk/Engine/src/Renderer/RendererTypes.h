@@ -354,6 +354,7 @@ struct RenderpassConfig_t
 struct Renderpass
 {
 	char* pszName{ nullptr };
+	Vector clearColor{ 0.0f, 0.0f, 0.0f };
 	void* pInternalData{ nullptr };
 };
 

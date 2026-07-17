@@ -15,9 +15,7 @@
 #include <Strings/String_Utils.h>
 
 // Engine
-#include <Resources/Map.h>
-#include <Systems/MaterialSystem.h>
-#include <Systems/MeshSystem.h>
+#include <Renderer/Renderer.h>
 
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
@@ -36,7 +34,7 @@ public:
 	virtual bool Initialize(ApplicationConfig_t* pAppConfig) override;
 	virtual bool Run() override;
 	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override;
-	virtual bool Render() override;
+	virtual bool Render(struct RenderPacket_t* pRenderPacket) override;
 	virtual void Shutdown() override;	
 
 	virtual Camera_t* GetMainCamera() override { return &m_Camera; }
@@ -95,12 +93,6 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	return true;
 }
 
-// HACK: UI test
-static AppUI::UIControlHandle_t hTestFrame = kInvalidID_U32;
-static AppUI::UIControlHandle_t	hTestLabel = kInvalidID_U32;
-static AppUI::UIControlHandle_t	hTestLabel2 = kInvalidID_U32;
-static AppUI::UIControlHandle_t	hTestButton = kInvalidID_U32;
-
 bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("-------------------------");
@@ -116,45 +108,17 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	m_Camera.RecalculateCameraVectors();
 
 	// Setup controls.
+	// NOTE: Base resolution that UI elements are defined in is 1080x720.
 	m_hButton_LoadLevelEditor = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 	m_pUISystem->SetControlPosition(m_hButton_LoadLevelEditor, 100, 100);
 	m_pUISystem->SetControlDimensions(m_hButton_LoadLevelEditor, 250, 100);
 	m_pUISystem->SetControlPressedCallback(m_hButton_LoadLevelEditor, ButtonEvent_LoadTool_LevelEditor, this);
 
-	// FIXME: Creating labels and then creating other controls is breaking stuff...
-	/*m_hButtonLabel_LoadLevelEditor = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+	m_hButtonLabel_LoadLevelEditor = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	m_pUISystem->SetControlParent(m_hButtonLabel_LoadLevelEditor, m_hButton_LoadLevelEditor);
 	m_pUISystem->SetControlPosition(m_hButtonLabel_LoadLevelEditor, 20, 50);
 	m_pUISystem->SetControlFont(m_hButtonLabel_LoadLevelEditor, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
-	m_pUISystem->SetControlText(m_hButtonLabel_LoadLevelEditor, "Open Level Editor");*/
-
-	// HACK: UI test
-	{
-		// NOTE: Base resolution that UI elements are defined in is 1080x720.
-		
-		/*hTestFrame = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
-		m_pUISystem->SetControlPosition(hTestFrame, 50, 50);
-		m_pUISystem->SetControlDimensions(hTestFrame, 496, 312);
-		m_pUISystem->SetControlColor(hTestFrame, 255, 255, 255, 200);
-
-		hTestButton = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-		m_pUISystem->SetControlParent(hTestButton, hTestFrame);
-		m_pUISystem->SetControlPosition(hTestButton, 36, 40);
-		m_pUISystem->SetControlDimensions(hTestButton, 140, 24);
-		m_pUISystem->SetControlColor(hTestButton, 255, 100, 0, 255);
-
-		hTestLabel = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
-		m_pUISystem->SetControlParent(hTestLabel, hTestFrame);
-		m_pUISystem->SetControlPosition(hTestLabel, 36, 24);
-		m_pUISystem->SetControlFont(hTestLabel, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
-		m_pUISystem->SetControlText(hTestLabel, "Resolution");
-
-		hTestLabel2 = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
-		m_pUISystem->SetControlParent(hTestLabel2, hTestFrame);
-		m_pUISystem->SetControlPosition(hTestLabel2, 36, 95);
-		m_pUISystem->SetControlFont(hTestLabel2, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
-		m_pUISystem->SetControlText(hTestLabel2, "Aspect Ratio");*/
-	}
+	m_pUISystem->SetControlText(m_hButtonLabel_LoadLevelEditor, "Open Level Editor");
 
 	// Console.
 	if (!ConsoleCreate(m_pUISystem, &m_Console))
@@ -190,7 +154,7 @@ bool CEditorHubApp::Run()
 	// EDITORTODO: Only run the active tool!
 	for (i32 iTool = 0; iTool < m_pTools.Count(); iTool++)
 	{
-		m_pTools[iTool]->Tool_Run();
+		m_pTools[iTool]->Tool_Update();
 	}
 
 	return true;
@@ -207,10 +171,22 @@ void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 		m_Camera.UpdateCameraData(m_pApplicationConfig->pEngine->GetEngineInterfaces()->pInputSystem, pRenderPacket->DeltaTime);
 	}
 	pRenderPacket->pCamera = &m_Camera;
+
+	// Update tools.
+	// FIXME: Only doing first tool for now.
+	if (m_pTools.Count() > 0)
+	{
+		m_pTools[0]->FramePrepare(pRenderPacket);
+	}
 }
 
-bool CEditorHubApp::Render()
+bool CEditorHubApp::Render(struct RenderPacket_t* pRenderPacket)
 {
+	// FIXME: Only doing first tool for now.
+	if (m_pTools.Count() > 0)
+	{
+		m_pTools[0]->Render(pRenderPacket);
+	}
 	return true;
 }
 
@@ -296,6 +272,7 @@ static void ButtonEvent_LoadTool_LevelEditor(void* pListenerInst)
 
 	// After launching the tool, hide the Hub UI.
 	pApp->m_pUISystem->SetControlVisible(pApp->m_hButton_LoadLevelEditor, false);
+	pApp->m_pUISystem->SetControlVisible(pApp->m_hButtonLabel_LoadLevelEditor, false);
 }
 
 ICrysApplication* GetApplicationState()

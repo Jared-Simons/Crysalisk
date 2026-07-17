@@ -112,18 +112,6 @@ void ConsoleDestroy(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventRegister(eEventCategory::WINDOW_RESIZE, pConsole, ConsoleEvent_WindowResized);
 	pEventSystem->EventUnregister(eEventCategory::INPUT_KEY_PRESSED, pConsole, ConsoleEvent_KeyPressed);
-
-	// Command submit button.
-	pUISystem->DestroyUIControl(pConsole->hCommandSubmitButton);
-	pConsole->hCommandSubmitButton = kInvalidID_U32;
-
-	// Console readout label.
-	pUISystem->DestroyUIControl(pConsole->hConsoleReadout);
-	pConsole->hConsoleReadout = kInvalidID_U32;
-
-	// Background panel.
-	pUISystem->DestroyUIControl(pConsole->hBackgroundPanel);
-	pConsole->hBackgroundPanel = kInvalidID_U32;
 }
 
 void ConsoleUpdate(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
@@ -299,6 +287,12 @@ static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
 
 static void ConsoleEvent_MessageReceived(void* pListener, const char* pszMessage)
 {
+	// Ignore really long messages.
+	if ((u32)Utl::StringLength(pszMessage) >= 512)
+	{
+		return;
+	}
+
 	DeveloperConsole* pConsole = (DeveloperConsole*)pListener;
 	s_pConsoleMutex->Lock();
 	pConsole->pendingStrings.PushBack(Utl::StringDuplicate(pszMessage));

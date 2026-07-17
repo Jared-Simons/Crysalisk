@@ -396,13 +396,8 @@ void CShaderSystem::BindShader(ShaderHandle_t hShader)
 	// The renderer will do most of the work for us.
 	m_Config.pRenderer->BindShader(pShader);
 
-	if (pShader->m_iRendererFrame != m_Config.pRenderer->GetCurrentRenderFrame())
-	{
-		// If we have not been bound yet this frame, update our per-frame descriptors.
-		BindPerFrameUniforms();
-
-		pShader->m_iRendererFrame = m_Config.pRenderer->GetCurrentRenderFrame();
-	}
+	BindPerFrameUniforms(); 
+	pShader->m_iRendererFrame = m_Config.pRenderer->GetCurrentRenderFrame();
 }
 
 //-------------------------------------------------------------------------

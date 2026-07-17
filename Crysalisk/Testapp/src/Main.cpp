@@ -13,8 +13,6 @@
 #include <Renderer/Camera.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
-#include <Resources/Map.h>
-#include <Systems/MaterialSystem.h>
 
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
@@ -37,7 +35,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual bool	Run() override;
-	virtual bool	Render() override;
+	virtual bool	Render(struct RenderPacket_t* pRenderPacket) override;
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
@@ -96,6 +94,10 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 	m_MainCamera.pWindow = m_pApplicationConfig->pEngine->GetEngineWindow();
 	m_MainCamera.RecalculateCameraVectors();
 
+	// Can set the clear color from here.
+	IRenderView* pSceneView = g_pEngine->GetEngineInterfaces()->pRenderer->GetRenderView("3D Scene View");
+	((Renderpass*)pSceneView->GetRenderpass())->clearColor = { 0.3f, 0.0f, 0.3f };
+
 	return true;
 }
 
@@ -142,7 +144,7 @@ void CGameApp::FramePrepare(RenderPacket_t* pRenderPacket)
 	m_pUISystem->FramePrepare(pRenderPacket);
 }
 
-bool CGameApp::Render()
+bool CGameApp::Render(struct RenderPacket_t* pRenderPacket)
 {
 	IRenderer* pRenderer = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pRenderer;
 	CAssert(pRenderer);

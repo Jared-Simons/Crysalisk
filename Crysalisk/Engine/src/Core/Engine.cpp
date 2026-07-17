@@ -398,7 +398,7 @@ bool CEngine::Run()
 			m_pApplication->FramePrepare(&m_FrameRenderData);
 
 			// Run the app's render routine.
-			if (!m_pApplication->Render())
+			if (!m_pApplication->Render(&m_FrameRenderData))
 			{
 				// App failed to render.
 				return false;

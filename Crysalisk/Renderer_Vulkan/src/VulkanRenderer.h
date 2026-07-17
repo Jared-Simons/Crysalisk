@@ -55,6 +55,8 @@ public:
 
 	virtual void	SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
 
+	virtual void	SetDepthTestState(bool bEnabled) override;
+
 	virtual void	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 

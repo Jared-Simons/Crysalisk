@@ -52,56 +52,58 @@ class CRenderer : public IRenderer
 {
 public:
 	// Initialize, shutdown.
-	bool			Initialize(RendererConfig_t& pAppConfig) override;
-	bool			PostInitialize(RenderPacket_t& pRenderPacket) override;
-	void			Shutdown() override;
-	bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) override;
+	virtual bool			Initialize(RendererConfig_t& pAppConfig) override;
+	virtual bool			PostInitialize(RenderPacket_t& pRenderPacket) override;
+	virtual void			Shutdown() override;
+	virtual bool			Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPacket_t& pRenderData, class CMap* pCurrentMap) override;
 
-	bool			RegisterWindow(Platform::IPlatformWindow& pWindow) override;
-	void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
+	virtual bool			RegisterWindow(Platform::IPlatformWindow& pWindow) override;
+	virtual void			ReleaseWindowResources(Platform::IPlatformWindow& pWindow) override;
 
-	void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
-	void			RegisterRenderView(IRenderView* pView) override;
+	virtual void			ConfigureRenderViews(Utl::CVector<IRenderView*>& pRenderViews) override;
+	virtual void			RegisterRenderView(IRenderView* pView) override;
 
-	bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
-	void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
-	IRenderView*	GetRenderView(const char* pszRenderpassName) override;
+	virtual bool			CreateRenderpass(struct RenderpassConfig_t* pConfig, struct Renderpass* pRenderpass) override;
+	virtual void			DestroyRenderpass(struct Renderpass* pRenderpass) override;
+	virtual IRenderView*	GetRenderView(const char* pszRenderpassName) override;
 
-	bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
-	void			EndRenderpass() override;
+	virtual bool			BeginRenderpass(struct Renderpass* pRenderpass) override;
+	virtual void			EndRenderpass() override;
 
-	bool			AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
-	void			ReleaseTextureResources(struct Texture* pTexture) override;
+	virtual bool			AcquireTextureResources(struct Texture* pTexture, i32 internalIndex, u64 nPixelDataSize, byte* pPixelData) override;
+	virtual void			ReleaseTextureResources(struct Texture* pTexture) override;
 
-	bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) override;
-	void			DestroyShader(class Shader* pShader) override;
+	virtual bool			CreateShader(class Shader* pShader, struct ShaderConfig_t& pAppConfig) override;
+	virtual void			DestroyShader(class Shader* pShader) override;
 
-	void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) override;
-	void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) override;
+	virtual void			AcquireShaderInstanceResources(class Shader* pShader, u32* pOutInstanceID, const char* pszResourceName) override;
+	virtual void			ReleaseShaderInstanceResources(class Shader* pShader, u32 pInstanceID) override;
 
-	void			BindShader(class Shader* pShader) override;
-	void			BindShaderPerFrameUniforms(class Shader* pShader) override;
-	void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) override;
+	virtual void			BindShader(class Shader* pShader) override;
+	virtual void			BindShaderPerFrameUniforms(class Shader* pShader) override;
+	virtual void			BindShaderPerInstanceUniforms(class Shader* pShader, u32 hInstanceID) override;
 
-	void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
+	virtual void			SetShaderUniform(class Shader* pShader, struct ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData) override;
 
-	RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
-	void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
+	virtual void			SetDepthTestEnable(bool bEnabled) override;
 
-	bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
-	void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
-	RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
-	void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
+	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
+	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
-	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
-	void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
-	void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
+	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
+	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
+	virtual void			DrawGeometry(GeometryInstance_t& pGeometry, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
 
-	virtual f32	GetRendererTime() const { return (f32)m_flLastFrameTime; }
-	virtual const char*	GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
+	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig_t& pNewGeometryConfig) override;
+	virtual void			UpdateGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry, GeometryConfig2D_t& pNewGeometryConfig) override;
+	virtual void			UpdateGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) override;
 
-	void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
-	void	SetWindowDimensions(u32 iWidth, u32 iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
+	virtual f32				GetRendererTime() const { return (f32)m_flLastFrameTime; }
+	virtual const char*		GetRendererDebugVisModeName() const override { return szRendererVisualizationModesLabels[m_iRendererDebugMode]; }
+
+	virtual void	SetMinimized(bool bMinimized) override { m_bMinimized = bMinimized; }
+	virtual void	SetWindowDimensions(u32 iWidth, u32 iHeight) override { m_iWindowWidth = iWidth; m_iWindowHeight = iHeight; }
 
 	virtual inline u64	GetCurrentRenderFrame() const override { return m_iCurrentRendererFrame; }
 
@@ -355,6 +357,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
+	SetDepthTestEnable(true);
 	{		
 		for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{
@@ -665,6 +668,14 @@ RenderBuffer* CRenderer::GetRenderBufferByName(const char* pszBufferName) const
 void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, u32 iUniformArrayIndex, u32 hInstanceID, void* pData)
 {
 	m_RendererBackend->SetShaderUniform(pShader, pUniform, iUniformArrayIndex, hInstanceID, pData);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetDepthTestEnable(bool bEnabled)
+{
+	m_RendererBackend->SetDepthTestState(bEnabled);
 }
 
 //-------------------------------------------------------------------------

@@ -11,6 +11,7 @@ set(LEVEL_EDITOR_ROOT Crysalisk/Tools_LevelEditor/src/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_LEVEL_EDITOR_SRC_FILES
+	${LEVEL_EDITOR_ROOT}/LevelEditorTypes.h
 	${LEVEL_EDITOR_ROOT}/Main.cpp
 	${LEVEL_EDITOR_ROOT}/MemOverride.cpp
 )
