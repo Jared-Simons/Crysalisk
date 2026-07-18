@@ -13,7 +13,7 @@
 
 struct Gizmo
 {
-	// LEFTOFF: Vertex color is needed.
+	GeometryInstance_t geometry{};
 };
 
 struct MapEditorDocument_t

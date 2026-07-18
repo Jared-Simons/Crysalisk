@@ -358,6 +358,7 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	SetDepthTestEnable(true);
+	// Let the application render.
 	{		
 		for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
 		{

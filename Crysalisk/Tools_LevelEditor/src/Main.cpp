@@ -16,11 +16,13 @@
 // Engine
 #include <Application.h>
 #include <Core/Engine.h>
+#include <Renderer/Renderer.h>
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 
 #include "LevelEditorTypes.h"
+#include "Renderer/Level_Editor_View.h"
 
 class CLevelEditorApp : public IToolApp
 {
@@ -35,6 +37,7 @@ public:
 private:
 	Utl::CVector<i32>	m_GridLines{};
 	i32					m_OriginCross[3]{};
+	Gizmo				m_Gizmo{};
 
 	// Current map data.
 	MapEditorDocument_t	m_CurrentDoc{};
@@ -58,6 +61,13 @@ extern "C"
 bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Welcome to Crysalisk Level Editor!");
+
+	pAppConfig->pViews.PushBack(RenderViewCreate_LevelEditorView());
+
+	// Initialize the view now, as this will probably happen after all the default engine views are initialized.
+	pAppConfig->pViews.Back()->Initialize(pAppConfig->pEngine->GetEngineInterfaces());
+
+	IRenderer* pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
 
 	// Setup world grid.
 	// FIXME: Lines should be optionally depth-tested.
@@ -108,7 +118,22 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_OriginCross[2] = pDebugGeo->AddLine(Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, flRadius }, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
 	}
 
-	// LEFTOFF: Gizmo and per-vertex color.
+	// Create the gizmo.
+	{
+		// TODO: Make this scale with distance from the camera.
+		Vector verts[4]{};
+		verts[0] = { 0.0f, 0.0f, 0.0f };
+		verts[1] = { 30.0f, 0.0f, 0.0f };
+		verts[2] = { 0.0f, 30.0f, 0.0f };
+		verts[3] = { 0.0f, 0.0f, 30.0f };
+
+		u32 indices[6] = { 0, 1, 0, 2, 0, 3 };
+
+		RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
+		RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
+
+		pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, 4, sizeof(Vector), 0, verts, 6, indices, &m_Gizmo.geometry);
+	}
 
 	// Editor console commands.
 	ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
@@ -156,11 +181,16 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 {
-
+	// TODO: Get rid of this and move all rendering to views?
 }
 
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 {
+	if (!pValue)
+	{
+		return;
+	}
+
 	LOG_DEBUG("Add model here (%s)", (char*)pValue);
 	CLevelEditorApp* pApp = (CLevelEditorApp*)pCommand->listenerInst;
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
