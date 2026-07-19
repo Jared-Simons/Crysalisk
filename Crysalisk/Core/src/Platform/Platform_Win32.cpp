@@ -507,6 +507,9 @@ namespace Platform
 		case 0xBD:
 			return KEY_HYPHEN;
 			break;
+		case 0xBE:
+			return KEY_PERIOD;
+			break;
 
 		case 0xC0:
 			return KEY_TILDE;

@@ -6,27 +6,29 @@
 //=============================================================================
 #include "Renderer/Renderer.h"
 
+// Core
+#include <Core/ConVar.h>
+#include <Core/Logging.h>
+#include <Memory/LinearAllocator.h>
+#include <Renderer/Camera.h>
+
+// Engine
 #include "Core/Engine.h"
 #include "Core/Event.h"
-#include "Core/Input.h"
-#include "Core/Logging.h"
 #include "IRendererBackend.h"
 #include "Platform/Platform.h"
-#include <Memory/LinearAllocator.h>
-#include "Renderer/Camera.h"
-#include "Resources/GeometryGenerator.h"
-#include <Resources/Loaders/MeshLoader.h>
 #include "Resources/Map.h"
 #include "Resources/ResourceTypes.h"
 #include "Systems/DebugGeometrySystem.h"
-#include "Systems/FontSystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/ShaderSystem.h"
-#include "Systems/TextureSystem.h"
 
 // Event handlers.
 static bool RendererEvent_WindowResized(void* pEventListener, EventData_t data);
 static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
+
+// Console Command callbacks.
+static void ConVar_SetClearColor(struct ConVar_t* pCommand, void* pValue);
 
 // A callback to be used to get an opaque pointer to the renderer-backend's state.
 typedef void* (*PFN_GetRendererBackendState)();
@@ -137,6 +139,7 @@ private:
 
 	// These need access to our members.
 	friend static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data);
+	friend static void ConVar_SetClearColor(struct ConVar_t* pCommand, void* pValue);
 };
 
 //-------------------------------------------------------------------------
@@ -220,6 +223,10 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 		LOG_ERROR("Renderer frame allocator failed to initialize!");
 		return false;
 	}
+
+	// Renderer console commands.
+	ConVarSystemState* pConVar = pAppConfig.pEngine->GetEngineInterfaces()->pConVar;
+	ConsoleCommandRegister(pConVar, "r_clearcolor", CONVAR_VALUETYPE_VECTOR, ConVar_SetClearColor, this);
 
 	LOG_INFO("Renderer Initialized!");
 	return true;
@@ -776,4 +783,18 @@ static bool RendererEvent_KeyPressed(void* pEventListener, EventData_t data)
 
 	// Let other listeners handle this event.
 	return false;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+static void ConVar_SetClearColor(struct ConVar_t* pCommand, void* pValue)
+{
+	CRenderer* pRenderer = (CRenderer*)pCommand->listenerInst;
+
+	// For now, assuming that the first view is the one clearing the framebuffer.
+	Renderpass* pRenderpass = const_cast<Renderpass*>(pRenderer->m_pRenderViews[0]->GetRenderpass());	// FIXME: Find something better than const_cast.
+	pRenderpass->clearColor.x = pCommand->data.v[0];
+	pRenderpass->clearColor.y = pCommand->data.v[1];
+	pRenderpass->clearColor.z = pCommand->data.v[2];
 }

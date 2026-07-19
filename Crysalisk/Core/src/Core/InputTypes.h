@@ -30,6 +30,7 @@ enum eKeyTable
 	KEY_DOWN,
 
 	KEY_HYPHEN = 45,
+	KEY_PERIOD = 46,
 
 	KEY_0 = 48,
 	KEY_1,

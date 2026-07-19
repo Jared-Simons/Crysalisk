@@ -8,6 +8,9 @@
 
 #include "Defines.h"
 
+// Core
+#include <Math/MathLib.h>
+
 // Callback for console commands.
 typedef void (*PFN_ConVar_Callback)(struct ConVar_t* pCommand, void* pValue);
 
@@ -16,6 +19,7 @@ enum eConVar_ValueType
 	CONVAR_VALUETYPE_NONE = 0,
 	CONVAR_VALUETYPE_INT,
 	CONVAR_VALUETYPE_FLOAT,
+	CONVAR_VALUETYPE_VECTOR,
 	CONVAR_VALUETYPE_STRING,
 
 	// A special value type used for commands that accept data as parameters, but do not store them. The callback function will need to interpret the data.
@@ -32,6 +36,7 @@ struct ConVar_t
 		i64 i64;
 		f64 f64;
 		bool b;
+		f32 v[3];
 		char* str;
 	} data;
 	PFN_ConVar_Callback callback{ nullptr };

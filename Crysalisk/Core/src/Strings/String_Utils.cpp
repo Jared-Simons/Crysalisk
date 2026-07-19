@@ -403,12 +403,25 @@ namespace Utl
 	// 
 	// Input:	c - The character to convert to a f32.
 	//			pOutVec - Vector that will hold the converted character.
-	// Output:	none.
+	// Output:	bool - True if successfully converted, otherwise false.
 	//-------------------------------------------------------------------------
-	void String_ToVector3(const char* c, Vector3D* pOutVec)
+	bool String_ToVector3(const char* c, Vector3D* pOutVec)
 	{
 		i32 numElements = sscanf_s(c, "\"%f %f %f\"", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
-		CAssert(numElements == 3);
+		if (numElements == 0)
+		{
+			// Try without the quotes.
+			numElements = sscanf_s(c, "%f %f %f", &pOutVec->flElements[0], &pOutVec->flElements[1], &pOutVec->flElements[2]);
+		}
+
+		if (numElements != 3)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 } // namespace Utl

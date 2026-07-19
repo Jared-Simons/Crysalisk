@@ -88,11 +88,56 @@ void ConsoleCommandExecute(struct ConVarSystemState* pSystem, char* pCommandStri
 				case CONVAR_VALUETYPE_STRING:
 					pCurCommand->data.str = Utl::StringDuplicate(pszParameters);
 					break;
+				case CONVAR_VALUETYPE_VECTOR:
+				{
+					Vector temp{};
+					bool parsed = Utl::String_ToVector3(pszParameters, &temp);
+					if (parsed)
+					{
+						pCurCommand->data.v[0] = temp.x;
+						pCurCommand->data.v[1] = temp.y;
+						pCurCommand->data.v[2] = temp.z;
+					}
+					else
+					{
+						pCurCommand->data.v[0] = pCurCommand->data.v[1] = pCurCommand->data.v[2] = 0.0f;
+						LOG_WARN("Console command '%s' requires an argument of the form f f f, which was not provided. Nothing was done.", pszCommandName);
+						goto cleanup_and_exit;
+					}
+				} break;
 				case CONVAR_VALUETYPE_PASSTHROUGH:
 					// Just passing through.
 					break;
 				default:
 					CAssert(0);
+				}
+			}
+			else
+			{
+				// Print the current value of the convar.
+				switch (pCurCommand->dataType)
+				{
+				case CONVAR_VALUETYPE_NONE:
+				case CONVAR_VALUETYPE_PASSTHROUGH:
+					break;
+				case CONVAR_VALUETYPE_INT:
+					LOG_INFO("'%s': %d", pCommandString, pCurCommand->data.i64);
+					break;
+				case CONVAR_VALUETYPE_FLOAT:
+					LOG_INFO("'%s': %f", pCommandString, pCurCommand->data.f64);
+					break;
+				case CONVAR_VALUETYPE_VECTOR:
+					LOG_INFO("'%s': %f %f %f", pCommandString, pCurCommand->data.v[0], pCurCommand->data.v[1], pCurCommand->data.v[2]);
+					break;
+				case CONVAR_VALUETYPE_STRING:
+					if (pCurCommand->data.str)
+					{
+						LOG_INFO("'%s': %s", pCommandString, pCurCommand->data.str);
+					}
+					break;
+				default:
+					CAssert(0);
+					break;
 				}
 			}
 
@@ -115,6 +160,7 @@ void ConsoleCommandExecute(struct ConVarSystemState* pSystem, char* pCommandStri
 		LOG_ERROR("Command '%s' does not exist.", pCommandString);
 	}
 
+cleanup_and_exit:
 	// Release strings
 	if (pszCommandName)
 	{

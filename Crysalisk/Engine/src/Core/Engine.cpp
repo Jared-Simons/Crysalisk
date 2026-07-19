@@ -682,7 +682,12 @@ static bool Event_WindowResizedUnpause(void* pEventListener, EventData_t data)
 
 static void ConsoleCommand_LoadMap(struct ConVar_t* pCommand, void* pValue)
 {
-	CAssert(pValue);
+	if (!pValue)
+	{
+		LOG_WARN("Console command 'map' requires a map name to load.");
+		return;
+	}
+
 	LOG_DEBUG("Loading map: '%s'.", (char*)pValue);
 
 	Clock mapLoadTimer{};

@@ -58,8 +58,8 @@ namespace Utl
 	// Converts an ascii value to a floating-point value.
 	DLL_EXPORT f32 String_ATOF(const char* c);
 
-	// Converts an ascii string to a Vector3D_OLD.
+	// Converts an ascii string to a Vector3D.
 	// NOTE: This function does not return the Vector so that the function is compatible with C-linkage.
-	DLL_EXPORT void String_ToVector3(const char* c, Vector3D* pOutVec);
+	DLL_EXPORT bool String_ToVector3(const char* c, Vector3D* pOutVec);
 
 } // namespace Utl
