@@ -11,8 +11,6 @@ set(LEVEL_EDITOR_ROOT Crysalisk/Tools_LevelEditor/src/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_LEVEL_EDITOR_SRC_FILES
-	${LEVEL_EDITOR_ROOT}/Renderer/Level_Editor_View.cpp
-	${LEVEL_EDITOR_ROOT}/Renderer/Level_Editor_View.h
 	${LEVEL_EDITOR_ROOT}/LevelEditorTypes.h
 	${LEVEL_EDITOR_ROOT}/Main.cpp
 	${LEVEL_EDITOR_ROOT}/MemOverride.cpp
@@ -36,7 +34,7 @@ target_include_directories(Tools_LevelEditor PUBLIC ${CRYSALISK_REPO_ROOT}/Crysa
 target_compile_definitions(Tools_LevelEditor PRIVATE _MBCS)
 
 target_compile_definitions(Tools_LevelEditor PRIVATE DLLNAME=\"Tools_LevelEditor.dll\")
-target_compile_definitions(Tools_LevelEditor PRIVATE EDITOR_EXE)
+target_compile_definitions(Tools_LevelEditor PRIVATE LEVEL_EDITOR_DLL)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	target_compile_definitions(Tools_LevelEditor PRIVATE PLAT_WINDOWS)

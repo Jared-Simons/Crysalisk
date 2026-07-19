@@ -11,6 +11,8 @@ set(EDITOR_HUB_ROOT Crysalisk/EditorHub/src/)
 project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_EDITOR_HUB_SRC_FILES
+	${EDITOR_HUB_ROOT}/Renderer/Editor_View.cpp
+	${EDITOR_HUB_ROOT}/Renderer/Editor_View.h
 	${EDITOR_HUB_ROOT}/EditorHubApp.cpp
 	${EDITOR_HUB_ROOT}/MemOverride.cpp
 	${EDITOR_HUB_ROOT}/ToolsTypes.h

@@ -11,9 +11,18 @@
 // Core
 #include <Containers/CVector.h>
 
+#ifdef LEVEL_EDITOR_DLL
+	#define LEVEL_EDITOR_API extern "C" __declspec(dllexport)
+#else
+	#define LEVEL_EDITOR_API extern "C" __declspec(dllimport)
+#endif
+
 struct Gizmo
 {
-	GeometryInstance_t geometry{};
+	// The gizmo's origin in worldspace.
+	Vector				origin{};
+
+	GeometryInstance_t	geometry{};
 };
 
 struct MapEditorDocument_t

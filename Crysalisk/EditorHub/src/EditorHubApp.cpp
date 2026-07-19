@@ -20,6 +20,7 @@
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Renderer/Views/Debug_Render_View.h>
+#include "Renderer/Editor_View.h"
 
 // UI Framework
 #include <AppUI.h>
@@ -80,6 +81,7 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	// Setup our render-views.
 	pAppConfig->pViews.PushBack(RenderViewCreate_3DSceneView());
 	pAppConfig->pViews.PushBack(RenderViewCreate_DebugView());
+	pAppConfig->pViews.PushBack(RenderViewCreate_EditorView());
 
 	// Load up UI library.
 	Platform::ISysModule* pAppUILibrary = Platform::LoadSysModule("AppUI");
@@ -220,6 +222,7 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 
 	// Initialize the new tool.
 	m_pTools.Back()->Tool_Init(m_pApplicationConfig);
+	m_pTools.Back()->SetCamera(&m_Camera);	// TODO: Find a better way to pass the camera around.
 
 	return true;
 }

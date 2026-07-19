@@ -61,7 +61,12 @@ struct RenderPacket_t
 	struct RenderMetrics_t*		pMetrics{ nullptr };
 	Utl::LinearAllocator*		pFrameAllocator{ nullptr };
 
-	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES];
+	// TODO: MAKE A DYNAMIC/VARIABLE SIZE ARRAY?
+	// This won't work with both the game and editor as the editor has additional views in different orders.
+	void*						pRenderViewExtendedData[RENDER_VIEW_MAX_TYPES]{};
+
+	// HACK: Editor hack!
+	void*						pEditorViewExtendedData{ nullptr };
 };
 
 //-------------------------------------------------------------------------

@@ -20,9 +20,9 @@
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
+#include <Systems/ShaderSystem.h>
 
 #include "LevelEditorTypes.h"
-#include "Renderer/Level_Editor_View.h"
 
 class CLevelEditorApp : public IToolApp
 {
@@ -34,6 +34,8 @@ public:
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 	virtual void	Render(struct RenderPacket_t* pRenderPacket) override;
 
+	virtual void	SetCamera(struct Camera_t* pCamera) override { m_pCamera = pCamera; }
+
 private:
 	Utl::CVector<i32>	m_GridLines{};
 	i32					m_OriginCross[3]{};
@@ -43,6 +45,7 @@ private:
 	MapEditorDocument_t	m_CurrentDoc{};
 	u32					m_SelectedMeshIdx{ kInvalidID_U32 };
 	u32					m_hSelectedGeometry{ kInvalidID_U32 };
+	Camera_t*			m_pCamera{ nullptr };
 
 	// These need access to our members.
 	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
@@ -53,19 +56,11 @@ static CLevelEditorApp s_LevelEditorApp{};
 // Console Command callbacks.
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
 
-extern "C"
-{
-	__declspec(dllexport) IToolApp* GetToolApplicationState();
-}
+LEVEL_EDITOR_API IToolApp* GetToolApplicationState();
 
 bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 {
 	LOG_INFO("Welcome to Crysalisk Level Editor!");
-
-	pAppConfig->pViews.PushBack(RenderViewCreate_LevelEditorView());
-
-	// Initialize the view now, as this will probably happen after all the default engine views are initialized.
-	pAppConfig->pViews.Back()->Initialize(pAppConfig->pEngine->GetEngineInterfaces());
 
 	IRenderer* pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
 
@@ -120,19 +115,27 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 	// Create the gizmo.
 	{
-		// TODO: Make this scale with distance from the camera.
 		Vector verts[4]{};
 		verts[0] = { 0.0f, 0.0f, 0.0f };
-		verts[1] = { 30.0f, 0.0f, 0.0f };
-		verts[2] = { 0.0f, 30.0f, 0.0f };
-		verts[3] = { 0.0f, 0.0f, 30.0f };
+		verts[1] = { 0.25f, 0.0f, 0.0f };
+		verts[2] = { 0.0f, 0.25f, 0.0f };
+		verts[3] = { 0.0f, 0.0f, 0.25f };
 
 		u32 indices[6] = { 0, 1, 0, 2, 0, 3 };
 
 		RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
 		RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
 
+		IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
+
 		pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, 4, sizeof(Vector), 0, verts, 6, indices, &m_Gizmo.geometry);
+
+		// Acquire new shader instance resources.
+		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Debug.Line");
+		Vector4D color{ 0.3f, 0.0f, 0.3f, 1.0f };
+		pShaderSystem->AcquireShaderInstanceResources(hShader, &m_Gizmo.geometry.hShaderInstance, "DebugLineInstance");
+		pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, m_Gizmo.geometry.hShaderInstance, &color);
+		m_Gizmo.geometry.hShader = hShader;
 	}
 
 	// Editor console commands.
@@ -145,14 +148,26 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	return true;
 }
 
-bool CLevelEditorApp::Tool_Update()
-{
-	//LOG_VERBOSE("Running Level Editor Loop!");
-	return true;
-}
-
 void CLevelEditorApp::Tool_Shutdown()
 {
+}
+
+bool CLevelEditorApp::Tool_Update()
+{
+	if (m_Gizmo.geometry.vertexCount)
+	{
+		Matrix4x4 matGizmoTransform{ 1.0f };
+
+		// Scale the gizmo by its position from the camera.
+		float gizmoToCameraDist = (m_pCamera->vecPosition - m_Gizmo.origin).Length();
+		matGizmoTransform = Matrix4x4::Scale(matGizmoTransform, Vector{ gizmoToCameraDist, gizmoToCameraDist, gizmoToCameraDist });
+
+		// Translation.
+		matGizmoTransform = Matrix4x4::Translate(matGizmoTransform, m_Gizmo.origin);
+
+		m_Gizmo.geometry.matLocalToWorldTransform = matGizmoTransform;
+	}
+	return true;
 }
 
 void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
@@ -177,6 +192,11 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 			}
 		}
 	}
+
+	if (m_Gizmo.geometry.vertexCount && m_hSelectedGeometry != kInvalidID_U32)
+	{
+		pRenderPacket->pEditorViewExtendedData = &m_Gizmo.geometry;
+	}
 }
 
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
@@ -199,7 +219,10 @@ static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 	pApp->m_CurrentDoc.meshes.Back() = pMeshSystem->AcquireMeshInstance((const char*)pValue, Vector{0.0f, 0.0f, 0.0f}, Vector{0.0f, 0.0f, 0.0f}, Vector{100.0f, 100.0f, 100.0f}, true);
 
 	// Set as the selected mesh.
-	pApp->m_SelectedMeshIdx = pApp->m_CurrentDoc.meshes.Count() - 1;
+	pApp->m_SelectedMeshIdx = (u32)(pApp->m_CurrentDoc.meshes.Count() - 1);
+
+	// Move the gizmo to this model.
+	pApp->m_Gizmo.origin = Vector{ 0.0f, 0.0f, 0.0f };
 }
 
 IToolApp* GetToolApplicationState()
