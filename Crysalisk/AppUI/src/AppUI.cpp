@@ -163,7 +163,7 @@ namespace AppUI
 
 		// FIXME: Put this in a post render method?
 		// Clear out data from previous frame.
-		pViewData->renderables.Clear();
+		pViewData->renderables.Purge();
 
 		pViewData->renderables.Resize(renderables.Count());
 		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)m_RenderContext.currentSurfaceWidth, 0.0f, (f32)m_RenderContext.currentSurfaceHeight, 0.1f, 1000.0f);

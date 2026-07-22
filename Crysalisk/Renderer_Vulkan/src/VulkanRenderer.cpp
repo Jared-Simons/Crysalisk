@@ -307,7 +307,7 @@ bool CVulkanRenderer::RegisterWindow(Platform::IPlatformWindow& pWindow)
 
 		if (!VulkanSwapchain::CreateSwapchain((*this), pWindowState->m_WindowSurface, pWindowState->m_Swapchain))
 		{
-			LOG_ERROR("Failed to create swapchain for window.", pWindow);
+			LOG_ERROR("Failed to create swapchain for window.");
 			ReleaseWindowResources(pWindow);
 			return false;
 		}

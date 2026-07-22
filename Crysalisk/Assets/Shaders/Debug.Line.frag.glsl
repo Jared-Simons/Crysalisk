@@ -5,7 +5,7 @@ layout(location = 0) out vec4 outColor;
 // NOTE: Must match VSOut struct in corresponding vertex shaders.
 struct FSIn
 {
-	int iDummyVar;
+	vec4 vertColor;
 };
 
 layout(set = 1, binding = 0) uniform InstanceUniformBuffer
@@ -17,5 +17,6 @@ layout(location = 0) flat in FSIn fsInput;
 
 void main()
 {
-	outColor = instance_ubo.color;
+	outColor = fsInput.vertColor;
+	//outColor = instance_ubo.color;
 }

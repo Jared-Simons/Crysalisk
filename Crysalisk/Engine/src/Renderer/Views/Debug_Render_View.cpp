@@ -197,7 +197,7 @@ void CDebugRenderView::Render(RenderPacket_t* pRenderData)
 		}
 		m_pRenderer->EndRenderpass();
 
-		pViewData->pGeometries.Clear();
+		pViewData->pGeometries.Purge();
 	}
 }
 

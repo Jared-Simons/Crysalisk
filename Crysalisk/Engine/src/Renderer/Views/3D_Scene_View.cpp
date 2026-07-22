@@ -97,14 +97,14 @@ void C3DSceneRenderView::BuildRenderPacket(RenderPacket_t* pRenderData)
 		
 		pViewData->pOpaqueGeometries.SetAllocator(pRenderData->pFrameAllocator);
 		pViewData->pTransparentGeometries.SetAllocator(pRenderData->pFrameAllocator);
-
-		// TODO: Is this a hard limit? If so, can we change this based on how much geometry is in the scene or make it a little more dynamic?
-		pViewData->pOpaqueGeometries.Resize(8999);
-		pViewData->pTransparentGeometries.Resize(8999);
 	}
 
 	CMap*							pMap = g_pEngine->GetEngineInterfaces()->pCurrentScene;
 	MainSceneView_ExtendedData_t*	pViewData = (MainSceneView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
+
+	// TODO: Is this a hard limit? If so, can we change this based on how much geometry is in the scene or make it a little more dynamic?
+	pViewData->pOpaqueGeometries.Resize(8999);
+	pViewData->pTransparentGeometries.Resize(8999);
 
 	if (pMap && pMap->IsMapLoaded())
 	{
@@ -158,8 +158,8 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 		}
 		m_pRenderer->EndRenderpass();
 
-		pViewData->pOpaqueGeometries.Clear();
-		pViewData->pTransparentGeometries.Clear();
+		pViewData->pOpaqueGeometries.Purge();
+		pViewData->pTransparentGeometries.Purge();
 	}
 }
 

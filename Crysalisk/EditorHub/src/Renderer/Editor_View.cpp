@@ -70,24 +70,57 @@ void CEditorView::BuildRenderPacket(RenderPacket_t* pRenderData)
 void CEditorView::Render(RenderPacket_t* pRenderData)
 {
 	IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
+	IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
 
 	if (pRenderer->BeginRenderpass(&m_Renderpass))
 	{
 		if (pRenderData->pEditorViewExtendedData)
 		{
+			EditorViewExtendedData_t* pViewData = (EditorViewExtendedData_t*)pRenderData->pEditorViewExtendedData;
+
+			// HACK: Editor test!
+			for (u32 iGeo = 0; iGeo < pViewData->geo.Count(); iGeo++)
+			{
+				// Don't draw if the data is null.
+				// TODO: This shouldn't get populated if null, handle this when querying for geometry data.
+				if (pViewData->geo[iGeo] == nullptr)
+				{
+					continue;
+				}
+				
+				// HACK: Editor hack!
+				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
+				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
+
+				GeometryInstance_t* pCurGeo = pViewData->geo[iGeo];
+
+				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "projection"), 0, 0, &pRenderData->matProjection);
+				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
+				pShaderSystem->BindShader(pCurGeo->hShader);
+				pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
+				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "model"),	// FIXME: Strings are slow.
+					0, pCurGeo->hShaderInstance, &Matrix4x4::Matrix4x4(1.0f));
+				
+				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
+			}
+
+			pViewData->geo.Purge();
+
 			// HACK: Editor hack!
-			static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
+			/*static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
 			static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
 
 			GeometryInstance_t* pTypedGizmo = (GeometryInstance_t*)pRenderData->pEditorViewExtendedData;
 	
 			IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
+			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "projection"), 0, 0, &pRenderData->matProjection);
+			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
 			pShaderSystem->BindShader(pTypedGizmo->hShader);
 			pShaderSystem->BindPerInstanceUniforms(pTypedGizmo->hShaderInstance);
 			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "model"),	// FIXME: Strings are slow.
 											0, pTypedGizmo->hShaderInstance, &pTypedGizmo->matLocalToWorldTransform);
 			
-			pRenderer->DrawGeometry(*pTypedGizmo, pVertexBuffer, pIndexBuffer);
+			pRenderer->DrawGeometry(*pTypedGizmo, pVertexBuffer, pIndexBuffer);*/
 		}
 
 		pRenderer->EndRenderpass();

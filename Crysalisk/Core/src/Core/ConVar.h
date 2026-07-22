@@ -8,9 +8,6 @@
 
 #include "Defines.h"
 
-// Core
-#include <Math/MathLib.h>
-
 // Callback for console commands.
 typedef void (*PFN_ConVar_Callback)(struct ConVar_t* pCommand, void* pValue);
 

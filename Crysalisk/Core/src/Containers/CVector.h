@@ -327,6 +327,15 @@ namespace Utl
 		}
 
 		//--------------------------------------------------
+		// Clears the contents within the vector and forces the capacity back to 0.
+		//--------------------------------------------------
+		void Purge()
+		{
+			Clear();
+			m_Capacity = 0;
+		}
+
+		//--------------------------------------------------
 		// Adds an element to the end of the vector, 
 		// (and returns the index to the new element).
 		//--------------------------------------------------

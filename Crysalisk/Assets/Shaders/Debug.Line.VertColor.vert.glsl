@@ -2,12 +2,12 @@
 
 // Vertex input
 layout(location = 0) in vec3 inPosition;
-layout(location = 0) in vec4 inColor;
+layout(location = 1) in vec4 inColor;
 
 // NOTE: Must match FSIn in the corresponding fragment shaders.
 struct VSOut
 {
-	int iDummyVar;
+	vec4 vertColor;
 };
 
 layout(location = 0) out VSOut vsOutput;
@@ -25,5 +25,6 @@ layout(push_constant) uniform push_constants
 
 void main()
 {
+	vsOutput.vertColor = inColor;
 	gl_Position = global_ubo.projection * global_ubo.view * u_PushConstants.model * vec4(inPosition, 1.0);
 }

@@ -8,5 +8,13 @@
 
 #include <Defines.h>
 
+// Core
+#include <Containers/CVector.h>
+
+struct EditorViewExtendedData_t
+{
+	Utl::CVector<struct GeometryInstance_t*> geo{};
+};
+
 // Factory function to create the view.
 class IRenderView* RenderViewCreate_EditorView();
