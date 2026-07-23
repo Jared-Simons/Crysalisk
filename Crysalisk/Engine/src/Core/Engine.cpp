@@ -56,6 +56,7 @@ public:
 	virtual void	Shutdown() override;
 
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const override { return m_pEngineWindow; }
+	virtual ICrysApplication*			GetApplication() const override { return m_pApplication; }
 
 	virtual inline const EngineInterfaces_t*		GetEngineInterfaces() const override { return &m_EngineInterfaces; }
 
