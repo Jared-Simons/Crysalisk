@@ -11,9 +11,11 @@
 // Core
 #include <Containers/CVector.h>
 
-struct EditorViewExtendedData_t
+struct EditorView_ExtendedData_t
 {
-	Utl::CVector<struct GeometryInstance_t*> geo{};
+	struct GeometryInstance_t*					gizmoGeo{};
+	Utl::CVector<struct GeometryInstance_t*>	editorGeo{};
+	Utl::CVector<struct GeometryInstance_t*>	mapMeshes{};
 };
 
 // Factory function to create the view.

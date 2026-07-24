@@ -64,7 +64,10 @@ public:
 	virtual Platform::IPlatformWindow*	GetEngineWindow() const = 0;
 
 	// Gets a pointer to engine subsystems.
-	virtual inline const EngineInterfaces_t*		GetEngineInterfaces() const = 0;
+	virtual inline const EngineInterfaces_t* GetEngineInterfaces() const = 0;
+
+	// Gets a pointer to the application using the engine.
+	virtual class ICrysApplication* GetApplication() const = 0;
 };
 
 // Sets up an instance of the engine.

@@ -17,8 +17,9 @@
 // Engine
 #include <Application.h>
 #include <Core/Engine.h>
+#include <Core/Event.h>
 #include <Renderer/Renderer.h>
-#include <Renderer/Views/3D_Scene_View.h>
+#include <Resources/Map.h>
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
@@ -50,10 +51,15 @@ private:
 	Camera_t*			m_pCamera{ nullptr };
 
 	// These need access to our members.
+	friend static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
+
 	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
 };
 
 static CLevelEditorApp s_LevelEditorApp{};
+
+// Event handlers.
+static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
 
 // Console Command callbacks.
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
@@ -153,52 +159,8 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &m_GridGeo.hShaderInstance, "Editor_Grid");
 		pShaderSystem->SetShaderUniform(hDebugLineShader, pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color"), 0, m_GridGeo.hShaderInstance, &Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
 		m_GridGeo.hShader = hDebugLineShader;
+		m_GridGeo.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 	}
-	/*IDebugGeometrySystem* pDebugGeo = pAppConfig->pEngine->GetEngineInterfaces()->pDebugGeometry;
-	m_GridLines.Resize(50);
-	{
-		// X-axis.
-		f32 zAxis = 0.0f;
-		while (zAxis <= 1024.0f)
-		{
-			i32 newLine = pDebugGeo->AddLine(Vector{ -1024.0f, 0.0f, zAxis }, Vector{ 1024.0f, 0.0f, zAxis }, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-			m_GridLines.PushBack(newLine);
-			zAxis += 100.0f;
-		}
-
-		zAxis = -100.0f;	
-		while (zAxis >= -1024.0f)
-		{
-			i32 newLine = pDebugGeo->AddLine(Vector{ -1024.0f, 0.0f, zAxis }, Vector{ 1024.0f, 0.0f, zAxis }, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-			m_GridLines.PushBack(newLine);
-			zAxis -= 100.0f;
-		}
-
-		// Z-axis.
-		f32 xAxis = 0.0f;
-		while (xAxis <= 1024.0f)
-		{
-			i32 newLine = pDebugGeo->AddLine(Vector{ xAxis, 0.0f, -1024.0f }, Vector{ xAxis, 0.0f, 1024.0f }, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-			m_GridLines.PushBack(newLine);
-			xAxis += 100.0f;
-		}
-
-		xAxis = -100.0f;
-		while (xAxis >= -1024.0f)
-		{
-			i32 newLine = pDebugGeo->AddLine(Vector{ xAxis, 0.0f, -1024.0f }, Vector{ xAxis, 0.0f, 1024.0f }, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
-			m_GridLines.PushBack(newLine);
-			xAxis -= 100.0f;
-		}
-	}
-
-	// Create a cross at the world origin.
-	{
-		f32 flRadius = 25.0f;
-		m_OriginCross[0] = pDebugGeo->AddLine(Vector{ 0.0f, 0.0f, 0.0f }, Vector{ flRadius, 0.0f, 0.0f }, Vector4D{ 1.0f, 0.0f, 0.0f, 1.0f }, -1.0f);
-		m_OriginCross[1] = pDebugGeo->AddLine(Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, flRadius , 0.0f }, Vector4D{ 0.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-		m_OriginCross[2] = pDebugGeo->AddLine(Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, flRadius }, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, -1.0f);
-	}*/
 
 	// Create the gizmo.
 	{
@@ -242,11 +204,17 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 		// Acquire new shader instance resources.
 		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Debug.Line.VertColor");
-		Vector4D color{ 0.3f, 0.0f, 0.3f, 1.0f };
-		pShaderSystem->AcquireShaderInstanceResources(hShader, &m_Gizmo.geometry.hShaderInstance, "DebugLineInstance");
-		pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "color"), 0, m_Gizmo.geometry.hShaderInstance, &color);
 		m_Gizmo.geometry.hShader = hShader;
+
+		// Gizmo extents.
+		// TODO: Extents per axis?
+		m_Gizmo.geometry.vecMinExtents = { -10.0f, -10.0f, -10.0f };
+		m_Gizmo.geometry.vecMaxExtents = { 10.0f, 10.0f, 10.0f };
 	}
+
+	// Register for events.
+	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, this, Event_OnMouseMove);
 
 	// Editor console commands.
 	ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
@@ -285,50 +253,132 @@ bool CLevelEditorApp::Tool_Update()
 
 void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 {
-	if (m_CurrentDoc.meshes.Count() > 0)
-	{
-		MainSceneView_ExtendedData_t* pViewData = (MainSceneView_ExtendedData_t*)pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
-		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
-		Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
-		if (pMesh->m_Geometries.Count() > 0)
-		{
-			GeometryInstance_t& geo = pMesh->m_Geometries[0];
-			geo.matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform;
-			pViewData->pOpaqueGeometries.PushBack(&geo);
-
-			IDebugGeometrySystem* pDebugGeo = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
-
-			if (m_hSelectedGeometry == kInvalidID_U32)
-			{
-				Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
-				m_hSelectedGeometry = pDebugGeo->AddBBox(pMesh->m_Geometries[0], Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-			}
-		}
-	}
-
 	if (!pRenderPacket->pEditorViewExtendedData)
 	{
-		pRenderPacket->pEditorViewExtendedData = new EditorViewExtendedData_t;
-		EditorViewExtendedData_t* pViewData = (EditorViewExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
-		pViewData->geo.SetAllocator(pRenderPacket->pFrameAllocator);
+		pRenderPacket->pEditorViewExtendedData = new EditorView_ExtendedData_t;
+		EditorView_ExtendedData_t* pViewData = (EditorView_ExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
+		pViewData->editorGeo.SetAllocator(pRenderPacket->pFrameAllocator);
+		pViewData->mapMeshes.SetAllocator(pRenderPacket->pFrameAllocator);
 	}
 	else
 	{
-		EditorViewExtendedData_t* pViewData = (EditorViewExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
-		pViewData->geo.Resize(12);
+		EditorView_ExtendedData_t* pViewData = (EditorView_ExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
 
-		pViewData->geo.PushBack(&m_GridGeo);
-	}
+		pViewData->editorGeo.Resize(12);
+		pViewData->editorGeo.PushBack(&m_GridGeo);
 
-	if (m_Gizmo.geometry.vertexCount && m_hSelectedGeometry != kInvalidID_U32)
-	{
-		//pRenderPacket->pEditorViewExtendedData = &m_Gizmo.geometry;
+		if (m_CurrentDoc.meshes.Count() > 0)
+		{
+			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+			Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
+			if (pMesh->m_Geometries.Count() > 0)
+			{
+				// Just render the first one for now.
+				GeometryInstance_t& geo = pMesh->m_Geometries[0];
+				geo.matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform;
+				pViewData->mapMeshes.PushBack(&geo);
+
+				IDebugGeometrySystem* pDebugGeo = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
+
+				if (m_hSelectedGeometry == kInvalidID_U32)
+				{
+					Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
+					m_hSelectedGeometry = pDebugGeo->AddBBox(pMesh->m_Geometries[0], Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
+				}
+			}
+		}
+
+		if (m_Gizmo.geometry.vertexCount && m_hSelectedGeometry != kInvalidID_U32)
+		{
+			pViewData->gizmoGeo = &m_Gizmo.geometry;
+		}
 	}
 }
 
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 {
 	// TODO: Get rid of this and move all rendering to views?
+}
+
+static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
+{
+	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+
+	// Early out if no geometry is selected.
+	if (pEditorAppState->m_SelectedMeshIdx == kInvalidID_U32)
+	{
+		return true;
+	}
+
+	Camera_t* pMainCamera = g_pEngine->GetApplication()->GetMainCamera();
+	u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
+	Vector4D vecPosClip{};
+
+	// Cast a ray and see if we intersect with the gizmo.
+	i32 iMouseX = eventData.i32[0];
+	i32 iMouseY = eventData.i32[1];
+
+	// First, get the mouse coordinates in viewport-space.
+	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
+
+	// Next, bring our coordinates to NDC.
+	vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
+	vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
+	vecPosClip.z = -1.0f;
+	vecPosClip.w = 1.0f;
+
+	// Clip space -> Camera space:
+	Vector4D vecPosCamera{};
+	// Get the inverse projection from our window's viewport.
+	Matrix4x4 matInverseProj = g_pEngine->GetEngineWindow()->GetViewport().matProjection.Inverse();
+	vecPosCamera = matInverseProj * vecPosClip;
+	vecPosCamera.z = -1.0f;
+	vecPosCamera.w = 0.0f;
+
+	// Camera space -> World space:
+	Vector vecRayDir = (pMainCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+	vecRayDir.NormalizeInPlace();
+
+	Ray_t ray{};
+	ray.vecOrigin = pMainCamera->vecPosition;
+	ray.vecDirection = vecRayDir;
+
+	// Now that we have a ray, check it against the gizmo's extents.
+	ray.bDidHit = false;
+	ray.flDistance = kFLT_MAX;
+
+	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
+	vecLocalDirection.w = 0.0f;
+
+	Ray_t localRay{};
+	localRay.vecOrigin = pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * ray.vecOrigin;
+	localRay.vecDirection = (pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
+
+	Vector vecCenter = pEditorAppState->m_Gizmo.geometry.vecCenter;
+	Vector vecMins = pEditorAppState->m_Gizmo.geometry.vecMinExtents;
+	Vector vecMaxs = pEditorAppState->m_Gizmo.geometry.vecMaxExtents;
+
+	f32 flTMin = kFLT_MAX;
+	f32 flTMax = kFLT_MIN;
+
+	Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
+	Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
+
+	Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
+	Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
+
+	f32 flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+	f32 flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+
+	if ((flTNearMax <= flTFarMin) && (flTNearMax < ray.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
+	{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
+		ray.bDidHit = true;
+		ray.flDistance = flTNearMax;
+		ray.vecEnd = ray.vecOrigin + ray.vecDirection * ray.flDistance;
+		LOG_DEBUG("HIT THE GIZMO! POGGERS!");
+	}
+
+	return true;
 }
 
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
