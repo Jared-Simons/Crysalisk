@@ -208,8 +208,8 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 		// Gizmo extents.
 		// TODO: Extents per axis?
-		m_Gizmo.geometry.vecMinExtents = { -10.0f, -10.0f, -10.0f };
-		m_Gizmo.geometry.vecMaxExtents = { 10.0f, 10.0f, 10.0f };
+		m_Gizmo.geometry.vecMinExtents = { -0.25f, -0.25f, -0.25f };
+		m_Gizmo.geometry.vecMaxExtents = { 0.25f, 0.25f, 0.25f };
 	}
 
 	// Register for events.
@@ -354,6 +354,7 @@ static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 	localRay.vecOrigin = pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * ray.vecOrigin;
 	localRay.vecDirection = (pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
 
+	// These properties are already in local space.
 	Vector vecCenter = pEditorAppState->m_Gizmo.geometry.vecCenter;
 	Vector vecMins = pEditorAppState->m_Gizmo.geometry.vecMinExtents;
 	Vector vecMaxs = pEditorAppState->m_Gizmo.geometry.vecMaxExtents;
@@ -375,7 +376,7 @@ static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 		ray.bDidHit = true;
 		ray.flDistance = flTNearMax;
 		ray.vecEnd = ray.vecOrigin + ray.vecDirection * ray.flDistance;
-		LOG_DEBUG("HIT THE GIZMO! POGGERS!");
+		LOG_DEBUG("HIT THE GIZMO!");
 	}
 
 	return true;
