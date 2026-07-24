@@ -12,6 +12,8 @@ project(Crysalisk VERSION 1.0)
 
 set(CRYSALISK_LEVEL_EDITOR_SRC_FILES
 	${LEVEL_EDITOR_ROOT}/LevelEditorTypes.h
+	${LEVEL_EDITOR_ROOT}/Gizmo.cpp
+	${LEVEL_EDITOR_ROOT}/Gizmo.h
 	${LEVEL_EDITOR_ROOT}/Main.cpp
 	${LEVEL_EDITOR_ROOT}/MemOverride.cpp
 )

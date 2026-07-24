@@ -221,7 +221,12 @@ bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)
 	m_pTools.Back()->pToolModule = pToolModule;
 
 	// Initialize the new tool.
-	m_pTools.Back()->Tool_Init(m_pApplicationConfig);
+	if (!m_pTools.Back()->Tool_Init(m_pApplicationConfig))
+	{
+		LOG_ERROR("Failed to initialize '%s'!", pszToolLibraryName);
+		// FIXME: Make this clean and safe.
+		return false;
+	}
 	m_pTools.Back()->SetCamera(&m_Camera);	// TODO: Find a better way to pass the camera around.
 
 	return true;

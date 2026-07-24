@@ -17,14 +17,6 @@
 	#define LEVEL_EDITOR_API extern "C" __declspec(dllimport)
 #endif
 
-struct Gizmo
-{
-	// The gizmo's origin in worldspace.
-	Vector				origin{};
-
-	GeometryInstance_t	geometry{};
-};
-
 struct MapEditorDocument_t
 {
 	Utl::CVector<MeshHandle_t>	meshes{};

@@ -1,0 +1,34 @@
+//=============================================================================
+// Author: Jared Simons
+// Date Created: 7/23/2022
+// 
+// Purpose: Editor gizmo.
+//=============================================================================
+#pragma once
+
+#include <Defines.h>
+
+// Engine
+#include <Resources/ResourceTypes.h>
+
+struct Gizmo
+{
+	// The gizmo's origin in worldspace.
+	Vector				origin{};
+
+	GeometryInstance_t	geometry{};
+
+	// Min/Max bounds for each axis.
+	Vector				mins[3];
+	Vector				maxs[3];
+
+	u8					selectedAxis{ kInvalidID_U8 };
+	bool				geometryDirty{ false };
+};
+
+bool Gizmo_Create(class IRenderer* pRenderer, Gizmo* pOutGizmo);
+void Gizmo_Destroy(class IRenderer* pRenderer, Gizmo* pGizmo);
+
+void Gizmo_Update(Gizmo* pGizmo);
+
+bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis);

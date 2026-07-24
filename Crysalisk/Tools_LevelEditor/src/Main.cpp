@@ -24,6 +24,7 @@
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
 
+#include "Gizmo.h"
 #include "LevelEditorTypes.h"
 
 class CLevelEditorApp : public IToolApp
@@ -163,55 +164,12 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	}
 
 	// Create the gizmo.
+	if (!Gizmo_Create(pRenderer, &m_Gizmo))
 	{
-		Vector verts[6]{};
-		verts[0] = { 0.0f, 0.0f, 0.0f };
-		verts[1] = { 0.25f, 0.0f, 0.0f };
-		verts[2] = { 0.0f, 0.0f, 0.0f };
-		verts[3] = { 0.0f, 0.25f, 0.0f };
-		verts[4] = { 0.0f, 0.0f, 0.0f };
-		verts[5] = { 0.0f, 0.0f, 0.25f };
-
-		Vector4D colors[6]{};
-		colors[0] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		colors[1] = { 1.0f, 0.0f, 0.0f, 1.0f };
-		colors[2] = { 0.0f, 1.0f, 0.0f, 1.0f };
-		colors[3] = { 0.0f, 1.0f, 0.0f, 1.0f };
-		colors[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-		colors[5] = { 0.0f, 0.0f, 1.0f, 1.0f };
-
-		// Create vertex stream.
-		u64 numFloats = (3 * 6) + (4 * 6);	// 3 floats per position vector * 6 verts + 4 floats per color * 6 verts.
-		Utl::CVector<f32> vertexData(numFloats);
-
-		for (u8 iVert = 0; iVert < 6; iVert++)
-		{
-			vertexData.PushBack(verts[iVert].x);
-			vertexData.PushBack(verts[iVert].y);
-			vertexData.PushBack(verts[iVert].z);
-			vertexData.PushBack(colors[iVert].x);
-			vertexData.PushBack(colors[iVert].y);
-			vertexData.PushBack(colors[iVert].z);
-			vertexData.PushBack(colors[iVert].w);
-		}
-
-		RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
-		RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
-
-		IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
-
-		pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, 6, sizeof(Vector) + sizeof(Vector4D), 0, vertexData.Data(), 0, nullptr, &m_Gizmo.geometry);
-
-		// Acquire new shader instance resources.
-		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Debug.Line.VertColor");
-		m_Gizmo.geometry.hShader = hShader;
-
-		// Gizmo extents.
-		// TODO: Extents per axis?
-		m_Gizmo.geometry.vecMinExtents = { -0.25f, -0.25f, -0.25f };
-		m_Gizmo.geometry.vecMaxExtents = { 0.25f, 0.25f, 0.25f };
+		LOG_ERROR("Failed to create editor gizmo!");
+		return false;
 	}
-
+	
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, this, Event_OnMouseMove);
@@ -231,6 +189,12 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 void CLevelEditorApp::Tool_Shutdown()
 {
+	LOG_INFO("Shutting down level editor.");
+
+	IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
+
+	// Gizmo
+	Gizmo_Destroy(pRenderer, &m_Gizmo);
 }
 
 bool CLevelEditorApp::Tool_Update()
@@ -247,6 +211,9 @@ bool CLevelEditorApp::Tool_Update()
 		matGizmoTransform = Matrix4x4::Translate(matGizmoTransform, m_Gizmo.origin);
 
 		m_Gizmo.geometry.matLocalToWorldTransform = matGizmoTransform;
+
+		// Update the gizmo.
+		Gizmo_Update(&m_Gizmo);
 	}
 	return true;
 }
@@ -350,33 +317,18 @@ static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
 	vecLocalDirection.w = 0.0f;
 
-	Ray_t localRay{};
-	localRay.vecOrigin = pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * ray.vecOrigin;
-	localRay.vecDirection = (pEditorAppState->m_Gizmo.geometry.matLocalToWorldTransform.Inverse() * vecLocalDirection).AsVector3D();
+	u8 prevHitAxis = pEditorAppState->m_Gizmo.selectedAxis;
 
-	// These properties are already in local space.
-	Vector vecCenter = pEditorAppState->m_Gizmo.geometry.vecCenter;
-	Vector vecMins = pEditorAppState->m_Gizmo.geometry.vecMinExtents;
-	Vector vecMaxs = pEditorAppState->m_Gizmo.geometry.vecMaxExtents;
+	// Check if the ray intersects the gizmo.
+	if (Gizmo_Raycast(&pEditorAppState->m_Gizmo, &ray, &pEditorAppState->m_Gizmo.selectedAxis))
+	{
+		//LOG_WARN("HIT AXIS: %c!", (char)'X' + pEditorAppState->m_Gizmo.selectedAxis);
+	}
 
-	f32 flTMin = kFLT_MAX;
-	f32 flTMax = kFLT_MIN;
-
-	Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
-	Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
-
-	Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
-	Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
-
-	f32 flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
-	f32 flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
-
-	if ((flTNearMax <= flTFarMin) && (flTNearMax < ray.flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
-	{																						// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
-		ray.bDidHit = true;
-		ray.flDistance = flTNearMax;
-		ray.vecEnd = ray.vecOrigin + ray.vecDirection * ray.flDistance;
-		LOG_DEBUG("HIT THE GIZMO!");
+	// Mark the gizmo as needing it's geometry to be updated if the axis has changed.
+	if (prevHitAxis != pEditorAppState->m_Gizmo.selectedAxis)
+	{
+		pEditorAppState->m_Gizmo.geometryDirty = true;
 	}
 
 	return true;
@@ -393,8 +345,16 @@ static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 	CLevelEditorApp* pApp = (CLevelEditorApp*)pCommand->listenerInst;
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
-	pApp->m_CurrentDoc.meshes.PushBack(kInvalidID_U32);
-	pApp->m_CurrentDoc.meshes.Back() = pMeshSystem->AcquireMeshInstance((const char*)pValue, Vector{0.0f, 0.0f, 0.0f}, Vector{0.0f, 0.0f, 0.0f}, Vector{100.0f, 100.0f, 100.0f}, true);
+	// FIXME: If the mesh loading fails (e.g. the mesh doesn't exist), then this will take up a slot in the map mesh array.
+	MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshInstance((const char*)pValue, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+	if (hNewMesh != kInvalidID_U32)
+	{
+		pApp->m_CurrentDoc.meshes.PushBack(hNewMesh);
+	}
+	else
+	{
+		return;
+	}
 
 	// Set as the selected mesh.
 	pApp->m_SelectedMeshIdx = (u32)(pApp->m_CurrentDoc.meshes.Count() - 1);
