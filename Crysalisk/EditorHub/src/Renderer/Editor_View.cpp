@@ -10,7 +10,6 @@
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
-#include <Systems/MaterialSystem.h>
 #include <Systems/ShaderSystem.h>
 
 class CEditorView : public IRenderView
@@ -77,15 +76,14 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 	{
 		if (pRenderData->pEditorViewExtendedData)
 		{
-			EditorView_ExtendedData_t* pViewData = (EditorView_ExtendedData_t*)pRenderData->pEditorViewExtendedData;
+			EditorViewExtendedData_t* pViewData = (EditorViewExtendedData_t*)pRenderData->pEditorViewExtendedData;
 
 			// HACK: Editor test!
-			// TODO: Make this a helper method?
-			for (u32 iGeo = 0; iGeo < pViewData->editorGeo.Count(); iGeo++)
+			for (u32 iGeo = 0; iGeo < pViewData->geo.Count(); iGeo++)
 			{
 				// Don't draw if the data is null.
 				// TODO: This shouldn't get populated if null, handle this when querying for geometry data.
-				if (pViewData->editorGeo[iGeo] == nullptr)
+				if (pViewData->geo[iGeo] == nullptr)
 				{
 					continue;
 				}
@@ -94,72 +92,35 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
 				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
 
-				GeometryInstance_t* pCurGeo = pViewData->editorGeo[iGeo];
+				GeometryInstance_t* pCurGeo = pViewData->geo[iGeo];
 
 				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "projection"), 0, 0, &pRenderData->matProjection);
 				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
 				pShaderSystem->BindShader(pCurGeo->hShader);
-				if (pCurGeo->hShaderInstance != kInvalidID_U32)
-				{
-					pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
-				}
+				pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
 				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "model"),	// FIXME: Strings are slow.
-					0, pCurGeo->hShaderInstance, &pCurGeo->matLocalToWorldTransform);
+					0, pCurGeo->hShaderInstance, &Matrix4x4::Matrix4x4(1.0f));
 				
 				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
 			}
 
-			// Render the gizmo.
-			if (pViewData->gizmoGeo)
-			{
-				// Disable depth testing for the gizmo.
-				pRenderer->SetDepthTestEnable(false);
+			pViewData->geo.Purge();
 
-				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
-				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
+			// HACK: Editor hack!
+			/*static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
+			static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
 
-				GeometryInstance_t* pCurGeo = pViewData->gizmoGeo;
-
-				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "projection"), 0, 0, &pRenderData->matProjection);
-				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
-				pShaderSystem->BindShader(pCurGeo->hShader);
-				if (pCurGeo->hShaderInstance != kInvalidID_U32)
-				{
-					pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
-				}
-				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "model"),	// FIXME: Strings are slow.
-					0, pCurGeo->hShaderInstance, &pCurGeo->matLocalToWorldTransform);
-
-				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
-
-				// Restore depth state.
-				pRenderer->SetDepthTestEnable(true);
-			}
-
-			// Render current map doc meshes.
-			IMaterialSystem* pMaterialSystem = g_pEngine->GetEngineInterfaces()->pMaterialSystem;
-			for (u32 iGeo = 0; iGeo < pViewData->mapMeshes.Count(); iGeo++)
-			{
-				// HACK: Editor hack!
-				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("World_Vertex_Buffer");
-				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("World_Index_Buffer");
-
-				GeometryInstance_t* pCurGeo = pViewData->mapMeshes[iGeo];
-
-				if (pCurGeo->hShaderInstance != kInvalidID_U32)
-				{
-					pMaterialSystem->ApplyPerDrawRenderData(pCurGeo->matLocalToWorldTransform);
-
-					pMaterialSystem->ApplyMaterialInstance(pCurGeo->hShaderInstance);
-
-					pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
-
-					pRenderData->pMetrics->NumDrawCalls++;
-				}
-			}
-
-			pViewData->editorGeo.Purge();
-			pViewData->mapMeshes.Purge();
+			GeometryInstance_t* pTypedGizmo = (GeometryInstance_t*)pRenderData->pEditorViewExtendedData;
+	
+			IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
+			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "projection"), 0, 0, &pRenderData->matProjection);
+			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
+			pShaderSystem->BindShader(pTypedGizmo->hShader);
+			pShaderSystem->BindPerInstanceUniforms(pTypedGizmo->hShaderInstance);
+			pShaderSystem->SetShaderUniform(pTypedGizmo->hShader, pShaderSystem->GetShaderUniformLocation(pTypedGizmo->hShader, "model"),	// FIXME: Strings are slow.
+											0, pTypedGizmo->hShaderInstance, &pTypedGizmo->matLocalToWorldTransform);
+			
+			pRenderer->DrawGeometry(*pTypedGizmo, pVertexBuffer, pIndexBuffer);*/
 		}
 
 		pRenderer->EndRenderpass();
