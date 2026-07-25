@@ -20,6 +20,10 @@ struct ApplicationConfig_t
 
 	Utl::CVector<IRenderView*>			pViews{};
 
+	// UI Library.
+	// FIXME: Pass the plugin around some other way.
+	void*								pUIContext{ nullptr };
+
 	// TODO: This shouldn't happen here.
 	Platform::IPlatformWindow*			pWindowToRegisterWithRenderer{ nullptr };
 

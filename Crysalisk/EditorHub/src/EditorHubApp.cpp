@@ -14,9 +14,6 @@
 #include <Renderer/Camera.h>
 #include <Strings/String_Utils.h>
 
-// Engine
-#include <Renderer/Renderer.h>
-
 // Render views.
 #include <Renderer/Views/3D_Scene_View.h>
 #include <Renderer/Views/Debug_Render_View.h>
@@ -91,6 +88,7 @@ bool CEditorHubApp::PreInitialize(ApplicationConfig_t* pAppConfig)
 	m_pUISystem = pfnGetPluginInterface();
 	CAssert(m_pUISystem);
 	m_pUISystem->PreInitialize(pAppConfig);
+	pAppConfig->pUIContext = m_pUISystem;
 
 	return true;
 }

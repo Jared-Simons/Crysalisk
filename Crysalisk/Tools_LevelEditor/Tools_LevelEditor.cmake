@@ -43,6 +43,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 endif()
 
 # Linker input.
+target_link_libraries(Tools_LevelEditor PRIVATE AppUI)
 target_link_libraries(Tools_LevelEditor PRIVATE Core)
 target_link_libraries(Tools_LevelEditor PRIVATE Engine)
 target_link_libraries(Tools_LevelEditor PRIVATE EditorHub)

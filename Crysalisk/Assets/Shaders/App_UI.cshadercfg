@@ -23,6 +23,8 @@ uniforms
 {
 	"projection", 	"mat4", 		"frame" 
 	"color",		"vec4", 		"material"
+	"instance_uses_textures",		"int", 		"material"
+	"tex",			"sampler",		"material" 
 	"padding1",		"mat4", 		"material"	#FIXME: We shouldn't need to pad here, do it in the shader system or Vulkan renderer.
 	"padding2",		"mat4", 		"material"
 }

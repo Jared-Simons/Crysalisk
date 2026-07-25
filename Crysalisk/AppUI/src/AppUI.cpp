@@ -13,6 +13,7 @@
 #include "Controls/Frame.h"
 #include "Controls/Label.h"
 #include "Controls/Button.h"
+#include "Controls/ImagePanel.h"
 
 // Core
 #include <Core/InputTypes.h>
@@ -81,6 +82,7 @@ namespace AppUI
 		Utl::CVector<UIControlFrame_t>		frames{};
 		Utl::CVector<UIControlLabel_t>		labels{};
 		Utl::CVector<UIControlButton_t>		buttons{};
+		Utl::CVector<UIControlImagePanel_t>	imagePanels{};
 
 		UIControlHandle_t					hActiveControl{ kInvalidID_U32 };
 	};
@@ -93,6 +95,8 @@ namespace AppUI
 
 	bool CAppUI::PreInitialize(struct ApplicationConfig_t* pAppConfig)
 	{
+		CASSERTMSG(!pAppConfig->pUIContext, "CAppUI attempting initialize multiple times!");
+
 		// This plugin can be accessed from numerous different users at once. Make sure we only initialize once.
 		if (pluginState > PLUGIN_STATE_NOT_INITIALIZED)
 		{
@@ -305,6 +309,21 @@ namespace AppUI
 				// These calls will generate the base control geometry.
 				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y);
 				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height);
+			}
+			break;
+
+		case CONTROL_TYPE_IMAGE_PANEL:
+			{
+				imagePanels.PushBack(UIControlImagePanel_t{});
+				UIControlImagePanel_t* pImagePanelData = &imagePanels.Back();
+				pNewBase->m_iControlDataIdx = (u32)imagePanels.Count() - 1;
+
+				CreateImagePanel(pNewBase, pRenderable, pImagePanelData, &m_RenderContext);
+				// These calls will generate the base control geometry.
+				SetPanelControlPosition(&pImagePanelData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pImagePanelData->panel.x, pImagePanelData->panel.y);
+				SetPanelControlDimensions(&pImagePanelData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pImagePanelData->panel.width, pImagePanelData->panel.height);
+
+				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext, 0);
 			}
 			break;
 
@@ -615,6 +634,9 @@ namespace AppUI
 			break;
 		case CONTROL_TYPE_BUTTON:
 			return "Button";
+			break;
+		case CONTROL_TYPE_IMAGE_PANEL:
+			return "Image Panel";
 			break;
 		case CONTROL_TYPE_UNDEFINED:
 			CAssert(0);

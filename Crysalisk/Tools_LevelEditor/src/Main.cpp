@@ -5,6 +5,9 @@
 // Purpose: The entrypoint to the level-editor.
 //=============================================================================
 
+// AppUI
+#include <AppUI.h>
+
 // Core
 #include <Containers/CVector.h>
 #include <Core/ConVar.h>
@@ -20,7 +23,6 @@
 #include <Core/Engine.h>
 #include <Core/Event.h>
 #include <Renderer/Renderer.h>
-#include <Resources/Map.h>
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
@@ -52,6 +54,12 @@ private:
 	u32					m_hSelectedGeometry{ kInvalidID_U32 };
 	Camera_t*			m_pCamera{ nullptr };
 
+	// UI system context.
+	AppUI::IAppUI*		m_pUIContext{ nullptr };
+
+	// Image panel test.
+	AppUI::UIControlHandle_t	hTestImagePanel{ kInvalidID_U32 };
+
 	// These need access to our members.
 	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
@@ -61,7 +69,11 @@ private:
 	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
 };
 
+// FIXME: Remove and allocate this state?
 static CLevelEditorApp s_LevelEditorApp{};
+
+// Editor utilities.
+static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
 
 // Event handlers.
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -76,6 +88,10 @@ LEVEL_EDITOR_API IToolApp* GetToolApplicationState();
 
 bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 {
+	// Should've been set up by the editor.
+	CAssert(pAppConfig->pUIContext);
+	m_pUIContext = (AppUI::IAppUI*)pAppConfig->pUIContext;
+
 	LOG_INFO("Welcome to Crysalisk Level Editor!");
 
 	IRenderer* pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
@@ -83,92 +99,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	// Setup world grid.
 	// FIXME: Lines should be optionally depth-tested.
 	// We want these grids to respect the depth buffer.
-	{
-		IRenderer* pRenderer = pAppConfig->pEngine->GetEngineInterfaces()->pRenderer;
-		IShaderSystem* pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
-		ShaderHandle_t hDebugLineShader = pShaderSystem->AcquireShader("Debug.Line");
-
-		RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
-		RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
-
-		u64 gridVertCount = 400;	// 2 verts per line, 100 lines per axis, 2 axes.
-		Utl::CVector<f32> gridVerts(gridVertCount * 3);	// 3 floats per point.
-
-		// X-axis.
- 		f32 zPos = 0.0f;
-		for (u32 iLine = 0; iLine < 50; iLine++)
-		{
-			Vector vecPos = { -2048.0f, 0.0f, zPos };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			vecPos = { 2048.0f, 0.0f, zPos };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			zPos += 64.0f;
-		}
-
-		// X-axis, back the other way.
-		zPos = -64.0f;
-		for (u32 iLine = 0; iLine < 50; iLine++)
-		{
-			Vector vecPos = { -2048.0f, 0.0f, zPos };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			vecPos = { 2048.0f, 0.0f, zPos };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			zPos -= 64.0f;
-		}
-
-		// Z-axis.
-		f32 xPos = 0.0f;
-		for (u32 iLine = 0; iLine < 50; iLine++)
-		{
-			Vector vecPos = { xPos, 0.0f, -2048.0f };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			vecPos = { xPos, 0.0f, 2048.0f };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			xPos += 64.0f;
-		}
-
-		// Z-axis, back the other way.
-		xPos = -64.0f;
-		for (u32 iLine = 0; iLine < 50; iLine++)
-		{
-			Vector vecPos = { xPos, 0.0f, -2048.0f };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			vecPos = { xPos, 0.0f, 2048.0f };
-			gridVerts.PushBack(vecPos.x);
-			gridVerts.PushBack(vecPos.y);
-			gridVerts.PushBack(vecPos.z);
-
-			xPos -= 64.0f;
-		}
-
-		pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, gridVertCount, sizeof(Vector), 0, gridVerts.Data(), 0, nullptr, &m_GridGeo);
-
-		pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &m_GridGeo.hShaderInstance, "Editor_Grid");
-		pShaderSystem->SetShaderUniform(hDebugLineShader, pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color"), 0, m_GridGeo.hShaderInstance, &Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
-		m_GridGeo.hShader = hDebugLineShader;
-		m_GridGeo.matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
-	}
+	CreateEditorGrid(&m_GridGeo);
 
 	// Create the gizmo.
 	if (!Gizmo_Create(pRenderer, &m_Gizmo))
@@ -176,6 +107,10 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		LOG_ERROR("Failed to create editor gizmo!");
 		return false;
 	}
+
+	// Image panel test.
+	hTestImagePanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
+	m_pUIContext->SetControlVisible(hTestImagePanel, true);
 	
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -283,6 +218,94 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 {
 	// TODO: Get rid of this and move all rendering to views?
+}
+
+static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
+{
+	IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
+	IShaderSystem* pShaderSystem = g_pEngine->GetEngineInterfaces()->pShaderSystem;
+	ShaderHandle_t hDebugLineShader = pShaderSystem->AcquireShader("Debug.Line");
+
+	RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
+	RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
+
+	u64 gridVertCount = 400;	// 2 verts per line, 100 lines per axis, 2 axes.
+	Utl::CVector<f32> gridVerts(gridVertCount * 3);	// 3 floats per point.
+
+	// X-axis.
+	f32 zPos = 0.0f;
+	for (u32 iLine = 0; iLine < 50; iLine++)
+	{
+		Vector vecPos = { -2048.0f, 0.0f, zPos };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		vecPos = { 2048.0f, 0.0f, zPos };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		zPos += 64.0f;
+	}
+
+	// X-axis, back the other way.
+	zPos = -64.0f;
+	for (u32 iLine = 0; iLine < 50; iLine++)
+	{
+		Vector vecPos = { -2048.0f, 0.0f, zPos };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		vecPos = { 2048.0f, 0.0f, zPos };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		zPos -= 64.0f;
+	}
+
+	// Z-axis.
+	f32 xPos = 0.0f;
+	for (u32 iLine = 0; iLine < 50; iLine++)
+	{
+		Vector vecPos = { xPos, 0.0f, -2048.0f };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		vecPos = { xPos, 0.0f, 2048.0f };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		xPos += 64.0f;
+	}
+
+	// Z-axis, back the other way.
+	xPos = -64.0f;
+	for (u32 iLine = 0; iLine < 50; iLine++)
+	{
+		Vector vecPos = { xPos, 0.0f, -2048.0f };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		vecPos = { xPos, 0.0f, 2048.0f };
+		gridVerts.PushBack(vecPos.x);
+		gridVerts.PushBack(vecPos.y);
+		gridVerts.PushBack(vecPos.z);
+
+		xPos -= 64.0f;
+	}
+
+	pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, gridVertCount, sizeof(Vector), 0, gridVerts.Data(), 0, nullptr, pOutGeoInstance);
+
+	pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &pOutGeoInstance->hShaderInstance, "Editor_Grid");
+	pShaderSystem->SetShaderUniform(hDebugLineShader, pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color"), 0, pOutGeoInstance->hShaderInstance, &Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
+	pOutGeoInstance->hShader = hDebugLineShader;
+	pOutGeoInstance->matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 }
 
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)

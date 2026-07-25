@@ -23,6 +23,7 @@ namespace AppUI
 		CONTROL_TYPE_FRAME,
 		CONTROL_TYPE_LABEL,
 		CONTROL_TYPE_BUTTON,
+		CONTROL_TYPE_IMAGE_PANEL,
 
 		CONTROL_TYPE_MAX_TYPES,
 	};
@@ -108,6 +109,12 @@ namespace AppUI
 		// FIXME: Better pfn signature here.
 		PFN_UI_Button_Control_Clicked onPressedCallback{ nullptr };
 		void* callbackListenerInst{ nullptr };
+	};
+
+	struct UIControlImagePanel_t
+	{
+		UIControlPanel_t	panel{};
+		TextureHandle_t		hImage{ kInvalidID_U32 };
 	};
 
 } // namespace AppUI
