@@ -276,8 +276,7 @@ void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
 	Vector delta = newPos - prevPos;
 
 	// Move the gizmo along the plane that contains the selected axis.
-	// LEFTOFF: This partially works but is very broken.
-	pGizmo->origin += delta;
+	pGizmo->origin.flElements[pGizmo->selectedAxis] += delta.flElements[pGizmo->selectedAxis];
 }
 
 bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
