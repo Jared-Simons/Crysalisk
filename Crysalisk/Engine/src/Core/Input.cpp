@@ -241,7 +241,12 @@ void CInputSystem::ProcessMousePositionInput(const i32 mouseXPos, const i32 mous
 	eventData.i32[1] = mouseYPos;
 
 	m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_MOVED, nullptr, eventData);
-	return;
+
+	// If a mouse button is held down, fire a dragged event as well.
+	if (m_MouseState.m_bitsMouseButtons != 0)
+	{
+		m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_DRAGGED, nullptr, eventData);
+	}
 }
 
 //-------------------------------------------------------------------------

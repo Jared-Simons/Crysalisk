@@ -154,8 +154,8 @@ void Gizmo_Update(Gizmo* pGizmo)
 			Vector4D colors[6]{};
 			colors[0] = { 1.0f, 0.0f, 0.0f, 1.0f };
 			colors[1] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			colors[2] = { 1.0f, 0.0f, 0.0f, 1.0f };
-			colors[3] = { 1.0f, 0.0f, 0.0f, 1.0f };
+			colors[2] = { 0.0f, 1.0f, 0.0f, 1.0f };
+			colors[3] = { 0.0f, 1.0f, 0.0f, 1.0f };
 			colors[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
 			colors[5] = { 1.0f, 1.0f, 0.0f, 1.0f };
 
@@ -211,6 +211,75 @@ void Gizmo_Update(Gizmo* pGizmo)
 	}
 }
 
+void Gizmo_BeginInteraction(struct Gizmo* pGizmo)
+{
+	pGizmo->dragging = true;
+}
+
+void Gizmo_EndInteraction(struct Gizmo* pGizmo)
+{
+	pGizmo->dragging = false;
+}
+
+void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
+{
+	CAssert(pGizmo && pCamera);
+
+	u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
+	Vector4D vecPosClip{};
+
+	// Cast a ray and see if we intersect with the gizmo.
+	i32 iMouseX = 0;
+	i32 iMouseY = 0;
+	IInputSystem* pInputSystem = g_pEngine->GetEngineInterfaces()->pInputSystem;
+	pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
+
+	// First, get the mouse coordinates in viewport-space.
+	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
+
+	// Next, bring our coordinates to NDC.
+	vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
+	vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
+	vecPosClip.z = -1.0f;
+	vecPosClip.w = 1.0f;
+
+	// Clip space -> Camera space:
+	Vector4D vecPosCamera{};
+	// Get the inverse projection from our window's viewport.
+	Matrix4x4 matInverseProj = g_pEngine->GetEngineWindow()->GetViewport().matProjection.Inverse();
+	vecPosCamera = matInverseProj * vecPosClip;
+	vecPosCamera.z = -1.0f;
+	vecPosCamera.w = 0.0f;
+
+	// Camera space -> World space:
+	Vector vecRayDir = (pCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
+	vecRayDir.NormalizeInPlace();
+
+	Ray_t ray{};
+	ray.vecOrigin = pCamera->vecPosition;
+	ray.vecDirection = vecRayDir;
+
+	// Now that we have a ray, check it against the gizmo's extents.
+	ray.bDidHit = false;
+	ray.flDistance = kFLT_MAX;
+
+	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
+	vecLocalDirection.w = 0.0f;
+
+	u8 unusedHit = kInvalidID_U8;
+
+	Gizmo_Raycast(pGizmo, &ray, &unusedHit);
+
+	// Take the delta between the current gizmo position and new ray intersection.
+	Vector prevPos = pGizmo->origin;
+	Vector newPos = ray.vecEnd;
+	Vector delta = newPos - prevPos;
+
+	// Move the gizmo along the plane that contains the selected axis.
+	// LEFTOFF: This partially works but is very broken.
+	pGizmo->origin += delta;
+}
+
 bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 {
 	CASSERTMSG(pGizmo && pRay && pOutHitAxis, "Gizmo_Raycast() - requires valid pointers to a gizmo, ray, and int to store the hit axis!");
@@ -259,3 +328,11 @@ bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 	*pOutHitAxis = kInvalidID_U8;
 	return false;
 }
+
+// Translation gizmo algorithm
+/*
+	1.) On mouse click, if any axis was hovered over, begin a translation interaction that lasts until the mouse button is released.
+	2.) When the mouse moves and the interaction is active, do a raycast against the plane defined by selected axis and <WHAT ELSE?>
+	3.) Take the delta of the selected axis' position of the gizmo and the intersection of the ray (if the y-axis is selected, take the delta-y of the previous update to the current one).
+	4.) Move the gizmo along the plane to the point where the current raycast happened.
+*/

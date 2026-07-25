@@ -1,2 +1,6 @@
 - Move assets from source code folder to it's own file structure.
 - Change all CMake scripts so that they create a src folder similar to the AppUI script.
+- Have configurable Vulkan pipeline dynamic state.
+- The gizmo should either be offset off the editor grid, or it should ignore depth testing, which would require configurable pipelines.
+- If the mouse is being held down, it probably should not trigger UI buttons.
+- Events should probably pass event codes to the callback.

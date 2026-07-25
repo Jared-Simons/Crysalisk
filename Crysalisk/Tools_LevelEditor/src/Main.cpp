@@ -52,7 +52,10 @@ private:
 	Camera_t*			m_pCamera{ nullptr };
 
 	// These need access to our members.
+	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
+	friend static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
+	friend static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
 
 	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
 };
@@ -60,7 +63,10 @@ private:
 static CLevelEditorApp s_LevelEditorApp{};
 
 // Event handlers.
+static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
+static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
 static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
+static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
 
 // Console Command callbacks.
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
@@ -172,7 +178,10 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, this, Event_OnMouseButtonPressed);
+	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, this, Event_OnMouseButtonReleased);
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, this, Event_OnMouseMove);
+	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_DRAGGED, this, Event_OnMouseDragged);
 
 	// Editor console commands.
 	ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
@@ -255,7 +264,7 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 			}
 		}
 
-		if (m_Gizmo.geometry.vertexCount && m_hSelectedGeometry != kInvalidID_U32)
+		if (m_Gizmo.geometry.vertexCount /* && m_hSelectedGeometry != kInvalidID_U32*/)
 		{
 			pViewData->gizmoGeo = &m_Gizmo.geometry;
 		}
@@ -267,12 +276,44 @@ void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 	// TODO: Get rid of this and move all rendering to views?
 }
 
+static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
+{
+	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+	Gizmo* pGizmo = &pEditorAppState->m_Gizmo;
+
+	if (pGizmo->selectedAxis != kInvalidID_U8)
+	{
+		Gizmo_BeginInteraction(pGizmo);
+	}
+
+	return true;
+}
+
+static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
+{
+	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+	Gizmo* pGizmo = &pEditorAppState->m_Gizmo;
+
+	if (pGizmo->selectedAxis != kInvalidID_U8)
+	{
+		Gizmo_EndInteraction(pGizmo);
+	}
+
+	return true;
+}
+
 static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
 
 	// Early out if no geometry is selected.
-	if (pEditorAppState->m_SelectedMeshIdx == kInvalidID_U32)
+	/*if (pEditorAppState->m_SelectedMeshIdx == kInvalidID_U32)
+	{
+		return true;
+	}*/
+
+	// Don't update if dragging.
+	if (pEditorAppState->m_Gizmo.dragging)
 	{
 		return true;
 	}
@@ -334,6 +375,19 @@ static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 	return true;
 }
 
+static bool Event_OnMouseDragged(void* pListener, EventData_t eventData)
+{
+	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+
+	if (pEditorAppState->m_Gizmo.selectedAxis != kInvalidID_U8)
+	{
+		LOG_DEBUG("Dragging gizmo!");
+		Gizmo_HandleInteraction(&pEditorAppState->m_Gizmo, pEditorAppState->m_pCamera);
+	}
+
+	return true;
+}
+
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 {
 	if (!pValue)
@@ -356,11 +410,12 @@ static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 		return;
 	}
 
+	// LEFTOFF: Re-enable this when the gizmo is working.
 	// Set as the selected mesh.
-	pApp->m_SelectedMeshIdx = (u32)(pApp->m_CurrentDoc.meshes.Count() - 1);
+	//pApp->m_SelectedMeshIdx = (u32)(pApp->m_CurrentDoc.meshes.Count() - 1);
 
 	// Move the gizmo to this model.
-	pApp->m_Gizmo.origin = Vector{ 0.0f, 0.0f, 0.0f };
+	//pApp->m_Gizmo.origin = Vector{ 0.0f, 0.0f, 0.0f };
 }
 
 IToolApp* GetToolApplicationState()

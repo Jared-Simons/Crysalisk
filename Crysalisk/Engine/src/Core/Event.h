@@ -25,6 +25,7 @@ enum class eEventCategory
 	INPUT_MOUSE_BPRESSED,
 	INPUT_MOUSE_BRELEASED,
 	INPUT_MOUSE_MOVED,
+	INPUT_MOUSE_DRAGGED,	// Mouse moved while a button is pressed.
 
 	MAX_EVENTS
 };
