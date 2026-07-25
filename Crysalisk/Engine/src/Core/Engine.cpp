@@ -10,6 +10,7 @@
 #include <Core/ConVar.h>
 #include <Core/Event.h>
 #include <Core/Logging.h>
+#include <Math/Ray.h>
 #include <Memory/MemoryManager.h>
 #include <Platform/Platform.h>
 #include "Renderer/Camera.h"
@@ -580,37 +581,10 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 	u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
-		Camera_t* pMainCamera = s_Engine.m_pApplication->GetMainCamera();
-
 		i32 iMouseX{ 0 }, iMouseY{ 0 };
-		u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
-		Vector4D vecPosClip{};
-
-		// First, get the mouse coordinates in viewport-space.
 		s_Engine.GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
-		s_Engine.GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
 
-		// Next, bring our coordinates to NDC.
-		vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
-		vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
-		vecPosClip.z = -1.0f;
-		vecPosClip.w = 1.0f;
-
-		// Clip space -> Camera space:
-		Vector4D vecPosCamera{};
-		// Get the inverse projection from our window's viewport.
-		Matrix4x4 matInverseProj = s_Engine.GetEngineWindow()->GetViewport().matProjection.Inverse();
-		vecPosCamera = matInverseProj * vecPosClip;
-		vecPosCamera.z = -1.0f;
-		vecPosCamera.w = 0.0f;
-
-		// Camera space -> World space:
-		Vector vecRayDir = (pMainCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
-		vecRayDir.NormalizeInPlace();
-
-		Ray_t ray{};
-		ray.vecOrigin = pMainCamera->vecPosition;
-		ray.vecDirection = vecRayDir;
+		Ray_t ray = GetRayFromScreen(s_Engine.GetEngineWindow(), s_Engine.GetApplication()->GetMainCamera(), iMouseX, iMouseY);
 
 		// We can only actually cast the ray if the level is loaded.
 		if (s_Engine.GetCurrentMap().IsMapLoaded())

@@ -8,11 +8,12 @@
 
 // Core
 #include <Core/Assertions.h>
+#include <Math/Ray.h>
 
 // Engine
+#include <Application.h>
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
-#include <Resources/Map.h>	// For Ray_t
 #include <Systems/ShaderSystem.h>
 
 static const f32 GIZMO_RADIUS = 0.25f;
@@ -225,43 +226,13 @@ void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
 {
 	CAssert(pGizmo && pCamera);
 
-	u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
-	Vector4D vecPosClip{};
-
 	// Cast a ray and see if we intersect with the gizmo.
 	i32 iMouseX = 0;
 	i32 iMouseY = 0;
 	IInputSystem* pInputSystem = g_pEngine->GetEngineInterfaces()->pInputSystem;
 	pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
 
-	// First, get the mouse coordinates in viewport-space.
-	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
-
-	// Next, bring our coordinates to NDC.
-	vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
-	vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
-	vecPosClip.z = -1.0f;
-	vecPosClip.w = 1.0f;
-
-	// Clip space -> Camera space:
-	Vector4D vecPosCamera{};
-	// Get the inverse projection from our window's viewport.
-	Matrix4x4 matInverseProj = g_pEngine->GetEngineWindow()->GetViewport().matProjection.Inverse();
-	vecPosCamera = matInverseProj * vecPosClip;
-	vecPosCamera.z = -1.0f;
-	vecPosCamera.w = 0.0f;
-
-	// Camera space -> World space:
-	Vector vecRayDir = (pCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
-	vecRayDir.NormalizeInPlace();
-
-	Ray_t ray{};
-	ray.vecOrigin = pCamera->vecPosition;
-	ray.vecDirection = vecRayDir;
-
-	// Now that we have a ray, check it against the gizmo's extents.
-	ray.bDidHit = false;
-	ray.flDistance = kFLT_MAX;
+	Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), g_pEngine->GetApplication()->GetMainCamera(), iMouseX, iMouseY);
 
 	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
 	vecLocalDirection.w = 0.0f;

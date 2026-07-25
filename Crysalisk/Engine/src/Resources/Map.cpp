@@ -8,9 +8,8 @@
 
 #include <Containers/CVector.h>
 #include <Core/Logging.h>
-#include "Core/Engine.h"
 #include <Math/MathLib.h>
-#include "Renderer/Renderer.h"
+#include <Math/Ray.h>
 #include <Strings/String_Utils.h>
 #include "Systems/DebugGeometrySystem.h"
 #include "Systems/MaterialSystem.h"

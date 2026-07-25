@@ -206,6 +206,7 @@ namespace AppUI
 								m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
 
 							// If the left mouse button is pressed, do the callback.
+							// FIXME: Only if it's a fresh click! No dragging a pressed cursor over the button.
 							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 							{
 								if (pCurrentControl->onPressedCallback)

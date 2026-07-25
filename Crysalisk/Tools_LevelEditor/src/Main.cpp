@@ -9,6 +9,7 @@
 #include <Containers/CVector.h>
 #include <Core/ConVar.h>
 #include <Core/Logging.h>
+#include <Math/Ray.h>
 
 // EditorHub
 #include <Renderer/Editor_View.h>
@@ -261,6 +262,14 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 					Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
 					m_hSelectedGeometry = pDebugGeo->AddBBox(pMesh->m_Geometries[0], Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
 				}
+
+				// The selected mesh should share the same translation as the gizmo.
+				// FIXME: The gizmo should probably control the geo.
+				// FIXME: This shouldn't be hardcoded.
+				Matrix4x4 matTranslation(1.0f);
+				matTranslation = Matrix4x4::Scale(matTranslation, Vector{ 100.0f, 100.0f, 100.0f });
+				matTranslation = Matrix4x4::Translate(matTranslation, m_Gizmo.origin);
+				pViewData->mapMeshes.Back()->matLocalToWorldTransform = matTranslation;
 			}
 		}
 
@@ -318,42 +327,11 @@ static bool Event_OnMouseMove(void* pListener, EventData_t eventData)
 		return true;
 	}
 
-	Camera_t* pMainCamera = g_pEngine->GetApplication()->GetMainCamera();
-	u32 iWindowWidth{ 0 }, iWindowHeight{ 0 };
-	Vector4D vecPosClip{};
-
 	// Cast a ray and see if we intersect with the gizmo.
 	i32 iMouseX = eventData.i32[0];
 	i32 iMouseY = eventData.i32[1];
 
-	// First, get the mouse coordinates in viewport-space.
-	g_pEngine->GetEngineWindow()->GetWindowSize(iWindowWidth, iWindowHeight);
-
-	// Next, bring our coordinates to NDC.
-	vecPosClip.x = (2.0f * iMouseX) / iWindowWidth - 1.0f;
-	vecPosClip.y = 1.0f - (2.0f * iMouseY) / iWindowHeight;
-	vecPosClip.z = -1.0f;
-	vecPosClip.w = 1.0f;
-
-	// Clip space -> Camera space:
-	Vector4D vecPosCamera{};
-	// Get the inverse projection from our window's viewport.
-	Matrix4x4 matInverseProj = g_pEngine->GetEngineWindow()->GetViewport().matProjection.Inverse();
-	vecPosCamera = matInverseProj * vecPosClip;
-	vecPosCamera.z = -1.0f;
-	vecPosCamera.w = 0.0f;
-
-	// Camera space -> World space:
-	Vector vecRayDir = (pMainCamera->GetViewMatrix().Inverse() * vecPosCamera).AsVector3D();
-	vecRayDir.NormalizeInPlace();
-
-	Ray_t ray{};
-	ray.vecOrigin = pMainCamera->vecPosition;
-	ray.vecDirection = vecRayDir;
-
-	// Now that we have a ray, check it against the gizmo's extents.
-	ray.bDidHit = false;
-	ray.flDistance = kFLT_MAX;
+	Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), g_pEngine->GetApplication()->GetMainCamera(), iMouseX, iMouseY);
 
 	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
 	vecLocalDirection.w = 0.0f;
@@ -381,7 +359,6 @@ static bool Event_OnMouseDragged(void* pListener, EventData_t eventData)
 
 	if (pEditorAppState->m_Gizmo.selectedAxis != kInvalidID_U8)
 	{
-		LOG_DEBUG("Dragging gizmo!");
 		Gizmo_HandleInteraction(&pEditorAppState->m_Gizmo, pEditorAppState->m_pCamera);
 	}
 
