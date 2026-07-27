@@ -11,7 +11,7 @@
 #include <UI_Types.h>
 
 // Core
-#include <Containers/CVector.h>
+#include <Resources/Loaders/FontLoader.h>	// For glyph data.
 
 // Forward declarations
 struct ApplicationConfig_t;
@@ -62,6 +62,8 @@ namespace AppUI
 		virtual void	SetControlText(UIControlHandle_t hControl, const char* pszText) = 0;
 
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) = 0;
+
+		virtual void	SetControlImage(UIControlHandle_t hControl, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData) = 0;
 
 		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) = 0;
 	};

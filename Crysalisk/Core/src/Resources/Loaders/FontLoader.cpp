@@ -8,6 +8,7 @@
 
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
+#include "Strings/String_Utils.h"
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "Vendor/stb_truetype.h"
@@ -39,6 +40,90 @@ namespace FontLoader
 			return false;
 		}
 
+		return true;
+	}
+
+	bool LoadFontAtlasLayoutFile(const char* pszLayoutFilePath, Utl::CVector<GlyphLayoutData_t>& pOutData)
+	{
+		char szFullPath[2048]{};
+		if (!FileSystem::FileExists(pszLayoutFilePath))
+		{
+			// Try to put the texture folder path on and go again.
+			Utl::StringFormat_V("Assets/Textures/%s.txt", szFullPath, pszLayoutFilePath);
+
+			if (!FileSystem::FileExists(szFullPath))
+			{
+				LOG_ERROR("Failed to find image atlas layout file '%s'.", pszLayoutFilePath);
+				return false;
+			}
+
+			pszLayoutFilePath = szFullPath;
+		}
+
+		FileHandle_t layoutFile{};
+		if (!FileSystem::OpenFile(pszLayoutFilePath, eFileMode::FILEMODE_READ, false, &layoutFile))
+		{
+			return false;
+		}
+
+		char szLineBuffer[2048]{};
+		u64 bytesRead{ 0 };
+
+		while (FileSystem::ReadLine(szLineBuffer, 2048, &bytesRead, &layoutFile))
+		{
+			u64 idx = pOutData.PushBack(GlyphLayoutData_t{});
+			GlyphLayoutData_t* pGlyph = &pOutData[idx];
+
+			char* pszTrimmedGlyphName = Utl::StringTrim(szLineBuffer);
+			pGlyph->pszGlyphName = Utl::StringStrip(pszTrimmedGlyphName, '\"');
+
+			// Process the glyph data
+			char szSubLineBuffer[2048]{};
+			u64 subBytesRead{ 0 };
+			while (FileSystem::ReadLine(szSubLineBuffer, 2048, &subBytesRead, &layoutFile))
+			{
+				u32 spaceIndex = Utl::StringIndexOf(szSubLineBuffer, ' ');
+				if (spaceIndex == kInvalidID_U32)
+				{
+					continue;
+				}
+
+				char* pszKey = Utl::StringDuplicate_N(&szSubLineBuffer[1], spaceIndex - 1);
+				char* pszTrimmedKey = Utl::StringTrim(pszKey);
+
+				if (Utl::StringCompareInsensitive("\"MinX\"", pszTrimmedKey))
+				{
+					pGlyph->xMin = Utl::String_ATOI(&szSubLineBuffer[spaceIndex + 2]);	// + 2 to skip the space and first '"'.
+				} 
+				else if (Utl::StringCompareInsensitive("\"MaxX\"", pszTrimmedKey))
+				{
+					pGlyph->xMax = Utl::String_ATOI(&szSubLineBuffer[spaceIndex + 2]);	// + 2 to skip the space and first '"'.
+				}
+				else if (Utl::StringCompareInsensitive("\"MinY\"", pszTrimmedKey))
+				{
+					pGlyph->yMin = Utl::String_ATOI(&szSubLineBuffer[spaceIndex + 2]);	// + 2 to skip the space and first '"'.
+				}
+				else if (Utl::StringCompareInsensitive("\"MaxY\"", pszTrimmedKey))
+				{
+					pGlyph->yMax = Utl::String_ATOI(&szSubLineBuffer[spaceIndex + 2]);	// + 2 to skip the space and first '"'.
+				}
+				else
+				{
+					CAssert(0);
+				}
+
+				Utl::StringFree(pszTrimmedKey);
+				pszTrimmedKey = nullptr;
+				Utl::StringFree(pszKey);
+				pszKey = nullptr;
+			}
+
+			Utl::StringFree(pszTrimmedGlyphName);
+			pszTrimmedGlyphName = nullptr;
+		}
+
+		FileSystem::CloseFile(&layoutFile);
+		
 		return true;
 	}
 

@@ -13,6 +13,7 @@
 #include <Core/ConVar.h>
 #include <Core/Logging.h>
 #include <Math/Ray.h>
+#include <Resources/Loaders/FontLoader.h>
 
 // EditorHub
 #include <Renderer/Editor_View.h>
@@ -26,6 +27,7 @@
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
+#include <Systems/TextureSystem.h>
 
 #include "Gizmo.h"
 #include "LevelEditorTypes.h"
@@ -57,8 +59,13 @@ private:
 	// UI system context.
 	AppUI::IAppUI*		m_pUIContext{ nullptr };
 
-	// Image panel test.
-	AppUI::UIControlHandle_t	hTestImagePanel{ kInvalidID_U32 };
+	// Glyph data.
+	Utl::CVector<FontLoader::GlyphLayoutData_t>	glyphData{};
+
+	// Editor UI controls.
+	// Main tools.
+	AppUI::UIControlHandle_t	hMouseToolPanel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hSelectionToolImage{ kInvalidID_U32 };
 
 	// These need access to our members.
 	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -107,10 +114,6 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		LOG_ERROR("Failed to create editor gizmo!");
 		return false;
 	}
-
-	// Image panel test.
-	hTestImagePanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
-	m_pUIContext->SetControlVisible(hTestImagePanel, true);
 	
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
@@ -128,6 +131,31 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 	// Place the camera in a good initial position.
 	pAppConfig->pApplication->GetMainCamera()->vecPosition = { 0.0f, 50.0f, 0.0f };
+
+	// Setup UI controls.
+
+	// Load level editor image layout data.
+	if (!FontLoader::LoadFontAtlasLayoutFile("LevelEditor_UIAtlas_Layout", glyphData))
+	{
+		LOG_FATAL("Failed to load level editor glyph data!");
+		return false;
+	}
+
+	TextureHandle_t hUIAtlas = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/LevelEditor_UIAtlas.png", true);
+	CAssert(hUIAtlas != kInvalidID_U32);
+	
+	// Side panel for main tools.
+	hMouseToolPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+	m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 50);
+	m_pUIContext->SetControlDimensions(hMouseToolPanel, 100, 670);
+	m_pUIContext->SetControlColor(hMouseToolPanel, 102, 102, 102, 255);
+
+	// Selection tool image panel.
+	hSelectionToolImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
+	m_pUIContext->SetControlParent(hSelectionToolImage, hMouseToolPanel);
+	m_pUIContext->SetControlPosition(hSelectionToolImage, 10, 10);
+	m_pUIContext->SetControlDimensions(hSelectionToolImage, 80, 80);
+	m_pUIContext->SetControlImage(hSelectionToolImage, hUIAtlas, &glyphData[0]);
 
 	return true;
 }

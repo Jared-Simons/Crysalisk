@@ -8,6 +8,9 @@
 
 #include <Defines.h>
 
+// Core
+#include <Resources/Loaders/FontLoader.h>
+
 // Engine
 #include <Resources/ResourceTypes.h>
 #include <Systems/FontSystem.h>	// FIXME: Get rid of TextObject
@@ -115,6 +118,7 @@ namespace AppUI
 	{
 		UIControlPanel_t	panel{};
 		TextureHandle_t		hImage{ kInvalidID_U32 };
+		FontLoader::GlyphLayoutData_t* pCurGlyph{ nullptr };
 	};
 
 } // namespace AppUI

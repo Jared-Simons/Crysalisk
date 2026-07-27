@@ -16,6 +16,18 @@ namespace FontLoader
 	// Attempts to load an existing font asset from disk (NOTE: This currently only supports True-Type fonts!)
 	CORE_API bool LoadFontResource(const char* pszFontPath, u64 iFontSize, struct FontResource_t& pOutResource);
 
+	struct GlyphLayoutData_t
+	{
+		u32 xMin{ 0 };
+		u32 xMax{ 0 };
+		u32 yMin{ 0 };
+		u32 yMax{ 0 };
+
+		char* pszGlyphName{ nullptr };
+	};
+
+	CORE_API bool LoadFontAtlasLayoutFile(const char* pszLayoutFilePath, Utl::CVector<struct GlyphLayoutData_t>& pOutData);
+
 	struct FontCharData_t
 	{
 		u16	xMin;

@@ -62,6 +62,8 @@ namespace AppUI
 
 		virtual void	SetControlFont(UIControlHandle_t hControl, const char* pszFontName, f32 flFontSize) override;
 
+		virtual void	SetControlImage(UIControlHandle_t hControl, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData) override;
+
 		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) override;
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
@@ -319,7 +321,7 @@ namespace AppUI
 				pNewBase->m_iControlDataIdx = (u32)imagePanels.Count() - 1;
 
 				CreateImagePanel(pNewBase, pRenderable, pImagePanelData, &m_RenderContext);
-				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext, 0);
+				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext, 0, pImagePanelData->pCurGlyph);
 			}
 			break;
 
@@ -408,6 +410,14 @@ namespace AppUI
 				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY, true);
 			}
 			break;
+		case CONTROL_TYPE_IMAGE_PANEL:
+			{
+				UIControlImagePanel_t* pImagePanelData = &imagePanels[pBase->m_iControlDataIdx];
+				pImagePanelData->panel.x = parentedX;
+				pImagePanelData->panel.y = parentedY;
+				RegenerateImagePanelGeometry(&renderables[pBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext);
+			}
+			break;
 
 		default:
 			CAssert(0);
@@ -434,6 +444,14 @@ namespace AppUI
 			panel = &buttons[pBase->m_iControlDataIdx].panel;
 			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height, true);
 			break;
+		case CONTROL_TYPE_IMAGE_PANEL:
+		{
+			UIControlImagePanel_t* pImagePanelData = &imagePanels[pBase->m_iControlDataIdx];
+			pImagePanelData->panel.width = width;
+			pImagePanelData->panel.height = height;
+			RegenerateImagePanelGeometry(&renderables[pBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext);
+		}
+		break;
 
 		default:
 			CAssert(0);
@@ -525,6 +543,17 @@ namespace AppUI
 
 		UIControlLabel_t* pLabel = &labels[pBase->m_iControlDataIdx];
 		SetLabelFont(pLabel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, pszFontName, flFontSize);
+	}
+
+	void CAppUI::SetControlImage(UIControlHandle_t hControl, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData)
+	{
+		CAssert(hControl != kInvalidID_U32);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_IMAGE_PANEL, "SetControlImage - This function must only be called for UI elements that support images!");
+
+		UIControlImagePanel_t* pImagePanel = &imagePanels[pBase->m_iControlDataIdx];
+
+		SetImagePanelImage(&renderables[pBase->m_iRenderableIdx], pImagePanel, &m_RenderContext, hImage, pGlyphData);
 	}
 
 	void CAppUI::SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener)

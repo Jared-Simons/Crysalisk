@@ -17,15 +17,14 @@
 
 namespace AppUI
 {
-	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, FontLoader::GlyphLayoutData_t* pGlyphData);
+	static void AcquireImageAtlasLayoutData(const char* pszLayoutName);
 
 	void CreateImagePanel(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext)
 	{
 		CAssert(pBase && pRenderable && pImagePanelControl && pRenderContext);
 
 		pBase->m_eControlType = CONTROL_TYPE_IMAGE_PANEL;
-
-		// LEFTOFF: Image panel will need texture coords.
 
 		// Set some defaults here, the caller can override after creation.
 		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultDiffuseTexture();
@@ -34,10 +33,10 @@ namespace AppUI
 		pImagePanelControl->panel.width = 256;
 		pImagePanelControl->panel.height = 256;
 
-		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext);
+		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, nullptr);
 	}
 
-	void SetImagePanelImage(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage)
+	void SetImagePanelImage(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData)
 	{
 		CAssert(pRenderable && pImagePanelControl && pRenderContext);
 
@@ -49,12 +48,21 @@ namespace AppUI
 			pShaderSystem->AcquireShaderInstanceResources(pRenderable->hShader, &pRenderable->iShaderInstance, "AppUI.ImagePanel");
 		}
 
-		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultDiffuseTexture();
+		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
 		pShaderSystem->SetShaderUniform(pRenderable->hShader, pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &pImagePanelControl->hImage);
-		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/testpanel.png", true);
+		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/LevelEditor_UIAtlas.png", true);
+
+		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, pGlyphData);
+		pImagePanelControl->pCurGlyph = pGlyphData;
 	}
 
-	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	void RegenerateImagePanelGeometry(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext)
+	{
+		CAssert(pRenderable && pImagePanelControl && pRenderContext);
+		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, pImagePanelControl->pCurGlyph);
+	}
+
+	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, FontLoader::GlyphLayoutData_t* pGlyphData)
 	{
 		CAssert(panel && pRenderable && pRenderContext);
 
@@ -73,10 +81,33 @@ namespace AppUI
 		pos[2] = { (f32)panel->x, (f32)panel->y + (f32)panel->height };
 		pos[3] = { (f32)panel->x + (f32)panel->width, (f32)panel->y };
 
+		// FIXME: Don't hardcode these UVs, we need to read them from somewhere.
 		texCoord[0] = { 0.0f, 0.0f };
 		texCoord[1] = { 1.0f, 1.0f };
 		texCoord[2] = { 0.0f, 1.0f };
 		texCoord[3] = { 1.0f, 0.0f };
+
+		f32 minX = 0.0f;
+		f32 maxX = 0.0f;
+		f32 minY = 0.0f;
+		f32 maxY = 0.0f;
+
+		if (pGlyphData)
+		{
+			minX = pGlyphData->xMin;
+			maxX = pGlyphData->xMax;
+			minY = pGlyphData->yMin;
+			maxY = pGlyphData->yMax;
+		}
+
+		// FIXME: Configurable.
+		f32 atlasWidth = 640.0f;
+		f32 atlasHeight = 480.0f;
+
+		texCoord[0] = { minX / atlasWidth, minY / atlasHeight };
+		texCoord[1] = { maxX / atlasWidth, maxY / atlasHeight };
+		texCoord[2] = { minX / atlasWidth, maxY / atlasHeight };
+		texCoord[3] = { maxX / atlasWidth, minY / atlasHeight };
 
 		indices[0] = 2;
 		indices[1] = 1;

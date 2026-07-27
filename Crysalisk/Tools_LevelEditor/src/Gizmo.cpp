@@ -32,6 +32,12 @@ bool Gizmo_Create(class IRenderer* pRenderer, Gizmo* pOutGizmo)
 	verts[4] = { 0.0f, 0.0f, 0.0f };
 	verts[5] = { 0.0f, 0.0f, GIZMO_RADIUS };
 
+	// Lift the gizmo off the ground slightly so it doesn't z-fight with the grid.
+	for (u8 iVert = 0; iVert < 6; iVert++)
+	{
+		verts[iVert].y += 0.0001;
+	}
+
 	Vector4D colors[6]{};
 	colors[0] = { 1.0f, 0.0f, 0.0f, 1.0f };
 	colors[1] = { 1.0f, 0.0f, 0.0f, 1.0f };
