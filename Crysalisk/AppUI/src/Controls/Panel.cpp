@@ -15,7 +15,7 @@
 
 namespace AppUI
 {
-	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext);
+	static void GenerateControlGeometry(UIControlPanel_t* pUIBase, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, bool bAcquireShaderResources);
 
 	void CreatePanel(UIBaseControl_t* pBaseControl, UIControlRenderData_t* pRenderable, UIControlPanel_t* pPanelControl, AppUIRenderContext_t* pRenderContext)
 	{
@@ -48,21 +48,21 @@ namespace AppUI
 		pRenderable->vertexCount = kInvalidID_U64;
 	}
 
-	void SetPanelControlPosition(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y)
+	void SetPanelControlPosition(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 x, u16 y, bool bAcquireShaderResources)
 	{
 		panel->x = x;
 		panel->y = y;
-		GenerateControlGeometry(panel, pRenderable, pRenderContext);
+		GenerateControlGeometry(panel, pRenderable, pRenderContext, bAcquireShaderResources);
 	}
 
-	void SetPanelControlDimensions(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height)
+	void SetPanelControlDimensions(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, u16 width, u16 height, bool bAcquireShaderResources)
 	{
 		panel->width = width;
 		panel->height = height;
-		GenerateControlGeometry(panel, pRenderable, pRenderContext);
+		GenerateControlGeometry(panel, pRenderable, pRenderContext, bAcquireShaderResources);
 	}
 
-	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext)
+	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, bool bAcquireShaderResources)
 	{
 		CAssert(panel && pRenderable && pRenderContext);
 
@@ -100,7 +100,7 @@ namespace AppUI
 		pRenderable->geo = outGeometryInstance;
 
 		// Acquire shader resources.
-		if (pRenderable->hShader == kInvalidID_U32 && pRenderable->iShaderInstance == kInvalidID_U32)
+		if (pRenderable->hShader == kInvalidID_U32 && pRenderable->iShaderInstance == kInvalidID_U32 && bAcquireShaderResources)
 		{
 			ShaderHandle_t hShader = pRenderContext->m_pShaderSystem->AcquireShader("App_UI");
 			CAssert(hShader != kInvalidID_U32);

@@ -7,6 +7,9 @@
 %VULKAN_SDK%\Bin\glslc.exe -fshader-stage=vert AppUI.vert.glsl -o AppUI.vert.spv
 %VULKAN_SDK%\Bin\glslc.exe -fshader-stage=frag AppUI.frag.glsl -o AppUI.frag.spv
 
+%VULKAN_SDK%\Bin\glslc.exe -fshader-stage=vert AppUI_ImagePanel.vert.glsl -o AppUI_ImagePanel.vert.spv
+%VULKAN_SDK%\Bin\glslc.exe -fshader-stage=frag AppUI_ImagePanel.frag.glsl -o AppUI_ImagePanel.frag.spv
+
 %VULKAN_SDK%\Bin\glslc.exe -fshader-stage=vert Debug.Line.vert.glsl -o Debug.Line.vert.spv
 %VULKAN_SDK%\Bin\glslc.exe -fshader-stage=vert Debug.Line.VertColor.vert.glsl -o Debug.Line.VertColor.vert.spv
 %VULKAN_SDK%\Bin\glslc.exe -fshader-stage=frag Debug.Line.frag.glsl -o Debug.Line.frag.spv

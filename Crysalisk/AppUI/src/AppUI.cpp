@@ -272,8 +272,8 @@ namespace AppUI
 
 				CreatePanel(pNewBase, pRenderable, pPanelData, &m_RenderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->x, pPanelData->y);
-				SetPanelControlDimensions(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->width, pPanelData->height);
+				SetPanelControlPosition(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->x, pPanelData->y, true);
+				SetPanelControlDimensions(pPanelData, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pPanelData->width, pPanelData->height, true);
 			}
 			break;
 
@@ -307,8 +307,8 @@ namespace AppUI
 
 				CreateButton(pNewBase, pRenderable, pButtonData, &m_RenderContext);
 				// These calls will generate the base control geometry.
-				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y);
-				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height);
+				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y, true);
+				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height, true);
 			}
 			break;
 
@@ -319,10 +319,6 @@ namespace AppUI
 				pNewBase->m_iControlDataIdx = (u32)imagePanels.Count() - 1;
 
 				CreateImagePanel(pNewBase, pRenderable, pImagePanelData, &m_RenderContext);
-				// These calls will generate the base control geometry.
-				SetPanelControlPosition(&pImagePanelData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pImagePanelData->panel.x, pImagePanelData->panel.y);
-				SetPanelControlDimensions(&pImagePanelData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pImagePanelData->panel.width, pImagePanelData->panel.height);
-
 				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext, 0);
 			}
 			break;
@@ -391,11 +387,11 @@ namespace AppUI
 		{
 		case CONTROL_TYPE_PANEL:
 			panel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY, true);
 			break;
 		case CONTROL_TYPE_FRAME:
 			panel = frames[pBase->m_iControlDataIdx].panel;
-			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
+			SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY, true);
 			break;
 		case CONTROL_TYPE_LABEL:
 			{
@@ -409,7 +405,7 @@ namespace AppUI
 				// Get our own panel.
 				UIControlButton_t* pButtonData = &buttons[pBase->m_iControlDataIdx];
 				panel = &pButtonData->panel;
-				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY);
+				SetPanelControlPosition(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, parentedX, parentedY, true);
 			}
 			break;
 
@@ -428,15 +424,15 @@ namespace AppUI
 		{
 		case CONTROL_TYPE_PANEL:
 			panel = &panels[pBase->m_iControlDataIdx];
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height, true);
 			break;
 		case CONTROL_TYPE_FRAME:
 			panel = frames[pBase->m_iControlDataIdx].panel;
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height, true);
 			break;
 		case CONTROL_TYPE_BUTTON:
 			panel = &buttons[pBase->m_iControlDataIdx].panel;
-			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height);
+			SetPanelControlDimensions(panel, &renderables[pBase->m_iRenderableIdx], &m_RenderContext, width, height, true);
 			break;
 
 		default:
@@ -562,6 +558,10 @@ namespace AppUI
 					case CONTROL_TYPE_BUTTON:
 						pCurrentPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
 						break;
+					case CONTROL_TYPE_IMAGE_PANEL:
+						pCurrentPanel = &imagePanels[pCurrentBase->m_iControlDataIdx].panel;
+						return;	// TODO: Handle resizing separately here since this geometry has different requirements.
+						break;
 					default:
 						CAssert(0);
 						break;
@@ -569,8 +569,8 @@ namespace AppUI
 					CAssert(pCurrentPanel);
 
 					// These will regenerate control geometry. FIXME: Just regenerate without setting fields?
-					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->x, pCurrentPanel->y);
-					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->width, pCurrentPanel->height);
+					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->x, pCurrentPanel->y, true);
+					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->width, pCurrentPanel->height, true);
 				}
 				else
 				{

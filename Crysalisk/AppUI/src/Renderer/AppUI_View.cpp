@@ -12,6 +12,7 @@
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
 #include <Systems/ShaderSystem.h>
+#include <Systems/TextureSystem.h>
 
 namespace AppUI
 {
@@ -36,6 +37,7 @@ namespace AppUI
 		IShaderSystem*	m_pShaderSystem{ nullptr };
 		ShaderHandle_t	m_hUIShader{ kInvalidID_U32 };
 		ShaderHandle_t	m_hTextShader{ kInvalidID_U32 };
+		ShaderHandle_t	m_hImagePanelShader{ kInvalidID_U32 };
 	};
 
 	bool CAppUI_RenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
@@ -84,6 +86,7 @@ namespace AppUI
 		// Cache these off for quick lookups later.
 		m_hUIShader = m_pShaderSystem->AcquireShader("App_UI");
 		m_hTextShader = m_pShaderSystem->AcquireShader("Core.UI");
+		m_hImagePanelShader = m_pShaderSystem->AcquireShader("AppUI_ImagePanel");
 
 		return true;
 	}
@@ -129,6 +132,20 @@ namespace AppUI
 				{
 					// For text rendering.
 					pFontSystem->BindFontInstance(pRenderable->iShaderInstance);
+				}
+				else if (pRenderable->hShader == m_hImagePanelShader)
+				{
+					// FIXME: Pass the image handle in from somewhere.
+					static bool swapDone = false;
+					if (g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(7) && !swapDone)
+					{
+						swapDone = true;
+						TextureHandle_t hImage = 7;
+						m_pShaderSystem->SetShaderUniform(pRenderable->hShader, m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &hImage);
+					}
+
+					// For rendering images.
+					m_pShaderSystem->BindPerInstanceUniforms(pRenderable->iShaderInstance);
 				}
 				else
 				{
