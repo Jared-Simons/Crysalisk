@@ -65,6 +65,9 @@ namespace AppUI
 		virtual void	SetControlImage(UIControlHandle_t hControl, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData) override;
 
 		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) override;
+		virtual void	SetControlInteractable(UIControlHandle_t hControl, bool bInteractable) override;
+
+		virtual UIControlHandle_t GetActiveControl() const override { return hActiveControl; }
 
 		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
 
@@ -85,6 +88,9 @@ namespace AppUI
 		Utl::CVector<UIControlLabel_t>		labels{};
 		Utl::CVector<UIControlButton_t>		buttons{};
 		Utl::CVector<UIControlImagePanel_t>	imagePanels{};
+
+		// Default font.
+		FontHandle_t						hDefaultFont{ kInvalidID_U32 };
 
 		UIControlHandle_t					hActiveControl{ kInvalidID_U32 };
 	};
@@ -146,6 +152,9 @@ namespace AppUI
 		m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
 		m_InputHandler.pListenerInst = this;
 
+		// Default font.
+		hDefaultFont = pAppConfig->pEngine->GetEngineInterfaces()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
+
 		pluginState = PLUGIN_STATE_INITIALIZED;
 
 		return true;
@@ -192,6 +201,9 @@ namespace AppUI
 
 			if (pCurrentBase->m_eControlType != CONTROL_TYPE_UNDEFINED)
 			{
+				i32 xPos{ 0 }, yPos{ 0 };
+				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(xPos, yPos);
+
 				switch (pCurrentBase->m_eControlType)
 				{
 				case CONTROL_TYPE_BUTTON:
@@ -199,8 +211,6 @@ namespace AppUI
 						UIControlButton_t* pCurrentControl = &buttons[pCurrentBase->m_iControlDataIdx];
 
 						// Is the mouse hovering over the button?
-						i32 xPos, yPos;
-						g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(xPos, yPos);
 						if ((xPos >= pCurrentControl->panel.x && xPos <= pCurrentControl->panel.x + pCurrentControl->panel.width) &&
 						   (yPos >= pCurrentControl->panel.y && yPos <= pCurrentControl->panel.y + pCurrentControl->panel.height))
 						{
@@ -213,7 +223,7 @@ namespace AppUI
 
 							// If the left mouse button is pressed, do the callback.
 							// FIXME: Only if it's a fresh click! No dragging a pressed cursor over the button.
-							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
 							{
 								if (pCurrentControl->onPressedCallback)
 								{
@@ -234,6 +244,24 @@ namespace AppUI
 					break;
 
 				case CONTROL_TYPE_LABEL:
+					{
+						UIControlLabel_t* pCurrentControl = &labels[pCurrentBase->m_iControlDataIdx];
+
+						// Determine if the mouse is hovering over the text area.
+						// FIXME: This doesn't work with large width/height.
+						if ((xPos >= pCurrentControl->x && xPos <= pCurrentControl->x + pCurrentControl->width) &&
+							(yPos >= pCurrentControl->y && yPos <= pCurrentControl->y + pCurrentControl->height))
+						{
+							// If the left mouse button is pressed, we can select the text.
+							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
+							{
+								// FIXME: Need a better way to set input focus.
+								AcquireInputFocus();
+
+								hActiveControl = iControl;
+							}
+						}
+					}
 					break;
 
 				default:
@@ -296,6 +324,12 @@ namespace AppUI
 				labels.PushBack(UIControlLabel_t{});
 				UIControlLabel_t* pLabelData = &labels.Back();
 				pNewBase->m_iControlDataIdx = (u32)labels.Count() - 1;
+				pLabelData->hFont = hDefaultFont;
+
+				pLabelData->x = 0;
+				pLabelData->y = 0;
+				pLabelData->width = 100;
+				pLabelData->height = 100;
 
 				CreateLabelControl(pNewBase, pRenderable, pLabelData, &m_RenderContext);
 			}
@@ -311,6 +345,9 @@ namespace AppUI
 				// These calls will generate the base control geometry.
 				SetPanelControlPosition(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.x, pButtonData->panel.y, true);
 				SetPanelControlDimensions(&pButtonData->panel, &renderables[pNewBase->m_iRenderableIdx], &m_RenderContext, pButtonData->panel.width, pButtonData->panel.height, true);
+
+				// Buttons are interactable by default.
+				pNewBase->m_bInteractable = true;
 			}
 			break;
 
@@ -564,6 +601,13 @@ namespace AppUI
 
 		buttons[pBase->m_iControlDataIdx].onPressedCallback = callback;
 		buttons[pBase->m_iControlDataIdx].callbackListenerInst = pListener;
+	}
+
+	void CAppUI::SetControlInteractable(UIControlHandle_t hControl, bool bInteractable)
+	{
+		CAssert(hControl != kInvalidID_U32);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+		pBase->m_bInteractable = bInteractable;
 	}
 
 	void CAppUI::RegenerateControlGeometry(u32 newWidth, u32 newHeight)

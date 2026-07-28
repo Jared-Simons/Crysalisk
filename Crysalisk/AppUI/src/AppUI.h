@@ -66,6 +66,9 @@ namespace AppUI
 		virtual void	SetControlImage(UIControlHandle_t hControl, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData) = 0;
 
 		virtual void	SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener) = 0;
+		virtual void	SetControlInteractable(UIControlHandle_t hControl, bool bInteractable) = 0;
+
+		virtual UIControlHandle_t GetActiveControl() const = 0;
 	};
 
 } // namespace AppUI

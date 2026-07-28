@@ -44,6 +44,9 @@ namespace AppUI
 		IRenderer* pRenderer = g_pEngine->GetEngineInterfaces()->pRenderer;
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
 
+		pLabelData->x = x;
+		pLabelData->y = y;
+
 		pLabelData->text.m_vecPos = { (f32)x, (f32)y };
 		pLabelData->text.SetText(pRenderer, pFontSystem, pLabelData->text.m_pszText);	// NOTE: We have to call this again because this is the only way to regenerate text geo currently.
 	}

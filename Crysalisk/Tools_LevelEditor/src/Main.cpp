@@ -24,6 +24,7 @@
 #include <Core/Engine.h>
 #include <Core/Event.h>
 #include <Renderer/Renderer.h>
+#include <Resources/GeometryGenerator.h>
 #include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
@@ -65,6 +66,9 @@ private:
 	// UI system context.
 	AppUI::IAppUI*		m_pUIContext{ nullptr };
 
+	// Default point model.
+	GeometryInstance_t	m_DefaultPointGeometry{};
+
 	// Glyph data.
 	Utl::CVector<FontLoader::GlyphLayoutData_t>	glyphData{};
 
@@ -76,6 +80,15 @@ private:
 
 	AppUI::UIControlHandle_t	hSelectionToolButton{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t	hAddModelButton{ kInvalidID_U32 };
+
+	// Entity inspector panel.
+	AppUI::UIControlHandle_t	hEntityInspectorPanel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hEntityInspectorLabel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hEntityTranslationLabel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hEntityTranslationEntry{ kInvalidID_U32 };
+
+	AppUI::UIControlHandle_t	hEntityModelNameLabel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hEntityModelNameEntry{ kInvalidID_U32 };
 
 	// These need access to our members.
 	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -135,7 +148,26 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		LOG_ERROR("Failed to create editor gizmo!");
 		return false;
 	}
-	
+
+	// Create the default point model: A 16x16x16 white cube.
+	// TODO: Make this its own function.
+	{
+		RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("World_Vertex_Buffer");
+		RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("World_Index_Buffer");
+
+		GeometryConfig_t defaultConfig = MeshGenerator::CreateDefaultCubeConfiguration(Vector{ 0.0f, 0.0f, 0.0f }, 16.0f, 16.0f, 16.0);
+
+		pAppConfig->pEngine->GetEngineInterfaces()->pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, defaultConfig.Vertices.Count(), defaultConfig.Vertices.Stride(), 0, defaultConfig.Vertices.Data(), defaultConfig.Indices.Count(), defaultConfig.Indices.Data(), &m_DefaultPointGeometry);
+		m_DefaultPointGeometry.matLocalToWorldTransform = Matrix4x4(1.0f);
+
+		IShaderSystem* pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
+		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Core.Phong");
+		pShaderSystem->AcquireShaderInstanceResources(hShader, &m_DefaultPointGeometry.hShaderInstance, "DefaultPointGeometry");
+		TextureHandle_t defaultWhite = pAppConfig->pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
+		pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "textures"), 0, m_DefaultPointGeometry.hShaderInstance, &defaultWhite);
+		m_DefaultPointGeometry.hShader = hShader;
+	}
+
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, this, Event_OnMouseButtonPressed);
@@ -167,44 +199,110 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		return false;
 	}
 
+	// LEFTOFF: Need to pass key messages into here for controls
+
 	TextureHandle_t hUIAtlas = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/LevelEditor_UIAtlas.png", true);
 	CAssert(hUIAtlas != kInvalidID_U32);
-	
+
 	// Side panel for main tools.
-	hMouseToolPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
-	m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 50);
-	m_pUIContext->SetControlDimensions(hMouseToolPanel, 100, 670);
-	m_pUIContext->SetControlColor(hMouseToolPanel, 102, 102, 102, 255);
+	{
+		hMouseToolPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 50);
+		m_pUIContext->SetControlDimensions(hMouseToolPanel, 100, 670);
+		m_pUIContext->SetControlColor(hMouseToolPanel, 102, 102, 102, 255);
+	}
 
 	// Selection tool image panel.
-	hSelectionToolImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
-	m_pUIContext->SetControlParent(hSelectionToolImage, hMouseToolPanel);
-	m_pUIContext->SetControlPosition(hSelectionToolImage, 10, 10);
-	m_pUIContext->SetControlDimensions(hSelectionToolImage, 80, 80);
-	m_pUIContext->SetControlImage(hSelectionToolImage, hUIAtlas, &glyphData[0]);
+	{
+		hSelectionToolImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
+		m_pUIContext->SetControlParent(hSelectionToolImage, hMouseToolPanel);
+		m_pUIContext->SetControlPosition(hSelectionToolImage, 10, 10);
+		m_pUIContext->SetControlDimensions(hSelectionToolImage, 80, 80);
+		m_pUIContext->SetControlImage(hSelectionToolImage, hUIAtlas, &glyphData[0]);
+	}
 
 	// Add model image panel.
-	hAddModelImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
-	m_pUIContext->SetControlParent(hAddModelImage, hMouseToolPanel);
-	m_pUIContext->SetControlPosition(hAddModelImage, 10, 100);
-	m_pUIContext->SetControlDimensions(hAddModelImage, 80, 80);
-	m_pUIContext->SetControlImage(hAddModelImage, hUIAtlas, &glyphData[1]);
+	{
+		hAddModelImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
+		m_pUIContext->SetControlParent(hAddModelImage, hMouseToolPanel);
+		m_pUIContext->SetControlPosition(hAddModelImage, 10, 100);
+		m_pUIContext->SetControlDimensions(hAddModelImage, 80, 80);
+		m_pUIContext->SetControlImage(hAddModelImage, hUIAtlas, &glyphData[1]);
+	}
 
 	// Buttons for the above.
 	// TODO: Would be good to have buttons with image panels be a single control.
-	hSelectionToolButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-	m_pUIContext->SetControlParent(hSelectionToolButton, hMouseToolPanel);
-	m_pUIContext->SetControlPosition(hSelectionToolButton, 10, 10);
-	m_pUIContext->SetControlDimensions(hSelectionToolButton, 80, 80);
-	m_pUIContext->SetControlVisible(hSelectionToolButton, false);
-	m_pUIContext->SetControlPressedCallback(hSelectionToolButton, ButtonEvent_ChangeTool_Selection, this);
+	{
+		hSelectionToolButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+		m_pUIContext->SetControlParent(hSelectionToolButton, hMouseToolPanel);
+		m_pUIContext->SetControlPosition(hSelectionToolButton, 10, 10);
+		m_pUIContext->SetControlDimensions(hSelectionToolButton, 80, 80);
+		m_pUIContext->SetControlVisible(hSelectionToolButton, false);
+		m_pUIContext->SetControlPressedCallback(hSelectionToolButton, ButtonEvent_ChangeTool_Selection, this);
+	}
 
-	hAddModelButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-	m_pUIContext->SetControlParent(hAddModelButton, hMouseToolPanel);
-	m_pUIContext->SetControlPosition(hAddModelButton, 10, 100);
-	m_pUIContext->SetControlDimensions(hAddModelButton, 80, 80);
-	m_pUIContext->SetControlVisible(hAddModelButton, false);
-	m_pUIContext->SetControlPressedCallback(hAddModelButton, ButtonEvent_ChangeTool_AddModel, this);
+	{
+		hAddModelButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+		m_pUIContext->SetControlParent(hAddModelButton, hMouseToolPanel);
+		m_pUIContext->SetControlPosition(hAddModelButton, 10, 100);
+		m_pUIContext->SetControlDimensions(hAddModelButton, 80, 80);
+		m_pUIContext->SetControlVisible(hAddModelButton, false);
+		m_pUIContext->SetControlPressedCallback(hAddModelButton, ButtonEvent_ChangeTool_AddModel, this);
+	}
+
+	// Entity inspector panel.
+	{
+		hEntityInspectorPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUIContext->SetControlPosition(hEntityInspectorPanel, 830, 100);
+		m_pUIContext->SetControlDimensions(hEntityInspectorPanel, 250, 620);
+	}
+
+	// Entity inspector panel label.
+	{
+		hEntityInspectorLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(hEntityInspectorLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(hEntityInspectorLabel, 0, 30);
+		m_pUIContext->SetControlText(hEntityInspectorLabel, "Entity Inspector");
+	}
+
+	// Entity inspector translation label.
+	{
+		hEntityTranslationLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(hEntityTranslationLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(hEntityTranslationLabel, 0, 100);
+		m_pUIContext->SetControlFont(hEntityTranslationLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(hEntityTranslationLabel, "Position");
+	}
+
+	// Entity inspector translation entry.
+	{
+		hEntityTranslationEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(hEntityTranslationEntry, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(hEntityTranslationEntry, 30, 120);
+		m_pUIContext->SetControlFont(hEntityTranslationEntry, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(hEntityTranslationEntry, "0.0 0.0 0.0");
+	}
+
+	// Entity inspector model name label.
+	{
+		hEntityModelNameLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(hEntityModelNameLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(hEntityModelNameLabel, 0, 200);
+		m_pUIContext->SetControlFont(hEntityModelNameLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(hEntityModelNameLabel, "Model Name");
+	}
+
+	// Entity inspector model name entry.
+	{
+		hEntityModelNameEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(hEntityModelNameEntry, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 220);
+		m_pUIContext->SetControlFont(hEntityModelNameEntry, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(hEntityModelNameEntry, "<Your model name here>");
+		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
+	}
+
+	// FIXME: The inspector panel should only be active if an entity/model is selected.
 
 	return true;
 }
@@ -256,15 +354,19 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 		pViewData->editorGeo.Resize(12);
 		pViewData->editorGeo.PushBack(&m_GridGeo);
 
+		pViewData->mapMeshes.PushBack(&m_DefaultPointGeometry);
+
 		if (m_CurrentDoc.meshes.Count() > 0)
 		{
 			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 			Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
-			if (pMesh->m_Geometries.Count() > 0)
+			/*if (pMesh->m_Geometries.Count() > 0)
 			{
 				// Just render the first one for now.
-				GeometryInstance_t& geo = pMesh->m_Geometries[0];
-				geo.matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform;
+				//GeometryInstance_t& geo = pMesh->m_Geometries[0];
+				//GeometryInstance_t& geo = m_DefaultPointGeometry;
+				//geo.matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform;
+				geo.matLocalToWorldTransform = Matrix4x4(1.0f);
 				pViewData->mapMeshes.PushBack(&geo);
 
 				IDebugGeometrySystem* pDebugGeo = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
@@ -278,11 +380,11 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 				// The selected mesh should share the same translation as the gizmo.
 				// FIXME: The gizmo should probably control the geo.
 				// FIXME: This shouldn't be hardcoded.
-				Matrix4x4 matTranslation(1.0f);
+				/*Matrix4x4 matTranslation(1.0f);
 				matTranslation = Matrix4x4::Scale(matTranslation, Vector{ 100.0f, 100.0f, 100.0f });
 				matTranslation = Matrix4x4::Translate(matTranslation, m_Gizmo.origin);
 				pViewData->mapMeshes.Back()->matLocalToWorldTransform = matTranslation;
-			}
+			}*/
 		}
 
 		if (m_iToolMode == EDITOR_TOOL_MODE_SELECTION)
@@ -486,13 +588,6 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 			return true;
 		}
 
-		// If no model name present, don't create.
-		if (!pEditorAppState->m_pszToolModelName)
-		{
-			LOG_ERROR("No model name entered, exiting");
-			return true;
-		}
-
 		// TODO ALGORITHM:
 		// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
 		// 2.) Wherever it intersects, place the model there.
@@ -506,21 +601,20 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 		Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
 		Editor_Raycast(pEditorAppState, &ray);
 
-		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+		// FIXME: Multiple geometry instances.
+		Matrix4x4 matTransform = Matrix4x4(1.0f);
+		matTransform = Matrix4x4::Translate(matTransform, ray.vecEnd);
 
-		// FIXME: If the mesh loading fails (e.g. the mesh doesn't exist), then this will take up a slot in the map mesh array.
-		MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshInstance(pEditorAppState->m_pszToolModelName, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
-		if (hNewMesh != kInvalidID_U32)
-		{
-			pEditorAppState->m_CurrentDoc.meshes.PushBack(hNewMesh);
-		}
-		else
-		{
-			return true;
-		}
+		pEditorAppState->m_DefaultPointGeometry.matLocalToWorldTransform = matTransform;
+
+		// FIXME: Move the gizmo to the mesh correctly.
+
+		// Setup the inspector panel.
+		AppUI::IAppUI* pUIContext = pEditorAppState->m_pUIContext;
+		char szTextBuffer[128]{};
+		Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, ray.vecEnd.x, ray.vecEnd.y, ray.vecEnd.z);
 		
-		IDebugGeometrySystem* pDebug = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
-		pDebug->AddLine(ray.vecOrigin, ray.vecEnd, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
+		pUIContext->SetControlText(pEditorAppState->hEntityTranslationEntry, szTextBuffer);
 	}
 
 	return true;

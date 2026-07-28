@@ -67,6 +67,7 @@ namespace AppUI
 		u32 m_iControlDataIdx{ kInvalidID_U32 };
 
 		UIControlHandle_t	m_hParentControl{ kInvalidID_U32 };
+		bool				m_bInteractable{ false };	// Can this control be interacted with?
 	};
 
 	struct UIControlPanel_t
@@ -91,6 +92,12 @@ namespace AppUI
 	{
 		FontHandle_t	hFont{ kInvalidID_U32 };
 		char*			pszText{ nullptr };
+
+		// Extents
+		u16					x{ 0 };
+		u16					y{ 0 };
+		u16					width{ 0 };
+		u16					height{ 0 };
 
 		// FIXME: Deprecate this.
 		TextObject	text{};

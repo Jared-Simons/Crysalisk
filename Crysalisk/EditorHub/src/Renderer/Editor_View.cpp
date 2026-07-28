@@ -113,7 +113,7 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 			if (pViewData->gizmoGeo)
 			{
 				// Disable depth testing for the gizmo.
-				pRenderer->SetDepthTestEnable(false);
+				//pRenderer->SetDepthTestEnable(false);
 
 				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Vertex_Buffer");
 				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("Debug_Renderer_Line_Index_Buffer");
@@ -133,7 +133,7 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
 
 				// Restore depth state.
-				pRenderer->SetDepthTestEnable(true);
+				//pRenderer->SetDepthTestEnable(true);
 			}
 
 			// Render current map doc meshes.
@@ -146,7 +146,16 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 
 				GeometryInstance_t* pCurGeo = pViewData->mapMeshes[iGeo];
 
-				if (pCurGeo->hShaderInstance != kInvalidID_U32)
+				pShaderSystem->BindShader(pCurGeo->hShader);
+				pShaderSystem->BindPerFrameUniforms();
+				pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
+				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "model"), 0, 0, &pCurGeo->matLocalToWorldTransform);
+
+				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
+
+				pRenderData->pMetrics->NumDrawCalls++;
+
+				/*if (pCurGeo->hShaderInstance != kInvalidID_U32)
 				{
 					pMaterialSystem->ApplyPerDrawRenderData(pCurGeo->matLocalToWorldTransform);
 
@@ -155,7 +164,7 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 					pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
 
 					pRenderData->pMetrics->NumDrawCalls++;
-				}
+				}*/
 			}
 
 			pViewData->editorGeo.Purge();
