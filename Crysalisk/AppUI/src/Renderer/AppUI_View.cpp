@@ -136,10 +136,10 @@ namespace AppUI
 				else if (pRenderable->hShader == m_hImagePanelShader)
 				{
 					// FIXME: Pass the image handle in from somewhere.
-					static bool swapDone = false;
-					if (g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(7) && !swapDone)
+					static u8 swapDone = 0;
+					if (g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(7) && swapDone < 2)
 					{
-						swapDone = true;
+						swapDone++;
 						TextureHandle_t hImage = 7;
 						m_pShaderSystem->SetShaderUniform(pRenderable->hShader, m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &hImage);
 					}

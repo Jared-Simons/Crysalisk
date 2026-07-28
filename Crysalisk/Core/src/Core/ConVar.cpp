@@ -147,6 +147,10 @@ void ConsoleCommandExecute(struct ConVarSystemState* pSystem, char* pCommandStri
 				// Just use the raw data, it will be up to the command callback to decipher it.
 				pCurCommand->callback(pCurCommand, pszParameters);
 			}
+			else if (pCurCommand->dataType == CONVAR_VALUETYPE_STRING)
+			{
+				pCurCommand->callback(pCurCommand, pCurCommand->data.str);
+			}
 			else
 			{
 				pCurCommand->callback(pCurCommand, &pCurCommand->data);

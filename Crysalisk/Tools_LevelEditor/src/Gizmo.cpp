@@ -292,9 +292,10 @@ bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 		{																							// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
 			pRay->bDidHit = true;
 			pRay->flDistance = flTNearMax;
-			pRay->vecEnd = pRay->vecOrigin + pRay->vecDirection * pRay->flDistance;
+			pRay->vecEnd = pRay->vecOrigin + (pRay->vecDirection * pRay->flDistance);
 
 			// Return the axis hit.
+			// FIXME: We should check all 3 axes everytime.
 			*pOutHitAxis = iAxis;
 			return true;
 		}

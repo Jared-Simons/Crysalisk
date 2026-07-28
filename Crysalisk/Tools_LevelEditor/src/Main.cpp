@@ -56,6 +56,12 @@ private:
 	u32					m_hSelectedGeometry{ kInvalidID_U32 };
 	Camera_t*			m_pCamera{ nullptr };
 
+	// Current tool mode.
+	u8					m_iToolMode{ EDITOR_TOOL_MODE_NONE };
+	// Editor hacks.
+	bool				m_bToolChangeHack{ false };	// HACK: Pressing a tool change button will send events on the same mouse release. This can be a problem with, for example, clicking the 'add model' button and adding a model in the same click.
+	char*				m_pszToolModelName{ nullptr };	// The name of the model to place.
+
 	// UI system context.
 	AppUI::IAppUI*		m_pUIContext{ nullptr };
 
@@ -66,6 +72,10 @@ private:
 	// Main tools.
 	AppUI::UIControlHandle_t	hMouseToolPanel{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t	hSelectionToolImage{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hAddModelImage{ kInvalidID_U32 };
+
+	AppUI::UIControlHandle_t	hSelectionToolButton{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t	hAddModelButton{ kInvalidID_U32 };
 
 	// These need access to our members.
 	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -74,6 +84,12 @@ private:
 	friend static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
 
 	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
+	friend static void ConsoleCommand_SetModelName(struct ConVar_t* pCommand, void* pValue);
+
+	friend static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
+	friend static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
+
+	friend static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay);
 };
 
 // FIXME: Remove and allocate this state?
@@ -81,6 +97,7 @@ static CLevelEditorApp s_LevelEditorApp{};
 
 // Editor utilities.
 static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
+static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay);
 
 // Event handlers.
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -90,6 +107,10 @@ static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
 
 // Console Command callbacks.
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
+
+// Button callbacks.
+static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
+static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
 
 LEVEL_EDITOR_API IToolApp* GetToolApplicationState();
 
@@ -125,14 +146,19 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	// Editor console commands.
 	ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
 	ConsoleCommandRegister(pConVar, "add_model", CONVAR_VALUETYPE_PASSTHROUGH, ConsoleCommand_AddModel, this);
+	ConsoleCommandRegister(pConVar, "set_model_name", CONVAR_VALUETYPE_STRING, ConsoleCommand_SetModelName, this);
 
 	// Default to fullbright for the editor.
 	ConsoleCommandExecute(pConVar, "mat_debugvismode 1");
+
+	// Default the tool mode to selection.
+	m_iToolMode = EDITOR_TOOL_MODE_SELECTION;
 
 	// Place the camera in a good initial position.
 	pAppConfig->pApplication->GetMainCamera()->vecPosition = { 0.0f, 50.0f, 0.0f };
 
 	// Setup UI controls.
+	// FIXME: Would be nice to have the developer console render ontop of everything else when active.
 
 	// Load level editor image layout data.
 	if (!FontLoader::LoadFontAtlasLayoutFile("LevelEditor_UIAtlas_Layout", glyphData))
@@ -156,6 +182,29 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	m_pUIContext->SetControlPosition(hSelectionToolImage, 10, 10);
 	m_pUIContext->SetControlDimensions(hSelectionToolImage, 80, 80);
 	m_pUIContext->SetControlImage(hSelectionToolImage, hUIAtlas, &glyphData[0]);
+
+	// Add model image panel.
+	hAddModelImage = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_IMAGE_PANEL);
+	m_pUIContext->SetControlParent(hAddModelImage, hMouseToolPanel);
+	m_pUIContext->SetControlPosition(hAddModelImage, 10, 100);
+	m_pUIContext->SetControlDimensions(hAddModelImage, 80, 80);
+	m_pUIContext->SetControlImage(hAddModelImage, hUIAtlas, &glyphData[1]);
+
+	// Buttons for the above.
+	// TODO: Would be good to have buttons with image panels be a single control.
+	hSelectionToolButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+	m_pUIContext->SetControlParent(hSelectionToolButton, hMouseToolPanel);
+	m_pUIContext->SetControlPosition(hSelectionToolButton, 10, 10);
+	m_pUIContext->SetControlDimensions(hSelectionToolButton, 80, 80);
+	m_pUIContext->SetControlVisible(hSelectionToolButton, false);
+	m_pUIContext->SetControlPressedCallback(hSelectionToolButton, ButtonEvent_ChangeTool_Selection, this);
+
+	hAddModelButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
+	m_pUIContext->SetControlParent(hAddModelButton, hMouseToolPanel);
+	m_pUIContext->SetControlPosition(hAddModelButton, 10, 100);
+	m_pUIContext->SetControlDimensions(hAddModelButton, 80, 80);
+	m_pUIContext->SetControlVisible(hAddModelButton, false);
+	m_pUIContext->SetControlPressedCallback(hAddModelButton, ButtonEvent_ChangeTool_AddModel, this);
 
 	return true;
 }
@@ -236,9 +285,14 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 			}
 		}
 
-		if (m_Gizmo.geometry.vertexCount /* && m_hSelectedGeometry != kInvalidID_U32*/)
+		if (m_iToolMode == EDITOR_TOOL_MODE_SELECTION)
 		{
 			pViewData->gizmoGeo = &m_Gizmo.geometry;
+		}
+		else
+		{
+			// If not in selection mode, don't render the gizmo.
+			pViewData->gizmoGeo = nullptr;
 		}
 	}
 }
@@ -330,10 +384,75 @@ static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
 
 	pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, gridVertCount, sizeof(Vector), 0, gridVerts.Data(), 0, nullptr, pOutGeoInstance);
 
+	// Setup grid extents.
+	pOutGeoInstance->vecMinExtents = { -2048.0f, -0.001f, -2048.0f };
+	pOutGeoInstance->vecMaxExtents = { 2048.0f, 0.001f, 2048.0f };
+
 	pShaderSystem->AcquireShaderInstanceResources(hDebugLineShader, &pOutGeoInstance->hShaderInstance, "Editor_Grid");
 	pShaderSystem->SetShaderUniform(hDebugLineShader, pShaderSystem->GetShaderUniformLocation(hDebugLineShader, "color"), 0, pOutGeoInstance->hShaderInstance, &Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f });
 	pOutGeoInstance->hShader = hDebugLineShader;
 	pOutGeoInstance->matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
+}
+
+static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay)
+{
+	CAssert(pLevelEditor && pRay);
+
+	// We're going to test against the editor grid and all existing geometry in the scene.
+
+	u32 iGeometryCount = (u32)pLevelEditor->m_CurrentDoc.meshes.Count() + 1;	// + 1 to include the editor grid.
+
+	for (u32 iGeo = 0; iGeo < iGeometryCount; iGeo++)
+	{
+		GeometryInstance_t* pCurGeo = nullptr;
+
+		if (iGeo == 0)
+		{
+			// Test against the grid first.
+			pCurGeo = &pLevelEditor->m_GridGeo;
+		}
+		else
+		{
+			// Now test against the other geometries.
+			CAssert(0);	// FIXME: Not implemented yet!
+		}
+
+		CAssert(pCurGeo);
+
+		// Convert the ray to the geometry's local space.
+		Ray_t localRay;
+		Matrix4x4 geoWorldToLocal = pCurGeo->matLocalToWorldTransform.Inverse();
+		Vector4D vecDirection = pRay->vecDirection.ToVector4D();
+		vecDirection.w = 0.0f;
+
+		localRay.vecOrigin = geoWorldToLocal * pRay->vecOrigin;
+		localRay.vecDirection = (geoWorldToLocal * vecDirection).AsVector3D();
+
+		// These properties are already in local space.
+		Vector vecCenter = pCurGeo->vecCenter;
+		Vector vecMins = pCurGeo->vecMinExtents;
+		Vector vecMaxs = pCurGeo->vecMaxExtents;
+
+		f32 flTMin = kFLT_MAX;
+		f32 flTMax = kFLT_MIN;
+
+		Vector tMin = (vecMins - localRay.vecOrigin) / localRay.vecDirection;
+		Vector tMax = (vecMaxs - localRay.vecOrigin) / localRay.vecDirection;
+
+		Vector tNear = { FloatMin(tMin.x, tMax.x), FloatMin(tMin.y, tMax.y), FloatMin(tMin.z, tMax.z) };
+		Vector tFar = { FloatMax(tMin.x, tMax.x), FloatMax(tMin.y, tMax.y), FloatMax(tMin.z, tMax.z) };
+
+		f32 flTNearMax = FloatMax(FloatMax(tNear.x, tNear.y), tNear.z);
+		f32 flTFarMin = FloatMin(FloatMin(tFar.x, tFar.y), tFar.z);
+
+		if ((flTNearMax <= flTFarMin) && (flTNearMax < pRay->flDistance) && (flTNearMax > 0.0f))	// NOTE: In this particular test, the distance should always be > 0, as the objects in the view frustum should be along the front of the ray
+		{																							// (the transforms involved in calculating the ray direction already accounts for Camera Forward = -Z axis).
+			pRay->bDidHit = true;
+			pRay->flDistance = flTNearMax;
+			pRay->vecEnd = pRay->vecOrigin + (pRay->vecDirection * pRay->flDistance);
+			pRay->pHitGeometry = pCurGeo;
+		}
+	}
 }
 
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
@@ -357,6 +476,51 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 	if (pGizmo->selectedAxis != kInvalidID_U8)
 	{
 		Gizmo_EndInteraction(pGizmo);
+	}
+
+	if (pEditorAppState->m_iToolMode == EDITOR_TOOL_MODE_ADD_MODEL)
+	{
+		if (pEditorAppState->m_bToolChangeHack)
+		{
+			pEditorAppState->m_bToolChangeHack = false;
+			return true;
+		}
+
+		// If no model name present, don't create.
+		if (!pEditorAppState->m_pszToolModelName)
+		{
+			LOG_ERROR("No model name entered, exiting");
+			return true;
+		}
+
+		// TODO ALGORITHM:
+		// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
+		// 2.) Wherever it intersects, place the model there.
+		//
+		// FUTURE WORK:
+		// 3.) Configurable models.
+		// 4.) Add some padding so that the model doesn't get stuck in the wall regardless of its extents.
+		i32 mouseX{ 0 }, mouseY{ 0 };
+		g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
+
+		Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
+		Editor_Raycast(pEditorAppState, &ray);
+
+		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+		// FIXME: If the mesh loading fails (e.g. the mesh doesn't exist), then this will take up a slot in the map mesh array.
+		MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshInstance(pEditorAppState->m_pszToolModelName, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+		if (hNewMesh != kInvalidID_U32)
+		{
+			pEditorAppState->m_CurrentDoc.meshes.PushBack(hNewMesh);
+		}
+		else
+		{
+			return true;
+		}
+		
+		IDebugGeometrySystem* pDebug = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
+		pDebug->AddLine(ray.vecOrigin, ray.vecEnd, Vector4D{ 1.0f, 1.0f, 1.0f, 1.0f }, -1.0f);
 	}
 
 	return true;
@@ -416,6 +580,22 @@ static bool Event_OnMouseDragged(void* pListener, EventData_t eventData)
 	return true;
 }
 
+static void ConsoleCommand_SetModelName(struct ConVar_t* pCommand, void* pValue)
+{
+	if (!pValue)
+	{
+		return;
+	}
+
+	CLevelEditorApp* pApp = (CLevelEditorApp*)pCommand->listenerInst;
+	if (pApp->m_pszToolModelName)
+	{
+		Utl::StringFree(pApp->m_pszToolModelName);
+	}
+
+	pApp->m_pszToolModelName = Utl::StringDuplicate((char*)pValue);
+}
+
 static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 {
 	if (!pValue)
@@ -444,6 +624,21 @@ static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 
 	// Move the gizmo to this model.
 	//pApp->m_Gizmo.origin = Vector{ 0.0f, 0.0f, 0.0f };
+}
+
+static void ButtonEvent_ChangeTool_Selection(void* pListenerInst)
+{
+	CLevelEditorApp* pEditor = (CLevelEditorApp*)pListenerInst;
+
+	pEditor->m_iToolMode = EDITOR_TOOL_MODE_SELECTION;
+}
+
+static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst)
+{
+	CLevelEditorApp* pEditor = (CLevelEditorApp*)pListenerInst;
+
+	pEditor->m_iToolMode = EDITOR_TOOL_MODE_ADD_MODEL;
+	pEditor->m_bToolChangeHack = true;
 }
 
 IToolApp* GetToolApplicationState()

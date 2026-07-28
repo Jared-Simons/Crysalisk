@@ -71,6 +71,11 @@ namespace FontLoader
 
 		while (FileSystem::ReadLine(szLineBuffer, 2048, &bytesRead, &layoutFile))
 		{
+			if (Utl::StringLength(szLineBuffer) == 0 || szLineBuffer[0] == '#')	// Skip blank lines and comments
+			{
+				continue;
+			}
+
 			u64 idx = pOutData.PushBack(GlyphLayoutData_t{});
 			GlyphLayoutData_t* pGlyph = &pOutData[idx];
 
@@ -82,6 +87,11 @@ namespace FontLoader
 			u64 subBytesRead{ 0 };
 			while (FileSystem::ReadLine(szSubLineBuffer, 2048, &subBytesRead, &layoutFile))
 			{
+				if (szSubLineBuffer[0] == '}')	// Closing brace
+				{
+					break;
+				}
+
 				u32 spaceIndex = Utl::StringIndexOf(szSubLineBuffer, ' ');
 				if (spaceIndex == kInvalidID_U32)
 				{

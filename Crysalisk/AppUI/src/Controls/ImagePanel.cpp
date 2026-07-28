@@ -81,7 +81,6 @@ namespace AppUI
 		pos[2] = { (f32)panel->x, (f32)panel->y + (f32)panel->height };
 		pos[3] = { (f32)panel->x + (f32)panel->width, (f32)panel->y };
 
-		// FIXME: Don't hardcode these UVs, we need to read them from somewhere.
 		texCoord[0] = { 0.0f, 0.0f };
 		texCoord[1] = { 1.0f, 1.0f };
 		texCoord[2] = { 0.0f, 1.0f };
