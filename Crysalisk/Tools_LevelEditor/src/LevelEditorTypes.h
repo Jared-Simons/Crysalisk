@@ -29,5 +29,5 @@ enum eEditorToolMode
 
 struct MapEditorDocument_t
 {
-	Utl::CVector<MeshHandle_t>	meshes{};
+	Utl::CVector<MeshInstance_t>	meshes{};
 };

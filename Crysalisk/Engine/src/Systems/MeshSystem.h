@@ -10,6 +10,20 @@
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/ResourceTypes.h"
 
+struct BaseMesh_t
+{
+	u32					iMeshIdx{ kInvalidID_U16 };
+	MaterialHandle_t	hMaterial{ kInvalidID_U32 };
+};
+
+struct MeshInstance_t
+{
+	MeshHandle_t	hBaseMesh{ kInvalidID_U32 };
+	u16				iInstanceIdx{ kInvalidID_U16 };
+
+	Matrix4x4		matLocalToWorld{};
+};
+
 //-------------------------------------------------------------------------
 // Purpose: Mesh System Configuration.
 //-------------------------------------------------------------------------
@@ -39,9 +53,13 @@ public:
 	virtual void			Shutdown() = 0;
 
 	// Mesh acquisition.
+	// FIXME: Deprecate this.
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
+	virtual MeshInstance_t	AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) = 0;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) = 0;
+
+	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName) = 0;
 
 	// Mesh release.
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) = 0;

@@ -22,13 +22,19 @@ public:
 	virtual void			Shutdown() override;
 
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
+	virtual MeshInstance_t	AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) override;
+
+	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName) override;
 
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) override;
 
 private:
+	// FIXME: Deprecate this system and move to mesh bases/instances.
 	MeshHandle_t			GetFirstFreeMeshHandle() const;
+
+	u32						GetFirstFreeMeshBaseIdx() const;
 
 	void					ClearMeshDictionaryEntry(const char* pszMeshPath);
 
@@ -53,6 +59,12 @@ private:
 
 	// The mesh dictionary.
 	MeshDictionary_t	m_MeshDictionary{};
+
+	// An array of base meshes.
+	BaseMesh_t*			m_MeshBases{ nullptr };
+
+	// Instance counts
+	u32*				m_MeshInstanceCounts{ nullptr };
 };
 
 // Mesh System Context
@@ -139,6 +151,10 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 	m_MeshDictionary.m_MeshArray = new Mesh[m_Config.MaxMeshes];
 	m_MeshDictionary.m_MeshHashmap.Resize(m_Config.MaxMeshes);
 
+	m_MeshBases = new BaseMesh_t[m_Config.MaxMeshes];
+
+	m_MeshInstanceCounts = new u32[m_Config.MaxMeshes];
+
 	// Get geometry buffers
 	m_pWorldVertexBuffer = m_Config.pRenderer->CreateRenderBuffer(sizeof(Vertex3D) * 5 * 1024 * 1024, eRenderBufferUsage::VERTEX, true, "World_Vertex_Buffer");
 	if (m_pWorldVertexBuffer == nullptr)
@@ -167,6 +183,18 @@ void CMeshSystem::Shutdown()
 	{
 		delete[] m_MeshDictionary.m_MeshArray;
 		m_MeshDictionary.m_MeshArray = nullptr;
+	}
+
+	if (m_MeshBases)
+	{
+		delete[] m_MeshBases;
+		m_MeshBases = nullptr;
+	}
+
+	if (m_MeshInstanceCounts)
+	{
+		delete[] m_MeshInstanceCounts;
+		m_MeshInstanceCounts = nullptr;
 	}
 
 	s_MeshSystem = nullptr;
@@ -242,6 +270,28 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 	}
 
 	return newMeshHandle;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+MeshInstance_t CMeshSystem::AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease)
+{
+	CAssert(hBaseMesh != kInvalidID_U32 && m_MeshDictionary.m_MeshArray[hBaseMesh].m_MeshID != kInvalidID_U32);
+
+	MeshInstance_t instance{};
+	instance.hBaseMesh = hBaseMesh;
+	instance.iInstanceIdx = m_MeshInstanceCounts[hBaseMesh];
+	m_MeshInstanceCounts[hBaseMesh]++;
+
+	Matrix4x4 matLocalToWorld(1.0f);
+	matLocalToWorld = Matrix4x4::Scale(matLocalToWorld, vecScale);
+	
+	// FIXME: Implement euler rotation.
+	matLocalToWorld = Matrix4x4::Translate(matLocalToWorld, vecPos);
+	instance.matLocalToWorld = matLocalToWorld;
+
+	return instance;
 }
 
 //-------------------------------------------------------------------------
@@ -338,6 +388,26 @@ Mesh* CMeshSystem::AcquireMeshDataByHandle(MeshHandle_t hMesh)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName)
+{
+	CASSERTMSG(pGeometryInstance && pszName, "WrapGeometryInstanceInMesh requires a pointer to geometry and name.");
+
+	MeshLookup* pLookup = m_MeshDictionary.m_MeshHashmap.Insert(pszName);
+	u32 meshBaseIdx = GetFirstFreeMeshBaseIdx();
+
+	BaseMesh_t* pBase = &m_MeshBases[meshBaseIdx];
+
+	pBase->hMaterial = pGeometryInstance->hShaderInstance;
+	pBase->iMeshIdx = meshBaseIdx;
+
+	pLookup->MeshHandle = meshBaseIdx;
+
+	return meshBaseIdx;
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Releases a reference to a mesh, decrementing it's reference count.
 // 
 // Input:	hMesh - The mesh to release an instance from.
@@ -400,6 +470,26 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 	}
 
 	LOG_WARN("Failed to find free mesh slot in the mesh array, returning null handle.");
+	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Find the first available base mesh slot in the mesh dictionary.
+// Input:	none.
+// Output:	Returns the first available base mesh index.
+//-------------------------------------------------------------------------
+u32 CMeshSystem::GetFirstFreeMeshBaseIdx() const
+{
+	for (u64 meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
+	{
+		if (s_MeshSystem->m_MeshBases[meshIdx].iMeshIdx == kInvalidID_U32)
+		{
+			// Found a free slot, return!
+			return meshIdx;
+		}
+	}
+
+	LOG_WARN("Failed to find free base mesh slot in the mesh array, returning null handle.");
 	return kInvalidID_U32;
 }
 

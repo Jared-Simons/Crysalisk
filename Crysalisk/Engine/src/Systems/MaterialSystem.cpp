@@ -11,8 +11,6 @@
 #include <Core/ConVar.h>
 #include "Core/Engine.h"
 #include <Core/Logging.h>
-#include <Platform/FileSystem.h>
-#include "Renderer/Renderer.h"
 #include <Resources/Loaders/MaterialLoader.h>
 #include <Strings/String_Utils.h>
 #include "Systems/ShaderSystem.h"

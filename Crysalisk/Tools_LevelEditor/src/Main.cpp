@@ -25,7 +25,6 @@
 #include <Core/Event.h>
 #include <Renderer/Renderer.h>
 #include <Resources/GeometryGenerator.h>
-#include <Systems/DebugGeometrySystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
 #include <Systems/TextureSystem.h>
@@ -67,6 +66,7 @@ private:
 	AppUI::IAppUI*		m_pUIContext{ nullptr };
 
 	// Default point model.
+	MeshHandle_t		m_hDefaultMesh{ kInvalidID_U32 };
 	GeometryInstance_t	m_DefaultPointGeometry{};
 
 	// Glyph data.
@@ -166,6 +166,9 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		TextureHandle_t defaultWhite = pAppConfig->pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
 		pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "textures"), 0, m_DefaultPointGeometry.hShaderInstance, &defaultWhite);
 		m_DefaultPointGeometry.hShader = hShader;
+
+		IMeshSystem* pMeshSystem = pAppConfig->pEngine->GetEngineInterfaces()->pMeshSystem;
+		m_hDefaultMesh = pMeshSystem->WrapGeometryInstanceInMesh(&m_DefaultPointGeometry, "LevelEditor_DefaultPointEntityGeo");
 	}
 
 	// Register for events.
@@ -346,9 +349,11 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 		EditorView_ExtendedData_t* pViewData = (EditorView_ExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
 		pViewData->editorGeo.SetAllocator(pRenderPacket->pFrameAllocator);
 		pViewData->mapMeshes.SetAllocator(pRenderPacket->pFrameAllocator);
+		pViewData->mapInstances.SetAllocator(pRenderPacket->pFrameAllocator);
 	}
 	else
 	{
+		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 		EditorView_ExtendedData_t* pViewData = (EditorView_ExtendedData_t*)pRenderPacket->pEditorViewExtendedData;
 
 		pViewData->editorGeo.Resize(12);
@@ -356,35 +361,10 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 
 		pViewData->mapMeshes.PushBack(&m_DefaultPointGeometry);
 
-		if (m_CurrentDoc.meshes.Count() > 0)
+		pViewData->mapInstances.Resize(m_CurrentDoc.meshes.Count());
+		for (u32 i = 0; i < m_CurrentDoc.meshes.Count(); i++)
 		{
-			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
-			Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
-			/*if (pMesh->m_Geometries.Count() > 0)
-			{
-				// Just render the first one for now.
-				//GeometryInstance_t& geo = pMesh->m_Geometries[0];
-				//GeometryInstance_t& geo = m_DefaultPointGeometry;
-				//geo.matLocalToWorldTransform = pMesh->m_matLocalToWorldTransform;
-				geo.matLocalToWorldTransform = Matrix4x4(1.0f);
-				pViewData->mapMeshes.PushBack(&geo);
-
-				IDebugGeometrySystem* pDebugGeo = g_pEngine->GetEngineInterfaces()->pDebugGeometry;
-
-				if (m_hSelectedGeometry == kInvalidID_U32)
-				{
-					Mesh* pMesh = pMeshSystem->AcquireMeshDataByHandle(m_CurrentDoc.meshes[0]);
-					m_hSelectedGeometry = pDebugGeo->AddBBox(pMesh->m_Geometries[0], Vector4D{ 1.0f, 1.0f, 0.0f, 1.0f }, -1.0f);
-				}
-
-				// The selected mesh should share the same translation as the gizmo.
-				// FIXME: The gizmo should probably control the geo.
-				// FIXME: This shouldn't be hardcoded.
-				/*Matrix4x4 matTranslation(1.0f);
-				matTranslation = Matrix4x4::Scale(matTranslation, Vector{ 100.0f, 100.0f, 100.0f });
-				matTranslation = Matrix4x4::Translate(matTranslation, m_Gizmo.origin);
-				pViewData->mapMeshes.Back()->matLocalToWorldTransform = matTranslation;
-			}*/
+			pViewData->mapInstances.PushBack(&m_CurrentDoc.meshes[i]);
 		}
 
 		if (m_iToolMode == EDITOR_TOOL_MODE_SELECTION)
@@ -516,7 +496,8 @@ static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay)
 		else
 		{
 			// Now test against the other geometries.
-			CAssert(0);	// FIXME: Not implemented yet!
+			//CAssert(0);	// FIXME: Not implemented yet!
+			pCurGeo = &pLevelEditor->m_GridGeo;
 		}
 
 		CAssert(pCurGeo);
@@ -606,6 +587,12 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 		matTransform = Matrix4x4::Translate(matTransform, ray.vecEnd);
 
 		pEditorAppState->m_DefaultPointGeometry.matLocalToWorldTransform = matTransform;
+
+		// Add a new mesh here.
+		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+		u64 meshIdx = pEditorAppState->m_CurrentDoc.meshes.PushBack(MeshInstance_t{});
+		pEditorAppState->m_CurrentDoc.meshes[meshIdx] = pMeshSystem->AcquireMeshInstance(pEditorAppState->m_hDefaultMesh, ray.vecEnd, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 1.0f, 1.0f, 1.0f }, false);
 
 		// FIXME: Move the gizmo to the mesh correctly.
 
@@ -705,7 +692,7 @@ static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
 	MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshInstance((const char*)pValue, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
 	if (hNewMesh != kInvalidID_U32)
 	{
-		pApp->m_CurrentDoc.meshes.PushBack(hNewMesh);
+		//pApp->m_CurrentDoc.meshes.PushBack(hNewMesh);
 	}
 	else
 	{

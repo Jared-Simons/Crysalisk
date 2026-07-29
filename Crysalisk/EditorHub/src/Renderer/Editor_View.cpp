@@ -11,6 +11,7 @@
 #include <Renderer/Renderer.h>
 #include <Renderer/RendererTypes.h>
 #include <Systems/MaterialSystem.h>
+#include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
 
 class CEditorView : public IRenderView
@@ -138,37 +139,28 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 
 			// Render current map doc meshes.
 			IMaterialSystem* pMaterialSystem = g_pEngine->GetEngineInterfaces()->pMaterialSystem;
-			for (u32 iGeo = 0; iGeo < pViewData->mapMeshes.Count(); iGeo++)
+			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+			for (u32 iGeo = 0; iGeo < pViewData->mapInstances.Count(); iGeo++)
 			{
 				// HACK: Editor hack!
 				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("World_Vertex_Buffer");
 				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("World_Index_Buffer");
 
-				GeometryInstance_t* pCurGeo = pViewData->mapMeshes[iGeo];
+				MeshInstance_t* pInstance = pViewData->mapInstances[iGeo];
 
-				pShaderSystem->BindShader(pCurGeo->hShader);
+				Mesh* pBaseModel = pMeshSystem->AcquireMeshDataByHandle(pInstance->hBaseMesh);
+
+				pShaderSystem->BindShader(5);	// FIXME: NO HARDCODING! We need to figure out where to get this data from, probably the material.
 				pShaderSystem->BindPerFrameUniforms();
-				pShaderSystem->BindPerInstanceUniforms(pCurGeo->hShaderInstance);
-				pShaderSystem->SetShaderUniform(pCurGeo->hShader, pShaderSystem->GetShaderUniformLocation(pCurGeo->hShader, "model"), 0, 0, &pCurGeo->matLocalToWorldTransform);
+				pShaderSystem->BindPerInstanceUniforms(2);
+				pShaderSystem->SetShaderUniform(5, pShaderSystem->GetShaderUniformLocation(5, "model"), 0, 0, &pInstance->matLocalToWorld);
 
-				pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
-
-				pRenderData->pMetrics->NumDrawCalls++;
-
-				/*if (pCurGeo->hShaderInstance != kInvalidID_U32)
-				{
-					pMaterialSystem->ApplyPerDrawRenderData(pCurGeo->matLocalToWorldTransform);
-
-					pMaterialSystem->ApplyMaterialInstance(pCurGeo->hShaderInstance);
-
-					pRenderer->DrawGeometry(*pCurGeo, pVertexBuffer, pIndexBuffer);
-
-					pRenderData->pMetrics->NumDrawCalls++;
-				}*/
+				pRenderer->DrawGeometry(pBaseModel->m_Geometries[0], pVertexBuffer, pIndexBuffer);
 			}
 
 			pViewData->editorGeo.Purge();
 			pViewData->mapMeshes.Purge();
+			pViewData->mapInstances.Purge();
 		}
 
 		pRenderer->EndRenderpass();

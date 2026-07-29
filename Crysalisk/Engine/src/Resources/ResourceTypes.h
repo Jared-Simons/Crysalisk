@@ -303,7 +303,7 @@ using MeshHandle_t = u32;
 struct Mesh
 {
 	// A unique identifier per mesh.
-	u32							m_MeshID{ kInvalidID_U32 };
+	u32									m_MeshID{ kInvalidID_U32 };
 	// The path of the mesh.
 	char*								m_pszMeshPath{ nullptr };
 	// An array of submeshes that make up this mesh.
