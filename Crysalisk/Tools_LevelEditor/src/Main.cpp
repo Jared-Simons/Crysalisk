@@ -201,7 +201,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 	// LEFTOFF: Need to pass key messages into here for controls
 
-	TextureHandle_t hUIAtlas = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/LevelEditor_UIAtlas.png", true);
+	TextureHandle_t hUIAtlas = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("LevelEditor_UIAtlas.png", true);
 	CAssert(hUIAtlas != kInvalidID_U32);
 
 	// Side panel for main tools.
@@ -270,7 +270,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityTranslationLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityTranslationLabel, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityTranslationLabel, 0, 100);
-		m_pUIContext->SetControlFont(hEntityTranslationLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityTranslationLabel, "UbuntuMono-R.ttf", 20.0f);
 		m_pUIContext->SetControlText(hEntityTranslationLabel, "Position");
 	}
 
@@ -279,7 +279,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityTranslationEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityTranslationEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityTranslationEntry, 30, 120);
-		m_pUIContext->SetControlFont(hEntityTranslationEntry, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityTranslationEntry, "UbuntuMono-R.ttf", 20.0f);
 		m_pUIContext->SetControlText(hEntityTranslationEntry, "0.0 0.0 0.0");
 	}
 
@@ -288,7 +288,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityModelNameLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityModelNameLabel, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityModelNameLabel, 0, 200);
-		m_pUIContext->SetControlFont(hEntityModelNameLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityModelNameLabel, "UbuntuMono-R.ttf", 20.0f);
 		m_pUIContext->SetControlText(hEntityModelNameLabel, "Model Name");
 	}
 
@@ -297,7 +297,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityModelNameEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityModelNameEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 220);
-		m_pUIContext->SetControlFont(hEntityModelNameEntry, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityModelNameEntry, "UbuntuMono-R.ttf", 20.0f);
 		m_pUIContext->SetControlText(hEntityModelNameEntry, "<Your model name here>");
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
 	}

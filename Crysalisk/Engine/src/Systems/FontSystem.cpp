@@ -175,7 +175,7 @@ void CFontSystem::PostInitialize()
 	s_UIShaderLocations.model = m_Config.pShaderSystem->GetShaderUniformLocation(m_hDefaultUIShader, "model");
 
 	// Load default font.
-	m_hDefaultFont = AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
+	m_hDefaultFont = AcquireFontResources("UbuntuMono-R.ttf", 30.0f);
 }
 
 //-------------------------------------------------------------------------

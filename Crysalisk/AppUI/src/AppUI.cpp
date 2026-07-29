@@ -153,7 +153,7 @@ namespace AppUI
 		m_InputHandler.pListenerInst = this;
 
 		// Default font.
-		hDefaultFont = pAppConfig->pEngine->GetEngineInterfaces()->pFontSystem->AcquireFontResources("Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
+		hDefaultFont = pAppConfig->pEngine->GetEngineInterfaces()->pFontSystem->AcquireFontResources("UbuntuMono-R.ttf", 30.0f);
 
 		pluginState = PLUGIN_STATE_INITIALIZED;
 

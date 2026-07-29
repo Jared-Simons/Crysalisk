@@ -10,6 +10,9 @@
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
 
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
+
 namespace MaterialLoader
 {
 	// @Multithreading: This function is a prime candidate for threading.
@@ -22,21 +25,25 @@ namespace MaterialLoader
 	//-------------------------------------------------------------------------
 	bool LoadMaterialResource(const char* pszMaterialPath, MaterialResource_t& pOutResource)
 	{
+		// Format path.
+		char szFormatPath[1024]{};
+		Utl::StringFormat_V("%s/materials/%s.cmat", szFormatPath, pszCWDPath, pszMaterialPath);
+
 		// Make sure the file actually exists first.
-		if (!FileSystem::FileExists(pszMaterialPath))
+		if (!FileSystem::FileExists(szFormatPath))
 		{
 			LOG_ERROR("Material config file '%s' could not be found. Material resource load failed.", pszMaterialPath);
 			return false;
 		}
 
 		FileHandle_t hMaterialConfigFile{};
-		if (!FileSystem::OpenFile(pszMaterialPath, eFileMode::FILEMODE_READ, false, &hMaterialConfigFile))
+		if (!FileSystem::OpenFile(szFormatPath, eFileMode::FILEMODE_READ, false, &hMaterialConfigFile))
 		{
 			return false;
 		}
 
 		// The name of the material will be its name on disk without the path and file extension.
-		pOutResource.pszMaterialName = Utl::StringGetFilenameFromPath(pszMaterialPath);
+		pOutResource.pszMaterialName = Utl::StringGetFilenameFromPath(szFormatPath);
 		pOutResource.textureMapConfigs.Resize(5);
 
 		// Parse the config and write it to the resource.

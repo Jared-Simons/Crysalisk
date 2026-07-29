@@ -164,15 +164,11 @@ ShaderHandle_t CShaderSystem::AcquireShader(const char* pszShaderName)
 	{
 		// This shader has not yet been loaded, so load it in.
 
-		// Format the path string (TODO: Don't hardcode this path).
-		char szFormattedResourcePath[kScratchStringBufferLength];
-		Utl::StringFormat_V("%s/%s.cshadercfg", szFormattedResourcePath, "Assets/Shaders", pszShaderName);
-
 		// Load up a shader configuration from disk
-		if (!ShaderLoader::LoadShaderResource(szFormattedResourcePath, newShaderResource))
+		if (!ShaderLoader::LoadShaderResource(pszShaderName, newShaderResource))
 		{
 			LOG_ERROR("Failed to load resources for shader '%s'. Aborting creation.", pszShaderName);
-			return 0;
+			return kInvalidID_U32;
 		}
 
 		// Find a free slot for this shader to occupy.

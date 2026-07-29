@@ -11,6 +11,13 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CRYSALISK_REPO_ROOT}/Crysalisk/bin)
 
+set(OUTPUT_BIN_GAME_DIRECTORY ${CRYSALISK_REPO_ROOT}/Game/game/bin)
+set(OUTPUT_BIN_CORE_DIRECTORY ${CRYSALISK_REPO_ROOT}/Game/bin)
+
+# This path is the same as the game binaries directory so that only one copy of assets need to 
+# exist for the application to work from both the debugger and stand-alone.
+set(OUTPUT_BIN_GAME_ASSET_DIRECTORY ${CRYSALISK_REPO_ROOT}/Game/bin)
+
 # Setup all the projects.
 include (Crysalisk/Core/Core.cmake)
 include (Crysalisk/Engine/Engine.cmake)

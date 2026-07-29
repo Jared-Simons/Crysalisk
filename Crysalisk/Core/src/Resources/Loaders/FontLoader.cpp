@@ -10,8 +10,15 @@
 #include "Platform/FileSystem.h"
 #include "Strings/String_Utils.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <direct.h>
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "Vendor/stb_truetype.h"
+
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
 
 namespace FontLoader
 {
@@ -49,7 +56,7 @@ namespace FontLoader
 		if (!FileSystem::FileExists(pszLayoutFilePath))
 		{
 			// Try to put the texture folder path on and go again.
-			Utl::StringFormat_V("Assets/Textures/%s.txt", szFullPath, pszLayoutFilePath);
+			Utl::StringFormat_V("%s/textures/%s.txt", szFullPath, pszCWDPath, pszLayoutFilePath);
 
 			if (!FileSystem::FileExists(szFullPath))
 			{
@@ -159,15 +166,18 @@ namespace FontLoader
 		stbtt_packedchar	packedChars[kCharsToIncludeInFontAtlas] = {};
 		stbtt_aligned_quad	alignedQuads[kCharsToIncludeInFontAtlas] = {};
 
+		char szFullPath[2048]{};
+		Utl::StringFormat_V("%s/fonts/%s", szFullPath, pszCWDPath, pszFontPath);
+
 		// Ensure the file actually exists.
-		if (!FileSystem::FileExists(pszFontPath))
+		if (!FileSystem::FileExists(szFullPath))
 		{
 			LOG_ERROR("Font file '%s' could not be found. Found resource loading failed.", pszFontPath);
 			return false;
 		}
 
 		FileHandle_t hTTFFile{};
-		if (!FileSystem::OpenFile(pszFontPath, eFileMode::FILEMODE_READ, true, &hTTFFile))
+		if (!FileSystem::OpenFile(szFullPath, eFileMode::FILEMODE_READ, true, &hTTFFile))
 		{
 			return false;
 		}

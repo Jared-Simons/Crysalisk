@@ -29,6 +29,13 @@ source_group(TREE ${RENDERER_VULKAN_ROOT} FILES ${CRYSALISK_RENDERER_VULKAN_SRC_
 # Create Crysalisk Vulkan Renderer library.
 add_library(Renderer_Vulkan SHARED ${CRYSALISK_RENDERER_VULKAN_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Renderer_Vulkan POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Renderer_Vulkan>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Renderer_Vulkan PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Renderer_Vulkan PUBLIC ${RENDERER_VULKAN_ROOT})

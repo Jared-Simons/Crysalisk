@@ -57,6 +57,13 @@ source_group(TREE ${ENGINE_ROOT} FILES ${CRYSALISK_ENGINE_SRC_FILES})
 # Create Crysalisk Engine library.
 add_library(Engine SHARED ${CRYSALISK_ENGINE_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Engine POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Engine>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Engine PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Engine PUBLIC ${ENGINE_ROOT})

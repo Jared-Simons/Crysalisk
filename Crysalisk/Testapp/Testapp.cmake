@@ -21,6 +21,13 @@ source_group(TREE ${TESTAPP_ROOT} FILES ${CRYSALISK_TESTAPP_SRC_FILES})
 # Create Crysalisk Testapp executable
 add_executable(Testapp ${CRYSALISK_TESTAPP_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Testapp POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Testapp>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Testapp PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Proper startup project
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT Testapp)
 
@@ -44,6 +51,3 @@ target_compile_definitions(Testapp PRIVATE DLLNAME=\"Testapp.exe\")
 target_link_libraries(Testapp PRIVATE Core)
 target_link_libraries(Testapp PRIVATE Engine)
 target_link_libraries(Testapp PRIVATE AppUI)
-
-# Current Working Directory.
-set_property(TARGET Testapp PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

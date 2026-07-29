@@ -271,12 +271,8 @@ MaterialHandle_t CMaterialSystem::AcquireMaterial(const char* pszMaterialName)
 	{
 		// This material has not yet been loaded, so load it in.
 
-		// Format the path string (TODO: Don't hardcode this path).
-		char szFormattedResourcePath[kScratchStringBufferLength];
-		Utl::StringFormat_V("%s/%s.cmat", szFormattedResourcePath, "Assets/Materials", pszMaterialName);
-
 		// Load the material configuration resource from disk
-		if (!MaterialLoader::LoadMaterialResource(szFormattedResourcePath, newMaterialResource))
+		if (!MaterialLoader::LoadMaterialResource(pszMaterialName, newMaterialResource))
 		{
 			LOG_ERROR("Failed to load material resource '%s'. Returning default.", pszMaterialName);
 			return 0; // TODO: Default material handle.

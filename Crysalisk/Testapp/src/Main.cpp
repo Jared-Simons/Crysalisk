@@ -84,7 +84,7 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 	// Setup profiling text control.
 	m_hProfilingText = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	m_pUISystem->SetControlPosition(m_hProfilingText, 25, 575);
-	m_pUISystem->SetControlFont(m_hProfilingText, "Assets/Fonts/UbuntuMono-R.ttf", 30.0f);
+	m_pUISystem->SetControlFont(m_hProfilingText, "UbuntuMono-R.ttf", 30.0f);
 
 	// Start listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;

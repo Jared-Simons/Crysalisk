@@ -24,6 +24,13 @@ source_group(TREE ${LEVEL_EDITOR_ROOT} FILES ${CRYSALISK_LEVEL_EDITOR_SRC_FILES}
 # Create Crysalisk Editor executable
 add_library(Tools_LevelEditor SHARED ${CRYSALISK_LEVEL_EDITOR_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Tools_LevelEditor POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Tools_LevelEditor>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Tools_LevelEditor PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Tools_LevelEditor PUBLIC ${LEVEL_EDITOR_ROOT})
@@ -47,6 +54,3 @@ target_link_libraries(Tools_LevelEditor PRIVATE AppUI)
 target_link_libraries(Tools_LevelEditor PRIVATE Core)
 target_link_libraries(Tools_LevelEditor PRIVATE Engine)
 target_link_libraries(Tools_LevelEditor PRIVATE EditorHub)
-
-# Current Working Directory.
-set_property(TARGET Tools_LevelEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

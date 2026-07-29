@@ -11,7 +11,6 @@
 #include "Utils/Utils.h"
 
 #include <stdio.h>	// for sscanf()
-#include <float.h>
 
 namespace MeshSerializer
 {
@@ -533,7 +532,10 @@ namespace MeshSerializer
 		flPercentReduced *= 100.0f;
 		LOG_INFO("Mesh '%s' compressed from %d bytes to %d bytes ->(%.2f%%)", pszOBJMeshPath, iOriginalByteSize, iTotalBytesWritten, flPercentReduced);
 
-		return MeshLoader::LoadMeshResource((char*)pszOutMeshFileName, pOutResource);
+		char* pszMeshName = Utl::StringGetFilenameFromPath(pszOBJMeshPath);
+		MeshLoader::LoadMeshResource((char*)pszMeshName, pOutResource);
+		Utl::StringFree(pszMeshName);
+		pszMeshName = nullptr;
 	}
 
 	static void ProcessCurrentSubmesh(Utl::CVector<CModel_MeshHeader_t>& meshHeaders, Utl::CVector<CModel_MeshFaceData_t>& meshFaces,

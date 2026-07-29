@@ -59,21 +59,21 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pOutConsole->hCommandSubmitButtonLabel = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	pUISystem->SetControlParent(pOutConsole->hCommandSubmitButtonLabel, pOutConsole->hCommandSubmitButton);
 	pUISystem->SetControlPosition(pOutConsole->hCommandSubmitButtonLabel, 0, 35);
-	pUISystem->SetControlFont(pOutConsole->hCommandSubmitButtonLabel, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+	pUISystem->SetControlFont(pOutConsole->hCommandSubmitButtonLabel, "UbuntuMono-R.ttf", 20.0f);
 	pUISystem->SetControlText(pOutConsole->hCommandSubmitButtonLabel, "SUBMIT");
 
 	// Label for console readout.
 	pOutConsole->hConsoleReadout = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	pUISystem->SetControlParent(pOutConsole->hConsoleReadout, pOutConsole->hReadoutPanel);
 	pUISystem->SetControlPosition(pOutConsole->hConsoleReadout, 0, 75);
-	pUISystem->SetControlFont(pOutConsole->hConsoleReadout, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+	pUISystem->SetControlFont(pOutConsole->hConsoleReadout, "UbuntuMono-R.ttf", 20.0f);
 	pUISystem->SetControlText(pOutConsole->hConsoleReadout, "This is the readout!");
 
 	// Text entry control.
 	pOutConsole->hTextEntryControl = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	pUISystem->SetControlParent(pOutConsole->hTextEntryControl, pOutConsole->hBackgroundPanel);
 	pUISystem->SetControlPosition(pOutConsole->hTextEntryControl, 0, 170);
-	pUISystem->SetControlFont(pOutConsole->hTextEntryControl, "Assets/Fonts/UbuntuMono-R.ttf", 20.0f);
+	pUISystem->SetControlFont(pOutConsole->hTextEntryControl, "UbuntuMono-R.ttf", 20.0f);
 	pUISystem->SetControlText(pOutConsole->hTextEntryControl, "");
 
 	// Register for events.

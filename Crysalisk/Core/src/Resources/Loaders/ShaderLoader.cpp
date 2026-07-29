@@ -11,6 +11,9 @@
 #include "Platform/FileSystem.h"
 #include "Platform/Platform.h"
 
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
+
 namespace ShaderLoader
 {
 	// Helper functions.
@@ -32,16 +35,20 @@ namespace ShaderLoader
 	//			pOutResource - The loaded resource data.
 	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadShaderResource(const char* pszShaderPath, ShaderResource_t& pOutResource)
+	bool LoadShaderResource(const char* pszShaderName, ShaderResource_t& pOutResource)
 	{
+		// Format the path string.
+		char szFormattedResourcePath[kScratchStringBufferLength];
+		Utl::StringFormat_V("%s/%s/%s.cshadercfg", szFormattedResourcePath, pszCWDPath, "shaders", pszShaderName);
+
 		FileHandle_t hShaderCfgFile{};
-		if (!FileSystem::FileExists(pszShaderPath))
+		if (!FileSystem::FileExists(szFormattedResourcePath))
 		{
-			LOG_ERROR("Failed to find shader config file '%s'.", pszShaderPath);
+			LOG_ERROR("Failed to find shader config file '%s'.", pszShaderName);
 			return false;
 		}
 
-		if (!FileSystem::OpenFile(pszShaderPath, eFileMode::FILEMODE_READ, false, &hShaderCfgFile))
+		if (!FileSystem::OpenFile(szFormattedResourcePath, eFileMode::FILEMODE_READ, false, &hShaderCfgFile))
 		{
 			return false;
 		}
@@ -268,7 +275,7 @@ namespace ShaderLoader
 		pszTrimmedModulePath[commaIndex] = 0;
 
 		// Append the shader asset directory.
-		Utl::StringFormat_V("%s/%s", szFormattedPathBuffer, "Assets/Shaders", pszTrimmedModulePath);
+		Utl::StringFormat_V("%s/%s/%s", szFormattedPathBuffer, pszCWDPath, "shaders", pszTrimmedModulePath);
 		// Finally, strip the quotes out of the path.
 		Utl::StringStripInPlace(szFormattedPathBuffer, '\"');
 

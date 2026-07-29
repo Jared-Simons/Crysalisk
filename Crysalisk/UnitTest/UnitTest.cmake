@@ -23,6 +23,13 @@ source_group(TREE ${UNITTEST_ROOT} FILES ${CRYSALISK_UNITTEST_SRC_FILES})
 # Create Crysalisk Unit Test executable.
 add_executable(UnitTest ${CRYSALISK_UNITTEST_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET UnitTest POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:UnitTest>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(UnitTest PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(UnitTest PUBLIC ${UNITTEST_ROOT})
@@ -36,6 +43,3 @@ target_compile_definitions(UnitTest PRIVATE DLLNAME=\"UnitTest.exe\")
 
 # Linker input.
 target_link_libraries(UnitTest PRIVATE Core)
-
-# Current Working Directory.
-set_property(TARGET Testapp PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

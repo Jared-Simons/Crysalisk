@@ -14,6 +14,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "Vendor/stb_image.h"
 
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
+
 namespace ImageLoader
 {
 	//-------------------------------------------------------------------------
@@ -52,19 +55,23 @@ namespace ImageLoader
 	//			pOutResource - The loaded resource data.
 	// Output:	bool - Returns true on successful resource acquisition, otherwise false.
 	//-------------------------------------------------------------------------
-	bool LoadImage(const char* pszImagePath, ImageResource_t& pOutResource)
+	bool LoadImage(const char* pszImageName, ImageResource_t& pOutResource)
 	{
 		const i32 kRequiredChannelCount = 4;
 		stbi_set_flip_vertically_on_load_thread(true);
-		if (!FileSystem::FileExists(pszImagePath))
+
+		char szFullPath[1024]{};
+		Utl::StringFormat_V("%s/%s/%s", szFullPath, pszCWDPath, "textures", pszImageName);
+
+		if (!FileSystem::FileExists(szFullPath))
 		{
-			LOG_ERROR("Image '%s' could not be found. Image load failed.", pszImagePath);
+			LOG_ERROR("Image '%s' could not be found. Image load failed.", pszImageName);
 			return false;
 		}
 
 		// Get the size of the image data to be loaded.
 		FileHandle_t tempFileHandle{};
-		if (!FileSystem::OpenFile(pszImagePath, eFileMode::FILEMODE_READ, true, &tempFileHandle))
+		if (!FileSystem::OpenFile(szFullPath, eFileMode::FILEMODE_READ, true, &tempFileHandle))
 		{
 			return false;
 		}
@@ -76,7 +83,7 @@ namespace ImageLoader
 		
 		if (bytesRead != imageDataSize)
 		{
-			LOG_WARN("Data size mismatch on reading image '%s'. Expected %d bytes, read %d bytes. Image data loss is likely.", pszImagePath, imageDataSize, bytesRead);
+			LOG_WARN("Data size mismatch on reading image '%s'. Expected %d bytes, read %d bytes. Image data loss is likely.", pszImageName, imageDataSize, bytesRead);
 		}
 
 		FileSystem::CloseFile(&tempFileHandle);

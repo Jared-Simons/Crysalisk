@@ -193,11 +193,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 	MeshLookup*		pMeshLookup = nullptr;
 	Mesh*			pMesh = nullptr;
 
-	// Format the string with the path to the model directory.
-	char szFormattedPath[512]{};
-	Utl::StringFormat_V("Assets/Models/%s\0", szFormattedPath, pszMeshName);
-
-	pMeshLookup = m_MeshDictionary.m_MeshHashmap.Insert(szFormattedPath);
+	pMeshLookup = m_MeshDictionary.m_MeshHashmap.Insert(pszMeshName);
 
 	if (pMeshLookup->MeshHandle == kInvalidID_U32)
 	{
@@ -215,7 +211,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 		pMesh = &m_MeshDictionary.m_MeshArray[newMeshHandle];
 		pMesh->m_MeshID = newMeshHandle;
 
-		pMesh->m_pszMeshPath = Utl::StringDuplicate(szFormattedPath);
+		pMesh->m_pszMeshPath = Utl::StringDuplicate(pszMeshName);
 
 		pMesh->m_vecPosition = vecPos;
 		pMesh->m_vecAngles = vecEulerAngles;
@@ -223,7 +219,7 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 
 		pMeshLookup->MeshHandle = newMeshHandle;
 
-		pMeshParams->pszMeshPath = Utl::StringDuplicate(szFormattedPath);
+		pMeshParams->pszMeshPath = Utl::StringDuplicate(pszMeshName);
 		pMeshParams->pOutResource = pMeshResource;
 
 		JobDeclaration_t meshLoadJob{};

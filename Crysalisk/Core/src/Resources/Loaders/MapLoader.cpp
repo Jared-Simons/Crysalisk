@@ -10,26 +10,33 @@
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
 
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
+
 namespace MapLoader
 {
 	// Helper functions.
 	static bool ProcessStaticMeshEntry(FileHandle_t& hMapFile, MapResource_t& pOutMapResource);
 	static bool ProcessLightEntity(FileHandle_t& hMapFile, MapResource_t::eLightType type, MapResource_t& pOutMapResource);
 
-	bool LoadMapResource(const char* pszMapFilePath, MapResource_t& pOutResource)
+	bool LoadMapResource(const char* pszMapName, MapResource_t& pOutResource)
 	{
 		FileHandle_t hCMapFile{};
 
+		// Piece together the full path relative to our application's directory.
+		char szFormattedMapPath[512]{};
+		Utl::StringFormat_V("%s/maps/%s.cmap", szFormattedMapPath, pszCWDPath, pszMapName);
+
 		// Make sure the asset exists first.
-		if (!pszMapFilePath || !FileSystem::FileExists(pszMapFilePath))
+		if (!pszMapName || !FileSystem::FileExists(szFormattedMapPath))
 		{
-			LOG_ERROR("Failed to find map file '%s'.", pszMapFilePath);
+			LOG_ERROR("Failed to find map file '%s'.", pszMapName);
 			return false;
 		}
 
-		if (!FileSystem::OpenFile(pszMapFilePath, eFileMode::FILEMODE_READ, false, &hCMapFile))
+		if (!FileSystem::OpenFile(szFormattedMapPath, eFileMode::FILEMODE_READ, false, &hCMapFile))
 		{
-			LOG_ERROR("Failed to open map file '%s'.", pszMapFilePath);
+			LOG_ERROR("Failed to open map file '%s'.", pszMapName);
 			return false;
 		}
 

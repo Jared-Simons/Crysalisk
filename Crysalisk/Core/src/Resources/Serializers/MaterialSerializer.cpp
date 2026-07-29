@@ -8,6 +8,9 @@
 
 #include "Platform/FileSystem.h"
 
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
+
 namespace MaterialSerializer
 {
 	//-------------------------------------------------------------------------
@@ -24,11 +27,11 @@ namespace MaterialSerializer
 
 		// Chop off the file extension.
 		u64 nameLength = Utl::StringLength(pszMaterialName);
-		u64 pathLength = Utl::StringLength(kDefaultMaterialAssetPath);
+		u64 pathLength = Utl::StringLength(pszCWDPath);
 		u64 extensionLength = Utl::StringLength(kMaterialFileExtension);
 
 		char pTempNameBuffer[512];
-		Utl::StringFormat_V("%s%s%s", pTempNameBuffer, kDefaultMaterialAssetPath, pszMaterialName, kMaterialFileExtension);
+		Utl::StringFormat_V("%s/materials/%s%s", pTempNameBuffer, pszCWDPath, pszMaterialName, kMaterialFileExtension);
 
 		FileHandle_t hCMaterialFile{};
 		if (!FileSystem::OpenFile(pTempNameBuffer, eFileMode::FILEMODE_WRITE, false, &hCMaterialFile))

@@ -117,7 +117,7 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	m_hButtonLabel_LoadLevelEditor = m_pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 	m_pUISystem->SetControlParent(m_hButtonLabel_LoadLevelEditor, m_hButton_LoadLevelEditor);
 	m_pUISystem->SetControlPosition(m_hButtonLabel_LoadLevelEditor, 20, 50);
-	m_pUISystem->SetControlFont(m_hButtonLabel_LoadLevelEditor, "Assets/Fonts/UbuntuMono-R.ttf", 25.0f);
+	m_pUISystem->SetControlFont(m_hButtonLabel_LoadLevelEditor, "UbuntuMono-R.ttf", 25.0f);
 	m_pUISystem->SetControlText(m_hButtonLabel_LoadLevelEditor, "Open Level Editor");
 
 	// Console.

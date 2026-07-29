@@ -21,6 +21,13 @@ source_group(TREE ${EDITOR_ROOT} FILES ${CRYSALISK_EDITOR_EXE_SRC_FILES})
 # Create Crysalisk Editor executable
 add_executable(Editor ${CRYSALISK_EDITOR_EXE_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Editor POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Editor>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Editor PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Editor PUBLIC ${EDITOR_ROOT})
@@ -41,6 +48,3 @@ endif()
 # Linker input.
 target_link_libraries(Editor PRIVATE Core)
 target_link_libraries(Editor PRIVATE Engine)
-
-# Current Working Directory.
-set_property(TARGET Editor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

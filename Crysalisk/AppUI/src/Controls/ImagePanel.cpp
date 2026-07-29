@@ -50,7 +50,7 @@ namespace AppUI
 
 		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
 		pShaderSystem->SetShaderUniform(pRenderable->hShader, pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &pImagePanelControl->hImage);
-		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("Assets/Textures/LevelEditor_UIAtlas.png", true);
+		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("LevelEditor_UIAtlas.png", true);
 
 		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, pGlyphData);
 		pImagePanelControl->pCurGlyph = pGlyphData;

@@ -9,11 +9,13 @@
 #include "Core/Logging.h"
 #include "Platform/FileSystem.h"
 #include "Resources/Loaders/MaterialLoader.h"
-#include "Resources/Serializers/MaterialSerializer.h"
 #include "Resources/Serializers/MeshSerializer.h"
 #include "Utils/Utils.h"
 
 #include <stdio.h> // For sscanf()
+
+// FIXME: Make this configurable.
+static const char* pszCWDPath = "../game";
 
 namespace MeshLoader
 {
@@ -59,17 +61,21 @@ namespace MeshLoader
 	//-------------------------------------------------------------------------
 	bool LoadMeshResource(char* pszMeshFileName, MeshResource_t& pOutResource)
 	{
+		// Format path.
+		char szFormatPath[1024]{};
+		Utl::StringFormat_V("%s/models/%s", szFormatPath, pszCWDPath, pszMeshFileName);
+
 		// Check .cmodel_c files first.
 		char szFormattedPathWithExtension[512]{};
-		Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".cmodel_c");
+		Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, szFormatPath, ".cmodel_c");
 
 		if (!FileSystem::FileExists(szFormattedPathWithExtension))
 		{
 			// Check it with other supported formats.
-			Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, pszMeshFileName, ".obj");
+			Utl::StringFormat_V("%s%s", szFormattedPathWithExtension, szFormatPath, ".obj");
 			if (FileSystem::FileExists(szFormattedPathWithExtension))
 			{
-				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, pszMeshFileName, pOutResource);
+				return MeshSerializer::SerializeOBJMesh(szFormattedPathWithExtension, szFormatPath, pOutResource);
 			}
 
 			LOG_ERROR("Mesh resource file '%s' could not be found. Mesh resource load failed.", pszMeshFileName);

@@ -39,6 +39,13 @@ source_group(TREE ${APPUI_ROOT} FILES ${CRYSALISK_APPUI_SRC_FILES})
 # Create Crysalisk Editor executable
 add_library(AppUI SHARED ${CRYSALISK_APPUI_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET AppUI POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:AppUI>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(AppUI PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(AppUI PUBLIC ${APPUI_ROOT}/src)
@@ -59,6 +66,3 @@ endif()
 # Linker input.
 target_link_libraries(AppUI PRIVATE Core)
 target_link_libraries(AppUI PRIVATE Engine)
-
-# Current Working Directory.
-set_property(TARGET AppUI PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CRYSALISK_REPO_ROOT}/Crysalisk")

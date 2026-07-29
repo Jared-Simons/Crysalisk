@@ -27,12 +27,8 @@ bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* 
 
 	LOG_DEBUG("Attempting to load map '%s'.", pszMapName);
 
-	// Piece together the full path relative to our application's directory.
-	char szFormattedMapPath[512]{};
-	Utl::StringFormat_V("Assets/Maps/%s.cmap", szFormattedMapPath, pszMapName);
-
 	// Attempt to load the resource from disk.
-	if (!MapLoader::LoadMapResource(szFormattedMapPath, mapResource))
+	if (!MapLoader::LoadMapResource(pszMapName, mapResource))
 	{
 		LOG_ERROR("Failed to load map '%s'.", pszMapName);
 		return false;

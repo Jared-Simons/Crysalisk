@@ -74,6 +74,13 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${CRYSALISK_CORE_SRC_FILES})
 # Create Crysalisk Core Utilities library.
 add_library(Core SHARED ${CRYSALISK_CORE_SRC_FILES})
 
+# Setup a post build command to copy the bins to a game build.
+add_custom_command(TARGET Core POST_BUILD 
+					COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:Core>" "${OUTPUT_BIN_CORE_DIRECTORY}/")
+
+# Working directory for debugger
+set_target_properties(Core PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_BIN_GAME_ASSET_DIRECTORY}/")
+
 # Include directories
 # TODO: Get these directories from somewhere else.
 target_include_directories(Core PUBLIC ${CORE_ROOT})
