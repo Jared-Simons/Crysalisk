@@ -146,16 +146,16 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 				static RenderBuffer* pVertexBuffer = pRenderer->GetRenderBufferByName("World_Vertex_Buffer");
 				static RenderBuffer* pIndexBuffer = pRenderer->GetRenderBufferByName("World_Index_Buffer");
 
-				MeshInstance_t* pInstance = pViewData->mapInstances[iGeo];
+				MeshInstance_t* pInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pViewData->mapInstances[iGeo]);
 
-				Mesh* pBaseModel = pMeshSystem->AcquireMeshDataByHandle(pInstance->hBaseMesh);
+				MeshBase_t* pBaseModel = pMeshSystem->AcquireMeshBaseDataFromHandle(pInstance->hBaseMesh);
 
 				pShaderSystem->BindShader(5);	// FIXME: NO HARDCODING! We need to figure out where to get this data from, probably the material.
 				pShaderSystem->BindPerFrameUniforms();
 				pShaderSystem->BindPerInstanceUniforms(2);
 				pShaderSystem->SetShaderUniform(5, pShaderSystem->GetShaderUniformLocation(5, "model"), 0, 0, &pInstance->matLocalToWorld);
 
-				pRenderer->DrawGeometry(pBaseModel->m_Geometries[0], pVertexBuffer, pIndexBuffer);
+				pRenderer->DrawGeometry(pBaseModel->geometry, pVertexBuffer, pIndexBuffer);
 			}
 
 			pViewData->editorGeo.Purge();

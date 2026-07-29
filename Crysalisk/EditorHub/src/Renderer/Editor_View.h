@@ -16,7 +16,7 @@ struct EditorView_ExtendedData_t
 	struct GeometryInstance_t*					gizmoGeo{};
 	Utl::CVector<struct GeometryInstance_t*>	editorGeo{};
 	Utl::CVector<struct GeometryInstance_t*>	mapMeshes{};
-	Utl::CVector<struct MeshInstance_t*>		mapInstances{};
+	Utl::CVector<u32>							mapInstances{};
 };
 
 // Factory function to create the view.

@@ -21,8 +21,11 @@ public:
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) override;
 	virtual void			Shutdown() override;
 
+	virtual u32				AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
+	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const override;
+	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const override;
+
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
-	virtual MeshInstance_t	AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) override;
 
@@ -35,6 +38,7 @@ private:
 	MeshHandle_t			GetFirstFreeMeshHandle() const;
 
 	u32						GetFirstFreeMeshBaseIdx() const;
+	u32						GetFirstFreeMeshInstanceIdx() const;
 
 	void					ClearMeshDictionaryEntry(const char* pszMeshPath);
 
@@ -61,7 +65,10 @@ private:
 	MeshDictionary_t	m_MeshDictionary{};
 
 	// An array of base meshes.
-	BaseMesh_t*			m_MeshBases{ nullptr };
+	MeshBase_t*			m_MeshBases{ nullptr };
+
+	// An array of instances.
+	MeshInstance_t*		m_MeshInstances{ nullptr };
 
 	// Instance counts
 	u32*				m_MeshInstanceCounts{ nullptr };
@@ -151,7 +158,8 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 	m_MeshDictionary.m_MeshArray = new Mesh[m_Config.MaxMeshes];
 	m_MeshDictionary.m_MeshHashmap.Resize(m_Config.MaxMeshes);
 
-	m_MeshBases = new BaseMesh_t[m_Config.MaxMeshes];
+	m_MeshBases = new MeshBase_t[m_Config.MaxMeshes];
+	m_MeshInstances = new MeshInstance_t[m_Config.MaxMeshes];
 
 	m_MeshInstanceCounts = new u32[m_Config.MaxMeshes];
 
@@ -183,6 +191,12 @@ void CMeshSystem::Shutdown()
 	{
 		delete[] m_MeshDictionary.m_MeshArray;
 		m_MeshDictionary.m_MeshArray = nullptr;
+	}
+
+	if (m_MeshInstances)
+	{
+		delete[] m_MeshInstances;
+		m_MeshInstances = nullptr;
 	}
 
 	if (m_MeshBases)
@@ -275,13 +289,15 @@ MeshHandle_t CMeshSystem::AcquireMeshInstance(const char* pszMeshName, Vector ve
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation.
 //-------------------------------------------------------------------------
-MeshInstance_t CMeshSystem::AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease)
+u32 CMeshSystem::AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease)
 {
-	CAssert(hBaseMesh != kInvalidID_U32 && m_MeshDictionary.m_MeshArray[hBaseMesh].m_MeshID != kInvalidID_U32);
+	CAssert(hBaseMesh != kInvalidID_U32 && m_MeshBases[hBaseMesh].iMeshIdx != kInvalidID_U32);
 
-	MeshInstance_t instance{};
-	instance.hBaseMesh = hBaseMesh;
-	instance.iInstanceIdx = m_MeshInstanceCounts[hBaseMesh];
+	u32 instanceIdx = GetFirstFreeMeshInstanceIdx();
+
+	MeshInstance_t* instance = &m_MeshInstances[instanceIdx];
+	instance->hBaseMesh = hBaseMesh;
+	instance->iInstanceIdx = m_MeshInstanceCounts[hBaseMesh];
 	m_MeshInstanceCounts[hBaseMesh]++;
 
 	Matrix4x4 matLocalToWorld(1.0f);
@@ -289,9 +305,29 @@ MeshInstance_t CMeshSystem::AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector v
 	
 	// FIXME: Implement euler rotation.
 	matLocalToWorld = Matrix4x4::Translate(matLocalToWorld, vecPos);
-	instance.matLocalToWorld = matLocalToWorld;
+	instance->matLocalToWorld = matLocalToWorld;
 
-	return instance;
+	return instanceIdx;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+MeshInstance_t* CMeshSystem::AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const
+{
+	CASSERTMSG(hMeshInstance != kInvalidID_U32, "AcquireMeshInstanceDataFromHandle requires a valid mesh handle!");
+
+	return &m_MeshInstances[hMeshInstance];
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+MeshBase_t* CMeshSystem::AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const
+{
+	CASSERTMSG(hMesh != kInvalidID_U32, "AcquireMeshBaseDataFromHandle requires a valid mesh handle!");
+
+	return &m_MeshBases[hMesh];
 }
 
 //-------------------------------------------------------------------------
@@ -397,10 +433,11 @@ MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeomet
 	MeshLookup* pLookup = m_MeshDictionary.m_MeshHashmap.Insert(pszName);
 	u32 meshBaseIdx = GetFirstFreeMeshBaseIdx();
 
-	BaseMesh_t* pBase = &m_MeshBases[meshBaseIdx];
+	MeshBase_t* pBase = &m_MeshBases[meshBaseIdx];
 
 	pBase->hMaterial = pGeometryInstance->hShaderInstance;
 	pBase->iMeshIdx = meshBaseIdx;
+	pBase->geometry = *pGeometryInstance;
 
 	pLookup->MeshHandle = meshBaseIdx;
 
@@ -480,7 +517,7 @@ MeshHandle_t CMeshSystem::GetFirstFreeMeshHandle() const
 //-------------------------------------------------------------------------
 u32 CMeshSystem::GetFirstFreeMeshBaseIdx() const
 {
-	for (u64 meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
+	for (u32 meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
 	{
 		if (s_MeshSystem->m_MeshBases[meshIdx].iMeshIdx == kInvalidID_U32)
 		{
@@ -490,6 +527,26 @@ u32 CMeshSystem::GetFirstFreeMeshBaseIdx() const
 	}
 
 	LOG_WARN("Failed to find free base mesh slot in the mesh array, returning null handle.");
+	return kInvalidID_U32;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Find the first available instance mesh slot in the mesh dictionary.
+// Input:	none.
+// Output:	Returns the first available base mesh index.
+//-------------------------------------------------------------------------
+u32 CMeshSystem::GetFirstFreeMeshInstanceIdx() const
+{
+	for (u32 meshIdx = 0; meshIdx < m_Config.MaxMeshes; meshIdx++)
+	{
+		if (s_MeshSystem->m_MeshInstances[meshIdx].hBaseMesh == kInvalidID_U32)
+		{
+			// Found a free slot, return!
+			return meshIdx;
+		}
+	}
+
+	LOG_WARN("Failed to find free instance mesh slot in the mesh array, returning null handle.");
 	return kInvalidID_U32;
 }
 

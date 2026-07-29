@@ -45,6 +45,9 @@ public:
 	virtual void	SetCamera(struct Camera_t* pCamera) override { m_pCamera = pCamera; }
 
 private:
+	void			DisplayEntityInspectorPanel(bool bEnable);
+
+private:
 	Utl::CVector<i32>	m_GridLines{};
 	GeometryInstance_t	m_GridGeo{};
 	i32					m_OriginCross[3]{};
@@ -102,7 +105,7 @@ private:
 	friend static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
 	friend static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
 
-	friend static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay);
+	friend static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 };
 
 // FIXME: Remove and allocate this state?
@@ -110,7 +113,7 @@ static CLevelEditorApp s_LevelEditorApp{};
 
 // Editor utilities.
 static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
-static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay);
+static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 
 // Event handlers.
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -159,6 +162,8 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 		pAppConfig->pEngine->GetEngineInterfaces()->pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, defaultConfig.Vertices.Count(), defaultConfig.Vertices.Stride(), 0, defaultConfig.Vertices.Data(), defaultConfig.Indices.Count(), defaultConfig.Indices.Data(), &m_DefaultPointGeometry);
 		m_DefaultPointGeometry.matLocalToWorldTransform = Matrix4x4(1.0f);
+		m_DefaultPointGeometry.vecMinExtents = Vector{ -16.0f, -16.0f, -16.0f };
+		m_DefaultPointGeometry.vecMaxExtents = Vector{ 16.0f, 16.0f, 16.0f };
 
 		IShaderSystem* pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
 		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Core.Phong");
@@ -305,7 +310,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
 	}
 
-	// FIXME: The inspector panel should only be active if an entity/model is selected.
+	DisplayEntityInspectorPanel(false);
 
 	return true;
 }
@@ -322,8 +327,27 @@ void CLevelEditorApp::Tool_Shutdown()
 
 bool CLevelEditorApp::Tool_Update()
 {
+	if (m_hSelectedGeometry != kInvalidID_U32)
+	{
+		DisplayEntityInspectorPanel(true);
+	}
+	else
+	{
+		DisplayEntityInspectorPanel(false);
+	}
+
 	if (m_Gizmo.geometry.vertexCount)
 	{
+		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+		// Move the gizmo over to the selected geometry.
+		if (m_hSelectedGeometry != kInvalidID_U32)
+		{
+			MeshInstance_t* pInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(m_CurrentDoc.meshInstances[m_hSelectedGeometry]);
+			Vector translation = pInstance->matLocalToWorld.GetTranslation();
+			m_Gizmo.origin = translation;
+		}
+
 		Matrix4x4 matGizmoTransform{ 1.0f };
 
 		// Scale the gizmo by its position from the camera.
@@ -361,10 +385,11 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 
 		pViewData->mapMeshes.PushBack(&m_DefaultPointGeometry);
 
-		pViewData->mapInstances.Resize(m_CurrentDoc.meshes.Count());
-		for (u32 i = 0; i < m_CurrentDoc.meshes.Count(); i++)
+		pViewData->mapInstances.Resize(m_CurrentDoc.meshInstances.Count());
+
+		for (u32 iGeo = 0; iGeo < m_CurrentDoc.meshInstances.Count(); iGeo++)
 		{
-			pViewData->mapInstances.PushBack(&m_CurrentDoc.meshes[i]);
+			pViewData->mapInstances.PushBack(m_CurrentDoc.meshInstances[iGeo]);
 		}
 
 		if (m_iToolMode == EDITOR_TOOL_MODE_SELECTION)
@@ -382,6 +407,15 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 {
 	// TODO: Get rid of this and move all rendering to views?
+}
+
+void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
+{
+	m_pUIContext->SetControlVisible(hEntityInspectorLabel, bEnable);
+	m_pUIContext->SetControlVisible(hEntityTranslationLabel, bEnable);
+	m_pUIContext->SetControlVisible(hEntityTranslationEntry, bEnable);
+	m_pUIContext->SetControlVisible(hEntityModelNameLabel, bEnable);
+	m_pUIContext->SetControlVisible(hEntityModelNameEntry, bEnable);
 }
 
 static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
@@ -476,13 +510,14 @@ static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
 	pOutGeoInstance->matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 }
 
-static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay)
+static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid)
 {
 	CAssert(pLevelEditor && pRay);
 
 	// We're going to test against the editor grid and all existing geometry in the scene.
 
-	u32 iGeometryCount = (u32)pLevelEditor->m_CurrentDoc.meshes.Count() + 1;	// + 1 to include the editor grid.
+	u32 iGeometryCount = (u32)pLevelEditor->m_CurrentDoc.meshInstances.Count() + 1;	// + 1 to include the editor grid.
+	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
 	for (u32 iGeo = 0; iGeo < iGeometryCount; iGeo++)
 	{
@@ -490,14 +525,22 @@ static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay)
 
 		if (iGeo == 0)
 		{
-			// Test against the grid first.
-			pCurGeo = &pLevelEditor->m_GridGeo;
+			if (bTestAgainstGrid)
+			{
+				// Test against the grid first.
+				pCurGeo = &pLevelEditor->m_GridGeo;
+			}
+			else
+			{
+				continue;
+			}
 		}
 		else
 		{
 			// Now test against the other geometries.
-			//CAssert(0);	// FIXME: Not implemented yet!
-			pCurGeo = &pLevelEditor->m_GridGeo;
+			MeshInstance_t* pCurInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pLevelEditor->m_CurrentDoc.meshInstances[iGeo - 1]);
+			MeshBase_t* pCurBase = pMeshSystem->AcquireMeshBaseDataFromHandle(pCurInstance->hBaseMesh);
+			pCurGeo = &pCurBase->geometry;
 		}
 
 		CAssert(pCurGeo);
@@ -561,47 +604,71 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 		Gizmo_EndInteraction(pGizmo);
 	}
 
-	if (pEditorAppState->m_iToolMode == EDITOR_TOOL_MODE_ADD_MODEL)
+	switch (pEditorAppState->m_iToolMode)
 	{
-		if (pEditorAppState->m_bToolChangeHack)
+	case EDITOR_TOOL_MODE_SELECTION:
 		{
-			pEditorAppState->m_bToolChangeHack = false;
-			return true;
+			if (pEditorAppState->m_bToolChangeHack)
+			{
+				pEditorAppState->m_bToolChangeHack = false;
+				return true;
+			}
+
+			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0)
+			{
+				i32 mouseX{ 0 }, mouseY{ 0 };
+				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
+
+				Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
+				Editor_Raycast(pEditorAppState, &ray, false);
+
+				// LEFTOFF: Need to select the geometry.
+			}
 		}
+		break;
 
-		// TODO ALGORITHM:
-		// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
-		// 2.) Wherever it intersects, place the model there.
-		//
-		// FUTURE WORK:
-		// 3.) Configurable models.
-		// 4.) Add some padding so that the model doesn't get stuck in the wall regardless of its extents.
-		i32 mouseX{ 0 }, mouseY{ 0 };
-		g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
+	case EDITOR_TOOL_MODE_ADD_MODEL:
+		{
+			if (pEditorAppState->m_bToolChangeHack)
+			{
+				pEditorAppState->m_bToolChangeHack = false;
+				return true;
+			}
 
-		Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
-		Editor_Raycast(pEditorAppState, &ray);
+			// TODO ALGORITHM:
+			// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
+			// 2.) Wherever it intersects, place the model there.
+			//
+			// FUTURE WORK:
+			// 3.) Configurable models.
+			// 4.) Add some padding so that the model doesn't get stuck in the wall regardless of its extents.
+			i32 mouseX{ 0 }, mouseY{ 0 };
+			g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
 
-		// FIXME: Multiple geometry instances.
-		Matrix4x4 matTransform = Matrix4x4(1.0f);
-		matTransform = Matrix4x4::Translate(matTransform, ray.vecEnd);
+			Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
+			Editor_Raycast(pEditorAppState, &ray, true);
 
-		pEditorAppState->m_DefaultPointGeometry.matLocalToWorldTransform = matTransform;
+			// FIXME: Multiple geometry instances.
+			Matrix4x4 matTransform = Matrix4x4(1.0f);
+			matTransform = Matrix4x4::Translate(matTransform, ray.vecEnd);
 
-		// Add a new mesh here.
-		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+			pEditorAppState->m_DefaultPointGeometry.matLocalToWorldTransform = matTransform;
 
-		u64 meshIdx = pEditorAppState->m_CurrentDoc.meshes.PushBack(MeshInstance_t{});
-		pEditorAppState->m_CurrentDoc.meshes[meshIdx] = pMeshSystem->AcquireMeshInstance(pEditorAppState->m_hDefaultMesh, ray.vecEnd, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 1.0f, 1.0f, 1.0f }, false);
+			// Add a new mesh here.
+			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+			pEditorAppState->m_CurrentDoc.meshInstances.PushBack(pMeshSystem->AcquireMeshInstance(pEditorAppState->m_hDefaultMesh, ray.vecEnd, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 1.0f, 1.0f, 1.0f }, false));
 
-		// FIXME: Move the gizmo to the mesh correctly.
+			// Move the gizmo to the mesh.
+			pEditorAppState->m_hSelectedGeometry = pEditorAppState->m_CurrentDoc.meshInstances.Count() - 1;
 
-		// Setup the inspector panel.
-		AppUI::IAppUI* pUIContext = pEditorAppState->m_pUIContext;
-		char szTextBuffer[128]{};
-		Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, ray.vecEnd.x, ray.vecEnd.y, ray.vecEnd.z);
-		
-		pUIContext->SetControlText(pEditorAppState->hEntityTranslationEntry, szTextBuffer);
+			// Setup the inspector panel.
+			AppUI::IAppUI* pUIContext = pEditorAppState->m_pUIContext;
+			char szTextBuffer[128]{};
+			Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, ray.vecEnd.x, ray.vecEnd.y, ray.vecEnd.z);
+
+			pUIContext->SetControlText(pEditorAppState->hEntityTranslationEntry, szTextBuffer);
+		}
+		break;
 	}
 
 	return true;
@@ -712,6 +779,7 @@ static void ButtonEvent_ChangeTool_Selection(void* pListenerInst)
 	CLevelEditorApp* pEditor = (CLevelEditorApp*)pListenerInst;
 
 	pEditor->m_iToolMode = EDITOR_TOOL_MODE_SELECTION;
+	pEditor->m_bToolChangeHack = true;
 }
 
 static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst)

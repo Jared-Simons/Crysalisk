@@ -10,10 +10,13 @@
 #include <Resources/Loaders/MeshLoader.h>
 #include "Resources/ResourceTypes.h"
 
-struct BaseMesh_t
+struct MeshBase_t
 {
-	u32					iMeshIdx{ kInvalidID_U16 };
+	u32					iMeshIdx{ kInvalidID_U32 };
 	MaterialHandle_t	hMaterial{ kInvalidID_U32 };
+
+	// FIXME: Where to store actual geometry data?
+	GeometryInstance_t	geometry{};
 };
 
 struct MeshInstance_t
@@ -52,10 +55,13 @@ public:
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
 
+	virtual u32				AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
+	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const = 0;
+	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const = 0;
+
 	// Mesh acquisition.
 	// FIXME: Deprecate this.
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
-	virtual MeshInstance_t	AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) = 0;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) = 0;
 
