@@ -357,6 +357,14 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	ConVarSystemState* pConVar = m_EngineInterfaces.pConVar;
 	ConsoleCommandRegister(pConVar, "map", CONVAR_VALUETYPE_PASSTHROUGH, ConsoleCommand_LoadMap, this);
 
+	// FIXME: MESH SYSTEM TEST
+	{
+		IMeshSystem* pMeshSystem = m_EngineInterfaces.pMeshSystem;
+		MeshHandle_t hTest = pMeshSystem->AcquireMeshBase("Monke");
+
+		CAssert(0);
+	}
+
 	return true;
 }
 

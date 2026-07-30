@@ -21,6 +21,7 @@ public:
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) override;
 	virtual void			Shutdown() override;
 
+	virtual MeshHandle_t	AcquireMeshBase(const char* pszMeshName) override;
 	virtual u32				AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const override;
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const override;
@@ -62,6 +63,7 @@ private:
 	};
 
 	// The mesh dictionary.
+	// FIXME: Deprecate.
 	MeshDictionary_t	m_MeshDictionary{};
 
 	// An array of base meshes.
@@ -69,6 +71,12 @@ private:
 
 	// An array of instances.
 	MeshInstance_t*		m_MeshInstances{ nullptr };
+
+	// String->u32 lookup table.
+	Utl::CStringHashMap<MeshLookup>	m_MeshLookup{};
+
+	// An array of transform matrices.
+	Matrix4x4*			m_Transforms{ nullptr };
 
 	// Instance counts
 	u32*				m_MeshInstanceCounts{ nullptr };
@@ -160,6 +168,8 @@ bool CMeshSystem::Initialize(const MeshSystemConfig_t& pAppConfig)
 
 	m_MeshBases = new MeshBase_t[m_Config.MaxMeshes];
 	m_MeshInstances = new MeshInstance_t[m_Config.MaxMeshes];
+	m_MeshLookup.Resize(m_Config.MaxMeshes);
+	m_Transforms = new Matrix4x4[m_Config.MaxMeshes];
 
 	m_MeshInstanceCounts = new u32[m_Config.MaxMeshes];
 
@@ -193,6 +203,12 @@ void CMeshSystem::Shutdown()
 		m_MeshDictionary.m_MeshArray = nullptr;
 	}
 
+	if (m_Transforms)
+	{
+		delete[] m_Transforms;
+		m_Transforms = nullptr;
+	}
+
 	if (m_MeshInstances)
 	{
 		delete[] m_MeshInstances;
@@ -212,6 +228,58 @@ void CMeshSystem::Shutdown()
 	}
 
 	s_MeshSystem = nullptr;
+}
+
+//-------------------------------------------------------------------------
+// Purpose - TODO: Documentation.
+//-------------------------------------------------------------------------
+MeshHandle_t CMeshSystem::AcquireMeshBase(const char* pszMeshName)
+{
+	if (!pszMeshName)
+	{
+		LOG_ERROR("CMeshSystem::AcquireMeshBase requires the name of a mesh to load. Nothing was done.");
+		return kInvalidID_U32;
+	}
+
+	MeshLookup* pLookup = m_MeshLookup.Insert(pszMeshName);
+	MeshBase_t* pBase = nullptr;
+	MeshHandle_t hMeshBase = kInvalidID_U32;
+
+	if (pLookup->MeshHandle == kInvalidID_U32)
+	{
+		// First time with this mesh, need to load resources.
+		hMeshBase = GetFirstFreeMeshBaseIdx();
+		pBase = &m_MeshBases[hMeshBase];
+
+		CASSERTMSG(pBase->iMeshIdx == kInvalidID_U32, "AcquireMeshBase() - Got an occupied base mesh handle!");
+
+		pBase->iMeshIdx = hMeshBase;
+		
+		// Allocate a new mesh resource for loading.
+		MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
+		MeshLoader::MeshLoaderParams_t* pMeshParams = new MeshLoader::MeshLoaderParams_t;
+
+		pMeshParams->pszMeshPath = Utl::StringDuplicate(pszMeshName);
+		pMeshParams->pOutResource = pMeshResource;
+
+		JobDeclaration_t meshLoadJob{};
+		meshLoadJob.pfnEntryPoint = MeshLoader::LoadMesh_Threaded;
+		meshLoadJob.pParams = pMeshParams;
+		meshLoadJob.iParamSize = sizeof(MeshLoader::MeshLoaderParams_t);
+		meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success;
+		meshLoadJob.pJobResults.pfnOnJobCompleted_Failed_Callback = OnMeshLoadJob_Fail;
+		meshLoadJob.pJobResults.iUserDataSize = sizeof(MeshLoader::MeshLoaderParams_t);
+		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
+		meshLoadJob.ePriority = eJobPriority::NORMAL;
+
+		m_Config.pJobSystem->SubmitJob(meshLoadJob);
+	}
+	else
+	{
+		// Mesh resources are already loaded.
+	}
+
+	return hMeshBase;
 }
 
 //-------------------------------------------------------------------------

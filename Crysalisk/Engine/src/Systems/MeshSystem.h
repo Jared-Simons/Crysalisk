@@ -54,7 +54,8 @@ public:
 	// Initialize, shutdown
 	virtual bool			Initialize(const MeshSystemConfig_t& pAppConfig) = 0;
 	virtual void			Shutdown() = 0;
-
+	
+	virtual MeshHandle_t	AcquireMeshBase(const char* pszMeshName) = 0;
 	virtual u32				AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const = 0;
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const = 0;

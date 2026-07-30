@@ -105,7 +105,7 @@ private:
 	friend static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
 	friend static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
 
-	friend static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
+	friend static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 };
 
 // FIXME: Remove and allocate this state?
@@ -113,7 +113,7 @@ static CLevelEditorApp s_LevelEditorApp{};
 
 // Editor utilities.
 static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
-static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
+static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 
 // Event handlers.
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
@@ -510,7 +510,7 @@ static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
 	pOutGeoInstance->matLocalToWorldTransform = Matrix4x4::Matrix4x4(1.0f);
 }
 
-static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid)
+static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid)
 {
 	CAssert(pLevelEditor && pRay);
 
@@ -519,9 +519,13 @@ static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTes
 	u32 iGeometryCount = (u32)pLevelEditor->m_CurrentDoc.meshInstances.Count() + 1;	// + 1 to include the editor grid.
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
+	u32 hitMeshIdx = kInvalidID_U32;
+
 	for (u32 iGeo = 0; iGeo < iGeometryCount; iGeo++)
 	{
 		GeometryInstance_t* pCurGeo = nullptr;
+		MeshInstance_t* pCurInstance = nullptr;
+		MeshBase_t* pCurBase = nullptr;
 
 		if (iGeo == 0)
 		{
@@ -538,18 +542,24 @@ static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTes
 		else
 		{
 			// Now test against the other geometries.
-			MeshInstance_t* pCurInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pLevelEditor->m_CurrentDoc.meshInstances[iGeo - 1]);
-			MeshBase_t* pCurBase = pMeshSystem->AcquireMeshBaseDataFromHandle(pCurInstance->hBaseMesh);
+			pCurInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pLevelEditor->m_CurrentDoc.meshInstances[iGeo - 1]);
+			pCurBase = pMeshSystem->AcquireMeshBaseDataFromHandle(pCurInstance->hBaseMesh);
 			pCurGeo = &pCurBase->geometry;
 		}
 
 		CAssert(pCurGeo);
 
 		// Convert the ray to the geometry's local space.
+
 		Ray_t localRay;
 		Matrix4x4 geoWorldToLocal = pCurGeo->matLocalToWorldTransform.Inverse();
 		Vector4D vecDirection = pRay->vecDirection.ToVector4D();
 		vecDirection.w = 0.0f;
+		// FIXME: Need to always get the transform from the same structure/place.
+		if (iGeo > 0)
+		{
+			geoWorldToLocal = pCurInstance->matLocalToWorld.Inverse();
+		}
 
 		localRay.vecOrigin = geoWorldToLocal * pRay->vecOrigin;
 		localRay.vecDirection = (geoWorldToLocal * vecDirection).AsVector3D();
@@ -577,8 +587,11 @@ static void Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTes
 			pRay->flDistance = flTNearMax;
 			pRay->vecEnd = pRay->vecOrigin + (pRay->vecDirection * pRay->flDistance);
 			pRay->pHitGeometry = pCurGeo;
+			hitMeshIdx = iGeo - 1;
 		}
 	}
+
+	return hitMeshIdx;
 }
 
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
@@ -620,9 +633,9 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
 
 				Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
-				Editor_Raycast(pEditorAppState, &ray, false);
+				u32 idx = Editor_Raycast(pEditorAppState, &ray, false);
 
-				// LEFTOFF: Need to select the geometry.
+				pEditorAppState->m_SelectedMeshIdx = idx;
 			}
 		}
 		break;
