@@ -25,6 +25,7 @@
 #include <Core/Event.h>
 #include <Renderer/Renderer.h>
 #include <Resources/GeometryGenerator.h>
+#include <Systems/MaterialSystem.h>
 #include <Systems/MeshSystem.h>
 #include <Systems/ShaderSystem.h>
 #include <Systems/TextureSystem.h>
@@ -56,7 +57,6 @@ private:
 	// Current map data.
 	MapEditorDocument_t	m_CurrentDoc{};
 	u32					m_SelectedMeshIdx{ kInvalidID_U32 };
-	u32					m_hSelectedGeometry{ kInvalidID_U32 };
 	Camera_t*			m_pCamera{ nullptr };
 
 	// Current tool mode.
@@ -94,6 +94,7 @@ private:
 	AppUI::UIControlHandle_t	hEntityModelNameEntry{ kInvalidID_U32 };
 
 	// These need access to our members.
+	friend static bool Event_OnKeyPressed(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
@@ -116,6 +117,7 @@ static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
 static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 
 // Event handlers.
+static bool Event_OnKeyPressed(void* pListener, EventData_t eventData);
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
 static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
 static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
@@ -160,24 +162,28 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 		GeometryConfig_t defaultConfig = MeshGenerator::CreateDefaultCubeConfiguration(Vector{ 0.0f, 0.0f, 0.0f }, 16.0f, 16.0f, 16.0);
 
-		pAppConfig->pEngine->GetEngineInterfaces()->pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, defaultConfig.Vertices.Count(), defaultConfig.Vertices.Stride(), 0, defaultConfig.Vertices.Data(), defaultConfig.Indices.Count(), defaultConfig.Indices.Data(), &m_DefaultPointGeometry);
+		// Just need the positions.
+		Utl::CVector<f32> vertData(defaultConfig.Vertices.Count() * 3);
+		for (u32 iVert = 0; iVert < defaultConfig.Vertices.Count(); iVert++)
+		{
+			vertData.PushBack(defaultConfig.Vertices[iVert].Pos.x);
+			vertData.PushBack(defaultConfig.Vertices[iVert].Pos.y);
+			vertData.PushBack(defaultConfig.Vertices[iVert].Pos.z);
+		}
+
+		pAppConfig->pEngine->GetEngineInterfaces()->pRenderer->AcquireGeometryResources(*pVertexBuffer, *pIndexBuffer, defaultConfig.Vertices.Count(), sizeof(Vector), 0, vertData.Data(), defaultConfig.Indices.Count(), defaultConfig.Indices.Data(), &m_DefaultPointGeometry);
 		m_DefaultPointGeometry.matLocalToWorldTransform = Matrix4x4(1.0f);
 		m_DefaultPointGeometry.vecMinExtents = Vector{ -16.0f, -16.0f, -16.0f };
 		m_DefaultPointGeometry.vecMaxExtents = Vector{ 16.0f, 16.0f, 16.0f };
 
-		IShaderSystem* pShaderSystem = pAppConfig->pEngine->GetEngineInterfaces()->pShaderSystem;
-		ShaderHandle_t hShader = pShaderSystem->AcquireShader("Core.Phong");
-		pShaderSystem->AcquireShaderInstanceResources(hShader, &m_DefaultPointGeometry.hShaderInstance, "DefaultPointGeometry");
-		TextureHandle_t defaultWhite = pAppConfig->pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
-		pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "textures"), 0, m_DefaultPointGeometry.hShaderInstance, &defaultWhite);
-		m_DefaultPointGeometry.hShader = hShader;
-
+		IMaterialSystem* pMaterialSystem = pAppConfig->pEngine->GetEngineInterfaces()->pMaterialSystem;
 		IMeshSystem* pMeshSystem = pAppConfig->pEngine->GetEngineInterfaces()->pMeshSystem;
-		m_hDefaultMesh = pMeshSystem->WrapGeometryInstanceInMesh(&m_DefaultPointGeometry, "LevelEditor_DefaultPointEntityGeo");
+		m_hDefaultMesh = pMeshSystem->WrapGeometryInstanceInMesh(&m_DefaultPointGeometry, "LevelEditor_DefaultPointEntityGeo", pMaterialSystem->GetDefaultUnlitMaterial());
 	}
 
 	// Register for events.
 	IEventSystem* pEventSystem = pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
+	pEventSystem->EventRegister(eEventCategory::INPUT_KEY_PRESSED, this, Event_OnKeyPressed);
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, this, Event_OnMouseButtonPressed);
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_BRELEASED, this, Event_OnMouseButtonReleased);
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, this, Event_OnMouseMove);
@@ -327,7 +333,7 @@ void CLevelEditorApp::Tool_Shutdown()
 
 bool CLevelEditorApp::Tool_Update()
 {
-	if (m_hSelectedGeometry != kInvalidID_U32)
+	if (m_SelectedMeshIdx != kInvalidID_U32)
 	{
 		DisplayEntityInspectorPanel(true);
 	}
@@ -341,9 +347,9 @@ bool CLevelEditorApp::Tool_Update()
 		IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
 		// Move the gizmo over to the selected geometry.
-		if (m_hSelectedGeometry != kInvalidID_U32)
+		if (m_SelectedMeshIdx != kInvalidID_U32)
 		{
-			MeshInstance_t* pInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(m_CurrentDoc.meshInstances[m_hSelectedGeometry]);
+			MeshInstance_t* pInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(m_CurrentDoc.meshInstances[m_SelectedMeshIdx]);
 			Vector translation = pInstance->matLocalToWorld.GetTranslation();
 			m_Gizmo.origin = translation;
 		}
@@ -401,6 +407,8 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 			// If not in selection mode, don't render the gizmo.
 			pViewData->gizmoGeo = nullptr;
 		}
+
+		pViewData->selectedMeshIndex = m_SelectedMeshIdx;
 	}
 }
 
@@ -415,7 +423,9 @@ void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
 	m_pUIContext->SetControlVisible(hEntityTranslationLabel, bEnable);
 	m_pUIContext->SetControlVisible(hEntityTranslationEntry, bEnable);
 	m_pUIContext->SetControlVisible(hEntityModelNameLabel, bEnable);
+
 	m_pUIContext->SetControlVisible(hEntityModelNameEntry, bEnable);
+	m_pUIContext->SetControlInteractable(hEntityModelNameEntry, bEnable);
 }
 
 static void CreateEditorGrid(GeometryInstance_t* pOutGeoInstance)
@@ -594,6 +604,35 @@ static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTest
 	return hitMeshIdx;
 }
 
+static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
+{
+	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+
+	if (eventData.c[0] == KEY_ENTER)
+	{
+		// Check the active control.
+		if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->hEntityModelNameEntry)
+		{
+			// If we pressed enter on the model name control, we might need to set the model.
+			char* pszEnteredModelName = pEditorAppState->m_pUIContext->GetControlText(pEditorAppState->hEntityModelNameEntry);
+			char* pszTrimmedText = Utl::StringTrim(pszEnteredModelName);
+
+			if (Utl::StringLength(pszEnteredModelName) > 0)
+			{
+				// Try to load the model.
+				IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+				pMeshSystem->AcquireMeshInstance(pszTrimmedText, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+			}
+
+			Utl::StringFree(pszTrimmedText);
+			pszTrimmedText = nullptr;
+		}
+	}
+
+	return true;
+}
+
 static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
@@ -672,7 +711,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 			pEditorAppState->m_CurrentDoc.meshInstances.PushBack(pMeshSystem->AcquireMeshInstance(pEditorAppState->m_hDefaultMesh, ray.vecEnd, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 1.0f, 1.0f, 1.0f }, false));
 
 			// Move the gizmo to the mesh.
-			pEditorAppState->m_hSelectedGeometry = pEditorAppState->m_CurrentDoc.meshInstances.Count() - 1;
+			pEditorAppState->m_SelectedMeshIdx = pEditorAppState->m_CurrentDoc.meshInstances.Count() - 1;
 
 			// Setup the inspector panel.
 			AppUI::IAppUI* pUIContext = pEditorAppState->m_pUIContext;

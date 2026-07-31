@@ -13,9 +13,13 @@
 struct MeshBase_t
 {
 	u32					iMeshIdx{ kInvalidID_U32 };
-	MaterialHandle_t	hMaterial{ kInvalidID_U32 };
 
-	// FIXME: Where to store actual geometry data?
+	Vector				vecMinExtents{};
+	Vector				vecMaxExtents{};
+
+	Utl::CVector<MeshRenderData_t>	renderData{};
+
+	// FIXME: Remove this.
 	GeometryInstance_t	geometry{};
 };
 
@@ -60,13 +64,15 @@ public:
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const = 0;
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const = 0;
 
+	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const = 0;
+
 	// Mesh acquisition.
 	// FIXME: Deprecate this.
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) = 0;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) = 0;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) = 0;
 
-	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName) = 0;
+	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName, MaterialHandle_t hMaterial) = 0;
 
 	// Mesh release.
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) = 0;

@@ -53,6 +53,14 @@ public:
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() = 0;
 
+	// TODO: Material instances.
+	virtual MaterialHandle_t	GetDefaultUnlitMaterial() const = 0;
+	virtual MaterialHandle_t	GetDefaultUnlitRedMaterial() const = 0;
+
+	// Returns the shader used to render a material.
+	virtual ShaderHandle_t		GetShaderFromMaterial(MaterialHandle_t hMaterial) const = 0;
+	virtual u32					GetShaderInstanceFromMaterial(MaterialHandle_t hMaterial) const = 0;
+
 	// Applies global render data for the frame.
 	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, i32 renderDebugMode) = 0;
 	// Applies per-draw render data for the following draw calls.

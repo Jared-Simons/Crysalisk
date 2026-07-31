@@ -150,12 +150,26 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 
 				MeshBase_t* pBaseModel = pMeshSystem->AcquireMeshBaseDataFromHandle(pInstance->hBaseMesh);
 
-				pShaderSystem->BindShader(5);	// FIXME: NO HARDCODING! We need to figure out where to get this data from, probably the material.
-				pShaderSystem->BindPerFrameUniforms();
-				pShaderSystem->BindPerInstanceUniforms(2);
-				pShaderSystem->SetShaderUniform(5, pShaderSystem->GetShaderUniformLocation(5, "model"), 0, 0, &pInstance->matLocalToWorld);
+				// FIXME: Material system should probably handle this.
+				ShaderHandle_t hShader = pMaterialSystem->GetShaderFromMaterial(pBaseModel->renderData[0].hMaterial);
+				if (iGeo == pViewData->selectedMeshIndex)
+				{
+					// This mesh is selected, tint it red.
+					// FIXME: Cache the result instead of doing this every frame.
+					// FIXME: If not the default square, don't do this.
+					pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitRedMaterial();
+				}
+				else
+				{
+					// This mesh is not selected, return it to white.
+					pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitMaterial();
+				}
 
-				pRenderer->DrawGeometry(pBaseModel->geometry, pVertexBuffer, pIndexBuffer);
+				// FIXME: Material system should probably handle this.
+				pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "projection"), 0, 0, &pRenderData->matProjection);
+				pShaderSystem->SetShaderUniform(hShader, pShaderSystem->GetShaderUniformLocation(hShader, "view"), 0, 0, &pRenderData->pCamera->GetViewMatrix());
+
+				pMeshSystem->DrawGeometry(pViewData->mapInstances[iGeo], pShaderSystem);
 			}
 
 			pViewData->editorGeo.Purge();

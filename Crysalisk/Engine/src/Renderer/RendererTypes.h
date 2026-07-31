@@ -379,3 +379,20 @@ public:
 	virtual const char*			GetViewName() const = 0;
 	virtual const Renderpass*	GetRenderpass() const = 0;
 };
+
+//-------------------------------------------------------------------------
+// Purpose: TODO Documentation!
+//-------------------------------------------------------------------------
+struct MeshRenderData_t
+{
+	u64 vertexCount{ kInvalidID_U64 };
+	u64 vertexStride{ kInvalidID_U64 };
+	u64	vertexBufferOffset{ kInvalidID_U64 };
+
+	u64 indexCount{ kInvalidID_U64 };
+	u64 indexStride{ kInvalidID_U64 };
+	u64 indexDataOffset{ kInvalidID_U64 };
+
+	// TODO: Can't include ResourceTypes.h in here which is where MaterialHandle_t is defined. Need to clean that up.
+	u32	hMaterial{ kInvalidID_U32 };
+};

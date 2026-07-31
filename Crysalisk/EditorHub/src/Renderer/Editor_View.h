@@ -17,6 +17,8 @@ struct EditorView_ExtendedData_t
 	Utl::CVector<struct GeometryInstance_t*>	editorGeo{};
 	Utl::CVector<struct GeometryInstance_t*>	mapMeshes{};
 	Utl::CVector<u32>							mapInstances{};
+
+	u32											selectedMeshIndex{ kInvalidID_U32 };
 };
 
 // Factory function to create the view.

@@ -10,6 +10,7 @@
 #include "Renderer/Renderer.h"
 #include "Systems/JobSystem.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/ShaderSystem.h"
 #include <Strings/String_Utils.h>
 
 //-------------------------------------------------------------------------
@@ -26,13 +27,17 @@ public:
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const override;
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const override;
 
+	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const override;
+
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
 	virtual Mesh*			AcquireMeshDataByHandle(MeshHandle_t hMesh) override;
 
-	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName) override;
+	virtual MeshHandle_t	WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName, MaterialHandle_t hMaterial) override;
 
 	virtual void			ReleaseMeshInstance(MeshHandle_t hMesh) override;
+
+	void					AcquireMeshBaseFromResource(MeshLoader::MeshLoaderParams_t* pResource);
 
 private:
 	// FIXME: Deprecate this system and move to mesh bases/instances.
@@ -95,6 +100,29 @@ static i32 OnMeshLoadJob_Success(JobResults_t& pResults)
 
 	// This will handle mesh registration and GPU upload.
 	s_MeshSystem->AcquireMeshFromResource(*pTypedResults->pOutResource, pTypedResults->pszMeshPath, true);
+
+	// Release all the resources allocated for this job.
+	// TODO: Make sure this is properly releasing EVERYTHING
+	delete pTypedResults->pOutResource;
+	pTypedResults->pOutResource = nullptr;
+	CAssert(pTypedResults->pszMeshPath != nullptr);
+	Utl::StringFree(pTypedResults->pszMeshPath);
+	pTypedResults->pszMeshPath = nullptr;
+	delete pTypedResults;
+	pTypedResults = nullptr;
+
+	return 1;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: Invoked upon successful completion of an async mesh-loading job.
+//-------------------------------------------------------------------------
+static i32 OnMeshLoadJob_Success_NEW(JobResults_t& pResults)
+{
+	MeshLoader::MeshLoaderParams_t* pTypedResults = reinterpret_cast<MeshLoader::MeshLoaderParams_t*>(pResults.pUserData);
+
+	// This will handle mesh registration and GPU upload.
+	s_MeshSystem->AcquireMeshBaseFromResource(pTypedResults);
 
 	// Release all the resources allocated for this job.
 	// TODO: Make sure this is properly releasing EVERYTHING
@@ -254,6 +282,7 @@ MeshHandle_t CMeshSystem::AcquireMeshBase(const char* pszMeshName)
 		CASSERTMSG(pBase->iMeshIdx == kInvalidID_U32, "AcquireMeshBase() - Got an occupied base mesh handle!");
 
 		pBase->iMeshIdx = hMeshBase;
+		pLookup->MeshHandle = hMeshBase;
 		
 		// Allocate a new mesh resource for loading.
 		MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
@@ -262,11 +291,12 @@ MeshHandle_t CMeshSystem::AcquireMeshBase(const char* pszMeshName)
 		pMeshParams->pszMeshPath = Utl::StringDuplicate(pszMeshName);
 		pMeshParams->pOutResource = pMeshResource;
 
+		// Queue up a job to load the mesh.
 		JobDeclaration_t meshLoadJob{};
 		meshLoadJob.pfnEntryPoint = MeshLoader::LoadMesh_Threaded;
 		meshLoadJob.pParams = pMeshParams;
 		meshLoadJob.iParamSize = sizeof(MeshLoader::MeshLoaderParams_t);
-		meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success;
+		meshLoadJob.pJobResults.pfnOnJobCompleted_Success_Callback = OnMeshLoadJob_Success_NEW;
 		meshLoadJob.pJobResults.pfnOnJobCompleted_Failed_Callback = OnMeshLoadJob_Fail;
 		meshLoadJob.pJobResults.iUserDataSize = sizeof(MeshLoader::MeshLoaderParams_t);
 		meshLoadJob.iJobType = WORKER_THREAD_TYPE_DISK_LOADING;
@@ -391,11 +421,74 @@ MeshInstance_t* CMeshSystem::AcquireMeshInstanceDataFromHandle(u32 hMeshInstance
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation
 //-------------------------------------------------------------------------
+void CMeshSystem::DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const
+{
+	CAssert(hMeshInstance != kInvalidID_U32 && pShaderSystem);
+
+	MeshInstance_t* pInstance = &m_MeshInstances[hMeshInstance];
+	MeshBase_t* pBase = &m_MeshBases[pInstance->hBaseMesh];
+
+	// Bind the model matrix.
+	m_Config.pMaterialSystem->ApplyPerDrawRenderData(pInstance->matLocalToWorld);
+
+	for (u32 iMesh = 0; iMesh < pBase->renderData.Count(); iMesh++)
+	{
+		// Bind the material.
+		m_Config.pMaterialSystem->ApplyMaterialInstance(pBase->renderData[iMesh].hMaterial);
+
+		// Draw!
+		m_Config.pRenderer->DrawGeometry(&pBase->renderData[iMesh], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
 MeshBase_t* CMeshSystem::AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const
 {
 	CASSERTMSG(hMesh != kInvalidID_U32, "AcquireMeshBaseDataFromHandle requires a valid mesh handle!");
 
 	return &m_MeshBases[hMesh];
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+void CMeshSystem::AcquireMeshBaseFromResource(MeshLoader::MeshLoaderParams_t* pResource)
+{
+	MeshLookup*		pMeshLookup = &m_MeshLookup[pResource->pszMeshPath];
+	CAssert(pMeshLookup->MeshHandle != kInvalidID_U32);
+
+	MeshBase_t*		pMeshBase = &m_MeshBases[pMeshLookup->MeshHandle];
+
+	// Take a convenience pointer to the mesh resources.
+	Utl::CVector<MeshLoader::MeshResource_t::GeometryObject_t>* pMeshResources = &pResource->pOutResource->pMeshes;
+	Utl::CVector<char*>*										pMaterialNameTable = &pResource->pOutResource->pMaterialNames;
+	
+	// Acquire renderer resources and upload to the GPU.
+	pMeshBase->renderData.Resize(pMeshResources->Count());
+	pMeshBase->renderData.SetCount(pMeshResources->Count());
+	for (u32 iMesh = 0; iMesh < pMeshResources->Count(); iMesh++)
+	{
+		MeshRenderData_t* pRenderData = &pMeshBase->renderData[iMesh];
+		MeshLoader::MeshResource_t::GeometryObject_t* pCurMesh = &pMeshResources->ElementAt(iMesh);
+
+		// Do the upload.
+		m_Config.pRenderer->AcquireGeometryResources(*m_pWorldVertexBuffer, *m_pWorldIndexBuffer, pCurMesh->iVertexCount, pCurMesh->iVertexStride, pCurMesh->iVertexOffset, pCurMesh->pVertexData, pCurMesh->iIndexCount, pCurMesh->iIndexData, pRenderData);
+
+		// Get material.
+		if (pMaterialNameTable->Count() > 0 && pResource->pOutResource->pMeshes[iMesh].iMaterialNameIndex != kInvalidID_U32)
+		{
+			pRenderData->hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pMaterialNameTable->ElementAt(pCurMesh->iMaterialNameIndex));
+		}
+
+		// Get extents.
+		pMeshBase->vecMinExtents = pCurMesh->vecMinExtents;
+		pMeshBase->vecMaxExtents = pCurMesh->vecMaxExtents;
+	}
+
+	// Clean up mesh resources.
+	MeshLoader::UnloadMeshResource(*pResource->pOutResource);
 }
 
 //-------------------------------------------------------------------------
@@ -494,7 +587,7 @@ Mesh* CMeshSystem::AcquireMeshDataByHandle(MeshHandle_t hMesh)
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation
 //-------------------------------------------------------------------------
-MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName)
+MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeometryInstance, const char* pszName, MaterialHandle_t hMaterial)
 {
 	CASSERTMSG(pGeometryInstance && pszName, "WrapGeometryInstanceInMesh requires a pointer to geometry and name.");
 
@@ -503,9 +596,21 @@ MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeomet
 
 	MeshBase_t* pBase = &m_MeshBases[meshBaseIdx];
 
-	pBase->hMaterial = pGeometryInstance->hShaderInstance;
 	pBase->iMeshIdx = meshBaseIdx;
 	pBase->geometry = *pGeometryInstance;
+
+	// FIXME: Remove GeometryInstance_t
+	{
+		pBase->renderData.Resize(1);
+		pBase->renderData.SetCount(1);
+		pBase->renderData[0].vertexCount = pGeometryInstance->vertexCount;
+		pBase->renderData[0].vertexStride = pGeometryInstance->vertexDataStride;
+		pBase->renderData[0].vertexBufferOffset = pGeometryInstance->vertexDataOffset;
+		pBase->renderData[0].indexCount = pGeometryInstance->indexCount;
+		pBase->renderData[0].indexStride = pGeometryInstance->indexDataStride;
+		pBase->renderData[0].indexDataOffset = pGeometryInstance->indexDataOffset;
+		pBase->renderData[0].hMaterial = hMaterial;
+	}
 
 	pLookup->MeshHandle = meshBaseIdx;
 
@@ -645,5 +750,3 @@ void CMeshSystem::ClearMeshDictionaryEntry(const char* pszMeshPath)
 	pLookup->iReferenceCount = 0;
 	pLookup->MeshHandle = kInvalidID_U32;
 }
-
-

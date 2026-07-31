@@ -1843,6 +1843,160 @@ static u32 GetSizeOfVertexAttribute(ShaderAttribute_t inAttribute)
 }
 
 //-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CVulkanRenderer::AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData)
+{
+	VulkanBuffer* pInternalVertexBuffer = (VulkanBuffer*)pVertexBuffer->m_pInternalData;
+	VulkanBuffer* pInternalIndexBuffer = nullptr;
+
+	if (pIndexBuffer)
+	{
+		pInternalIndexBuffer = (VulkanBuffer*)pIndexBuffer->m_pInternalData;
+	}
+
+	if (!iVertexCount || !iVertexStride || !pVertices)
+	{
+		LOG_ERROR("AcquireGeometryResources() requires valid vertex data. Nothing was done.");
+		return false;
+	}
+
+	if (iIndexCount && (!pIndices || !pInternalIndexBuffer))
+	{
+		LOG_ERROR("AcquireGeometryResources() was provided with iIndexCount > 0 but no index data and/or index buffer. Nothing was done.");
+		return false;
+	}
+
+	VulkanCommandBuffer cmdBuffer{};
+	cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	// Create a staging buffer for transfer to the GPU.
+	VulkanBuffer stagingBuffer{};
+	VulkanBuffer::CreateBuffer(s_VulkanContext, iVertexCount * iVertexStride, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+	
+	stagingBuffer.UploadDataRange(s_VulkanContext, iVertexCount * iVertexStride, pVertices);
+
+	u64 finalBufferOffset = pInternalVertexBuffer->m_BytesAllocated;
+	if (pInternalVertexBuffer->m_bUsesFreelist)
+	{
+		finalBufferOffset = pInternalVertexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+	}
+
+	// Copy over to the device-local buffer.
+	VkBufferCopy copyRegion{};
+	copyRegion.size = stagingBuffer.m_BufferSize;
+	copyRegion.dstOffset = finalBufferOffset;
+	vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalVertexBuffer->m_Handle, 1, &copyRegion);
+
+	cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+	VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+	// We subtract off the vertex base here so that large models can be bound using the same vertex offset.
+	// If a model with 50 submeshes all contain the same vertex buffer offset, with offset indices, then
+	// the vertex buffer does not have to be rebound between those draw calls.
+	pOutRenderData->vertexBufferOffset = finalBufferOffset - (iVertexBase * iVertexStride);	
+	pOutRenderData->vertexCount = iVertexCount;
+
+	if (iIndexCount)
+	{
+		cmdBuffer.CreateAndBeginSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+
+		VulkanBuffer::CreateBuffer(s_VulkanContext, iIndexCount * sizeof(u32), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, false, stagingBuffer);
+		stagingBuffer.UploadDataRange(s_VulkanContext, iIndexCount * sizeof(u32), pIndices);
+		finalBufferOffset = pInternalIndexBuffer->m_BytesAllocated;
+		if (pInternalIndexBuffer->m_bUsesFreelist)
+		{
+			finalBufferOffset = pInternalIndexBuffer->m_Freelist.Allocate(stagingBuffer.m_BufferSize);
+		}
+
+		copyRegion.size = stagingBuffer.m_BufferSize;
+		copyRegion.dstOffset = finalBufferOffset;
+		vkCmdCopyBuffer(cmdBuffer.m_Handle, stagingBuffer.m_Handle, pInternalIndexBuffer->m_Handle, 1, &copyRegion);
+
+		cmdBuffer.EndSingleUse(s_VulkanContext, m_GraphicsCommandPool);
+		VulkanBuffer::DestroyBuffer(s_VulkanContext, stagingBuffer);
+
+		pOutRenderData->indexDataOffset = finalBufferOffset;
+		pOutRenderData->indexCount = iIndexCount;
+	}
+	else
+	{
+		pOutRenderData->indexCount = 0;
+	}
+
+	pInternalVertexBuffer->m_BytesAllocated += iVertexCount * iVertexStride;
+
+	if (pInternalIndexBuffer)
+		pInternalIndexBuffer->m_BytesAllocated += iIndexCount * sizeof(u32);
+
+	// Copy over element strides.
+	pOutRenderData->vertexStride = iVertexStride;
+	pOutRenderData->indexStride = sizeof(u32);
+
+	return true;
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
+{
+	CAssert(m_pCurrentlyBoundShader && pVertexBuffer);
+
+	VulkanBuffer* pInternalVertexBuffer = (VulkanBuffer*)pVertexBuffer->m_pInternalData;
+	VulkanBuffer* pInternalIndexBuffer = nullptr;
+
+	if (pRenderData->indexCount > 0)
+	{
+		CAssert(pIndexBuffer);
+		pInternalIndexBuffer = (VulkanBuffer*)pIndexBuffer->m_pInternalData;
+	}
+
+	if (m_bResizingFramebuffer)
+	{
+		return;
+	}
+
+	if (m_CurrentlyBoundShaderIndex == kInvalidID_U32)
+	{
+		// No shader is currently bound! Boot out.
+		LOG_WARN("DrawGeometry() called with an invalid shader bound! Aborting draw.");
+		return;
+	}
+
+	CAssert(m_bCurrentlyRendering[m_ImageIndex]);
+
+	VkCommandBuffer commandBuffer = m_GraphicsCommandBuffers[m_ImageIndex].m_Handle;
+
+	// Bind our geometry data.
+	VkDeviceSize offsets[2] = { pRenderData->vertexBufferOffset, pRenderData->indexDataOffset };
+
+	if (offsets[0] != pVertexBuffer->m_CurrentBoundOffset)
+	{
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &pInternalVertexBuffer->m_Handle, &offsets[0]);
+		pVertexBuffer->m_CurrentBoundOffset = offsets[0];
+	}
+
+	// Bind the index buffer, if necessary
+	if (pInternalIndexBuffer && pRenderData->indexDataOffset != kInvalidID_U64 && pIndexBuffer->m_CurrentBoundOffset != offsets[1])
+	{
+		vkCmdBindIndexBuffer(commandBuffer, pInternalIndexBuffer->m_Handle, offsets[1], VK_INDEX_TYPE_UINT32);
+		pIndexBuffer->m_CurrentBoundOffset = offsets[1];
+	}
+
+	// Issue the draw.
+	if (pRenderData->indexDataOffset != kInvalidID_U64)
+	{
+		vkCmdDrawIndexed(commandBuffer, (u32)pRenderData->indexCount, 1, 0, 0, 0);
+	}
+	else
+	{
+		vkCmdDraw(commandBuffer, (u32)pRenderData->vertexCount, 1, 0, 0);
+	}
+}
+
+//-------------------------------------------------------------------------
 // Purpose: Acquires the renderer-specific resources for rendering geometry.
 // Input:	pVertexBuffer - The vertex buffer to upload vertex data to.
 //			pIndexBuffer - The index buffer to be upload index data to. Optional.

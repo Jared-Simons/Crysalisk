@@ -64,6 +64,12 @@ public:
 
 	// Returns a handle to the default texture.
 	virtual MaterialHandle_t	GetDefaultMaterialReference() override;
+	virtual MaterialHandle_t	GetDefaultUnlitMaterial() const override { return m_DefaultUnlitMaterialLookup.MaterialIndex; }
+	virtual MaterialHandle_t	GetDefaultUnlitRedMaterial() const override { return m_DefaultUnlitRedMaterialLookup.MaterialIndex; }
+
+	// Returns the shader used to render a material.
+	virtual ShaderHandle_t		GetShaderFromMaterial(MaterialHandle_t hMaterial) const override { return m_MaterialDictionary.m_MaterialArray[hMaterial].m_hShaderHandle; }
+	virtual u32					GetShaderInstanceFromMaterial(MaterialHandle_t hMaterial) const override { return m_MaterialDictionary.m_MaterialArray[hMaterial].m_iInternalHandle; }
 
 	// Applies global render data for the frame.
 	virtual void				ApplyGlobalRenderData(Matrix4x4& pMatProjection, Matrix4x4& pMatView, Vector& pVecPosition, i32 renderDebugMode) override;
@@ -119,6 +125,9 @@ private:
 	// The lookup for the default material.
 	MaterialLookup		m_DefaultMaterialLookup{};
 
+	MaterialLookup		m_DefaultUnlitMaterialLookup{};
+	MaterialLookup		m_DefaultUnlitRedMaterialLookup{};
+
 	// The currently bound shader instance (corresponds to the currently bound material).
 	MaterialHandle_t	m_hCurrentlyBoundMaterialInstance{ kInvalidID_U32 };
 	// The default material shader (in case a custom shader is not available).
@@ -128,22 +137,22 @@ private:
 	struct DirectionalLight_t
 	{
 		Vector3D	vecDirection{};
-		f32		padding1{};
+		f32			padding1{};
 		Vector3D	lightColor{};
-		f32		flBrightness{};
+		f32			flBrightness{};
 		Vector3D	ambientLightColor{};
-		f32		flAmbientStrength{};
+		f32			flAmbientStrength{};
 	} dirLight;
 
 	struct PointLight_t
 	{
 		Vector4D	vecPosition{};
 		Vector3D	lightColor{};
-		f32		flBrightness{};
+		f32			flBrightness{};
 
-		f32		flConstant{};
-		f32		flLinear{};
-		f32		flQuadratic{};
+		f32			flConstant{};
+		f32			flLinear{};
+		f32			flQuadratic{};
 	} pointLights[4];
 
 	struct SpotLight_t
@@ -151,14 +160,14 @@ private:
 		Vector4D	vecPosition{};
 		Vector4D	vecDirection{};
 		Vector3D	lightColor{};
-		f32		flBrightness{};
+		f32			flBrightness{};
 
-		f32		flConstant{};
-		f32		flLinear{};
-		f32		flQuadratic{};
+		f32			flConstant{};
+		f32			flLinear{};
+		f32			flQuadratic{};
 
-		f32		flInnerCutoff{};
-		f32		flOuterCutoff{};
+		f32			flInnerCutoff{};
+		f32			flOuterCutoff{};
 	} spotLight;
 
 	// These need access to our members.
@@ -434,7 +443,9 @@ void CMaterialSystem::ReleaseMaterial(MaterialHandle_t hShaderInstance, bool bFo
 	MaterialLookup& pLookup = m_MaterialDictionary.m_MaterialHashmap[pMaterial.m_pszMaterialName];
 
 	// Do nothing with default materials.
-	if (pLookup.MaterialIndex == m_DefaultMaterialLookup.MaterialIndex)
+	if (pLookup.MaterialIndex == m_DefaultMaterialLookup.MaterialIndex 
+		|| pLookup.MaterialIndex == m_DefaultUnlitMaterialLookup.MaterialIndex 
+		|| pLookup.MaterialIndex == m_DefaultUnlitRedMaterialLookup.MaterialIndex)
 	{
 		return;
 	}
@@ -663,43 +674,93 @@ void CMaterialSystem::ApplyLightData()
 void CMaterialSystem::CreateDefaultMaterial()
 {
 	IShaderSystem* pShaderSystem = m_Config.pShaderSystem;
-	MaterialHandle_t matIdx = FindFirstFreeMaterialHandle();
-	Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
 
-	pNewMaterial->m_pszMaterialName = Utl::StringDuplicate("_DefaultMaterial");
-	pNewMaterial->m_hShaderHandle = pShaderSystem->AcquireShader("Core.Phong");
-	pNewMaterial->m_hDiffuseTextureHandle = m_Config.pTextureSystem->GetDefaultDiffuseTexture();
-	pNewMaterial->m_hSpecularTextureHandle = m_Config.pTextureSystem->GetDefaultSpecularTexture();
-	pNewMaterial->m_hNormalTextureHandle = m_Config.pTextureSystem->GetDefaultNormalTexture();
-
-	MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pNewMaterial->m_pszMaterialName);
-	CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
-	newMaterialLookup->MaterialIndex = matIdx;
-	// Storing this off in two places, this second lookup is dedicated to the default material, and should never change until it's released.
-	m_DefaultMaterialLookup.MaterialIndex = matIdx;
-	m_DefaultMaterialLookup.AutoRelease = false;
-	m_DefaultMaterialLookup.ReferenceCount = 0;
-
-	// Acquire shader instance resources for this material.
-	pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
-
-	// Texture maps.
-	Utl::CVector<TextureHandle_t>	textureHandles(3);
-	textureHandles.PushBack(pNewMaterial->m_hDiffuseTextureHandle);
-	textureHandles.PushBack(pNewMaterial->m_hSpecularTextureHandle);
-	textureHandles.PushBack(pNewMaterial->m_hNormalTextureHandle);
-
-	// Bind the texture maps to the shader instance.
-	for (i32 texIdx = 0; texIdx < textureHandles.Count(); texIdx++)
+	// Default material.
 	{
-		// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
-		i32 iTextureArrayIndex = texIdx;
-		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+		MaterialHandle_t matIdx = FindFirstFreeMaterialHandle();
+		Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+
+		pNewMaterial->m_pszMaterialName = Utl::StringDuplicate("_DefaultMaterial");
+		pNewMaterial->m_hShaderHandle = pShaderSystem->AcquireShader("Core.Phong");
+		pNewMaterial->m_hDiffuseTextureHandle = m_Config.pTextureSystem->GetDefaultDiffuseTexture();
+		pNewMaterial->m_hSpecularTextureHandle = m_Config.pTextureSystem->GetDefaultSpecularTexture();
+		pNewMaterial->m_hNormalTextureHandle = m_Config.pTextureSystem->GetDefaultNormalTexture();
+
+		MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pNewMaterial->m_pszMaterialName);
+		CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
+		newMaterialLookup->MaterialIndex = matIdx;
+		// Storing this off in two places, this second lookup is dedicated to the default material, and should never change until it's released.
+		m_DefaultMaterialLookup.MaterialIndex = matIdx;
+		m_DefaultMaterialLookup.AutoRelease = false;
+		m_DefaultMaterialLookup.ReferenceCount = 0;
+
+		// Acquire shader instance resources for this material.
+		pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
+
+		// Texture maps.
+		Utl::CVector<TextureHandle_t>	textureHandles(3);
+		textureHandles.PushBack(pNewMaterial->m_hDiffuseTextureHandle);
+		textureHandles.PushBack(pNewMaterial->m_hSpecularTextureHandle);
+		textureHandles.PushBack(pNewMaterial->m_hNormalTextureHandle);
+
+		// Bind the texture maps to the shader instance.
+		for (i32 texIdx = 0; texIdx < textureHandles.Count(); texIdx++)
+		{
+			// TODO: This only works for the hard-coded phong shader. This will need to be made more robust, on a per-shader basis later.
+			i32 iTextureArrayIndex = texIdx;
+			pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.textureMaps, iTextureArrayIndex, pNewMaterial->m_iInternalHandle, &textureHandles[texIdx]);
+		}
+
+		f32 flShininess = 32;
+		// Set the instance uniform.
+		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
 	}
 
-	f32 flShininess = 32;
-	// Set the instance uniform.
-	pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, s_PhongShaderLocations.shininess, 0, pNewMaterial->m_iInternalHandle, &flShininess);
+	// Default Unlit. (Only for position-only-vertices).
+	{
+		MaterialHandle_t matIdx = FindFirstFreeMaterialHandle();
+		Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+
+		pNewMaterial->m_pszMaterialName = Utl::StringDuplicate("_DefaultUnlit");
+		pNewMaterial->m_hShaderHandle = pShaderSystem->AcquireShader("Core.Unlit");
+
+		MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pNewMaterial->m_pszMaterialName);
+		CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
+		newMaterialLookup->MaterialIndex = matIdx;
+		// Storing this off in two places, this second lookup is dedicated to the default material, and should never change until it's released.
+		m_DefaultUnlitMaterialLookup.MaterialIndex = matIdx;
+		m_DefaultUnlitMaterialLookup.AutoRelease = false;
+		m_DefaultUnlitMaterialLookup.ReferenceCount = 0;
+
+		// Acquire shader instance resources for this material.
+		pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
+
+		Vector4D white{ 1.0f, 1.0f, 1.0f, 1.0f };
+		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, pShaderSystem->GetShaderUniformLocation(pNewMaterial->m_hShaderHandle, "color"), 0, pNewMaterial->m_iInternalHandle, &white);
+	}
+
+	// Default Unlit Red. (Only for position-only-vertices).
+	{
+		MaterialHandle_t matIdx = FindFirstFreeMaterialHandle();
+		Material* pNewMaterial = &m_MaterialDictionary.m_MaterialArray[matIdx];
+
+		pNewMaterial->m_pszMaterialName = Utl::StringDuplicate("_DefaultUnlitRed");
+		pNewMaterial->m_hShaderHandle = pShaderSystem->AcquireShader("Core.Unlit");
+
+		MaterialLookup* newMaterialLookup = m_MaterialDictionary.m_MaterialHashmap.Insert(pNewMaterial->m_pszMaterialName);
+		CAssert(newMaterialLookup->MaterialIndex == kInvalidID_U32); // Make sure this slot is not in use.
+		newMaterialLookup->MaterialIndex = matIdx;
+		// Storing this off in two places, this second lookup is dedicated to the default material, and should never change until it's released.
+		m_DefaultUnlitRedMaterialLookup.MaterialIndex = matIdx;
+		m_DefaultUnlitRedMaterialLookup.AutoRelease = false;
+		m_DefaultUnlitRedMaterialLookup.ReferenceCount = 0;
+
+		// Acquire shader instance resources for this material.
+		pShaderSystem->AcquireShaderInstanceResources(pNewMaterial->m_hShaderHandle, &pNewMaterial->m_iInternalHandle, pNewMaterial->m_pszMaterialName);
+
+		Vector4D red{ 1.0f, 0.0f, 0.0f, 1.0f };
+		pShaderSystem->SetShaderUniform(pNewMaterial->m_hShaderHandle, pShaderSystem->GetShaderUniformLocation(pNewMaterial->m_hShaderHandle, "color"), 0, pNewMaterial->m_iInternalHandle, &red);
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -712,13 +773,38 @@ void CMaterialSystem::DestroyDefaultMaterial()
 	// NOTE: Don't have to worry about releasing default textures here, 
 	// the texture system will take care of that.
 
-	MaterialLookup* pLookup = &m_DefaultMaterialLookup;
-	CAssert(pLookup && pLookup->MaterialIndex != kInvalidID_U32);
-	Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
+	// Default.
+	{
+		MaterialLookup* pLookup = &m_DefaultMaterialLookup;
+		CAssert(pLookup && pLookup->MaterialIndex != kInvalidID_U32);
+		Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
 
-	m_Config.pShaderSystem->ReleaseShaderInstanceResources(pMaterial->m_hShaderHandle, pMaterial->m_iInternalHandle);
+		m_Config.pShaderSystem->ReleaseShaderInstanceResources(pMaterial->m_hShaderHandle, pMaterial->m_iInternalHandle);
 
-	ClearMaterialDictionaryEntry(pMaterial->m_pszMaterialName);
+		ClearMaterialDictionaryEntry(pMaterial->m_pszMaterialName);
+	}
+
+	// Default Unlit.
+	{
+		MaterialLookup* pLookup = &m_DefaultUnlitMaterialLookup;
+		CAssert(pLookup && pLookup->MaterialIndex != kInvalidID_U32);
+		Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
+
+		m_Config.pShaderSystem->ReleaseShaderInstanceResources(pMaterial->m_hShaderHandle, pMaterial->m_iInternalHandle);
+
+		ClearMaterialDictionaryEntry(pMaterial->m_pszMaterialName);
+	}
+
+	// Default Unlit Red.
+	{
+		MaterialLookup* pLookup = &m_DefaultUnlitRedMaterialLookup;
+		CAssert(pLookup && pLookup->MaterialIndex != kInvalidID_U32);
+		Material* pMaterial = &m_MaterialDictionary.m_MaterialArray[pLookup->MaterialIndex];
+
+		m_Config.pShaderSystem->ReleaseShaderInstanceResources(pMaterial->m_hShaderHandle, pMaterial->m_iInternalHandle);
+
+		ClearMaterialDictionaryEntry(pMaterial->m_pszMaterialName);
+	}
 }
 
 //-------------------------------------------------------------------------

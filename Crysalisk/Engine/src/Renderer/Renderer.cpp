@@ -92,6 +92,10 @@ public:
 	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) override;
+
+	virtual void			DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
+
 	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) override;
 	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) override;
 	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const override;
@@ -622,6 +626,22 @@ void CRenderer::DestroyRenderBuffer(RenderBuffer& pBuffer)
 		Utl::StringFree(pBuffer.pszBufferName);
 		pBuffer.pszBufferName = nullptr;
 	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+bool CRenderer::AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData)
+{
+	return m_RendererBackend->AcquireGeometryResources(&pVertexBuffer, &pIndexBuffer, iVertexCount, iVertexStride, iVertexBase, pVertices, iIndexCount, pIndices, pOutRenderData);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer)
+{
+	m_RendererBackend->DrawGeometry(pRenderData, pVertexBuffer, pIndexBuffer);
 }
 
 //-------------------------------------------------------------------------

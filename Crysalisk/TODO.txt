@@ -4,3 +4,4 @@
 - The gizmo should either be offset off the editor grid, or it should ignore depth testing, which would require configurable pipelines.
 - If the mouse is being held down, it probably should not trigger UI buttons.
 - Events should probably pass event codes to the callback.
+- Should have the ability to batch geometry uploads in a single staging buffer rather than creating and destroying a staging buffer for each geometry.

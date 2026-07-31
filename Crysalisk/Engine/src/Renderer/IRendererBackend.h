@@ -58,6 +58,10 @@ public:
 
 	virtual void	SetDepthTestState(bool bEnabled) = 0;
 
+	virtual bool	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) = 0;
+
+	virtual void	DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
+
 	virtual void	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t& pOutInstance) = 0;
 	virtual void	ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, struct GeometryInstance_t& pGeometry) = 0;
 

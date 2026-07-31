@@ -65,6 +65,11 @@ public:
 	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 
+	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) = 0;
+
+	virtual void			DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) = 0;
+
+	// FIXME: Deprecate this.
 	virtual bool			AcquireGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, GeometryInstance_t* pOutInstance) = 0;
 	virtual void			ReleaseGeometryResources(RenderBuffer& pVertexBuffer, RenderBuffer& pIndexBuffer, GeometryInstance_t& pGeometry) = 0;
 	virtual RenderBuffer*	GetRenderBufferByName(const char* pszBufferName) const = 0;

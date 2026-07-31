@@ -67,6 +67,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 
 			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
 			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
+			// LEFTOFF: Need to move this code over to the new mesh base-instance setup.
 			pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
 			pOutMap.m_hMeshes[iMesh].pMesh = pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 		}
