@@ -578,7 +578,7 @@ bool Event_MouseButtonPressed(void* pEventListener, EventData_t data)
 
 bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 {
-	u32 mouseButtonFlags = *data.u16;
+	/*u32 mouseButtonFlags = *data.u16;
 	if (mouseButtonFlags == MOUSE_BUTTON_LEFT)
 	{
 		i32 iMouseX{ 0 }, iMouseY{ 0 };
@@ -609,7 +609,7 @@ bool Event_MouseButtonReleased(void* pEventListener, EventData_t data)
 				s_Engine.GetEngineInterfaces()->pDebugGeometry->AddBBox(*ray.pHitGeometry, Vector4D{ 0.0f, 0.0f, 1.0f, 1.0f }, 5.0f);
 			}
 		}
-	}
+	}*/
 
 	return true;
 }

@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.h"
 #include "Resources/Map.h"
 #include "Systems/MaterialSystem.h"
+#include "Systems/MeshSystem.h"
 #include "Systems/ShaderSystem.h"
 
 class C3DSceneRenderView : public IRenderView
@@ -32,6 +33,7 @@ private:
 	Renderpass							m_pRenderpass{};
 	IRenderer*							m_pRenderer{ nullptr };
 	IMaterialSystem*					m_pMaterialSystem{ nullptr };
+	IMeshSystem*						m_pMeshSystem{ nullptr };
 	IShaderSystem*						m_pShaderSystem{ nullptr };
 };
 
@@ -42,6 +44,7 @@ bool C3DSceneRenderView::Initialize(const EngineInterfaces_t* pEngineSystems)
 	// Store off subsystem pointers.
 	m_pRenderer = pEngineSystems->pRenderer;
 	m_pMaterialSystem = pEngineSystems->pMaterialSystem;
+	m_pMeshSystem = pEngineSystems->pMeshSystem;
 	m_pShaderSystem = pEngineSystems->pShaderSystem;
 
 	// Setup the renderpass.
@@ -122,22 +125,16 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 	if (m_pRenderer->BeginRenderpass(&m_pRenderpass))
 	{
 		MainSceneView_ExtendedData_t* pViewData = (MainSceneView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_3D_SCENE];
-		Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries = pViewData->pOpaqueGeometries;
-		Utl::CVector<GeometryInstance_t*>& pTransparentGeometries = pViewData->pTransparentGeometries;
+		Utl::CVector<MeshDrawCommand_t>& pOpaqueGeometries = pViewData->pOpaqueGeometries;
+		Utl::CVector<MeshDrawCommand_t>& pTransparentGeometries = pViewData->pTransparentGeometries;
 
 		m_pMaterialSystem->ApplyGlobalRenderData(pRenderData->matProjection, pRenderData->pCamera->GetViewMatrix(), pRenderData->pCamera->vecPosition, pRenderData->iDebugRendererMode);
 
 		// Render opaque geometries.
 		for (i32 iGeo = 0; iGeo < pOpaqueGeometries.Count(); iGeo++)
 		{
-			// Apply transformations.
-			m_pMaterialSystem->ApplyPerDrawRenderData(pOpaqueGeometries[iGeo]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			m_pMaterialSystem->ApplyMaterialInstance(pOpaqueGeometries[iGeo]->hShaderInstance);
-
 			// Draw the sucker!
-			m_pRenderer->DrawGeometry(*pOpaqueGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
+			m_pMeshSystem->DrawGeometryBySubmesh(pOpaqueGeometries[iGeo].meshInstance, pOpaqueGeometries[iGeo].submeshInstance, m_pShaderSystem);
 
 			pRenderData->pMetrics->NumDrawCalls++;
 		}
@@ -145,14 +142,8 @@ void C3DSceneRenderView::Render(RenderPacket_t* pRenderData)
 		// Render transparent geometries.
 		for (i32 iGeo = 0; iGeo < pTransparentGeometries.Count(); iGeo++)
 		{
-			// Apply transformations.
-			m_pMaterialSystem->ApplyPerDrawRenderData(pTransparentGeometries[iGeo]->matLocalToWorldTransform);
-
-			// Bind the appropriate material.
-			m_pMaterialSystem->ApplyMaterialInstance(pTransparentGeometries[iGeo]->hShaderInstance);
-
 			// Draw the sucker!
-			m_pRenderer->DrawGeometry(*pTransparentGeometries[iGeo], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
+			m_pMeshSystem->DrawGeometryBySubmesh(pTransparentGeometries[iGeo].meshInstance, pTransparentGeometries[iGeo].submeshInstance, m_pShaderSystem);
 
 			pRenderData->pMetrics->NumDrawCalls++;
 		}

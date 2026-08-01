@@ -10,10 +10,16 @@
 #include <Defines.h>
 #include <Renderer/RendererTypes.h>
 
+struct MeshDrawCommand_t
+{
+	u32 meshInstance{ kInvalidID_U32 };
+	u32 submeshInstance{ kInvalidID_U32 };
+};
+
 struct MainSceneView_ExtendedData_t
 {
-	Utl::CVector<struct GeometryInstance_t*>	pOpaqueGeometries{};
-	Utl::CVector<struct GeometryInstance_t*>	pTransparentGeometries{};
+	Utl::CVector<MeshDrawCommand_t>	pOpaqueGeometries{};
+	Utl::CVector<MeshDrawCommand_t>	pTransparentGeometries{};
 };
 
 DLL_EXPORT IRenderView*	RenderViewCreate_3DSceneView();

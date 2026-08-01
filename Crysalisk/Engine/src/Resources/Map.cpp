@@ -10,6 +10,7 @@
 #include <Core/Logging.h>
 #include <Math/MathLib.h>
 #include <Math/Ray.h>
+#include <Renderer/Views/3D_Scene_View.h>
 #include <Strings/String_Utils.h>
 #include "Systems/DebugGeometrySystem.h"
 #include "Systems/MaterialSystem.h"
@@ -60,6 +61,7 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 		LOG_INFO("Acquiring map mesh resources.");
 
 		pOutMap.m_hMeshes.Resize(pNewMapResource.MeshResources.Count());
+		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources.Count());
 
 		for (i32 iMesh = 0; iMesh < pNewMapResource.MeshResources.Count(); iMesh++)
 		{
@@ -68,8 +70,21 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
 			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
 			// LEFTOFF: Need to move this code over to the new mesh base-instance setup.
-			pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
-			pOutMap.m_hMeshes[iMesh].pMesh = pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
+			
+			//pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
+			//pOutMap.m_hMeshes[iMesh].pMesh = pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
+
+			// Load up the base mesh assets.
+			MeshHandle_t hNewMesh = pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshBase(pCurMeshDec.pszModelName);
+
+			// Next acquire an instance for rendering.
+			pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(hNewMesh, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
+
+			// Get the base data.
+			pOutMap.m_hMeshes[iMesh].pMeshBaseData = pMeshSystem->AcquireMeshBaseDataFromHandle(hNewMesh);
+
+			// Acquire instance data as well.
+			pOutMap.m_hMeshes[iMesh].pMeshInstanceData = pMeshSystem->AcquireMeshInstanceDataFromHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 		}
 		pOutMap.m_hMeshes.SetCount(pNewMapResource.MeshResources.Count());
 	}
@@ -130,35 +145,34 @@ void CMap::UnloadMap(IMeshSystem* pMeshSystem)
 	}
 
 	// Release all mesh/material references.
+	// FIXME: Reimplement when base-instance system is working.
 	for (i32 iMeshIdx = 0; iMeshIdx < m_hMeshes.Count(); iMeshIdx++)
 	{
-		pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
+		//pMeshSystem->ReleaseMeshInstance(m_hMeshes[iMeshIdx].hMesh);
 	}
 
 	m_hMeshes.Clear();
 }
 
-void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, u32* pCulledGeometries) const
+void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<MeshDrawCommand_t>& pOpaqueGeometries, Utl::CVector<MeshDrawCommand_t>& pTransparentGeometries, u32* pCulledGeometries) const
 {
-	const Mesh*			pCurrentMesh = nullptr;
-	GeometryInstance_t* pCurrentSubmesh = nullptr;
+	const MeshBase_t*		pCurBase = nullptr;
+	const MeshInstance_t*	pCurInstance = nullptr;	
 
 	for (i32 iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
- 		pCurrentMesh = m_hMeshes[iMesh].pMesh;
-		CAssert(pCurrentMesh);
+		pCurBase = m_hMeshes[iMesh].pMeshBaseData;
+		CAssert(pCurBase);
 
-		for (i32 iSubMesh = 0; iSubMesh < pCurrentMesh->m_Geometries.Count(); iSubMesh++)
+		pCurInstance = m_hMeshes[iMesh].pMeshInstanceData;
+		CAssert(pCurInstance);
+
+		for (i32 iSubMesh = 0; iSubMesh < pCurBase->renderData.Count(); iSubMesh++)
 		{
-			pCurrentSubmesh = &pCurrentMesh->m_Geometries[iSubMesh];
-			CAssert(pCurrentSubmesh);
-
 			bool bIsInCameraFrustum = true;
 
-			pCurrentSubmesh->matLocalToWorldTransform = pCurrentMesh->m_matLocalToWorldTransform;
-
-			Vector3D vecCenter = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecCenter;
-			Vector3D vecMaxExtents = pCurrentSubmesh->matLocalToWorldTransform * pCurrentSubmesh->vecMaxExtents;
+			Vector3D vecCenter = pCurInstance->matLocalToWorld * pCurBase->submeshCenters[iSubMesh];
+			Vector3D vecMaxExtents = pCurInstance->matLocalToWorld * pCurBase->submeshMaxExtents[iSubMesh];
 
 			Vector3D vecHalfExtents = {
 				(f32)M_ABS(vecMaxExtents.x - vecCenter.x),
@@ -174,16 +188,19 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 			// If the geometry is within the camera's frustum, add it to the list to be rendered.
 			if (bIsInCameraFrustum)
 			{
-				// TODO: is there a good way to cache this state off instead of querying it everytime?
-				if (!pMaterialSystem->IsMaterialTransparent(pCurrentSubmesh->hShaderInstance))
+				MeshDrawCommand_t curMesh{};
+				curMesh.meshInstance = pCurInstance->iInstanceIdx;
+				curMesh.submeshInstance = iSubMesh;
+
+				// LEFTOFF: Need to handle this per submesh for transparency sake.
+				// This single call below is submitting all of the submeshes in a model regardless of transparency or frustum-culling.
+				if (!pMaterialSystem->IsMaterialTransparent(pCurBase->renderData[iSubMesh].hMaterial))
 				{
-					pOpaqueGeometries.PushBack(pCurrentSubmesh);
-					pOpaqueGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pOpaqueGeometries.PushBack(curMesh);
 				}
 				else
 				{
-					pTransparentGeometries.PushBack(pCurrentSubmesh);
-					pTransparentGeometries.Back()->m_MeshID = pCurrentMesh->m_MeshID;
+					pTransparentGeometries.PushBack(curMesh);
 				}
 			}
 			else

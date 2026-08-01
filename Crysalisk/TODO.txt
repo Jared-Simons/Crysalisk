@@ -5,3 +5,4 @@
 - If the mouse is being held down, it probably should not trigger UI buttons.
 - Events should probably pass event codes to the callback.
 - Should have the ability to batch geometry uploads in a single staging buffer rather than creating and destroying a staging buffer for each geometry.
+- Probably a good idea to be able to flag certian models as being frustum culled for each submesh, such as the sponza, but skipping for smaller and just culling against the overall bbox.

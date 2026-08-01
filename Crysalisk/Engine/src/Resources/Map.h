@@ -22,7 +22,7 @@ public:
 	inline bool	IsMapLoaded() const { return m_bMapResourcesLoaded; }
 
 	const char*									GetMapName() const { return m_pszMapName; }
-	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<GeometryInstance_t*>& pOpaqueGeometries, Utl::CVector<GeometryInstance_t*>& pTransparentGeometries, u32* pCulledGeometries) const;
+	ENGINE_API void								GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frustum& pCameraFrustum, Utl::CVector<struct MeshDrawCommand_t>& pOpaqueGeometries, Utl::CVector<struct MeshDrawCommand_t>& pTransparentGeometries, u32* pCulledGeometries) const;
 	void										CastRayIntoScene(struct Ray_t& pRay, class IDebugGeometrySystem* pDebugGeometry) const;
 
 private:
@@ -30,6 +30,10 @@ private:
 
 	struct MapMesh_t
 	{
+		const struct MeshInstance_t*	pMeshInstanceData{ nullptr };
+		const struct MeshBase_t*		pMeshBaseData{ nullptr };
+
+		// FIXME: Deprecate and remove this.
 		MeshHandle_t	hMesh{ kInvalidID_U32 };
 		const Mesh*		pMesh{ nullptr };
 	};

@@ -28,6 +28,7 @@ public:
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const override;
 
 	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const override;
+	virtual void			DrawGeometryBySubmesh(u32 hMeshInstance, u32 iSubmesh, class IShaderSystem* pShaderSystem) const override;
 
 	virtual MeshHandle_t	AcquireMeshInstance(const char* pszMeshName, Vector vecPos, Vector vecEulerAngles, Vector vecScale, bool bAutoRelease) override;
 	virtual MeshHandle_t	AcquireMeshFromResource(MeshLoader::MeshResource_t& pResource, const char* pszMeshName, bool bAutoRelease) override;
@@ -92,6 +93,7 @@ static CMeshSystem* s_MeshSystem{ nullptr };
 
 //-------------------------------------------------------------------------
 // Purpose: Invoked upon successful completion of an async mesh-loading job.
+// TODO: Deprecate.
 //-------------------------------------------------------------------------
 static i32 OnMeshLoadJob_Success(JobResults_t& pResults)
 {
@@ -307,6 +309,7 @@ MeshHandle_t CMeshSystem::AcquireMeshBase(const char* pszMeshName)
 	else
 	{
 		// Mesh resources are already loaded.
+		hMeshBase = pLookup->MeshHandle;
 	}
 
 	return hMeshBase;
@@ -444,6 +447,26 @@ void CMeshSystem::DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSy
 //-------------------------------------------------------------------------
 // Purpose: TODO: Documentation
 //-------------------------------------------------------------------------
+void CMeshSystem::DrawGeometryBySubmesh(u32 hMeshInstance, u32 iSubmesh, class IShaderSystem* pShaderSystem) const
+{
+	CAssert(hMeshInstance != kInvalidID_U32 && iSubmesh != kInvalidID_U32 && pShaderSystem);
+
+	MeshInstance_t* pInstance = &m_MeshInstances[hMeshInstance];
+	MeshBase_t* pBase = &m_MeshBases[pInstance->hBaseMesh];
+
+	// Bind the model matrix.
+	m_Config.pMaterialSystem->ApplyPerDrawRenderData(pInstance->matLocalToWorld);
+
+	// Bind the material.
+	m_Config.pMaterialSystem->ApplyMaterialInstance(pBase->renderData[iSubmesh].hMaterial);
+
+	// Draw!
+	m_Config.pRenderer->DrawGeometry(&pBase->renderData[iSubmesh], m_pWorldVertexBuffer, m_pWorldIndexBuffer);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
 MeshBase_t* CMeshSystem::AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const
 {
 	CASSERTMSG(hMesh != kInvalidID_U32, "AcquireMeshBaseDataFromHandle requires a valid mesh handle!");
@@ -468,6 +491,9 @@ void CMeshSystem::AcquireMeshBaseFromResource(MeshLoader::MeshLoaderParams_t* pR
 	// Acquire renderer resources and upload to the GPU.
 	pMeshBase->renderData.Resize(pMeshResources->Count());
 	pMeshBase->renderData.SetCount(pMeshResources->Count());
+
+	pMeshBase->submeshMinExtents.Resize(pMeshResources->Count());
+	pMeshBase->submeshMaxExtents.Resize(pMeshResources->Count());
 	for (u32 iMesh = 0; iMesh < pMeshResources->Count(); iMesh++)
 	{
 		MeshRenderData_t* pRenderData = &pMeshBase->renderData[iMesh];
@@ -482,10 +508,12 @@ void CMeshSystem::AcquireMeshBaseFromResource(MeshLoader::MeshLoaderParams_t* pR
 			pRenderData->hMaterial = m_Config.pMaterialSystem->AcquireMaterial(pMaterialNameTable->ElementAt(pCurMesh->iMaterialNameIndex));
 		}
 
-		// Get extents.
-		pMeshBase->vecMinExtents = pCurMesh->vecMinExtents;
-		pMeshBase->vecMaxExtents = pCurMesh->vecMaxExtents;
+		pMeshBase->submeshMinExtents.PushBack(pCurMesh->vecMinExtents);
+		pMeshBase->submeshMaxExtents.PushBack(pCurMesh->vecMaxExtents);
+		pMeshBase->submeshCenters.PushBack((pCurMesh->vecMaxExtents + pCurMesh->vecMinExtents) * 0.5f);
 	}
+
+	// LEFTOFF: Overall mesh extents
 
 	// Clean up mesh resources.
 	MeshLoader::UnloadMeshResource(*pResource->pOutResource);

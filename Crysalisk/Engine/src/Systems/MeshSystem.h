@@ -19,6 +19,10 @@ struct MeshBase_t
 
 	Utl::CVector<MeshRenderData_t>	renderData{};
 
+	Utl::CVector<Vector>			submeshMinExtents{};
+	Utl::CVector<Vector>			submeshMaxExtents{};
+	Utl::CVector<Vector>			submeshCenters{};
+
 	// FIXME: Remove this.
 	GeometryInstance_t	geometry{};
 };
@@ -65,6 +69,7 @@ public:
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const = 0;
 
 	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const = 0;
+	virtual void			DrawGeometryBySubmesh(u32 hMeshInstance, u32 iSubmesh, class IShaderSystem* pShaderSystem) const = 0;
 
 	// Mesh acquisition.
 	// FIXME: Deprecate this.
