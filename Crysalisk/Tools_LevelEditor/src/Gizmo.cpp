@@ -11,9 +11,9 @@
 #include <Math/Ray.h>
 
 // Engine
-#include <Application.h>
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
+#include <Systems/DebugGeometrySystem.h>
 #include <Systems/ShaderSystem.h>
 
 static const f32 GIZMO_RADIUS = 0.25f;
@@ -218,9 +218,10 @@ void Gizmo_Update(Gizmo* pGizmo)
 	}
 }
 
-void Gizmo_BeginInteraction(struct Gizmo* pGizmo)
+void Gizmo_BeginInteraction(struct Gizmo* pGizmo, Ray_t* pRay)
 {
 	pGizmo->dragging = true;
+	pGizmo->lastDragPos = pRay->vecEnd;
 }
 
 void Gizmo_EndInteraction(struct Gizmo* pGizmo)
@@ -238,7 +239,7 @@ void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
 	IInputSystem* pInputSystem = g_pEngine->GetEngineInterfaces()->pInputSystem;
 	pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
 
-	Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), g_pEngine->GetApplication()->GetMainCamera(), iMouseX, iMouseY);
+	Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pCamera, iMouseX, iMouseY);
 
 	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
 	vecLocalDirection.w = 0.0f;
@@ -248,17 +249,22 @@ void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
 	Gizmo_Raycast(pGizmo, &ray, &unusedHit);
 
 	// Take the delta between the current gizmo position and new ray intersection.
-	Vector prevPos = pGizmo->origin;
+	Vector prevPos = pGizmo->lastDragPos;
 	Vector newPos = ray.vecEnd;
 	Vector delta = newPos - prevPos;
 
 	// Move the gizmo along the plane that contains the selected axis.
 	pGizmo->origin.flElements[pGizmo->selectedAxis] += delta.flElements[pGizmo->selectedAxis];
+
+	// Update the last drag position for the next drag event.
+	pGizmo->lastDragPos = newPos;
 }
 
 bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 {
 	CASSERTMSG(pGizmo && pRay && pOutHitAxis, "Gizmo_Raycast() - requires valid pointers to a gizmo, ray, and int to store the hit axis!");
+
+	*pOutHitAxis = kInvalidID_U8;
 
 	// Convert the ray to the gizmo's local space.
 	Ray_t localRay;
@@ -295,15 +301,18 @@ bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 			pRay->vecEnd = pRay->vecOrigin + (pRay->vecDirection * pRay->flDistance);
 
 			// Return the axis hit.
-			// FIXME: We should check all 3 axes everytime.
 			*pOutHitAxis = iAxis;
-			return true;
 		}
 	}
 
-	// If we get out here, then we didn't intersect the gizmo.
-	*pOutHitAxis = kInvalidID_U8;
-	return false;
+	if (*pOutHitAxis != kInvalidID_U8)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 // Translation gizmo algorithm

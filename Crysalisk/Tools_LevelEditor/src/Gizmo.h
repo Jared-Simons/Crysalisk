@@ -30,6 +30,7 @@ struct Gizmo
 	// FIXME: Combine into flags.
 	bool				geometryDirty{ false };
 	bool				dragging{ false };
+	Vector				lastDragPos{};
 };
 
 bool Gizmo_Create(class IRenderer* pRenderer, Gizmo* pOutGizmo);
@@ -37,7 +38,7 @@ void Gizmo_Destroy(class IRenderer* pRenderer, Gizmo* pGizmo);
 
 void Gizmo_Update(Gizmo* pGizmo);
 
-void Gizmo_BeginInteraction(struct Gizmo* pGizmo);
+void Gizmo_BeginInteraction(struct Gizmo* pGizmo, struct Ray_t* pRay);
 void Gizmo_EndInteraction(struct Gizmo* pGizmo);
 void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera);
 

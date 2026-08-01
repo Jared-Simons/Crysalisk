@@ -107,6 +107,7 @@ private:
 	friend static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
 
 	friend static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
+	friend static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx);
 };
 
 // FIXME: Remove and allocate this state?
@@ -115,6 +116,7 @@ static CLevelEditorApp s_LevelEditorApp{};
 // Editor utilities.
 static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
 static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
+static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx);
 
 // Event handlers.
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData);
@@ -604,6 +606,25 @@ static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTest
 	return hitMeshIdx;
 }
 
+static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
+{
+	CAssert(pLevelEditor);
+
+	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+	pLevelEditor->m_SelectedMeshIdx = geometryIdx;
+
+	MeshInstance_t* pSelectedInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pLevelEditor->m_CurrentDoc.meshInstances[geometryIdx]);
+	Vector vecTranslation = pSelectedInstance->matLocalToWorld.GetTranslation();
+
+	// Update inspector controls.
+	AppUI::IAppUI* pUIContext = pLevelEditor->m_pUIContext;
+	char szTextBuffer[128]{};
+	Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, vecTranslation.x, vecTranslation.y, vecTranslation.z);
+
+	pUIContext->SetControlText(pLevelEditor->hEntityTranslationEntry, szTextBuffer);
+}
+
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
@@ -622,7 +643,11 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 				// Try to load the model.
 				IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
-				pMeshSystem->AcquireMeshInstance(pszTrimmedText, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+				MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshBase(pszTrimmedText);
+
+				Vector translation = pMeshSystem->AcquireMeshInstanceDataFromHandle(pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx])->matLocalToWorld.GetTranslation();
+
+				pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx] = pMeshSystem->AcquireMeshInstance(hNewMesh, translation, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
 			}
 
 			Utl::StringFree(pszTrimmedText);
@@ -640,7 +665,12 @@ static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
 
 	if (pGizmo->selectedAxis != kInvalidID_U8)
 	{
-		Gizmo_BeginInteraction(pGizmo);
+		// Create a ray to get the starting position.
+		Ray_t ray{};
+		u8 unused{ 0 };
+		Gizmo_Raycast(pGizmo, &ray, &unused);
+
+		Gizmo_BeginInteraction(pGizmo, &ray);
 	}
 
 	return true;
@@ -666,7 +696,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 				return true;
 			}
 
-			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0)
+			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0 && pEditorAppState->m_Gizmo.selectedAxis == kInvalidID_U32)
 			{
 				i32 mouseX{ 0 }, mouseY{ 0 };
 				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
@@ -674,7 +704,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 				Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
 				u32 idx = Editor_Raycast(pEditorAppState, &ray, false);
 
-				pEditorAppState->m_SelectedMeshIdx = idx;
+				SetSelectedGeometry(pEditorAppState, idx);
 			}
 		}
 		break;
@@ -775,6 +805,19 @@ static bool Event_OnMouseDragged(void* pListener, EventData_t eventData)
 	if (pEditorAppState->m_Gizmo.selectedAxis != kInvalidID_U8)
 	{
 		Gizmo_HandleInteraction(&pEditorAppState->m_Gizmo, pEditorAppState->m_pCamera);
+
+		if (pEditorAppState->m_SelectedMeshIdx != kInvalidID_U32)
+		{
+			IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
+
+			MeshInstance_t* pSelectedInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx]);
+			Matrix4x4* transformCopy = &pSelectedInstance->matLocalToWorld;
+
+			// Overwrite the transform with the new translation.
+			transformCopy->flData[12] = pEditorAppState->m_Gizmo.origin.x;
+			transformCopy->flData[13] = pEditorAppState->m_Gizmo.origin.y;
+			transformCopy->flData[14] = pEditorAppState->m_Gizmo.origin.z;
+		}
 	}
 
 	return true;

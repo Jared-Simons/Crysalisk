@@ -150,19 +150,36 @@ void CEditorView::Render(RenderPacket_t* pRenderData)
 
 				MeshBase_t* pBaseModel = pMeshSystem->AcquireMeshBaseDataFromHandle(pInstance->hBaseMesh);
 
-				// FIXME: Material system should probably handle this.
-				ShaderHandle_t hShader = pMaterialSystem->GetShaderFromMaterial(pBaseModel->renderData[0].hMaterial);
-				if (iGeo == pViewData->selectedMeshIndex)
+				if (pBaseModel->renderData.Count() < 1)	// FIXME: Just some checks to keep the editor from crashing with async model loading. Should handle this better.
 				{
-					// This mesh is selected, tint it red.
-					// FIXME: Cache the result instead of doing this every frame.
-					// FIXME: If not the default square, don't do this.
-					pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitRedMaterial();
+					// Nothing to render.
+					continue;
 				}
-				else
+
+				MaterialHandle_t hMaterial = pBaseModel->renderData[0].hMaterial;
+				if (hMaterial == kInvalidID_U32)
 				{
-					// This mesh is not selected, return it to white.
-					pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitMaterial();
+					hMaterial = pMaterialSystem->GetDefaultMaterialReference();
+				}
+
+				// FIXME: Material system should probably handle this.
+				ShaderHandle_t hShader = pMaterialSystem->GetShaderFromMaterial(hMaterial);
+				
+				// FIXME: This hack is in place to allow not binding these materials in case the model selected is NOT the default cube.
+				if (pBaseModel->iMeshIdx == 0)
+				{
+					if (iGeo == pViewData->selectedMeshIndex)
+					{
+						// This mesh is selected, tint it red.
+						// FIXME: Cache the result instead of doing this every frame.
+						// FIXME: If not the default square, don't do this.
+						pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitRedMaterial();
+					}
+					else
+					{
+						// This mesh is not selected, return it to white.
+						pBaseModel->renderData[0].hMaterial = pMaterialSystem->GetDefaultUnlitMaterial();
+					}
 				}
 
 				// FIXME: Material system should probably handle this.
