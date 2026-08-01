@@ -99,7 +99,9 @@ namespace AppUI
 	static u32					GetAvailableRenderableIndex(CAppUI* pUIContext);
 	static const char*			GetStringForControlType(u16 controlType);
 
+	// Input handlers.
 	static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
+	static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags);
 
 	bool CAppUI::PreInitialize(struct ApplicationConfig_t* pAppConfig)
 	{
@@ -150,6 +152,7 @@ namespace AppUI
 
 		// Setup event handlers.
 		m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
+		m_InputHandler.PFN_MouseButtonEvent_Callback = Input_MouseButtonEvent_Handler;
 		m_InputHandler.pListenerInst = this;
 
 		// Default font.
@@ -724,15 +727,15 @@ namespace AppUI
 		CAppUI* pUIContext = (CAppUI*)pListener;
 		char c = (char)keyCode;
 
-		if (c == KEY_ESCAPE)
+		if (c == KEY_ESCAPE || c == KEY_TILDE)
 		{
 			// Let this fall through to the engine.
 			return false;
 		}
 
-		if (c == KEY_TILDE && pressed && ((flags & KEY_MESSAGE_FLAG_REPEATING) == 0))
+		if (pUIContext->hActiveControl == kInvalidID_U32)
 		{
-			pUIContext->LoseInputFocus();
+			// Let this fall through.
 			return false;
 		}
 
@@ -861,6 +864,76 @@ namespace AppUI
 
 		// Don't let other listeners have this event.
 		return true;
+	}
+
+	// FIXME: Move all mouse handling to this handler.
+	static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags)
+	{
+		LOG_DEBUG("AppUI recieved message!");
+		CAppUI* pUIContext = (CAppUI*)pListener;
+
+		// Stop the event if the cursor is over a control.
+		for (u32 iControl = 0; iControl < pUIContext->baseControls.Count(); iControl++)
+		{
+			UIBaseControl_t* pCurrentBase = &pUIContext->baseControls[iControl];
+
+			if (pCurrentBase->m_eControlType != CONTROL_TYPE_UNDEFINED)
+			{
+				i32 xPos{ 0 }, yPos{ 0 };
+				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(xPos, yPos);
+
+				switch (pCurrentBase->m_eControlType)
+				{
+				case CONTROL_TYPE_PANEL:
+				{
+					UIControlPanel_t* pCurrentPanel = &pUIContext->panels[pCurrentBase->m_iControlDataIdx];
+
+					if ((xPos >= pCurrentPanel->x && xPos <= pCurrentPanel->x + pCurrentPanel->width) &&
+						(yPos >= pCurrentPanel->y && yPos <= pCurrentPanel->y + pCurrentPanel->height))
+					{
+						// Swallow the event.
+						return true;
+					}
+				}
+				break;
+
+				case CONTROL_TYPE_BUTTON:
+				{
+					UIControlButton_t* pCurrentControl = &pUIContext->buttons[pCurrentBase->m_iControlDataIdx];
+
+					// Is the mouse hovering over the button?
+					if ((xPos >= pCurrentControl->panel.x && xPos <= pCurrentControl->panel.x + pCurrentControl->panel.width) &&
+						(yPos >= pCurrentControl->panel.y && yPos <= pCurrentControl->panel.y + pCurrentControl->panel.height))
+					{
+						// Swallow the event.
+						return true;
+					}
+				}
+				break;
+
+				case CONTROL_TYPE_LABEL:
+				{
+					UIControlLabel_t* pCurrentControl = &pUIContext->labels[pCurrentBase->m_iControlDataIdx];
+
+					// Determine if the mouse is hovering over the text area.
+					// FIXME: This doesn't work with large width/height.
+					if ((xPos >= pCurrentControl->x && xPos <= pCurrentControl->x + pCurrentControl->width) &&
+						(yPos >= pCurrentControl->y && yPos <= pCurrentControl->y + pCurrentControl->height))
+					{
+						return true;
+					}
+				}
+				break;
+
+				default:
+					// Just keep going.
+					continue;
+				}
+			}
+		}
+
+		// Let other listeners get this.
+		return false;
 	}
 
 } // namespace AppUI

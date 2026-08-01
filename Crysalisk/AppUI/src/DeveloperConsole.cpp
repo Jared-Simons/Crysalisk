@@ -159,6 +159,16 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	pUISystem->SetControlVisible(pConsole->hTextEntryControl, visible);
 
 	pConsole->visible = visible;
+
+	// Set the active control
+	if (visible)
+	{
+		pUISystem->SetActiveControl(pConsole->hTextEntryControl);
+	}
+	else
+	{
+		pUISystem->SetActiveControl(kInvalidID_U32);
+	}
 }
 
 void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)

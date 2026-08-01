@@ -111,7 +111,7 @@ namespace Utl
 
 		inline u64 Count() const { return m_Count; }
 		inline u64 Capacity() const { return m_Capacity; }
-		inline T* Data() const { return m_Data; }
+		inline T* Data() const { return m_pValues; }
 
 	private:
 		/* The current number of elements in the stack (not necessarily the capacity) */

@@ -285,6 +285,8 @@ MeshHandle_t CMeshSystem::AcquireMeshBase(const char* pszMeshName)
 
 		pBase->iMeshIdx = hMeshBase;
 		pLookup->MeshHandle = hMeshBase;
+
+		pBase->pszName = Utl::StringDuplicate(pszMeshName);
 		
 		// Allocate a new mesh resource for loading.
 		MeshLoader::MeshResource_t* pMeshResource = new MeshLoader::MeshResource_t;
@@ -625,6 +627,7 @@ MeshHandle_t CMeshSystem::WrapGeometryInstanceInMesh(GeometryInstance_t* pGeomet
 	MeshBase_t* pBase = &m_MeshBases[meshBaseIdx];
 
 	pBase->iMeshIdx = meshBaseIdx;
+	pBase->pszName = Utl::StringDuplicate(pszName);
 	pBase->geometry = *pGeometryInstance;
 
 	// FIXME: Remove GeometryInstance_t

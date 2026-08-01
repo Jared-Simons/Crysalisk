@@ -165,9 +165,10 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed)
 			bool repeat = m_PrevKeysState[processedKeyInput].m_bPressed;
 			m_KeysState[processedKeyInput].m_bPressed = true;
 
-			if (m_InputHandlers.Count())
+			// Iterate through the input handler in case we need to go through the whole stack.
+			for (i32 i = (i32)m_InputHandlers.Count() - 1; i >= 0 && !stopEvent; i--)
 			{
-				const InputMap_t* pCurMap = m_InputHandlers.Peek();
+				const InputMap_t* pCurMap = m_InputHandlers.Data()[i];
 				stopEvent = pCurMap->PFN_KeyEvent_Callback(pCurMap->pListenerInst, (u16)processedKeyInput, pressed, repeat ? KEY_MESSAGE_FLAG_REPEATING : 0);
 			}
 
@@ -180,9 +181,10 @@ void CInputSystem::ProcessKeyInput(const i32 processedKeyInput, bool pressed)
 		{
 			m_KeysState[processedKeyInput].m_bPressed = false;
 
-			if (m_InputHandlers.Count())
+			// Iterate through the input handler in case we need to go through the whole stack.
+			for (i32 i = (i32)m_InputHandlers.Count() - 1; i >= 0 && !stopEvent; i--)
 			{
-				const InputMap_t* pCurMap = m_InputHandlers.Peek();
+				const InputMap_t* pCurMap = m_InputHandlers.Data()[i];
 				stopEvent = pCurMap->PFN_KeyEvent_Callback(pCurMap->pListenerInst, (u16)processedKeyInput, pressed, 0);
 			}
 
@@ -216,7 +218,20 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
-		m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
+
+		bool stopEvent = false;
+
+		// Iterate through the input handler in case we need to go through the whole stack.
+		for (i32 i = (i32)m_InputHandlers.Count() - 1; i >= 0 && !stopEvent; i--)
+		{
+			const InputMap_t* pCurMap = m_InputHandlers.Data()[i];
+			stopEvent = pCurMap->PFN_MouseButtonEvent_Callback(pCurMap->pListenerInst, (u16)mouseButtonFlags);
+		}
+
+		if (!stopEvent)
+		{
+			m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, eventData);
+		}
 	}
 	else
 	{
@@ -226,7 +241,19 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
 
-		m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
+		bool stopEvent = false;
+
+		// Iterate through the input handler in case we need to go through the whole stack.
+		for (i32 i = (i32)m_InputHandlers.Count() - 1; i >= 0 && !stopEvent; i--)
+		{
+			const InputMap_t* pCurMap = m_InputHandlers.Data()[i];
+			stopEvent = pCurMap->PFN_MouseButtonEvent_Callback(pCurMap->pListenerInst, (u16)mouseButtonFlags);
+		}
+
+		if (!stopEvent)
+		{
+			m_pEventSystem->EventFire(eEventCategory::INPUT_MOUSE_BRELEASED, nullptr, eventData);
+		}
 	}
 }
 

@@ -13,6 +13,7 @@
 struct MeshBase_t
 {
 	u32					iMeshIdx{ kInvalidID_U32 };
+	char*				pszName{ nullptr };
 
 	Vector				vecMinExtents{};
 	Vector				vecMaxExtents{};

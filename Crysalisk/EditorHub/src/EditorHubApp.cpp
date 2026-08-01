@@ -55,6 +55,8 @@ private:
 
 	// These need access to our members.
 	friend static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
+	friend static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags);
+
 	friend static void ButtonEvent_LoadTool_LevelEditor(void* pListenerInst);
 };
 
@@ -64,6 +66,7 @@ typedef IToolApp* (*PFN_Get_Tool_App_State)();
 
 // Input handlers.
 static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags);
+static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags);
 
 // Console command callbacks.
 static void ConsoleCommand_ExitApp(struct ConVar_t* pCommand, void* pValue);
@@ -134,6 +137,7 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 	// Setup input handler.
 	m_InputHandler.PFN_KeyEvent_Callback = Input_KeyEvent_Handler;
+	m_InputHandler.PFN_MouseButtonEvent_Callback = Input_MouseButtonEvent_Handler;
 	m_InputHandler.pListenerInst = this;
 	pAppConfig->pEngine->GetEngineInterfaces()->pInputSystem->PushInputMap(&m_InputHandler);
 
@@ -234,7 +238,7 @@ static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, k
 {
 	CEditorHubApp* pApp = (CEditorHubApp*)pListener;
 	CAssert(pApp);
-	if (keyCode == KEY_TILDE)
+	if (keyCode == KEY_TILDE && pressed)
 	{
 		// Toggle visiblity of the dev console.
 		static bool consoleVisible = false;
@@ -250,6 +254,14 @@ static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, k
 			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl);
 		}
 	}
+
+	// Let other listeners get this.
+	return false;
+}
+
+static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags)
+{
+	LOG_DEBUG("Editor recieved message.");
 
 	// Let other listeners get this.
 	return false;

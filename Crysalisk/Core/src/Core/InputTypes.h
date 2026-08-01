@@ -103,6 +103,7 @@ enum eMouseButtonTable
 struct InputMap_t
 {
 	bool (*PFN_KeyEvent_Callback)(void* pListener, u16 keyCode, bool pressed, keyMessageFlagBits flags) { nullptr };
+	bool (*PFN_MouseButtonEvent_Callback)(void* pListener, u16 mouseButtonBits) { nullptr };
 
 	void* pListenerInst{ nullptr };
 };

@@ -62,7 +62,6 @@ private:
 	// Current tool mode.
 	u8					m_iToolMode{ EDITOR_TOOL_MODE_NONE };
 	// Editor hacks.
-	bool				m_bToolChangeHack{ false };	// HACK: Pressing a tool change button will send events on the same mouse release. This can be a problem with, for example, clicking the 'add model' button and adding a model in the same click.
 	char*				m_pszToolModelName{ nullptr };	// The name of the model to place.
 
 	// UI system context.
@@ -295,7 +294,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityTranslationEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityTranslationEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityTranslationEntry, 30, 120);
-		m_pUIContext->SetControlFont(hEntityTranslationEntry, "UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityTranslationEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(hEntityTranslationEntry, "0.0 0.0 0.0");
 	}
 
@@ -313,12 +312,15 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		hEntityModelNameEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityModelNameEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 220);
-		m_pUIContext->SetControlFont(hEntityModelNameEntry, "UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlFont(hEntityModelNameEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(hEntityModelNameEntry, "<Your model name here>");
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
 	}
 
 	DisplayEntityInspectorPanel(false);
+
+	// Give the UI layer focus by default.
+	m_pUIContext->AcquireInputFocus();
 
 	return true;
 }
@@ -614,7 +616,14 @@ static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
 
 	pLevelEditor->m_SelectedMeshIdx = geometryIdx;
 
+	if (geometryIdx == kInvalidID_U32)
+	{
+		pLevelEditor->DisplayEntityInspectorPanel(false);
+		return;
+	}
+
 	MeshInstance_t* pSelectedInstance = pMeshSystem->AcquireMeshInstanceDataFromHandle(pLevelEditor->m_CurrentDoc.meshInstances[geometryIdx]);
+	MeshBase_t* pBase = pMeshSystem->AcquireMeshBaseDataFromHandle(pSelectedInstance->hBaseMesh);
 	Vector vecTranslation = pSelectedInstance->matLocalToWorld.GetTranslation();
 
 	// Update inspector controls.
@@ -623,6 +632,11 @@ static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
 	Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, vecTranslation.x, vecTranslation.y, vecTranslation.z);
 
 	pUIContext->SetControlText(pLevelEditor->hEntityTranslationEntry, szTextBuffer);
+
+	// Model name control.
+	Platform::MemorySet(szTextBuffer, 0, sizeof(szTextBuffer));
+	Utl::StringFormat_V("%s", szTextBuffer, pBase->pszName);
+	pUIContext->SetControlText(pLevelEditor->hEntityModelNameEntry, szTextBuffer);
 }
 
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
@@ -652,6 +666,9 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 
 			Utl::StringFree(pszTrimmedText);
 			pszTrimmedText = nullptr;
+
+			// Deactivate the text control.
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
 		}
 	}
 
@@ -690,13 +707,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 	{
 	case EDITOR_TOOL_MODE_SELECTION:
 		{
-			if (pEditorAppState->m_bToolChangeHack)
-			{
-				pEditorAppState->m_bToolChangeHack = false;
-				return true;
-			}
-
-			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0 && pEditorAppState->m_Gizmo.selectedAxis == kInvalidID_U32)
+			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0 && pEditorAppState->m_Gizmo.selectedAxis == kInvalidID_U8)
 			{
 				i32 mouseX{ 0 }, mouseY{ 0 };
 				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
@@ -711,12 +722,6 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 
 	case EDITOR_TOOL_MODE_ADD_MODEL:
 		{
-			if (pEditorAppState->m_bToolChangeHack)
-			{
-				pEditorAppState->m_bToolChangeHack = false;
-				return true;
-			}
-
 			// TODO ALGORITHM:
 			// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
 			// 2.) Wherever it intersects, place the model there.
@@ -874,7 +879,6 @@ static void ButtonEvent_ChangeTool_Selection(void* pListenerInst)
 	CLevelEditorApp* pEditor = (CLevelEditorApp*)pListenerInst;
 
 	pEditor->m_iToolMode = EDITOR_TOOL_MODE_SELECTION;
-	pEditor->m_bToolChangeHack = true;
 }
 
 static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst)
@@ -882,7 +886,6 @@ static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst)
 	CLevelEditorApp* pEditor = (CLevelEditorApp*)pListenerInst;
 
 	pEditor->m_iToolMode = EDITOR_TOOL_MODE_ADD_MODEL;
-	pEditor->m_bToolChangeHack = true;
 }
 
 IToolApp* GetToolApplicationState()
