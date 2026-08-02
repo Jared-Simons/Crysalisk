@@ -6,6 +6,10 @@
 //=============================================================================
 
 #include "MathLib.h"
+#include "Ray.h"
+
+#include "Core/Assertions.h"
+#include "Renderer/Camera.h"
 
 #include <math.h>
 
@@ -87,4 +91,25 @@ f32 M_ABS_F(f32 x)
 f64 M_ABS(f64 x)
 {
 	return fabsl(x);
+}
+
+bool RayIntersectsPlane(Ray_t* pRay, Plane* pPlane)
+{
+	CASSERTMSG(pRay && pPlane, "RayIntersectsPlane() requires pointers to a ray and plane!");
+
+	// Ray's direction is already normalized.
+	f32 denom = Vector::Dot(pPlane->vecNormal, pRay->vecDirection);
+	f32 num = pPlane->flDistance - Vector::Dot(pRay->vecOrigin, pPlane->vecNormal);
+	f32 t = num / denom;
+
+	if (t >= 0.0f)
+	{
+		pRay->bDidHit = true;
+		pRay->flDistance = t;
+		pRay->vecEnd = pRay->vecOrigin + (pRay->vecDirection * t);
+
+		return true;
+	}
+
+	return false;
 }

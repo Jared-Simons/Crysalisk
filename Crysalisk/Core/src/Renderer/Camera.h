@@ -17,7 +17,7 @@
 struct Plane
 {
 	Vector3D	vecNormal{};
-	f32		flDistance{};
+	f32			flDistance{};
 
 	static inline Plane PlaneCreate(Vector3D pVecPoint, Vector3D pVecNormal)
 	{

@@ -682,8 +682,14 @@ static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
 
 	if (pGizmo->selectedAxis != kInvalidID_U8)
 	{
-		// Create a ray to get the starting position.
-		Ray_t ray{};
+		// Create a ray to get the starting position.i32 iMouseX = 0;
+		i32 iMouseX = 0;
+		i32 iMouseY = 0;
+		IInputSystem* pInputSystem = g_pEngine->GetEngineInterfaces()->pInputSystem;
+		pInputSystem->GetCurrentMousePos(iMouseX, iMouseY);
+
+		Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, iMouseX, iMouseY);
+
 		u8 unused{ 0 };
 		Gizmo_Raycast(pGizmo, &ray, &unused);
 

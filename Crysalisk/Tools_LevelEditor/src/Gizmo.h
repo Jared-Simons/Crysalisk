@@ -27,6 +27,8 @@ struct Gizmo
 
 	u8					selectedAxis{ kInvalidID_U8 };
 
+	Plane				interactionPlane{};
+
 	// FIXME: Combine into flags.
 	bool				geometryDirty{ false };
 	bool				dragging{ false };

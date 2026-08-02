@@ -392,6 +392,13 @@ public:
 			M_ABS(y - pOther.y) < kVectorElementEpsilon &&
 			M_ABS(z - pOther.z) < kVectorElementEpsilon);
 	}
+
+	inline bool operator!=(const Vector3D& pOther) const
+	{
+		bool result = (*this == pOther);
+		return !result;
+	}
+
 	inline Vector3D operator*(const f32 flScalar) const { return MultiplyByScalar(flScalar); }
 	inline void operator*=(const f32 flScalar) { MultiplyByScalarInPlace(flScalar); }
 
@@ -977,3 +984,5 @@ inline Quaternion QuaternionFromEulerAngles(Vector3D& vecEulerAngles)
 
 	return outQuat;
 }
+
+DLL_EXPORT bool RayIntersectsPlane(struct Ray_t* pRay, struct Plane* pPlane);

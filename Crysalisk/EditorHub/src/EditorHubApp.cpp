@@ -261,8 +261,6 @@ static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, k
 
 static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags)
 {
-	LOG_DEBUG("Editor recieved message.");
-
 	// Let other listeners get this.
 	return false;
 }

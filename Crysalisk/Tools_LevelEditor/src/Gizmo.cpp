@@ -11,9 +11,9 @@
 #include <Math/Ray.h>
 
 // Engine
+#include <Application.h>
 #include <Core/Engine.h>
 #include <Renderer/Renderer.h>
-#include <Systems/DebugGeometrySystem.h>
 #include <Systems/ShaderSystem.h>
 
 static const f32 GIZMO_RADIUS = 0.25f;
@@ -222,11 +222,33 @@ void Gizmo_BeginInteraction(struct Gizmo* pGizmo, Ray_t* pRay)
 {
 	pGizmo->dragging = true;
 	pGizmo->lastDragPos = pRay->vecEnd;
+
+	// Setup the interaction plane.
+	Vector normal{ 0.0f, 0.0f, 0.0f };
+	Vector cameraBack = -(g_pEngine->GetApplication()->GetMainCamera()->vecFront);
+
+	switch (pGizmo->selectedAxis)
+	{
+	case 0:	// X-Axis
+		normal = { 0.0f, 0.0f, -1.0f };
+		break;
+	case 1:	// Y-Axis
+		normal = cameraBack;
+		break;
+	case 2: // Z-Axis
+		normal = { 1.0f, 0.0f, 0.0f };
+		break;
+	}
+
+	pGizmo->interactionPlane = Plane::PlaneCreate(pGizmo->origin, normal);
 }
 
 void Gizmo_EndInteraction(struct Gizmo* pGizmo)
 {
 	pGizmo->dragging = false;
+
+	// Clear out the interaction plane state.
+	Platform::MemorySet(&pGizmo->interactionPlane, 0, sizeof(Plane));
 }
 
 void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
@@ -244,9 +266,10 @@ void Gizmo_HandleInteraction(struct Gizmo* pGizmo, struct Camera_t* pCamera)
 	Vector4D vecLocalDirection = ray.vecDirection.ToVector4D();
 	vecLocalDirection.w = 0.0f;
 
-	u8 unusedHit = kInvalidID_U8;
-
-	Gizmo_Raycast(pGizmo, &ray, &unusedHit);
+	if (!RayIntersectsPlane(&ray, &pGizmo->interactionPlane))
+	{
+		// TODO: Back-face/plane check.
+	}
 
 	// Take the delta between the current gizmo position and new ray intersection.
 	Vector prevPos = pGizmo->lastDragPos;

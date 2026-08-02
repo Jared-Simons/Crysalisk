@@ -869,7 +869,6 @@ namespace AppUI
 	// FIXME: Move all mouse handling to this handler.
 	static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags)
 	{
-		LOG_DEBUG("AppUI recieved message!");
 		CAppUI* pUIContext = (CAppUI*)pListener;
 
 		// Stop the event if the cursor is over a control.
