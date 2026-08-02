@@ -33,6 +33,13 @@
 #include "Gizmo.h"
 #include "LevelEditorTypes.h"
 
+struct EditorPropertyEntryControl_t
+{
+	AppUI::UIControlHandle_t hLabel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t hEntryPanel{ kInvalidID_U32 };
+	AppUI::UIControlHandle_t hTextEntry{ kInvalidID_U32 };
+};
+
 class CLevelEditorApp : public IToolApp
 {
 public:
@@ -86,8 +93,10 @@ private:
 	// Entity inspector panel.
 	AppUI::UIControlHandle_t	hEntityInspectorPanel{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t	hEntityInspectorLabel{ kInvalidID_U32 };
-	AppUI::UIControlHandle_t	hEntityTranslationLabel{ kInvalidID_U32 };
-	AppUI::UIControlHandle_t	hEntityTranslationEntry{ kInvalidID_U32 };
+
+	EditorPropertyEntryControl_t translationEntry{};
+	EditorPropertyEntryControl_t rotationEntry{};
+	EditorPropertyEntryControl_t scaleEntry{};
 
 	AppUI::UIControlHandle_t	hEntityModelNameLabel{ kInvalidID_U32 };
 	AppUI::UIControlHandle_t	hEntityModelNameEntry{ kInvalidID_U32 };
@@ -280,29 +289,83 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_pUIContext->SetControlText(hEntityInspectorLabel, "Entity Inspector");
 	}
 
-	// Entity inspector translation label.
+	// Translation control.
 	{
-		hEntityTranslationLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
-		m_pUIContext->SetControlParent(hEntityTranslationLabel, hEntityInspectorPanel);
-		m_pUIContext->SetControlPosition(hEntityTranslationLabel, 0, 100);
-		m_pUIContext->SetControlFont(hEntityTranslationLabel, "UbuntuMono-R.ttf", 20.0f);
-		m_pUIContext->SetControlText(hEntityTranslationLabel, "Position");
+		// Text label.
+		translationEntry.hLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(translationEntry.hLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(translationEntry.hLabel, 0, 100);
+		m_pUIContext->SetControlFont(translationEntry.hLabel, "UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(translationEntry.hLabel, "Position");
+
+		// Text panel.
+		translationEntry.hEntryPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUIContext->SetControlParent(translationEntry.hEntryPanel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(translationEntry.hEntryPanel, 25, 105);
+		m_pUIContext->SetControlDimensions(translationEntry.hEntryPanel, 190, 25);
+		m_pUIContext->SetControlColor(translationEntry.hEntryPanel, 50, 50, 50, 255);
+
+		// Text entry.
+		translationEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(translationEntry.hTextEntry, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(translationEntry.hTextEntry, 30, 123);
+		m_pUIContext->SetControlFont(translationEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
+		m_pUIContext->SetControlText(translationEntry.hTextEntry, "0.0 0.0 0.0");
 	}
 
-	// Entity inspector translation entry.
+	// Rotation control.
 	{
-		hEntityTranslationEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
-		m_pUIContext->SetControlParent(hEntityTranslationEntry, hEntityInspectorPanel);
-		m_pUIContext->SetControlPosition(hEntityTranslationEntry, 30, 120);
-		m_pUIContext->SetControlFont(hEntityTranslationEntry, "UbuntuMono-R.ttf", 18.0f);
-		m_pUIContext->SetControlText(hEntityTranslationEntry, "0.0 0.0 0.0");
+		// Text label
+		rotationEntry.hLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(rotationEntry.hLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(rotationEntry.hLabel, 0, 153);
+		m_pUIContext->SetControlFont(rotationEntry.hLabel, "UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(rotationEntry.hLabel, "Rotation");
+
+		// Text panel.
+		rotationEntry.hEntryPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUIContext->SetControlParent(rotationEntry.hEntryPanel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(rotationEntry.hEntryPanel, 25, 158);
+		m_pUIContext->SetControlDimensions(rotationEntry.hEntryPanel, 190, 25);
+		m_pUIContext->SetControlColor(rotationEntry.hEntryPanel, 50, 50, 50, 255);
+
+		// Text entry.
+		rotationEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(rotationEntry.hTextEntry, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(rotationEntry.hTextEntry, 30, 176);
+		m_pUIContext->SetControlFont(rotationEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
+		m_pUIContext->SetControlText(rotationEntry.hTextEntry, "0.0 0.0 0.0");
+	}
+
+	// Scale control.
+	{
+		// Text label
+		scaleEntry.hLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(scaleEntry.hLabel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(scaleEntry.hLabel, 0, 206);
+		m_pUIContext->SetControlFont(scaleEntry.hLabel, "UbuntuMono-R.ttf", 20.0f);
+		m_pUIContext->SetControlText(scaleEntry.hLabel, "Scale");
+
+		// Text panel.
+		scaleEntry.hEntryPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
+		m_pUIContext->SetControlParent(scaleEntry.hEntryPanel, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(scaleEntry.hEntryPanel, 25, 211);
+		m_pUIContext->SetControlDimensions(scaleEntry.hEntryPanel, 190, 25);
+		m_pUIContext->SetControlColor(scaleEntry.hEntryPanel, 50, 50, 50, 255);
+
+		// Text entry.
+		scaleEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
+		m_pUIContext->SetControlParent(scaleEntry.hTextEntry, hEntityInspectorPanel);
+		m_pUIContext->SetControlPosition(scaleEntry.hTextEntry, 30, 229);
+		m_pUIContext->SetControlFont(scaleEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
+		m_pUIContext->SetControlText(scaleEntry.hTextEntry, "0.0 0.0 0.0");
 	}
 
 	// Entity inspector model name label.
 	{
 		hEntityModelNameLabel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityModelNameLabel, hEntityInspectorPanel);
-		m_pUIContext->SetControlPosition(hEntityModelNameLabel, 0, 200);
+		m_pUIContext->SetControlPosition(hEntityModelNameLabel, 0, 300);
 		m_pUIContext->SetControlFont(hEntityModelNameLabel, "UbuntuMono-R.ttf", 20.0f);
 		m_pUIContext->SetControlText(hEntityModelNameLabel, "Model Name");
 	}
@@ -311,7 +374,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	{
 		hEntityModelNameEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(hEntityModelNameEntry, hEntityInspectorPanel);
-		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 220);
+		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 320);
 		m_pUIContext->SetControlFont(hEntityModelNameEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(hEntityModelNameEntry, "<Your model name here>");
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
@@ -424,10 +487,20 @@ void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
 {
 	m_pUIContext->SetControlVisible(hEntityInspectorLabel, bEnable);
-	m_pUIContext->SetControlVisible(hEntityTranslationLabel, bEnable);
-	m_pUIContext->SetControlVisible(hEntityTranslationEntry, bEnable);
-	m_pUIContext->SetControlVisible(hEntityModelNameLabel, bEnable);
 
+	m_pUIContext->SetControlVisible(translationEntry.hLabel, bEnable);
+	m_pUIContext->SetControlVisible(translationEntry.hEntryPanel, bEnable);
+	m_pUIContext->SetControlVisible(translationEntry.hTextEntry, bEnable);
+
+	m_pUIContext->SetControlVisible(rotationEntry.hLabel, bEnable);
+	m_pUIContext->SetControlVisible(rotationEntry.hEntryPanel, bEnable);
+	m_pUIContext->SetControlVisible(rotationEntry.hTextEntry, bEnable);
+
+	m_pUIContext->SetControlVisible(scaleEntry.hLabel, bEnable);
+	m_pUIContext->SetControlVisible(scaleEntry.hEntryPanel, bEnable);
+	m_pUIContext->SetControlVisible(scaleEntry.hTextEntry, bEnable);
+
+	m_pUIContext->SetControlVisible(hEntityModelNameLabel, bEnable);
 	m_pUIContext->SetControlVisible(hEntityModelNameEntry, bEnable);
 	m_pUIContext->SetControlInteractable(hEntityModelNameEntry, bEnable);
 }
@@ -631,7 +704,7 @@ static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
 	char szTextBuffer[128]{};
 	Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, vecTranslation.x, vecTranslation.y, vecTranslation.z);
 
-	pUIContext->SetControlText(pLevelEditor->hEntityTranslationEntry, szTextBuffer);
+	pUIContext->SetControlText(pLevelEditor->translationEntry.hTextEntry, szTextBuffer);
 
 	// Model name control.
 	Platform::MemorySet(szTextBuffer, 0, sizeof(szTextBuffer));
@@ -662,6 +735,11 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 				Vector translation = pMeshSystem->AcquireMeshInstanceDataFromHandle(pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx])->matLocalToWorld.GetTranslation();
 
 				pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx] = pMeshSystem->AcquireMeshInstance(hNewMesh, translation, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+
+				char szTextBuffer[128]{};
+				Platform::MemorySet(szTextBuffer, 0, sizeof(szTextBuffer));
+				Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, 100.0f, 100.0f, 100.0f);
+				pEditorAppState->m_pUIContext->SetControlText(pEditorAppState->scaleEntry.hTextEntry, szTextBuffer);
 			}
 
 			Utl::StringFree(pszTrimmedText);
@@ -728,20 +806,12 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 
 	case EDITOR_TOOL_MODE_ADD_MODEL:
 		{
-			// TODO ALGORITHM:
-			// 1.) On mouse release, cast a ray into the scene that intersects with the grid AND other geometry (the grid needs an AABB).
-			// 2.) Wherever it intersects, place the model there.
-			//
-			// FUTURE WORK:
-			// 3.) Configurable models.
-			// 4.) Add some padding so that the model doesn't get stuck in the wall regardless of its extents.
 			i32 mouseX{ 0 }, mouseY{ 0 };
 			g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);
 
 			Ray_t ray = GetRayFromScreen(g_pEngine->GetEngineWindow(), pEditorAppState->m_pCamera, mouseX, mouseY);
 			Editor_Raycast(pEditorAppState, &ray, true);
 
-			// FIXME: Multiple geometry instances.
 			Matrix4x4 matTransform = Matrix4x4(1.0f);
 			matTransform = Matrix4x4::Translate(matTransform, ray.vecEnd);
 
@@ -759,7 +829,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 			char szTextBuffer[128]{};
 			Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, ray.vecEnd.x, ray.vecEnd.y, ray.vecEnd.z);
 
-			pUIContext->SetControlText(pEditorAppState->hEntityTranslationEntry, szTextBuffer);
+			pUIContext->SetControlText(pEditorAppState->translationEntry.hTextEntry, szTextBuffer);
 		}
 		break;
 	}

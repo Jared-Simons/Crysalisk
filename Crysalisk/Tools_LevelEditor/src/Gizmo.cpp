@@ -337,11 +337,3 @@ bool Gizmo_Raycast(struct Gizmo* pGizmo, struct Ray_t* pRay, u8* pOutHitAxis)
 		return false;
 	}
 }
-
-// Translation gizmo algorithm
-/*
-	1.) On mouse click, if any axis was hovered over, begin a translation interaction that lasts until the mouse button is released.
-	2.) When the mouse moves and the interaction is active, do a raycast against the plane defined by selected axis and <WHAT ELSE?>
-	3.) Take the delta of the selected axis' position of the gizmo and the intersection of the ray (if the y-axis is selected, take the delta-y of the previous update to the current one).
-	4.) Move the gizmo along the plane to the point where the current raycast happened.
-*/

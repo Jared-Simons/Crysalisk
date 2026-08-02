@@ -85,6 +85,8 @@ private:
 	Matrix4x4*			m_Transforms{ nullptr };
 
 	// Instance counts
+	// FIXME: How to handle different instances?
+	u32					m_RunningInstanceTotal{ 0 };
 	u32*				m_MeshInstanceCounts{ nullptr };
 };
 
@@ -402,6 +404,9 @@ u32 CMeshSystem::AcquireMeshInstance(MeshHandle_t hBaseMesh, Vector vecPos, Vect
 	instance->hBaseMesh = hBaseMesh;
 	instance->iInstanceIdx = m_MeshInstanceCounts[hBaseMesh];
 	m_MeshInstanceCounts[hBaseMesh]++;
+
+	instance->iInstanceIdx = m_RunningInstanceTotal;
+	m_RunningInstanceTotal++;
 
 	Matrix4x4 matLocalToWorld(1.0f);
 	matLocalToWorld = Matrix4x4::Scale(matLocalToWorld, vecScale);
