@@ -33,7 +33,13 @@ struct MeshInstance_t
 	MeshHandle_t	hBaseMesh{ kInvalidID_U32 };
 	u16				iInstanceIdx{ kInvalidID_U16 };
 
+	// Transform matrix.
 	Matrix4x4		matLocalToWorld{};
+
+	// Transform data.
+	Vector			vecTranslation{};
+	Vector			vecEulerAngles{};
+	Vector			vecScale{};
 };
 
 //-------------------------------------------------------------------------

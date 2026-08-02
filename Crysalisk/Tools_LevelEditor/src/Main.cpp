@@ -358,7 +358,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_pUIContext->SetControlParent(scaleEntry.hTextEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(scaleEntry.hTextEntry, 30, 229);
 		m_pUIContext->SetControlFont(scaleEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
-		m_pUIContext->SetControlText(scaleEntry.hTextEntry, "0.0 0.0 0.0");
+		m_pUIContext->SetControlText(scaleEntry.hTextEntry, "1.0 1.0 1.0");
 	}
 
 	// Entity inspector model name label.
@@ -495,10 +495,12 @@ void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
 	m_pUIContext->SetControlVisible(rotationEntry.hLabel, bEnable);
 	m_pUIContext->SetControlVisible(rotationEntry.hEntryPanel, bEnable);
 	m_pUIContext->SetControlVisible(rotationEntry.hTextEntry, bEnable);
+	m_pUIContext->SetControlInteractable(rotationEntry.hTextEntry, bEnable);
 
 	m_pUIContext->SetControlVisible(scaleEntry.hLabel, bEnable);
 	m_pUIContext->SetControlVisible(scaleEntry.hEntryPanel, bEnable);
 	m_pUIContext->SetControlVisible(scaleEntry.hTextEntry, bEnable);
+	m_pUIContext->SetControlInteractable(scaleEntry.hTextEntry, bEnable);
 
 	m_pUIContext->SetControlVisible(hEntityModelNameLabel, bEnable);
 	m_pUIContext->SetControlVisible(hEntityModelNameEntry, bEnable);
@@ -712,42 +714,105 @@ static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
 	pUIContext->SetControlText(pLevelEditor->hEntityModelNameEntry, szTextBuffer);
 }
 
+// FIXME: This function needs to be cleaned up.
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
 	if (eventData.c[0] == KEY_ENTER)
 	{
+		char* pszEnteredTextName = pEditorAppState->m_pUIContext->GetControlText(pEditorAppState->m_pUIContext->GetActiveControl());
+		char* pszTrimmedText = Utl::StringTrim(pszEnteredTextName);
+
 		// Check the active control.
 		if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->hEntityModelNameEntry)
 		{
 			// If we pressed enter on the model name control, we might need to set the model.
-			char* pszEnteredModelName = pEditorAppState->m_pUIContext->GetControlText(pEditorAppState->hEntityModelNameEntry);
-			char* pszTrimmedText = Utl::StringTrim(pszEnteredModelName);
-
-			if (Utl::StringLength(pszEnteredModelName) > 0)
+			if (Utl::StringLength(pszEnteredTextName) > 0)
 			{
 				// Try to load the model.
-				IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
-
 				MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshBase(pszTrimmedText);
 
 				Vector translation = pMeshSystem->AcquireMeshInstanceDataFromHandle(pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx])->matLocalToWorld.GetTranslation();
 
-				pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx] = pMeshSystem->AcquireMeshInstance(hNewMesh, translation, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
+				pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx] = pMeshSystem->AcquireMeshInstance(hNewMesh, translation, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 1.0f, 1.0f, 1.0f }, true);
 
-				char szTextBuffer[128]{};
-				Platform::MemorySet(szTextBuffer, 0, sizeof(szTextBuffer));
-				Utl::StringFormat_V("%.2f %.2f %.2f", szTextBuffer, 100.0f, 100.0f, 100.0f);
-				pEditorAppState->m_pUIContext->SetControlText(pEditorAppState->scaleEntry.hTextEntry, szTextBuffer);
+				// Store the transform.
+				MeshInstance_t* pMesh = pMeshSystem->AcquireMeshInstanceDataFromHandle(pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx]);
+				pMesh->vecTranslation = translation;
+				pMesh->vecScale = Vector{ 1.0f, 1.0f, 1.0f };
 			}
-
-			Utl::StringFree(pszTrimmedText);
-			pszTrimmedText = nullptr;
-
 			// Deactivate the text control.
 			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
 		}
+		else if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->rotationEntry.hTextEntry)
+		{
+			Vector newAngles{};
+			bool parseResult = Utl::String_ToVector3(pszTrimmedText, &newAngles);
+
+			if (!parseResult)
+			{
+				// Couldn't parse scale, don't do anything else.
+				goto cleanup_and_return;
+			}
+
+			// Set angles and regenerate the transform matrix.
+			u32 selectedInstance = pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx];
+			MeshInstance_t* pSelectedInstanceData = pMeshSystem->AcquireMeshInstanceDataFromHandle(selectedInstance);
+
+			pSelectedInstanceData->vecEulerAngles = newAngles;
+
+			Matrix4x4 transform{ 1.0f };
+			transform = Matrix4x4::Scale(transform, pSelectedInstanceData->vecScale);
+
+			Matrix4x4 rotateX = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 1.0f, 0.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.x));
+			transform = transform * rotateX;
+			Matrix4x4 rotateY = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 1.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.y));
+			transform = transform * rotateY;
+			Matrix4x4 rotateZ = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 0.0f, 1.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.z));
+			transform = transform * rotateZ;
+
+			transform = Matrix4x4::Translate(transform, pSelectedInstanceData->vecTranslation);
+			pSelectedInstanceData->matLocalToWorld = transform;
+		}
+		else if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->scaleEntry.hTextEntry)
+		{
+			Vector newScale{};
+			bool parseResult = Utl::String_ToVector3(pszTrimmedText, &newScale);
+
+			if (!parseResult)
+			{
+				// Couldn't parse scale, don't do anything else.
+				goto cleanup_and_return;
+			}
+
+			// Set scale and regenerate the transform matrix.
+			u32 selectedInstance = pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx];
+			MeshInstance_t* pSelectedInstanceData = pMeshSystem->AcquireMeshInstanceDataFromHandle(selectedInstance);
+
+			pSelectedInstanceData->vecScale = newScale;
+
+			Matrix4x4 transform{ 1.0f };
+
+			transform = Matrix4x4::Scale(transform, newScale);
+
+			// FIXME: Something is wrong with the other matrix rotation functions.
+			Matrix4x4 rotateX = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 1.0f, 0.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.x));
+			transform = transform * rotateX;
+			Matrix4x4 rotateY = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 1.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.y));
+			transform = transform * rotateY;
+			Matrix4x4 rotateZ = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 0.0f, 1.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.z));
+			transform = transform * rotateZ;
+
+			transform = Matrix4x4::Translate(transform, pSelectedInstanceData->vecTranslation);
+			pSelectedInstanceData->matLocalToWorld = transform;
+		}
+
+cleanup_and_return:
+		Utl::StringFree(pszTrimmedText);
+		pszTrimmedText = nullptr;
+
 	}
 
 	return true;
