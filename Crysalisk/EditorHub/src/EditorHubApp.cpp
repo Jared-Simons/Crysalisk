@@ -30,7 +30,7 @@ class CEditorHubApp : public ICrysApplication
 public:
 	virtual bool PreInitialize(ApplicationConfig_t* pAppConfig);
 	virtual bool Initialize(ApplicationConfig_t* pAppConfig) override;
-	virtual bool Run() override;
+	virtual bool Run(f32 deltaTime) override;
 	virtual void FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 	virtual bool Render(struct RenderPacket_t* pRenderPacket) override;
 	virtual void Shutdown() override;	
@@ -144,7 +144,7 @@ bool CEditorHubApp::Initialize(ApplicationConfig_t* pAppConfig)
 	return true;
 }
 
-bool CEditorHubApp::Run()
+bool CEditorHubApp::Run(f32 deltaTime)
 {
 	if (m_Console.visible)
 	{
@@ -158,7 +158,7 @@ bool CEditorHubApp::Run()
 	// EDITORTODO: Only run the active tool!
 	for (i32 iTool = 0; iTool < m_pTools.Count(); iTool++)
 	{
-		m_pTools[iTool]->Tool_Update();
+		m_pTools[iTool]->Tool_Update(deltaTime);
 	}
 
 	return true;
@@ -168,7 +168,9 @@ void CEditorHubApp::FramePrepare(RenderPacket_t* pRenderPacket)
 {
 	m_pUISystem->FramePrepare(pRenderPacket);
 
-	if (!m_Console.visible)
+	bool bUILayerActive = m_pUISystem->GetActiveControl() != kInvalidID_U32;
+
+	if (!bUILayerActive)
 	{
 		// Don't move the camera if the UI is active.
 		// TODO: This is probably not the best way to handle this.

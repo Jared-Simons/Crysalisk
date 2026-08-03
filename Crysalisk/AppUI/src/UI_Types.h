@@ -51,6 +51,8 @@ namespace AppUI
 		u64				indexCount{ kInvalidID_U64 };
 		u64				indexDataOffset{ kInvalidID_U64 };
 
+		u16				extendedRenderDataIdx{ kInvalidID_U16 };
+
 		ShaderHandle_t	hShader{ kInvalidID_U32 };
 		u32				iShaderInstance{ kInvalidID_U32 };
 
@@ -58,6 +60,11 @@ namespace AppUI
 		bool visible{ true };
 
 		GeometryInstance_t geo{};	// FIXME: This is temporary until we can render without it.
+	};
+
+	struct UIImageRenderData_t	// Extended data for rendering images.
+	{
+		TextureHandle_t	hTexture{ kInvalidID_U32 };
 	};
 
 	struct UIBaseControl_t

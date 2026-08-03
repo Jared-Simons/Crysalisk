@@ -37,7 +37,7 @@ class ICrysApplication
 public:
 	virtual bool	PreInitialize(ApplicationConfig_t* pAppConfig) = 0;
 	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) = 0;
-	virtual bool	Run() = 0;
+	virtual bool	Run(f32 deltaTime) = 0;
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 	virtual bool	Render(struct RenderPacket_t* pRenderPacket) = 0;
 	virtual void	Shutdown() = 0;

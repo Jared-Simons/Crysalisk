@@ -20,9 +20,9 @@ namespace AppUI
 	static void GenerateControlGeometry(UIControlPanel_t* panel, UIControlRenderData_t* pRenderable, AppUIRenderContext_t* pRenderContext, FontLoader::GlyphLayoutData_t* pGlyphData);
 	static void AcquireImageAtlasLayoutData(const char* pszLayoutName);
 
-	void CreateImagePanel(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext)
+	void CreateImagePanel(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIImageRenderData_t* pImageRenderData, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext)
 	{
-		CAssert(pBase && pRenderable && pImagePanelControl && pRenderContext);
+		CAssert(pBase && pRenderable && pImageRenderData && pImagePanelControl && pRenderContext);
 
 		pBase->m_eControlType = CONTROL_TYPE_IMAGE_PANEL;
 
@@ -33,12 +33,15 @@ namespace AppUI
 		pImagePanelControl->panel.width = 256;
 		pImagePanelControl->panel.height = 256;
 
+		ITextureSystem* pTextureSystem = g_pEngine->GetEngineInterfaces()->pTextureSystem;
+		pImageRenderData->hTexture = pTextureSystem->GetDefaultDiffuseTexture();
+
 		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, nullptr);
 	}
 
-	void SetImagePanelImage(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData)
+	void SetImagePanelImage(UIControlRenderData_t* pRenderable, UIImageRenderData_t* pImageRenderData, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData)
 	{
-		CAssert(pRenderable && pImagePanelControl && pRenderContext);
+		CAssert(pRenderable && pImageRenderData && pImagePanelControl && pRenderContext);
 
 		IShaderSystem* pShaderSystem = pRenderContext->m_pShaderSystem;
 		if (pRenderable->iShaderInstance == kInvalidID_U32)
@@ -48,9 +51,7 @@ namespace AppUI
 			pShaderSystem->AcquireShaderInstanceResources(pRenderable->hShader, &pRenderable->iShaderInstance, "AppUI.ImagePanel");
 		}
 
-		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultWhiteTexture();
-		pShaderSystem->SetShaderUniform(pRenderable->hShader, pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &pImagePanelControl->hImage);
-		pImagePanelControl->hImage = g_pEngine->GetEngineInterfaces()->pTextureSystem->AcquireTexture("LevelEditor_UIAtlas.png", true);
+		pImageRenderData->hTexture = hImage;
 
 		GenerateControlGeometry(&pImagePanelControl->panel, pRenderable, pRenderContext, pGlyphData);
 		pImagePanelControl->pCurGlyph = pGlyphData;
@@ -93,10 +94,10 @@ namespace AppUI
 
 		if (pGlyphData)
 		{
-			minX = pGlyphData->xMin;
-			maxX = pGlyphData->xMax;
-			minY = pGlyphData->yMin;
-			maxY = pGlyphData->yMax;
+			minX = (f32)pGlyphData->xMin;
+			maxX = (f32)pGlyphData->xMax;
+			minY = (f32)pGlyphData->yMin;
+			maxY = (f32)pGlyphData->yMax;
 		}
 
 		// FIXME: Configurable.

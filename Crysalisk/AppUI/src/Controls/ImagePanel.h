@@ -16,9 +16,9 @@
 
 namespace AppUI
 {
-	void				CreateImagePanel(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext);
+	void				CreateImagePanel(UIBaseControl_t* pBase, UIControlRenderData_t* pRenderable, UIImageRenderData_t* pImageRenderData, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext);
 
-	void				SetImagePanelImage(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData);
+	void				SetImagePanelImage(UIControlRenderData_t* pRenderable, UIImageRenderData_t* pImageRenderData, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext, TextureHandle_t hImage, FontLoader::GlyphLayoutData_t* pGlyphData);
 	void				RegenerateImagePanelGeometry(UIControlRenderData_t* pRenderable, UIControlImagePanel_t* pImagePanelControl, AppUIRenderContext_t* pRenderContext);
 
 } // namespace AppUI

@@ -80,6 +80,7 @@ namespace AppUI
 		InputMap_t m_InputHandler{};
 
 		Utl::CVector<UIControlRenderData_t>	renderables{};
+		Utl::CVector<UIImageRenderData_t>	imageRenderData{};
 
 		// Controls
 		Utl::CVector<UIBaseControl_t>		baseControls{};
@@ -175,6 +176,7 @@ namespace AppUI
 
 			// Allocate geometry data using the frame allocator.
 			pViewData->renderables.SetAllocator(pRenderPacket->pFrameAllocator);
+			pViewData->imageRenderData.SetAllocator(pRenderPacket->pFrameAllocator);
 		}
 
 		AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
@@ -182,8 +184,10 @@ namespace AppUI
 		// FIXME: Put this in a post render method?
 		// Clear out data from previous frame.
 		pViewData->renderables.Purge();
+		pViewData->imageRenderData.Purge();
 
 		pViewData->renderables.Resize(renderables.Count());
+		pViewData->imageRenderData.Resize(imagePanels.Count());
 		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)m_RenderContext.currentSurfaceWidth, 0.0f, (f32)m_RenderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 
 		for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
@@ -192,6 +196,11 @@ namespace AppUI
 			{
 				pViewData->renderables.PushBack(&renderables[iRenderable]);
 			}
+		}
+
+		for (u32 iImage = 0; iImage < imageRenderData.Count(); iImage++)
+		{
+			pViewData->imageRenderData.PushBack(&imageRenderData[iImage]);
 		}
 	}
 
@@ -282,6 +291,7 @@ namespace AppUI
 
 	void CAppUI::LoseInputFocus()
 	{
+		SetActiveControl(kInvalidID_U32);
 		m_pInputSystem->PopInputMap();
 	}
 
@@ -360,8 +370,12 @@ namespace AppUI
 				UIControlImagePanel_t* pImagePanelData = &imagePanels.Back();
 				pNewBase->m_iControlDataIdx = (u32)imagePanels.Count() - 1;
 
-				CreateImagePanel(pNewBase, pRenderable, pImagePanelData, &m_RenderContext);
-				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImagePanelData, &m_RenderContext, 0, pImagePanelData->pCurGlyph);
+				imageRenderData.PushBack(UIImageRenderData_t{});
+				UIImageRenderData_t* pImageRenderData = &imageRenderData.Back();
+				pRenderable->extendedRenderDataIdx = imageRenderData.Count() - 1;
+
+				CreateImagePanel(pNewBase, pRenderable, pImageRenderData, pImagePanelData, &m_RenderContext);
+				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImageRenderData, pImagePanelData, &m_RenderContext, 0, pImagePanelData->pCurGlyph);
 			}
 			break;
 
@@ -592,8 +606,9 @@ namespace AppUI
 		CASSERTMSG(pBase->m_eControlType == CONTROL_TYPE_IMAGE_PANEL, "SetControlImage - This function must only be called for UI elements that support images!");
 
 		UIControlImagePanel_t* pImagePanel = &imagePanels[pBase->m_iControlDataIdx];
+		UIImageRenderData_t* pImageExtendedData = &imageRenderData[renderables[pBase->m_iRenderableIdx].extendedRenderDataIdx];
 
-		SetImagePanelImage(&renderables[pBase->m_iRenderableIdx], pImagePanel, &m_RenderContext, hImage, pGlyphData);
+		SetImagePanelImage(&renderables[pBase->m_iRenderableIdx], pImageExtendedData, pImagePanel, &m_RenderContext, hImage, pGlyphData);
 	}
 
 	void CAppUI::SetControlPressedCallback(UIControlHandle_t hControl, PFN_UI_Button_Control_Clicked callback, void* pListener)

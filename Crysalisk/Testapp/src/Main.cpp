@@ -34,7 +34,7 @@ public:
 	virtual bool	Initialize(ApplicationConfig_t* pAppConfig) override;
 	virtual void	Shutdown() override;
 
-	virtual bool	Run() override;
+	virtual bool	Run(f32 deltaTime) override;
 	virtual bool	Render(struct RenderPacket_t* pRenderPacket) override;
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
@@ -112,7 +112,7 @@ void CGameApp::Shutdown()
 	m_pApplicationConfig->pViews.Clear();
 }
 
-bool CGameApp::Run()
+bool CGameApp::Run(f32 deltaTime)
 {
 	return true;
 }

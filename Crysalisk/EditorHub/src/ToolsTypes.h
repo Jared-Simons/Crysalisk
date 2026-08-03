@@ -19,7 +19,7 @@ class EDITOR_HUB_API IToolApp
 {
 public:
 	virtual bool	Tool_Init(struct ApplicationConfig_t* pAppConfig) = 0;
-	virtual bool	Tool_Update() = 0;
+	virtual bool	Tool_Update(f32 deltaTime) = 0;
 	virtual void	Tool_Shutdown() = 0;
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;

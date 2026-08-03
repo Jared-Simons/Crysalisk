@@ -44,7 +44,7 @@ class CLevelEditorApp : public IToolApp
 {
 public:
 	virtual bool	Tool_Init(struct ApplicationConfig_t* pAppConfig) override;
-	virtual bool	Tool_Update() override;
+	virtual bool	Tool_Update(f32 deltaTime) override;
 	virtual void	Tool_Shutdown() override;
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
@@ -53,6 +53,8 @@ public:
 	virtual void	SetCamera(struct Camera_t* pCamera) override { m_pCamera = pCamera; }
 
 private:
+	void			HandleCameraMovement(f32 deltaTime);
+
 	void			DisplayEntityInspectorPanel(bool bEnable);
 
 private:
@@ -108,9 +110,6 @@ private:
 	friend static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
 	friend static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
 
-	friend static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
-	friend static void ConsoleCommand_SetModelName(struct ConVar_t* pCommand, void* pValue);
-
 	friend static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
 	friend static void ButtonEvent_ChangeTool_AddModel(void* pListenerInst);
 
@@ -125,6 +124,7 @@ static CLevelEditorApp s_LevelEditorApp{};
 static void CreateEditorGrid(GeometryInstance_t* pGeoInstance);
 static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTestAgainstGrid);
 static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx);
+static void RegenerateGeometryTransformMatrix(MeshInstance_t* pInstance);
 
 // Event handlers.
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData);
@@ -132,9 +132,6 @@ static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData);
 static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData);
 static bool Event_OnMouseMove(void* pListener, EventData_t eventData);
 static bool Event_OnMouseDragged(void* pListener, EventData_t eventData);
-
-// Console Command callbacks.
-static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue);
 
 // Button callbacks.
 static void ButtonEvent_ChangeTool_Selection(void* pListenerInst);
@@ -199,10 +196,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_MOVED, this, Event_OnMouseMove);
 	pEventSystem->EventRegister(eEventCategory::INPUT_MOUSE_DRAGGED, this, Event_OnMouseDragged);
 
-	// Editor console commands.
 	ConVarSystemState* pConVar = pAppConfig->pEngine->GetEngineInterfaces()->pConVar;
-	ConsoleCommandRegister(pConVar, "add_model", CONVAR_VALUETYPE_PASSTHROUGH, ConsoleCommand_AddModel, this);
-	ConsoleCommandRegister(pConVar, "set_model_name", CONVAR_VALUETYPE_STRING, ConsoleCommand_SetModelName, this);
 
 	// Default to fullbright for the editor.
 	ConsoleCommandExecute(pConVar, "mat_debugvismode 1");
@@ -231,8 +225,8 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	// Side panel for main tools.
 	{
 		hMouseToolPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
-		m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 50);
-		m_pUIContext->SetControlDimensions(hMouseToolPanel, 100, 670);
+		m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 150);
+		m_pUIContext->SetControlDimensions(hMouseToolPanel, 100, 570);
 		m_pUIContext->SetControlColor(hMouseToolPanel, 102, 102, 102, 255);
 	}
 
@@ -277,8 +271,8 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	// Entity inspector panel.
 	{
 		hEntityInspectorPanel = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_PANEL);
-		m_pUIContext->SetControlPosition(hEntityInspectorPanel, 830, 100);
-		m_pUIContext->SetControlDimensions(hEntityInspectorPanel, 250, 620);
+		m_pUIContext->SetControlPosition(hEntityInspectorPanel, 830, 200);
+		m_pUIContext->SetControlDimensions(hEntityInspectorPanel, 250, 520);
 	}
 
 	// Entity inspector panel label.
@@ -398,7 +392,7 @@ void CLevelEditorApp::Tool_Shutdown()
 	Gizmo_Destroy(pRenderer, &m_Gizmo);
 }
 
-bool CLevelEditorApp::Tool_Update()
+bool CLevelEditorApp::Tool_Update(f32 deltaTime)
 {
 	if (m_SelectedMeshIdx != kInvalidID_U32)
 	{
@@ -408,6 +402,9 @@ bool CLevelEditorApp::Tool_Update()
 	{
 		DisplayEntityInspectorPanel(false);
 	}
+
+	// Update camera.
+	HandleCameraMovement(deltaTime);
 
 	if (m_Gizmo.geometry.vertexCount)
 	{
@@ -484,6 +481,11 @@ void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 	// TODO: Get rid of this and move all rendering to views?
 }
 
+void CLevelEditorApp::HandleCameraMovement(f32 deltaTime)
+{
+
+}
+
 void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
 {
 	m_pUIContext->SetControlVisible(hEntityInspectorLabel, bEnable);
@@ -491,6 +493,7 @@ void CLevelEditorApp::DisplayEntityInspectorPanel(bool bEnable)
 	m_pUIContext->SetControlVisible(translationEntry.hLabel, bEnable);
 	m_pUIContext->SetControlVisible(translationEntry.hEntryPanel, bEnable);
 	m_pUIContext->SetControlVisible(translationEntry.hTextEntry, bEnable);
+	m_pUIContext->SetControlInteractable(translationEntry.hTextEntry, bEnable);
 
 	m_pUIContext->SetControlVisible(rotationEntry.hLabel, bEnable);
 	m_pUIContext->SetControlVisible(rotationEntry.hEntryPanel, bEnable);
@@ -714,19 +717,49 @@ static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx)
 	pUIContext->SetControlText(pLevelEditor->hEntityModelNameEntry, szTextBuffer);
 }
 
+static void RegenerateGeometryTransformMatrix(MeshInstance_t* pInstance)
+{
+	CAssert(pInstance);
+
+	Matrix4x4 transform{ 1.0f };
+
+	// Scale
+	transform = Matrix4x4::Scale(transform, pInstance->vecScale);
+
+	// Rotation
+	// FIXME: This doesn't seem to work?
+	//Quaternion quatRotation = QuaternionFromEulerAngles(pInstance->vecEulerAngles);
+	//Matrix4x4 matRotation = Matrix4x4::Mat4FromQuaternion(quatRotation);
+
+	//transform = matRotation * transform;
+
+	Matrix4x4 rotateX = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 1.0f, 0.0f, 0.0f }, M_DEG2RAD_F(pInstance->vecEulerAngles.x));
+	transform = transform * rotateX;
+	Matrix4x4 rotateY = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 1.0f, 0.0f }, M_DEG2RAD_F(pInstance->vecEulerAngles.y));
+	transform = transform * rotateY;
+	Matrix4x4 rotateZ = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 0.0f, 1.0f }, M_DEG2RAD_F(pInstance->vecEulerAngles.z));
+	transform = transform * rotateZ;
+
+	// Translation
+	transform = Matrix4x4::Translate(transform, pInstance->vecTranslation);
+	pInstance->matLocalToWorld = transform;
+}
+
 // FIXME: This function needs to be cleaned up.
 static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 
-	if (eventData.c[0] == KEY_ENTER)
+	AppUI::UIControlHandle_t hActiveControl = pEditorAppState->m_pUIContext->GetActiveControl();
+
+	if (eventData.c[0] == KEY_ENTER && hActiveControl != kInvalidID_U32)
 	{
-		char* pszEnteredTextName = pEditorAppState->m_pUIContext->GetControlText(pEditorAppState->m_pUIContext->GetActiveControl());
+		char* pszEnteredTextName = pEditorAppState->m_pUIContext->GetControlText(hActiveControl);
 		char* pszTrimmedText = Utl::StringTrim(pszEnteredTextName);
 
 		// Check the active control.
-		if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->hEntityModelNameEntry)
+		if (hActiveControl == pEditorAppState->hEntityModelNameEntry)
 		{
 			// If we pressed enter on the model name control, we might need to set the model.
 			if (Utl::StringLength(pszEnteredTextName) > 0)
@@ -746,14 +779,36 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 			// Deactivate the text control.
 			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
 		}
-		else if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->rotationEntry.hTextEntry)
+		else if (hActiveControl == pEditorAppState->translationEntry.hTextEntry)
+		{
+			Vector newTranslation{};
+			bool parseResult = Utl::String_ToVector3(pszTrimmedText, &newTranslation);
+
+			if (!parseResult)
+			{
+				// Couldn't parse translation, don't do anything else.
+				goto cleanup_and_return;
+			}
+
+			// Set translation and regenerate the transform matrix.
+			u32 selectedInstance = pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx];
+			MeshInstance_t* pSelectedInstanceData = pMeshSystem->AcquireMeshInstanceDataFromHandle(selectedInstance);
+
+			pSelectedInstanceData->vecTranslation = newTranslation;
+
+			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
+
+			// Deactivate the text control.
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
+		}
+		else if (hActiveControl == pEditorAppState->rotationEntry.hTextEntry)
 		{
 			Vector newAngles{};
 			bool parseResult = Utl::String_ToVector3(pszTrimmedText, &newAngles);
 
 			if (!parseResult)
 			{
-				// Couldn't parse scale, don't do anything else.
+				// Couldn't parse rotation, don't do anything else.
 				goto cleanup_and_return;
 			}
 
@@ -763,20 +818,12 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 
 			pSelectedInstanceData->vecEulerAngles = newAngles;
 
-			Matrix4x4 transform{ 1.0f };
-			transform = Matrix4x4::Scale(transform, pSelectedInstanceData->vecScale);
+			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
 
-			Matrix4x4 rotateX = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 1.0f, 0.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.x));
-			transform = transform * rotateX;
-			Matrix4x4 rotateY = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 1.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.y));
-			transform = transform * rotateY;
-			Matrix4x4 rotateZ = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 0.0f, 1.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.z));
-			transform = transform * rotateZ;
-
-			transform = Matrix4x4::Translate(transform, pSelectedInstanceData->vecTranslation);
-			pSelectedInstanceData->matLocalToWorld = transform;
+			// Deactivate the text control.
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
 		}
-		else if (pEditorAppState->m_pUIContext->GetActiveControl() == pEditorAppState->scaleEntry.hTextEntry)
+		else if (hActiveControl == pEditorAppState->scaleEntry.hTextEntry)
 		{
 			Vector newScale{};
 			bool parseResult = Utl::String_ToVector3(pszTrimmedText, &newScale);
@@ -793,26 +840,15 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 
 			pSelectedInstanceData->vecScale = newScale;
 
-			Matrix4x4 transform{ 1.0f };
+			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
 
-			transform = Matrix4x4::Scale(transform, newScale);
-
-			// FIXME: Something is wrong with the other matrix rotation functions.
-			Matrix4x4 rotateX = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 1.0f, 0.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.x));
-			transform = transform * rotateX;
-			Matrix4x4 rotateY = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 1.0f, 0.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.y));
-			transform = transform * rotateY;
-			Matrix4x4 rotateZ = Matrix4x4::RotateAboutAxisAngles(transform, Vector{ 0.0f, 0.0f, 1.0f }, M_DEG2RAD_F(pSelectedInstanceData->vecEulerAngles.z));
-			transform = transform * rotateZ;
-
-			transform = Matrix4x4::Translate(transform, pSelectedInstanceData->vecTranslation);
-			pSelectedInstanceData->matLocalToWorld = transform;
+			// Deactivate the text control.
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
 		}
 
 cleanup_and_return:
 		Utl::StringFree(pszTrimmedText);
 		pszTrimmedText = nullptr;
-
 	}
 
 	return true;
@@ -845,11 +881,22 @@ static bool Event_OnMouseButtonPressed(void* pListener, EventData_t eventData)
 static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 {
 	CLevelEditorApp* pEditorAppState = (CLevelEditorApp*)pListener;
+	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 	Gizmo* pGizmo = &pEditorAppState->m_Gizmo;
 
 	if (pGizmo->selectedAxis != kInvalidID_U8)
 	{
 		Gizmo_EndInteraction(pGizmo);
+
+		// Update the translation entry if a piece of geo was selected.
+		// NOTE: We currently only do this on mouse release because updaing strings is VERY slow and can make dragging stutter.
+		// Might change this later.
+		u32 selectedInstance = pEditorAppState->m_CurrentDoc.meshInstances[pEditorAppState->m_SelectedMeshIdx];
+		MeshInstance_t* pSelectedInstanceData = pMeshSystem->AcquireMeshInstanceDataFromHandle(selectedInstance);
+		Matrix4x4 transformCopy = pSelectedInstanceData->matLocalToWorld;
+		char szTranslation[128]{};
+		Utl::StringFormat_V("%.2f %.2f %.2f", szTranslation, transformCopy.flData[12], transformCopy.flData[13], transformCopy.flData[14]);
+		pEditorAppState->m_pUIContext->SetControlText(pEditorAppState->translationEntry.hTextEntry, szTranslation);
 	}
 
 	switch (pEditorAppState->m_iToolMode)
@@ -967,52 +1014,6 @@ static bool Event_OnMouseDragged(void* pListener, EventData_t eventData)
 	}
 
 	return true;
-}
-
-static void ConsoleCommand_SetModelName(struct ConVar_t* pCommand, void* pValue)
-{
-	if (!pValue)
-	{
-		return;
-	}
-
-	CLevelEditorApp* pApp = (CLevelEditorApp*)pCommand->listenerInst;
-	if (pApp->m_pszToolModelName)
-	{
-		Utl::StringFree(pApp->m_pszToolModelName);
-	}
-
-	pApp->m_pszToolModelName = Utl::StringDuplicate((char*)pValue);
-}
-
-static void ConsoleCommand_AddModel(struct ConVar_t* pCommand, void* pValue)
-{
-	if (!pValue)
-	{
-		return;
-	}
-
-	LOG_DEBUG("Add model here (%s)", (char*)pValue);
-	CLevelEditorApp* pApp = (CLevelEditorApp*)pCommand->listenerInst;
-	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
-
-	// FIXME: If the mesh loading fails (e.g. the mesh doesn't exist), then this will take up a slot in the map mesh array.
-	MeshHandle_t hNewMesh = pMeshSystem->AcquireMeshInstance((const char*)pValue, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 0.0f, 0.0f, 0.0f }, Vector{ 100.0f, 100.0f, 100.0f }, true);
-	if (hNewMesh != kInvalidID_U32)
-	{
-		//pApp->m_CurrentDoc.meshes.PushBack(hNewMesh);
-	}
-	else
-	{
-		return;
-	}
-
-	// LEFTOFF: Re-enable this when the gizmo is working.
-	// Set as the selected mesh.
-	//pApp->m_SelectedMeshIdx = (u32)(pApp->m_CurrentDoc.meshes.Count() - 1);
-
-	// Move the gizmo to this model.
-	//pApp->m_Gizmo.origin = Vector{ 0.0f, 0.0f, 0.0f };
 }
 
 static void ButtonEvent_ChangeTool_Selection(void* pListenerInst)

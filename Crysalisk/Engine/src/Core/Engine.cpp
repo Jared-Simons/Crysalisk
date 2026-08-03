@@ -385,7 +385,7 @@ bool CEngine::Run()
 			m_EngineInterfaces.pInputSystem->Update();
 
 			// Update our app.
-			if (!m_pApplication->Run())
+			if (!m_pApplication->Run(deltaTime))
 			{
 				// Either the application failed, or it requested to shutdown.
 				return true;

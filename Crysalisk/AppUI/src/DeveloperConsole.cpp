@@ -47,7 +47,6 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pUISystem->SetControlColor(pOutConsole->hReadoutPanel, 50, 50, 50, 215);
 
 	// Command submit button.
-	// FIXME: If this happens later (After text?) then the color is messed up.
 	pOutConsole->hCommandSubmitButton = pUISystem->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
 	pUISystem->SetControlParent(pOutConsole->hCommandSubmitButton, pOutConsole->hBackgroundPanel);
 	pUISystem->SetControlPosition(pOutConsole->hCommandSubmitButton, 980, 130);

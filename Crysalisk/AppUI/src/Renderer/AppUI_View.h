@@ -22,6 +22,7 @@ namespace AppUI
 	struct AppUIView_ExtendedData_t
 	{
 		Utl::CVector<struct UIControlRenderData_t*> renderables{};
+		Utl::CVector<struct UIImageRenderData_t*>	imageRenderData{};
 
 		RenderBuffer* pVertexBuffer{ nullptr };
 		RenderBuffer* pIndexBuffer{ nullptr };

@@ -135,13 +135,18 @@ namespace AppUI
 				}
 				else if (pRenderable->hShader == m_hImagePanelShader)
 				{
-					// FIXME: Pass the image handle in from somewhere.
-					static u8 swapDone = 0;
-					if (g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(7) && swapDone < 2)
+					CAssert(pRenderable->extendedRenderDataIdx != kInvalidID_U16);
+					UIImageRenderData_t* pExtendedImageData = pViewData->imageRenderData[pRenderable->extendedRenderDataIdx];
+
+					// LEFTOFF: This is causing validation issues in Vulkan.
+					if (!g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(pExtendedImageData->hTexture))
 					{
-						swapDone++;
-						TextureHandle_t hImage = 7;
-						m_pShaderSystem->SetShaderUniform(pRenderable->hShader, m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &hImage);
+						TextureHandle_t hDefault = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultDiffuseTexture();
+						m_pShaderSystem->SetShaderUniform(pRenderable->hShader, m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &hDefault);
+					}
+					else
+					{
+						m_pShaderSystem->SetShaderUniform(pRenderable->hShader, m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "image"), 0, pRenderable->iShaderInstance, &pExtendedImageData->hTexture);
 					}
 
 					// For rendering images.
