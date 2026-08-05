@@ -42,6 +42,8 @@ namespace AppUI
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 		virtual void	Update() override;
 
+		virtual void	SetRenderPriorityControl(UIControlHandle_t hControl) override;
+
 		virtual void	AcquireInputFocus() override;
 		virtual void	LoseInputFocus() override;
 
@@ -49,6 +51,8 @@ namespace AppUI
 
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
+
+		virtual void				SetControlFlag(UIControlHandle_t hControl, eUIControlFlagBits flag, bool bSet) override;
 
 		virtual void	SetControlVisible(UIControlHandle_t hControl, bool visible) override;
 
@@ -284,6 +288,11 @@ namespace AppUI
 		}
 	}
 
+	void CAppUI::SetRenderPriorityControl(UIControlHandle_t hControl)
+	{
+		CAssert(hControl != kInvalidID_U32);
+	}
+
 	void CAppUI::AcquireInputFocus()
 	{
 		m_pInputSystem->PushInputMap(&m_InputHandler);
@@ -401,6 +410,21 @@ namespace AppUI
 		default:
 			//CAssert(0);
 			break;
+		}
+	}
+
+	void CAppUI::SetControlFlag(UIControlHandle_t hControl, eUIControlFlagBits flag, bool bSet)
+	{
+		CAssert(hControl != kInvalidID_U32);
+		UIBaseControl_t* pBase = &baseControls[hControl];
+
+		if (bSet)
+		{
+			pBase->flags |= flag;
+		}
+		else
+		{
+			pBase->flags = (pBase->flags &= ~flag);
 		}
 	}
 
@@ -525,6 +549,11 @@ namespace AppUI
 		CAssert(hChild != kInvalidID_U32 && hParent != kInvalidID_U32);
 		UIBaseControl_t* pChildBase = &baseControls[hChild];
 		pChildBase->m_hParentControl = hParent;
+
+		// Go to the parent and assign the child.
+		// LEFTOFF: This is borked.
+		UIBaseControl_t* pParentBase = &baseControls[hParent];
+		//pParentBase->m_hChildrenControls.PushBack(hChild);
 	}
 
 	void CAppUI::SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a)
@@ -864,8 +893,19 @@ namespace AppUI
 					}
 				}
 
-				// Append the new char to it.
-				Utl::StringFormat_V("%s%c", szOutBuffer, pCurrentEntryText, c);
+				if (pActiveBase->flags & UI_CONTROL_FLAG_TEXT_AUTO_CLEAR)
+				{
+					// Only use the first character and clear the rest.
+					szOutBuffer[0] = c;
+					szOutBuffer[1] = '\0';
+					
+					pUIContext->SetControlFlag(pUIContext->hActiveControl, UI_CONTROL_FLAG_TEXT_AUTO_CLEAR, false);
+				}
+				else
+				{
+					// Append the new char to it.
+					Utl::StringFormat_V("%s%c", szOutBuffer, pCurrentEntryText, c);
+				}
 			}
 
 			// Apply to the control.

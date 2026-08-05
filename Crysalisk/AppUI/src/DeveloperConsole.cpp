@@ -163,6 +163,9 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	if (visible)
 	{
 		pUISystem->SetActiveControl(pConsole->hTextEntryControl);
+
+		// Give the console render priority.
+		pUISystem->SetRenderPriorityControl(pConsole->hBackgroundPanel);
 	}
 	else
 	{

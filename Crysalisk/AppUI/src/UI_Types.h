@@ -31,10 +31,18 @@ namespace AppUI
 		CONTROL_TYPE_MAX_TYPES,
 	};
 
-	enum eUIControlFlags
+	enum eUIControlFlagBits
 	{
-		UI_CONTROL_FLAG_GEOMETRY_UPDATED = 0x01,
+		// Should this control be rendered?
+		// TODO: Implement.
+		UI_CONTROL_FLAG_GEOMETRY_VISIBLE = 0x00000001,
+
+		// Should the text in the entry be cleared upon being selected?
+		// This gets unset upon clearing the text.
+		UI_CONTROL_FLAG_TEXT_AUTO_CLEAR = 0x00000100,
 	};
+
+	typedef u16 UIControlFlags;
 
 	enum eControlJustification
 	{
@@ -73,8 +81,10 @@ namespace AppUI
 		u32 m_iRenderableIdx{ kInvalidID_U32 };
 		u32 m_iControlDataIdx{ kInvalidID_U32 };
 
-		UIControlHandle_t	m_hParentControl{ kInvalidID_U32 };
-		bool				m_bInteractable{ false };	// Can this control be interacted with?
+		UIControlHandle_t				m_hParentControl{ kInvalidID_U32 };
+		bool							m_bInteractable{ false };	// Can this control be interacted with?
+
+		UIControlFlags	flags{ 0 };
 	};
 
 	struct UIControlPanel_t

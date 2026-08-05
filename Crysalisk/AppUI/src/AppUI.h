@@ -42,6 +42,10 @@ namespace AppUI
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 		virtual void	Update() = 0;
 
+		// Sets the render priority to a specific control and its children.
+		// (Making it render on top of other elements).
+		virtual void	SetRenderPriorityControl(UIControlHandle_t hControl) = 0;
+
 		virtual void	AcquireInputFocus() = 0;
 		virtual void	LoseInputFocus() = 0;
 
@@ -49,6 +53,8 @@ namespace AppUI
 
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) = 0;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) = 0;
+
+		virtual void				SetControlFlag(UIControlHandle_t hControl, eUIControlFlagBits flag, bool bSet) = 0;
 
 		virtual void	SetControlVisible(UIControlHandle_t hControl, bool visible) = 0;
 

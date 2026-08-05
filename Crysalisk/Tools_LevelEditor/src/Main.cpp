@@ -371,6 +371,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 320);
 		m_pUIContext->SetControlFont(hEntityModelNameEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(hEntityModelNameEntry, "<Your model name here>");
+		m_pUIContext->SetControlFlag(hEntityModelNameEntry, AppUI::UI_CONTROL_FLAG_TEXT_AUTO_CLEAR, true);
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
 	}
 
@@ -884,7 +885,7 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 	Gizmo* pGizmo = &pEditorAppState->m_Gizmo;
 
-	if (pGizmo->selectedAxis != kInvalidID_U8)
+	if (pGizmo->selectedAxis != kInvalidID_U8 && pEditorAppState->m_SelectedMeshIdx != kInvalidID_U32)
 	{
 		Gizmo_EndInteraction(pGizmo);
 
