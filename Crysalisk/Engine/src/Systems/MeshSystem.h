@@ -75,6 +75,8 @@ public:
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const = 0;
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const = 0;
 
+	virtual MeshHandle_t	AcquireMeshFromGeometryData(u64 vertexCount, u64 vertexStride, void* pVertices, u64 indexCount, void* pIndices, const char* pszMeshName) = 0;
+
 	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const = 0;
 	virtual void			DrawGeometryBySubmesh(u32 hMeshInstance, u32 iSubmesh, class IShaderSystem* pShaderSystem) const = 0;
 

@@ -38,6 +38,7 @@ namespace AppUI
 	public:
 		virtual bool	PreInitialize(struct ApplicationConfig_t* pAppConfig) = 0; 
 		virtual bool	Initialize(struct ApplicationConfig_t* pConfig) = 0;
+		virtual void	Shutdown() = 0;
 
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 		virtual void	Update() = 0;

@@ -117,7 +117,7 @@ private:
 	friend static void SetSelectedGeometry(CLevelEditorApp* pLevelEditor, u32 geometryIdx);
 };
 
-// FIXME: Remove and allocate this state?
+// TODO: Remove and allocate this state?
 static CLevelEditorApp s_LevelEditorApp{};
 
 // Editor utilities.
@@ -303,6 +303,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		translationEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(translationEntry.hTextEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(translationEntry.hTextEntry, 30, 123);
+		m_pUIContext->SetControlFlag(translationEntry.hTextEntry, AppUI::UI_CONTROL_FLAG_TEXT_AUTO_CLEAR, true);
 		m_pUIContext->SetControlFont(translationEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(translationEntry.hTextEntry, "0.0 0.0 0.0");
 	}
@@ -327,6 +328,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		rotationEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(rotationEntry.hTextEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(rotationEntry.hTextEntry, 30, 176);
+		m_pUIContext->SetControlFlag(rotationEntry.hTextEntry, AppUI::UI_CONTROL_FLAG_TEXT_AUTO_CLEAR, true);
 		m_pUIContext->SetControlFont(rotationEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(rotationEntry.hTextEntry, "0.0 0.0 0.0");
 	}
@@ -351,6 +353,7 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		scaleEntry.hTextEntry = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_LABEL);
 		m_pUIContext->SetControlParent(scaleEntry.hTextEntry, hEntityInspectorPanel);
 		m_pUIContext->SetControlPosition(scaleEntry.hTextEntry, 30, 229);
+		m_pUIContext->SetControlFlag(scaleEntry.hTextEntry, AppUI::UI_CONTROL_FLAG_TEXT_AUTO_CLEAR, true);
 		m_pUIContext->SetControlFont(scaleEntry.hTextEntry, "UbuntuMono-R.ttf", 18.0f);
 		m_pUIContext->SetControlText(scaleEntry.hTextEntry, "1.0 1.0 1.0");
 	}
@@ -646,13 +649,15 @@ static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTest
 
 		Ray_t localRay;
 		Matrix4x4 geoWorldToLocal = pCurGeo->matLocalToWorldTransform.Inverse();
-		Vector4D vecDirection = pRay->vecDirection.ToVector4D();
-		vecDirection.w = 0.0f;
-		// FIXME: Need to always get the transform from the same structure/place.
+
+		// HACK until all geometry uses the new base/instance system.
 		if (iGeo > 0)
 		{
 			geoWorldToLocal = pCurInstance->matLocalToWorld.Inverse();
 		}
+
+		Vector4D vecDirection = pRay->vecDirection.ToVector4D();
+		vecDirection.w = 0.0f;
 
 		localRay.vecOrigin = geoWorldToLocal * pRay->vecOrigin;
 		localRay.vecDirection = (geoWorldToLocal * vecDirection).AsVector3D();
@@ -661,6 +666,14 @@ static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTest
 		Vector vecCenter = pCurGeo->vecCenter;
 		Vector vecMins = pCurGeo->vecMinExtents;
 		Vector vecMaxs = pCurGeo->vecMaxExtents;
+
+		// HACK until all geometry uses the new base/instance system.
+		if (iGeo > 0)
+		{
+			vecCenter = pCurBase->submeshCenters[0];
+			vecMins = pCurBase->submeshMinExtents[0];
+			vecMaxs = pCurBase->submeshMaxExtents[0];
+		}
 
 		f32 flTMin = kFLT_MAX;
 		f32 flTMax = kFLT_MIN;
@@ -885,10 +898,10 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 	IMeshSystem* pMeshSystem = g_pEngine->GetEngineInterfaces()->pMeshSystem;
 	Gizmo* pGizmo = &pEditorAppState->m_Gizmo;
 
+	Gizmo_EndInteraction(pGizmo);
+
 	if (pGizmo->selectedAxis != kInvalidID_U8 && pEditorAppState->m_SelectedMeshIdx != kInvalidID_U32)
 	{
-		Gizmo_EndInteraction(pGizmo);
-
 		// Update the translation entry if a piece of geo was selected.
 		// NOTE: We currently only do this on mouse release because updaing strings is VERY slow and can make dragging stutter.
 		// Might change this later.
@@ -898,13 +911,16 @@ static bool Event_OnMouseButtonReleased(void* pListener, EventData_t eventData)
 		char szTranslation[128]{};
 		Utl::StringFormat_V("%.2f %.2f %.2f", szTranslation, transformCopy.flData[12], transformCopy.flData[13], transformCopy.flData[14]);
 		pEditorAppState->m_pUIContext->SetControlText(pEditorAppState->translationEntry.hTextEntry, szTranslation);
+
+		// Early return to keep the selection on the current entity.
+		return true;
 	}
 
 	switch (pEditorAppState->m_iToolMode)
 	{
 	case EDITOR_TOOL_MODE_SELECTION:
 		{
-			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0 && pEditorAppState->m_Gizmo.selectedAxis == kInvalidID_U8)
+			if (pEditorAppState->m_CurrentDoc.meshInstances.Count() > 0 && !pEditorAppState->m_Gizmo.dragging)
 			{
 				i32 mouseX{ 0 }, mouseY{ 0 };
 				g_pEngine->GetEngineInterfaces()->pInputSystem->GetCurrentMousePos(mouseX, mouseY);

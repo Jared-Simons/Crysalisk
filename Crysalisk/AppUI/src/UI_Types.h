@@ -85,6 +85,8 @@ namespace AppUI
 		bool							m_bInteractable{ false };	// Can this control be interacted with?
 
 		UIControlFlags	flags{ 0 };
+
+		Utl::CVector<UIControlHandle_t>	children{};
 	};
 
 	struct UIControlPanel_t

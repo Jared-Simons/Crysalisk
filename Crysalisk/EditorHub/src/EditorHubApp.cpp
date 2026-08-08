@@ -208,6 +208,8 @@ void CEditorHubApp::Shutdown()
 
 	m_pUISystem->DestroyUIControl(m_hButton_LoadLevelEditor);
 	m_hButton_LoadLevelEditor = kInvalidID_U32;
+
+	m_pUISystem->Shutdown();
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)

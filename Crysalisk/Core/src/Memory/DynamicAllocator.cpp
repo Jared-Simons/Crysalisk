@@ -81,6 +81,8 @@ namespace Utl
 		newHeader->Size = size;
 		pNewBlock = reinterpret_cast<u8*>(newHeader) + kAllocHeaderSize;
 
+		//CAssert(!(newHeader->Offset == 43066041 && newHeader->Size == 296));
+
 		return pNewBlock;
 	}
 
@@ -96,6 +98,8 @@ namespace Utl
 		CAssert(pMemoryBlock != nullptr);
 
 		AllocHeader_t* pHeader = reinterpret_cast<AllocHeader_t*>(reinterpret_cast<u8*>(pMemoryBlock) - kAllocHeaderSize);
+
+		//CAssert(!(pHeader->Offset == 43066041 && pHeader->Size == 296));
 
 		// Mark the memory as being free in the freelist.
 		m_FreeList.Free(pHeader->Size + kAllocHeaderSize, pHeader->Offset);

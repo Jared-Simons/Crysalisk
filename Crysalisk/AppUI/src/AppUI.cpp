@@ -36,8 +36,11 @@ namespace AppUI
 	class CAppUI : public IAppUI
 	{
 	public:
+		~CAppUI() {}
+
 		virtual bool	PreInitialize(struct ApplicationConfig_t* pAppConfig) override;
 		virtual bool	Initialize(struct ApplicationConfig_t* pConfig) override;
+		virtual void	Shutdown() override;
 
 		virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 		virtual void	Update() override;
@@ -165,7 +168,23 @@ namespace AppUI
 
 		pluginState = PLUGIN_STATE_INITIALIZED;
 
+		// FIXME: Letting this start from 0 and resize doesn't seem to work.
+		// It appears to be trying to free the same block of memory multiple times.
+		// This hack should settle things for now.
+		baseControls.Resize(20);
+
 		return true;
+	}
+
+	void CAppUI::Shutdown()
+	{
+		// Destroy all controls.
+		imagePanels.Purge();
+		buttons.Purge();
+		labels.Purge();
+		frames.Purge();
+		panels.Purge();
+		baseControls.Purge();
 	}
 
 	void CAppUI::FramePrepare(RenderPacket_t* pRenderPacket)
@@ -451,6 +470,9 @@ namespace AppUI
 			case CONTROL_TYPE_FRAME:
 				panel = frames[pParentBase->m_iControlDataIdx].panel;
 				break;
+			case CONTROL_TYPE_LABEL:
+				// FIXME: Implement this correctly.
+				break;
 			case CONTROL_TYPE_BUTTON:
 				panel = &buttons[pParentBase->m_iControlDataIdx].panel;
 				break;
@@ -459,8 +481,12 @@ namespace AppUI
 				break;
 			}
 
-			parentedX += panel->x;
-			parentedY += panel->y;
+			// HACK until the above is fixed.
+			if (pParentBase->m_eControlType != CONTROL_TYPE_LABEL)
+			{
+				parentedX += panel->x;
+				parentedY += panel->y;
+			}
 		}
 
 		switch (pBase->m_eControlType)
@@ -551,9 +577,8 @@ namespace AppUI
 		pChildBase->m_hParentControl = hParent;
 
 		// Go to the parent and assign the child.
-		// LEFTOFF: This is borked.
 		UIBaseControl_t* pParentBase = &baseControls[hParent];
-		//pParentBase->m_hChildrenControls.PushBack(hChild);
+		//pParentBase->children.PushBack(hChild);
 	}
 
 	void CAppUI::SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a)
@@ -710,11 +735,12 @@ namespace AppUI
 
 	static UIControlHandle_t GetAvailableBaseControl(CAppUI* pUIContext)
 	{
-		for (u32 iBase = 0; iBase < pUIContext->baseControls.Count(); iBase++)
+		for (u32 iBase = 0; iBase < pUIContext->baseControls.Capacity(); iBase++)
 		{
 			if (pUIContext->baseControls[iBase].m_eControlType == CONTROL_TYPE_UNDEFINED)
 			{
 				// Found an empty slot!
+				pUIContext->baseControls.PushBack(UIBaseControl_t{});
 				return iBase;
 			}
 		}

@@ -27,6 +27,8 @@ public:
 	virtual MeshInstance_t* AcquireMeshInstanceDataFromHandle(u32 hMeshInstance) const override;
 	virtual MeshBase_t*		AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const override;
 
+	virtual MeshHandle_t	AcquireMeshFromGeometryData(u64 vertexCount, u64 vertexStride, void* pVertices, u64 indexCount, void* pIndices, const char* pszMeshName) override;
+
 	virtual void			DrawGeometry(u32 hMeshInstance, class IShaderSystem* pShaderSystem) const override;
 	virtual void			DrawGeometryBySubmesh(u32 hMeshInstance, u32 iSubmesh, class IShaderSystem* pShaderSystem) const override;
 
@@ -479,6 +481,51 @@ MeshBase_t* CMeshSystem::AcquireMeshBaseDataFromHandle(MeshHandle_t hMesh) const
 	CASSERTMSG(hMesh != kInvalidID_U32, "AcquireMeshBaseDataFromHandle requires a valid mesh handle!");
 
 	return &m_MeshBases[hMesh];
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation
+//-------------------------------------------------------------------------
+MeshHandle_t CMeshSystem::AcquireMeshFromGeometryData(u64 vertexCount, u64 vertexStride, void* pVertices, u64 indexCount, void* pIndices, const char* pszMeshName)
+{
+	CASSERTMSG(vertexCount && vertexStride && pVertices && pszMeshName, "AcquireMeshFromGeometryData() requires nonzero vertexCount, vertexStride, vertex data, and a name.");
+
+	MeshLookup* pMeshLookup = &m_MeshLookup[pszMeshName];
+	CAssert(pMeshLookup->MeshHandle == kInvalidID_U32);
+
+	MeshHandle_t hMesh = GetFirstFreeMeshBaseIdx();
+
+	MeshBase_t* pMeshBase = &m_MeshBases[hMesh];
+	CAssert(pMeshBase->iMeshIdx == kInvalidID_U32);
+	pMeshBase->iMeshIdx = hMesh;
+
+	// Calculate local extents.
+	// NOTE: This assumes that position is always the first component of the vertex.
+	Vector* pVertStream = (Vector*)pVertices;
+	for (u32 iVert = 0; iVert < vertexCount; iVert++)
+	{
+		Vector* pCurVert = &pVertStream[iVert];
+
+		pMeshBase->vecMinExtents.x = { FloatMin(pMeshBase->vecMinExtents.x, pCurVert->x) };
+		pMeshBase->vecMinExtents.y = { FloatMin(pMeshBase->vecMinExtents.y, pCurVert->y) };
+		pMeshBase->vecMinExtents.z = { FloatMin(pMeshBase->vecMinExtents.z, pCurVert->z) };
+
+		pMeshBase->vecMaxExtents.x = { FloatMax(pMeshBase->vecMaxExtents.x, pCurVert->x) };
+		pMeshBase->vecMaxExtents.y = { FloatMax(pMeshBase->vecMaxExtents.y, pCurVert->y) };
+		pMeshBase->vecMaxExtents.z = { FloatMax(pMeshBase->vecMaxExtents.z, pCurVert->z) };
+	}
+
+	// Also the single submesh extents.
+	pMeshBase->submeshMinExtents.PushBack(pMeshBase->vecMinExtents);
+	pMeshBase->submeshMaxExtents.PushBack(pMeshBase->vecMaxExtents);
+	pMeshBase->submeshCenters.PushBack((pMeshBase->vecMinExtents + pMeshBase->vecMaxExtents) * 0.5f);
+
+	pMeshBase->renderData.Resize(1);
+
+	// Upload the geometry.
+	m_Config.pRenderer->AcquireGeometryResources(*m_pWorldVertexBuffer, *m_pWorldIndexBuffer, vertexCount, vertexStride, 0, pVertices, indexCount, pIndices, &pMeshBase->renderData[0]);
+
+	return hMesh;
 }
 
 //-------------------------------------------------------------------------
