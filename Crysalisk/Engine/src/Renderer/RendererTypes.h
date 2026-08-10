@@ -75,9 +75,9 @@ struct RenderPacket_t
 struct RenderMetrics_t
 {
 	// The frametime of the previous frame.
-	f64	FrameTime{ 0.0 };
+	f64		FrameTime{ 0.0 };
 	// The time in seconds since the last metrics update.
-	f64	TimeSinceLastMetricsUpdate{ 0.0 };
+	f64		TimeSinceLastMetricsUpdate{ 0.0 };
 	// The number of individual draw calls made this frame.
 	u32		NumDrawCalls{ 0 };
 	// The number of meshes frustum culled in the previous frame
@@ -86,6 +86,52 @@ struct RenderMetrics_t
 	u32		PreviousFrameFPS{ 0 };
 	// Number of frames rendered in the current frame.
 	u32		CurrentFrameFPS{ 0 };
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Actions to be taken during stencil testing.
+//-------------------------------------------------------------------------
+enum eStencilTestingOperations
+{
+	// Keeps the value currently stored in the stencil buffer.
+	STENCIL_OP_KEEP,
+	// Sets the stencil value to zero.
+	STENCIL_OP_ZERO,
+	// Replaces the value in the stencil buffer with the set reference value.
+	STENCIL_OP_REPLACE,
+	// Increments the value in the stencil buffer by 1 and clamps at the max value.
+	STENCIL_OP_INCREMENT_CLAMP,
+	// Increments the value in the stencil buffer by 1 and wraps to 0 when passing the max value.
+	STENCIL_OP_INCREMENT_WRAP,
+	// Decrements the value in the stencil buffer by 1 and clamps at the min value.
+	STENCIL_OP_DECREMENT_CLAMP,
+	// Decrements the value in the stencil buffer by 1 and wraps to the max value when passing 0.
+	STENCIL_OP_DECREMENT_WRAP,
+	// Bitwise-inverts the value in the stencil buffer.
+	STENCIL_OP_INVERT,
+};
+
+//-------------------------------------------------------------------------
+// Purpose: Stencil comparison functions.
+//-------------------------------------------------------------------------
+enum eStencilComparisonFunctions
+{
+	// The comparison always evaluates false.
+	STENCIL_COMP_NEVER,
+	// The comparison evaluates reference < test.
+	STENCIL_COMP_LESS,
+	// The comparison evaluates reference == test.
+	STENCIL_COMP_EQUAL,
+	// The comparison evaluates reference <= test.
+	STENCIL_COMP_LESS_OR_EQUAL,
+	// The comparison evaluates reference > test.
+	STENCIL_COMP_GREATER,
+	// The comparison evaluates reference != test.
+	STENCIL_COMP_NOT_EQUAL,
+	// The comparison evaluates reference >= test.
+	STENCIL_COMPARE_GREATER_OR_EQUAL,
+	// The comparison always evaluates true.
+	STENCIL_COMPARE_ALWAYS,
 };
 
 //-------------------------------------------------------------------------

@@ -169,9 +169,9 @@ u32 VulkanDevice::FindMemoryType(u32 typeFilter, VkMemoryPropertyFlags propertie
 VkFormat VulkanDevice::FindSupportedDepthFormat()
 {
 	Utl::CVector<VkFormat> formatCandidates{};
-	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT);
 	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT_S8_UINT);
 	formatCandidates.PushBack(VK_FORMAT_D24_UNORM_S8_UINT);
+	formatCandidates.PushBack(VK_FORMAT_D32_SFLOAT);
 
 	for (i32 idx = 0; idx < formatCandidates.Count(); idx++)
 	{

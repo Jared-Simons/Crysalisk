@@ -1077,12 +1077,17 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// Dynamic state
-	VkDynamicState						dynamicStates[2]{};
+	VkDynamicState						dynamicStates[5]{};
 	VkPipelineDynamicStateCreateInfo	dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 	dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
 	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
 
-	dynamicStateInfo.dynamicStateCount = 2;
+	// TODO: Stencil buffer test.
+	dynamicStates[2] = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
+	dynamicStates[3] = VK_DYNAMIC_STATE_STENCIL_OP;
+	dynamicStates[4] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+
+	dynamicStateInfo.dynamicStateCount = 4;
 	dynamicStateInfo.pDynamicStates = dynamicStates;
 
 	// Viewport
@@ -1798,6 +1803,110 @@ void CVulkanRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUnifor
 void CVulkanRenderer::SetDepthTestState(bool bEnabled)
 {
 	vkCmdSetDepthTestEnable(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, (VkBool32)bEnabled);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::SetStencilTestState(bool bEnabled)
+{
+	vkCmdSetStencilTestEnable(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle, (VkBool32)bEnabled);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+static VkStencilOp GetVulkanStencilOp(eStencilTestingOperations inOp)
+{
+	switch (inOp)
+	{
+	case STENCIL_OP_KEEP:
+	default:
+		return VK_STENCIL_OP_KEEP;
+	case STENCIL_OP_ZERO:
+		return VK_STENCIL_OP_ZERO;
+	case STENCIL_OP_REPLACE:
+		return VK_STENCIL_OP_REPLACE;
+	case STENCIL_OP_INCREMENT_CLAMP:
+		return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+	case STENCIL_OP_INCREMENT_WRAP:
+		return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+	case STENCIL_OP_DECREMENT_CLAMP:
+		return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+	case STENCIL_OP_DECREMENT_WRAP:
+		return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+	case STENCIL_OP_INVERT:
+		return VK_STENCIL_OP_INVERT;
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+static VkCompareOp GetVulkanCompareOp(eStencilComparisonFunctions inOp)
+{
+	switch (inOp)
+	{
+	case STENCIL_COMP_NEVER:
+	default:
+		return VK_COMPARE_OP_NEVER;
+	case STENCIL_COMP_LESS:
+		return VK_COMPARE_OP_LESS;
+	case STENCIL_COMP_EQUAL:
+		return VK_COMPARE_OP_EQUAL;
+	case STENCIL_COMP_LESS_OR_EQUAL:
+		return VK_COMPARE_OP_LESS_OR_EQUAL;
+	case STENCIL_COMP_GREATER:
+		return VK_COMPARE_OP_GREATER;
+	case STENCIL_COMP_NOT_EQUAL:
+		return VK_COMPARE_OP_NOT_EQUAL;
+	case STENCIL_COMPARE_GREATER_OR_EQUAL:
+		return VK_COMPARE_OP_GREATER_OR_EQUAL;
+	case STENCIL_COMPARE_ALWAYS:
+		return VK_COMPARE_OP_ALWAYS;
+	}
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp)
+{
+	VkStencilOp vkFailOp = GetVulkanStencilOp(failOp);
+	VkStencilOp vkDepthFailOp = GetVulkanStencilOp(depthFailOp);
+	VkStencilOp vkPassOp = GetVulkanStencilOp(passOp);
+
+	stencilPassOp = vkPassOp;
+	stencilFailOp = vkFailOp;
+	stencilPassDepthFailOp = vkDepthFailOp;
+
+	// TODO: Configurable stencil face masking.
+	vkCmdSetStencilOp(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle,
+					  VK_STENCIL_FACE_FRONT_AND_BACK, stencilFailOp, stencilPassOp, stencilPassDepthFailOp, stencilCompareOp);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::SetStencilCompareOp(eStencilComparisonFunctions compareOp)
+{
+	VkCompareOp vkOp = GetVulkanCompareOp(compareOp);
+
+	stencilCompareOp = vkOp;
+
+	vkCmdSetStencilOp(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle,
+		VK_STENCIL_FACE_FRONT_AND_BACK, stencilFailOp, stencilPassOp, stencilPassDepthFailOp, stencilCompareOp);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CVulkanRenderer::SetStencilReferenceValue(u8 refValue)
+{
+	stencilCurRefValue = refValue;
+
+	vkCmdSetStencilReference(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle,
+		VK_STENCIL_FACE_FRONT_AND_BACK, stencilCurRefValue);
 }
 
 //-------------------------------------------------------------------------

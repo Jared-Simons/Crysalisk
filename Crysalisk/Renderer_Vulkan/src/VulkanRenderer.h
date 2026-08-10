@@ -57,6 +57,11 @@ public:
 
 	virtual void	SetDepthTestState(bool bEnabled) override;
 
+	virtual void	SetStencilTestState(bool bEnabled) override;
+	virtual void	SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp) override;
+	virtual void	SetStencilCompareOp(eStencilComparisonFunctions compareOp) override;
+	virtual void	SetStencilReferenceValue(u8 refValue) override;
+
 	virtual bool	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) override;
 
 	virtual void	DrawGeometry(struct MeshRenderData_t* pRenderData, RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer) override;
@@ -111,16 +116,24 @@ public:
 #endif
 
 	// The number of frames that can be processed at once.
-	u32 m_MaxImagesInFlight{ 3 };
-	bool		m_bCurrentlyRendering[3]{ false };
-	i32			m_RenderMode{ 0 };
-	f64		m_flDeltaTime{ 0.0f };
-	f64		m_flLastFrameTime{ 0.0f };
-	u32	m_ImageIndex{ 0 };
-	u64		m_CurrentRendererFrame{ 0 };
-	bool		m_bWindowResized{ false };
-	bool		m_bResizingFramebuffer{ false };
+	u32					m_MaxImagesInFlight{ 3 };
+	bool				m_bCurrentlyRendering[3]{ false };
+	i32					m_RenderMode{ 0 };
+	f64					m_flDeltaTime{ 0.0f };
+	f64					m_flLastFrameTime{ 0.0f };
+	u32					m_ImageIndex{ 0 };
+	u64					m_CurrentRendererFrame{ 0 };
+	bool				m_bWindowResized{ false };
+	bool				m_bResizingFramebuffer{ false };
 	RendererConfig_t	m_RendererConfig{};
+
+	// Stencil testing state.
+	VkStencilOp	stencilFailOp{ VK_STENCIL_OP_KEEP };
+	VkStencilOp stencilPassDepthFailOp{ VK_STENCIL_OP_KEEP };
+	VkStencilOp stencilPassOp{ VK_STENCIL_OP_KEEP };
+	VkCompareOp	stencilCompareOp{ VK_COMPARE_OP_NEVER };
+
+	u8			stencilCurRefValue{ 0xFF };
 };
 
 extern IRendererBackend* g_pRendererBackend;

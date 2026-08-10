@@ -118,10 +118,16 @@ private:
 	IRendererBackend*	m_RendererBackend{ nullptr };
 	bool				m_bMinimized{ false };
 	Clock				m_RendererClock{};
-	f64				m_flLastFrameTime{};
+	f64					m_flLastFrameTime{};
 
-	u64				m_iCurrentRendererFrame{ kInvalidID_U64 };
-	u8				m_iRendererDebugMode{ 0 };
+	// Depth testing state.
+	bool				m_bDepthTestingEnabled{ false };
+
+	// Stencil testing state.
+	bool				m_bStencilTestingEnabled{ false };
+
+	u64					m_iCurrentRendererFrame{ kInvalidID_U64 };
+	u8					m_iRendererDebugMode{ 0 };
 
 	RenderMetrics_t		m_Metrics{};
 
@@ -369,6 +375,13 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	// Start rendering!
 	m_RendererBackend->BeginFrame(pTargetWindow, pRenderData);
 	SetDepthTestEnable(true);
+
+	// TODO: Stencil buffer test.
+	m_RendererBackend->SetStencilTestState(true);
+	m_RendererBackend->SetStencilOperations(STENCIL_OP_KEEP, STENCIL_OP_KEEP, STENCIL_OP_REPLACE);
+	m_RendererBackend->SetStencilCompareOp(STENCIL_COMP_EQUAL);
+	m_RendererBackend->SetStencilReferenceValue(0x00);
+
 	// Let the application render.
 	{		
 		for (i32 iView = 0; iView < m_pRenderViews.Count(); iView++)
@@ -703,7 +716,8 @@ void CRenderer::SetShaderUniform(Shader* pShader, ShaderUniform_t* pUniform, u32
 //-------------------------------------------------------------------------
 void CRenderer::SetDepthTestEnable(bool bEnabled)
 {
-	m_RendererBackend->SetDepthTestState(bEnabled);
+	m_bDepthTestingEnabled = bEnabled;
+	m_RendererBackend->SetDepthTestState(m_bDepthTestingEnabled);
 }
 
 //-------------------------------------------------------------------------

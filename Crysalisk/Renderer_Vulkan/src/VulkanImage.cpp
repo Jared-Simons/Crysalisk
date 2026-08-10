@@ -135,7 +135,7 @@ bool VulkanImage::TransitionImageLayout(CVulkanRenderer& pRenderingContext, VkIm
 	{
 		imageBarrier.srcAccessMask = 0;
 		imageBarrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;	// FIXME: Need to handle setups that don't support stencil buffers.
 
 		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 		destStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
