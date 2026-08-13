@@ -378,6 +378,9 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 		m_pUIContext->SetControlInteractable(hEntityModelNameEntry, true);
 	}
 
+	// Regenerate the UI control layout.
+	m_pUIContext->RegenerateRenderList();
+
 	DisplayEntityInspectorPanel(false);
 
 	// Give the UI layer focus by default.

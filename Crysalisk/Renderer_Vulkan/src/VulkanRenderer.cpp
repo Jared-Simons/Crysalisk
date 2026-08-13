@@ -419,6 +419,16 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 				// Otherwise, just load as is.
 				description.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 			}
+
+			// Also check stencil clear state.
+			if ((pConfig->clearFlags & RENDERPASS_CLEAR_STENCIL) != 0)
+			{
+				description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			}
+			else
+			{
+				description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			}
 			
 			// Always load and transition depth attachments to DEPTH_STENCIL_OPTIMAL.
 			description.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -434,8 +444,6 @@ bool CVulkanRenderer::CreateRenderpass(struct RenderpassConfig_t* pConfig, struc
 
 		description.samples = VK_SAMPLE_COUNT_1_BIT;	// No multi-sampling for now.
 		description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		// NOTE: Not using stencil-buffers for now.
-		description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
 
 		attachmentDescriptions.PushBack(description);
@@ -1077,7 +1085,7 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	// Dynamic state
-	VkDynamicState						dynamicStates[5]{};
+	VkDynamicState						dynamicStates[6]{};
 	VkPipelineDynamicStateCreateInfo	dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 	dynamicStates[0] = VK_DYNAMIC_STATE_VIEWPORT;
 	dynamicStates[1] = VK_DYNAMIC_STATE_SCISSOR;
@@ -1085,9 +1093,10 @@ bool CVulkanRenderer::CreateShader(Shader* pShader, ShaderConfig_t& pConfig)
 	// TODO: Stencil buffer test.
 	dynamicStates[2] = VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
 	dynamicStates[3] = VK_DYNAMIC_STATE_STENCIL_OP;
-	dynamicStates[4] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+	dynamicStates[4] = VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+	dynamicStates[5] = VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
 
-	dynamicStateInfo.dynamicStateCount = 4;
+	dynamicStateInfo.dynamicStateCount = 6;
 	dynamicStateInfo.pDynamicStates = dynamicStates;
 
 	// Viewport
@@ -1907,6 +1916,14 @@ void CVulkanRenderer::SetStencilReferenceValue(u8 refValue)
 
 	vkCmdSetStencilReference(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle,
 		VK_STENCIL_FACE_FRONT_AND_BACK, stencilCurRefValue);
+}
+
+void CVulkanRenderer::SetStencilWriteMask(u8 writeVal)
+{
+	stencilWriteMaskValue = writeVal;
+
+	vkCmdSetStencilWriteMask(m_GraphicsCommandBuffers[m_ImageIndex].m_Handle,
+		VK_STENCIL_FACE_FRONT_AND_BACK, stencilWriteMaskValue);
 }
 
 //-------------------------------------------------------------------------

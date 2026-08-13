@@ -62,6 +62,7 @@ public:
 	virtual void	SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp) = 0;
 	virtual void	SetStencilCompareOp(eStencilComparisonFunctions compareOp) = 0;
 	virtual void	SetStencilReferenceValue(u8 refValue) = 0;
+	virtual void	SetStencilWriteMask(u8 writeVal) = 0;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) = 0;
 

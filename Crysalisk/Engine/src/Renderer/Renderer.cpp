@@ -89,6 +89,12 @@ public:
 
 	virtual void			SetDepthTestEnable(bool bEnabled) override;
 
+	virtual void			SetStencilTestState(bool bEnabled) override;
+	virtual void			SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp) override;
+	virtual void			SetStencilCompareOp(eStencilComparisonFunctions compareOp) override;
+	virtual void			SetStencilReferenceValue(u8 refValue) override;
+	virtual void			SetStencilWriteMask(u8 writeVal) override;
+
 	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) override;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) override;
 
@@ -379,8 +385,9 @@ bool CRenderer::Update(Platform::IPlatformWindow* pTargetWindow, struct RenderPa
 	// TODO: Stencil buffer test.
 	m_RendererBackend->SetStencilTestState(true);
 	m_RendererBackend->SetStencilOperations(STENCIL_OP_KEEP, STENCIL_OP_KEEP, STENCIL_OP_REPLACE);
-	m_RendererBackend->SetStencilCompareOp(STENCIL_COMP_EQUAL);
+	m_RendererBackend->SetStencilCompareOp(STENCIL_COMPARE_ALWAYS);
 	m_RendererBackend->SetStencilReferenceValue(0x00);
+	m_RendererBackend->SetStencilWriteMask(0x00);
 
 	// Let the application render.
 	{		
@@ -718,6 +725,46 @@ void CRenderer::SetDepthTestEnable(bool bEnabled)
 {
 	m_bDepthTestingEnabled = bEnabled;
 	m_RendererBackend->SetDepthTestState(m_bDepthTestingEnabled);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetStencilTestState(bool bEnabled)
+{
+	m_RendererBackend->SetStencilTestState(bEnabled);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp)
+{
+	m_RendererBackend->SetStencilOperations(failOp, depthFailOp, passOp);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetStencilCompareOp(eStencilComparisonFunctions compareOp)
+{
+	m_RendererBackend->SetStencilCompareOp(compareOp);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetStencilReferenceValue(u8 refValue)
+{
+	m_RendererBackend->SetStencilReferenceValue(refValue);
+}
+
+//-------------------------------------------------------------------------
+// Purpose: TODO: Documentation.
+//-------------------------------------------------------------------------
+void CRenderer::SetStencilWriteMask(u8 writeVal)
+{
+	m_RendererBackend->SetStencilWriteMask(writeVal);
 }
 
 //-------------------------------------------------------------------------

@@ -171,6 +171,12 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	{
 		pUISystem->SetActiveControl(kInvalidID_U32);
 	}
+
+	// On changing console visibility, regenerate UI layout.
+	if (s_pConsoleMutex)
+	{
+		pUISystem->RegenerateRenderList();
+	}
 }
 
 void ConsoleSubmitCommand(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole)
@@ -299,6 +305,12 @@ static bool ConsoleEvent_WindowResized(void* pListener, EventData_t data)
 
 static void ConsoleEvent_MessageReceived(void* pListener, const char* pszMessage)
 {
+	// Dump if our mutex isn't ready.
+	if (!s_pConsoleMutex)
+	{
+		return;
+	}
+
 	// Ignore really long messages.
 	if ((u32)Utl::StringLength(pszMessage) >= 512)
 	{

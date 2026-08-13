@@ -141,7 +141,8 @@ bool VulkanSwapchain::CreateSwapchain(CVulkanRenderer& pRenderingContext, VkSurf
 	pOutSwapchain.m_DepthImageFormat = pRenderingContext.m_Device.FindSupportedDepthFormat();
 
 	// Create our depth image.
-	if (!VulkanImage::CreateImage(pRenderingContext, "__Swapchain_Depth_Image", pOutSwapchain.m_SwapchainExtent.width, pOutSwapchain.m_SwapchainExtent.height, pOutSwapchain.m_DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, pOutSwapchain.m_DepthImage))
+	// TODO: Handle cases where the selected image format has no stencil buffer support.
+	if (!VulkanImage::CreateImage(pRenderingContext, "__Swapchain_Depth_Stencil_Image", pOutSwapchain.m_SwapchainExtent.width, pOutSwapchain.m_SwapchainExtent.height, pOutSwapchain.m_DepthImageFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, pOutSwapchain.m_DepthImage))
 	{
 		LOG_ERROR("Failed to create swapchain depth buffer!");
 		return false;

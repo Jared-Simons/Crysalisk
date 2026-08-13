@@ -61,6 +61,7 @@ public:
 	virtual void	SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp) override;
 	virtual void	SetStencilCompareOp(eStencilComparisonFunctions compareOp) override;
 	virtual void	SetStencilReferenceValue(u8 refValue) override;
+	virtual void	SetStencilWriteMask(u8 writeVal) override;
 
 	virtual bool	AcquireGeometryResources(RenderBuffer* pVertexBuffer, RenderBuffer* pIndexBuffer, u64 iVertexCount, u64 iVertexStride, u64 iVertexBase, void* pVertices, u64 iIndexCount, void* pIndices, struct MeshRenderData_t* pOutRenderData) override;
 
@@ -134,6 +135,7 @@ public:
 	VkCompareOp	stencilCompareOp{ VK_COMPARE_OP_NEVER };
 
 	u8			stencilCurRefValue{ 0xFF };
+	u8			stencilWriteMaskValue{ 0xFF };
 };
 
 extern IRendererBackend* g_pRendererBackend;

@@ -103,6 +103,9 @@ bool CGameApp::Initialize(ApplicationConfig_t* pAppConfig)
 
 void CGameApp::Shutdown()
 {
+	// Shutdown the UI system.
+	m_pUISystem->Shutdown();
+
 	// Stop listening for events.
 	IEventSystem* pEventSystem = m_pApplicationConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler;
 	pEventSystem->EventUnregister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);

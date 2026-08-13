@@ -14,9 +14,6 @@
 // Engine
 #include <Renderer/RendererTypes.h>
 
-// Forward declarations
-struct GeometryInstance_t;
-
 namespace AppUI
 {
 	struct AppUIView_ExtendedData_t

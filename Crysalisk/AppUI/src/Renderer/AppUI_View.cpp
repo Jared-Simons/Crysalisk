@@ -103,6 +103,7 @@ namespace AppUI
 	void CAppUI_RenderView::Render(RenderPacket_t* pRenderData)
 	{
 		IFontSystem* pFontSystem = g_pEngine->GetEngineInterfaces()->pFontSystem;
+
 		if (m_pRenderer->BeginRenderpass(&m_Renderpass))
 		{
 			AppUIView_ExtendedData_t* pViewData = (AppUIView_ExtendedData_t*)pRenderData->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI];
@@ -110,6 +111,10 @@ namespace AppUI
 			for (u32 iRenderable = 0; iRenderable < pViewData->renderables.Count(); iRenderable++)
 			{
 				UIControlRenderData_t* pRenderable = pViewData->renderables[iRenderable];
+
+				// Enable writing to the stencil buffer.
+				m_pRenderer->SetStencilReferenceValue(pRenderable->iRenderPriority);
+				m_pRenderer->SetStencilWriteMask(0xFF);
 
 				if (pRenderable->geo.vertexCount == kInvalidID_U64)
 				{
@@ -138,7 +143,6 @@ namespace AppUI
 					CAssert(pRenderable->extendedRenderDataIdx != kInvalidID_U16);
 					UIImageRenderData_t* pExtendedImageData = pViewData->imageRenderData[pRenderable->extendedRenderDataIdx];
 
-					// LEFTOFF: This is causing validation issues in Vulkan.
 					if (!g_pEngine->GetEngineInterfaces()->pTextureSystem->IsTextureLoaded(pExtendedImageData->hTexture))
 					{
 						TextureHandle_t hDefault = g_pEngine->GetEngineInterfaces()->pTextureSystem->GetDefaultDiffuseTexture();
@@ -158,6 +162,9 @@ namespace AppUI
 					CAssert(0);
 				}
 				m_pRenderer->DrawGeometry(pRenderable->geo, pViewData->pVertexBuffer, pViewData->pIndexBuffer);
+
+				// Disable writing to the stencil buffer.
+				m_pRenderer->SetStencilWriteMask(0x00);
 			}
 
 			m_pRenderer->EndRenderpass();

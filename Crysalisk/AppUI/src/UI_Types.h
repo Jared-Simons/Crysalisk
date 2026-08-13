@@ -19,6 +19,12 @@ namespace AppUI
 {
 	typedef u32 UIControlHandle_t;
 
+	// LEFTOFF: The focused control should use this stencil reference value when rendering.
+	// Then, when rendering, any control with a lower stencil value will be overwritten by the focused control,
+	// regardless of render order.
+	// We should also be rendering the focused control first however.
+	const u8 kFocusedControlStencilReference = 255;
+
 	enum eControlType
 	{
 		CONTROL_TYPE_UNDEFINED = 0,
@@ -63,6 +69,8 @@ namespace AppUI
 
 		ShaderHandle_t	hShader{ kInvalidID_U32 };
 		u32				iShaderInstance{ kInvalidID_U32 };
+
+		u8				iRenderPriority{ 0 };
 
 		// Should this control be rendered?
 		bool visible{ true };

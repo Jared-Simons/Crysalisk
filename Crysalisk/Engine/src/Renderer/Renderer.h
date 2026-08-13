@@ -62,6 +62,12 @@ public:
 
 	virtual void			SetDepthTestEnable(bool bEnabled) = 0;
 
+	virtual void			SetStencilTestState(bool bEnabled) = 0;
+	virtual void			SetStencilOperations(eStencilTestingOperations failOp, eStencilTestingOperations depthFailOp, eStencilTestingOperations passOp) = 0;
+	virtual void			SetStencilCompareOp(eStencilComparisonFunctions compareOp) = 0;
+	virtual void			SetStencilReferenceValue(u8 refValue) = 0;
+	virtual void			SetStencilWriteMask(u8 writeVal) = 0;
+
 	virtual RenderBuffer*	CreateRenderBuffer(u64 bufferSize, eRenderBufferUsage bufferUsage, bool bUseFreelist, const char* pszBufferName) = 0;
 	virtual void			DestroyRenderBuffer(RenderBuffer& pBuffer) = 0;
 

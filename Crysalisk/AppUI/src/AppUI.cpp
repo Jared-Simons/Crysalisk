@@ -50,7 +50,10 @@ namespace AppUI
 		virtual void	AcquireInputFocus() override;
 		virtual void	LoseInputFocus() override;
 
-		virtual void	SetActiveControl(UIControlHandle_t hControl) override { hActiveControl = hControl; }
+		virtual void	SetActiveControl(UIControlHandle_t hControl) override { hActiveControl = hControl; RegenerateRenderList(); }
+
+		// Call this to recalculate the order in which UI elements should be rendered.
+		virtual void	RegenerateRenderList() override;
 
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) override;
 		virtual void				DestroyUIControl(UIControlHandle_t hControl) override;
@@ -85,6 +88,8 @@ namespace AppUI
 		IInputSystem*			m_pInputSystem{ nullptr };
 
 		InputMap_t m_InputHandler{};
+
+		Utl::CVector<u32>					orderedRenderList{};
 
 		Utl::CVector<UIControlRenderData_t>	renderables{};
 		Utl::CVector<UIImageRenderData_t>	imageRenderData{};
@@ -189,6 +194,12 @@ namespace AppUI
 
 	void CAppUI::FramePrepare(RenderPacket_t* pRenderPacket)
 	{
+		// If the ordered renderable list has not yet been generated, do that now.
+		if (orderedRenderList.Count() < 1)
+		{
+			RegenerateRenderList();
+		}
+
 		if (pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI] == nullptr)
 		{
 			pRenderPacket->pRenderViewExtendedData[RENDER_VIEW_TYPE_APPUI] = new AppUIView_ExtendedData_t;
@@ -213,11 +224,21 @@ namespace AppUI
 		pViewData->imageRenderData.Resize(imagePanels.Count());
 		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)m_RenderContext.currentSurfaceWidth, 0.0f, (f32)m_RenderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 
-		for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
+		/*for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
 		{
 			if (renderables[iRenderable].vertexCount)
 			{
 				pViewData->renderables.PushBack(&renderables[iRenderable]);
+			}
+		}*/
+
+		for (u32 iControl = 0; iControl < orderedRenderList.Count(); iControl++)
+		{
+			UIControlRenderData_t* pRenderable = &renderables[baseControls[orderedRenderList[iControl]].m_iRenderableIdx];
+
+			if (pRenderable->vertexCount)
+			{
+				pViewData->renderables.PushBack(pRenderable);
 			}
 		}
 
@@ -292,8 +313,7 @@ namespace AppUI
 							{
 								// FIXME: Need a better way to set input focus.
 								AcquireInputFocus();
-
-								hActiveControl = iControl;
+								SetActiveControl(iControl);
 							}
 						}
 					}
@@ -321,6 +341,32 @@ namespace AppUI
 	{
 		SetActiveControl(kInvalidID_U32);
 		m_pInputSystem->PopInputMap();
+	}
+
+	void CAppUI::RegenerateRenderList()
+	{
+		orderedRenderList.Clear();
+
+		// LEFTOFF: Need to incorporate parent/children hierarchy with this.
+		// All children of the focused control shoulde render with the same priority.
+
+		// For now, add all of the controls except the focused one in order.
+		for (u64 iControl = 0; iControl < baseControls.Count(); iControl++)
+		{
+			if (iControl != hActiveControl)
+			{
+				orderedRenderList.PushBack((u32)iControl);
+			}
+		}
+
+		// Make sure to place the focused control last!
+		if (hActiveControl != kInvalidID_U32)
+		{
+			orderedRenderList.PushBack(hActiveControl);
+
+			// Also set the stencil reference value so this control renders on top of everything else.
+			renderables[baseControls[hActiveControl].m_iRenderableIdx].iRenderPriority = kFocusedControlStencilReference;
+		}
 	}
 
 	UIControlHandle_t CAppUI::CreateUIControl(eControlType controlType)
@@ -400,7 +446,7 @@ namespace AppUI
 
 				imageRenderData.PushBack(UIImageRenderData_t{});
 				UIImageRenderData_t* pImageRenderData = &imageRenderData.Back();
-				pRenderable->extendedRenderDataIdx = imageRenderData.Count() - 1;
+				pRenderable->extendedRenderDataIdx = (u16)imageRenderData.Count() - 1;
 
 				CreateImagePanel(pNewBase, pRenderable, pImageRenderData, pImagePanelData, &m_RenderContext);
 				SetImagePanelImage(&renderables[pNewBase->m_iRenderableIdx], pImageRenderData, pImagePanelData, &m_RenderContext, 0, pImagePanelData->pCurGlyph);
@@ -578,7 +624,7 @@ namespace AppUI
 
 		// Go to the parent and assign the child.
 		UIBaseControl_t* pParentBase = &baseControls[hParent];
-		//pParentBase->children.PushBack(hChild);
+		pParentBase->children.PushBack(hChild);
 	}
 
 	void CAppUI::SetControlColor(UIControlHandle_t hControl, u8 r, u8 g, u8 b, u8 a)
