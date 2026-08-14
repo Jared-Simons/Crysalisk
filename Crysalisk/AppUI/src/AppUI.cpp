@@ -50,7 +50,7 @@ namespace AppUI
 		virtual void	AcquireInputFocus() override;
 		virtual void	LoseInputFocus() override;
 
-		virtual void	SetActiveControl(UIControlHandle_t hControl) override { hActiveControl = hControl; RegenerateRenderList(); }
+		virtual void	SetActiveControl(UIControlHandle_t hControl, bool bRegenerateControlLayout) override;
 
 		// Call this to recalculate the order in which UI elements should be rendered.
 		virtual void	RegenerateRenderList() override;
@@ -176,7 +176,7 @@ namespace AppUI
 		// FIXME: Letting this start from 0 and resize doesn't seem to work.
 		// It appears to be trying to free the same block of memory multiple times.
 		// This hack should settle things for now.
-		baseControls.Resize(20);
+		baseControls.Resize(40);
 
 		return true;
 	}
@@ -313,7 +313,7 @@ namespace AppUI
 							{
 								// FIXME: Need a better way to set input focus.
 								AcquireInputFocus();
-								SetActiveControl(iControl);
+								SetActiveControl(iControl, true);
 							}
 						}
 					}
@@ -339,33 +339,90 @@ namespace AppUI
 
 	void CAppUI::LoseInputFocus()
 	{
-		SetActiveControl(kInvalidID_U32);
+		SetActiveControl(kInvalidID_U32, false);
 		m_pInputSystem->PopInputMap();
+	}
+
+	void CAppUI::SetActiveControl(UIControlHandle_t hControl, bool bRegenerateControlLayout)
+	{
+		hActiveControl = hControl;
+
+		if (bRegenerateControlLayout)
+		{
+			RegenerateRenderList();
+		}
+	}
+
+	static void GetChildControls_r(Utl::CVector<UIBaseControl_t>* pBaseControls, Utl::CVector<UIControlHandle_t>* pOutChildren, UIControlHandle_t hParent)
+	{
+		CAssert(pBaseControls && pOutChildren && (hParent != kInvalidID_U32));
+
+		UIBaseControl_t* pBaseParent = &pBaseControls->Data()[hParent];
+
+		// Base case: no child controls.
+		if (pBaseParent->children.Count() == 0)
+		{
+			return;
+		}
+
+		// Add the controls first, then move to the children.
+		for (u64 iControl = 0; iControl < pBaseParent->children.Count(); iControl++)
+		{
+			pOutChildren->PushBack(pBaseParent->children[iControl]);
+		}
+
+		for (u64 iControl = 0; iControl < pBaseParent->children.Count(); iControl++)
+		{
+			GetChildControls_r(pBaseControls, pOutChildren, pBaseParent->children[iControl]);
+		}
 	}
 
 	void CAppUI::RegenerateRenderList()
 	{
 		orderedRenderList.Clear();
 
-		// LEFTOFF: Need to incorporate parent/children hierarchy with this.
-		// All children of the focused control shoulde render with the same priority.
+		// Get a list of the selected control and any possible children.
+		Utl::CVector<UIControlHandle_t> activeControls(32);
+		
+		// Include the parent as it is the selected control.
+		activeControls.PushBack(hActiveControl);
 
-		// For now, add all of the controls except the focused one in order.
+		if (hActiveControl != kInvalidID_U32)
+		{
+			GetChildControls_r(&baseControls, &activeControls, hActiveControl);
+		}
+
+		// For now, add all of the controls except the focused ones in order.
 		for (u64 iControl = 0; iControl < baseControls.Count(); iControl++)
 		{
-			if (iControl != hActiveControl)
+			bool bFocusedChild = false;
+			for (u64 iFocusedControl = 0; iFocusedControl < activeControls.Count(); iFocusedControl++)
+			{
+				if (iControl == activeControls[iFocusedControl])
+				{
+					bFocusedChild = true;
+					break;
+				}
+			}
+
+			if (!bFocusedChild)
 			{
 				orderedRenderList.PushBack((u32)iControl);
 			}
 		}
 
-		// Make sure to place the focused control last!
+		// Now place any focused controls and their childern last.
 		if (hActiveControl != kInvalidID_U32)
 		{
-			orderedRenderList.PushBack(hActiveControl);
+			for (u64 iControl = 0; iControl < activeControls.Count(); iControl++)
+			{
+				UIBaseControl_t* pBase = &baseControls[activeControls[iControl]];
 
-			// Also set the stencil reference value so this control renders on top of everything else.
-			renderables[baseControls[hActiveControl].m_iRenderableIdx].iRenderPriority = kFocusedControlStencilReference;
+				orderedRenderList.PushBack((u32)pBase->m_iRenderableIdx);
+
+				// Also set the stencil reference value so this control renders on top of everything else.
+				renderables[pBase->m_iRenderableIdx].iRenderPriority = kFocusedControlStencilReference;
+			}
 		}
 	}
 

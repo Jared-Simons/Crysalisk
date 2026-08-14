@@ -162,20 +162,19 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	// Set the active control
 	if (visible)
 	{
-		pUISystem->SetActiveControl(pConsole->hTextEntryControl);
+		// Set the background panel and force it to regenerate the layout so that the whole console
+		// draws on top of everything else.
+		pUISystem->SetActiveControl(pConsole->hBackgroundPanel, true);
+
+		// Then set the text control to allow it to recieve key inputs without regenerating the layout.
+		pUISystem->SetActiveControl(pConsole->hTextEntryControl, false);
 
 		// Give the console render priority.
 		pUISystem->SetRenderPriorityControl(pConsole->hBackgroundPanel);
 	}
 	else
 	{
-		pUISystem->SetActiveControl(kInvalidID_U32);
-	}
-
-	// On changing console visibility, regenerate UI layout.
-	if (s_pConsoleMutex)
-	{
-		pUISystem->RegenerateRenderList();
+		pUISystem->SetActiveControl(kInvalidID_U32, true);
 	}
 }
 

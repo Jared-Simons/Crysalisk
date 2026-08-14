@@ -794,7 +794,7 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 				pMesh->vecScale = Vector{ 1.0f, 1.0f, 1.0f };
 			}
 			// Deactivate the text control.
-			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32, false);
 		}
 		else if (hActiveControl == pEditorAppState->translationEntry.hTextEntry)
 		{
@@ -816,7 +816,7 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
 
 			// Deactivate the text control.
-			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32, false);
 		}
 		else if (hActiveControl == pEditorAppState->rotationEntry.hTextEntry)
 		{
@@ -838,7 +838,7 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
 
 			// Deactivate the text control.
-			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32, false);
 		}
 		else if (hActiveControl == pEditorAppState->scaleEntry.hTextEntry)
 		{
@@ -860,7 +860,7 @@ static bool Event_OnKeyPressed(void* pListener, EventData_t eventData)
 			RegenerateGeometryTransformMatrix(pSelectedInstanceData);
 
 			// Deactivate the text control.
-			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32);
+			pEditorAppState->m_pUIContext->SetActiveControl(kInvalidID_U32, false);
 		}
 
 cleanup_and_return:

@@ -50,7 +50,7 @@ namespace AppUI
 		virtual void	AcquireInputFocus() = 0;
 		virtual void	LoseInputFocus() = 0;
 
-		virtual void	SetActiveControl(UIControlHandle_t hControl) = 0;
+		virtual void	SetActiveControl(UIControlHandle_t hControl, bool bRegenerateControlLayout) = 0;
 		virtual void	RegenerateRenderList() = 0;
 
 		virtual UIControlHandle_t	CreateUIControl(eControlType controlType) = 0;

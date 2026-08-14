@@ -255,7 +255,7 @@ static bool Input_KeyEvent_Handler(void* pListener, u16 keyCode, bool pressed, k
 			pApp->m_pUISystem->AcquireInputFocus();
 
 			// Focus on the input text control.
-			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl);
+			pApp->m_pUISystem->SetActiveControl(pApp->m_Console.hTextEntryControl, false);
 		}
 	}
 
