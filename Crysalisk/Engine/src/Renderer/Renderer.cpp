@@ -243,6 +243,7 @@ bool CRenderer::Initialize(RendererConfig_t& pAppConfig)
 	// Renderer console commands.
 	ConVarSystemState* pConVar = pAppConfig.pEngine->GetEngineInterfaces()->pConVar;
 	ConsoleCommandRegister(pConVar, "r_clearcolor", CONVAR_VALUETYPE_VECTOR, ConVar_SetClearColor, this);
+	ConsoleCommandRegister(pConVar, "r_frustumculling", CONVAR_VALUETYPE_INT, nullptr, nullptr);
 
 	LOG_INFO("Renderer Initialized!");
 	return true;

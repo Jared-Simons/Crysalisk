@@ -7,6 +7,8 @@
 #include "Map.h"
 
 #include <Containers/CVector.h>
+#include <Core/ConVar.h>
+#include "Core/Engine.h"
 #include <Core/Logging.h>
 #include <Math/MathLib.h>
 #include <Math/Ray.h>
@@ -15,6 +17,8 @@
 #include "Systems/DebugGeometrySystem.h"
 #include "Systems/MaterialSystem.h"
 #include "Systems/MeshSystem.h"
+
+static u64 r_frustumculling_cmdidx = kInvalidID_U64;
 
 bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* pMaterialSystem, CMap& pOutMapResource)
 {
@@ -46,6 +50,13 @@ bool LoadMap(const char* pszMapName, IMeshSystem* pMeshSystem, IMaterialSystem* 
 
 	LOG_DEBUG("Memory usage post-map load: %.5f", g_pMemoryManager->GetPercentAllocated());
 
+	// Try to get relevant console commands while we're here.
+	struct ConVarSystemState* pConVar = g_pEngine->GetEngineInterfaces()->pConVar;
+	if (r_frustumculling_cmdidx == kInvalidID_U64)
+	{
+		r_frustumculling_cmdidx = ConsoleCommand_GetCommandIndex(pConVar, "r_frustumculling");
+	}
+
 	return true;
 }
 
@@ -69,10 +80,6 @@ bool CMap::InitializeFromResource(MapLoader::MapResource_t& pNewMapResource, IMe
 
 			// NOTE: Currently we need a pointer to the mesh so we can have DIRECT access to internal data (for frustum culling, which should be handled here,
 			// not in the mesh system). We can't get the necessary data (extents) immediately because mesh loading is async now.
-			// LEFTOFF: Need to move this code over to the new mesh base-instance setup.
-			
-			//pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshInstance(pCurMeshDec.pszModelName, pCurMeshDec.vecPosition, pCurMeshDec.vecAngles, pCurMeshDec.vecScale, true);
-			//pOutMap.m_hMeshes[iMesh].pMesh = pMeshSystem->AcquireMeshDataByHandle(pOutMap.m_hMeshes[iMesh].hMesh);
 
 			// Load up the base mesh assets.
 			MeshHandle_t hNewMesh = pOutMap.m_hMeshes[iMesh].hMesh = pMeshSystem->AcquireMeshBase(pCurMeshDec.pszModelName);
@@ -159,6 +166,9 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 	const MeshBase_t*		pCurBase = nullptr;
 	const MeshInstance_t*	pCurInstance = nullptr;	
 
+	struct ConVarSystemState* pConVar = g_pEngine->GetEngineInterfaces()->pConVar;
+	bool bFrustumCullingEnabled = ConsoleCommand_GetValue_Int(pConVar, r_frustumculling_cmdidx) > 0;
+
 	for (i32 iMesh = 0; iMesh < m_hMeshes.Count(); iMesh++)
 	{
 		pCurBase = m_hMeshes[iMesh].pMeshBaseData;
@@ -180,7 +190,8 @@ void CMap::GetRenderablesFromScene(class IMaterialSystem* pMaterialSystem, Frust
 				(f32)M_ABS(vecMaxExtents.z - vecCenter.z)
 			};
 
-			if (!pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
+			
+			if (bFrustumCullingEnabled && !pCameraFrustum.FrustumIntersectsAABB(vecCenter, vecHalfExtents))
 			{
 				bIsInCameraFrustum = false;
 			}

@@ -870,7 +870,7 @@ namespace Platform
 	//-------------------------------------------------------------------------
 	void* MemoryAllocate(u64 size)
 	{
-		void* pMemBlock = HeapAlloc(GetProcessHeap(), 0, size);
+		void* pMemBlock = VirtualAlloc(NULL, size, MEM_COMMIT, PAGE_READWRITE);
 
 		return pMemBlock;
 	}
@@ -885,7 +885,7 @@ namespace Platform
 	{
 		if (pMemBlock)
 		{
-			HeapFree(GetProcessHeap(), 0, pMemBlock);
+			VirtualFree(NULL, 0, MEM_RELEASE);
 		}
 	}
 

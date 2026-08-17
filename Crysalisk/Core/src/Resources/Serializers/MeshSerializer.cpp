@@ -191,8 +191,19 @@ namespace MeshSerializer
 				u32	texCoordIndices[3];
 
 				i32 elements = sscanf_s(szCurrentLine, "f %d/%d/%d %d/%d/%d %d/%d/%d\n", &positionIndices[0], &texCoordIndices[0], &normalIndices[0], &positionIndices[1], &texCoordIndices[1], &normalIndices[1], &positionIndices[2], &texCoordIndices[2], &normalIndices[2]);
+				
+				// Try a different format if necessary.
+				if (elements != 9)
+				{
+					elements = sscanf_s(szCurrentLine, "f %d//%d %d//%d %d//%d\n", &positionIndices[0], &normalIndices[0], &positionIndices[1], &normalIndices[1], &positionIndices[2], &normalIndices[2]);
+					vertexTexCoords.PushBack({ 0.0f, 0.0f });
+					texCoordIndices[0] = (u32)vertexTexCoords.Count() - 1;
+					vertexTexCoords.PushBack({ 0.0f, 1.0f });
+					texCoordIndices[1] = (u32)vertexTexCoords.Count() - 1;
+					texCoordIndices[2] = texCoordIndices[0];
+				}
 
-				CAssert(elements == 9);
+				CAssert(elements == 9 || elements == 6);
 
 				// Write the elements out to the mesh header.
 				CModel_MeshFaceData_t newFace{};
@@ -691,6 +702,12 @@ namespace MeshSerializer
 			u32& pIdx1 = pIndices[idx + 1];
 			u32& pIdx2 = pIndices[idx + 2];
 
+			if (pVertexIndices[pIdx0].iTexCoordIdx == kInvalidID_U32 || pVertexIndices[pIdx1].iTexCoordIdx == kInvalidID_U32 || pVertexIndices[pIdx2].iTexCoordIdx == kInvalidID_U32)
+			{
+				// At least one of these vertices have invalid texcoords, skip this vert.
+				continue;
+			}
+
 			Vector& pPos0 = pPositions[pVertexIndices[pIdx0].iPositionIdx];
 			Vector& pPos1 = pPositions[pVertexIndices[pIdx1].iPositionIdx];
 			Vector& pPos2 = pPositions[pVertexIndices[pIdx2].iPositionIdx];
@@ -753,18 +770,26 @@ namespace MeshSerializer
 
 		while (FileSystem::ReadLine(szCurrentLine, 2048, &iBytesRead, &hMtlFile))
 		{
-			iCurrentLineLength = Utl::StringLength(szCurrentLine);
+			char* pszTrimmedLine = Utl::StringTrim(szCurrentLine);
+			iCurrentLineLength = Utl::StringLength(pszTrimmedLine);
+
 			// Skip blank lines and comments.
-			if (iCurrentLineLength <= 0 || szCurrentLine[0] == '#')
+			if (iCurrentLineLength <= 0 || pszTrimmedLine[0] == '#')
 				continue;
 
-			u64 iSpaceIndex = Utl::StringIndexOf(szCurrentLine, ' ');
+			// FIXME/HACK: The StringTrim() method has a bug where it will take a line with a single tab and return a line with a single tab...
+			if (pszTrimmedLine[0] == '\t' && iCurrentLineLength == 1)
+			{
+				continue;
+			}
+
+			u64 iSpaceIndex = Utl::StringIndexOf(pszTrimmedLine, ' ');
 			CAssert(iSpaceIndex != kInvalidID_U32);
 
 			// Split into key/value pairs.
-			Platform::MemoryCopy(szKey, szCurrentLine, iSpaceIndex);
+			Platform::MemoryCopy(szKey, pszTrimmedLine, iSpaceIndex);
 			szKey[iSpaceIndex] = '\0';
-			Platform::MemoryCopy(szValue, &szCurrentLine[iSpaceIndex + 1], iBytesRead - iSpaceIndex);
+			Platform::MemoryCopy(szValue, &pszTrimmedLine[iSpaceIndex + 1], iBytesRead - iSpaceIndex);
 			szValue[iBytesRead - 1] = '\0';
 
 			char* pszTrimmedKey = Utl::StringTrim(szKey);
@@ -805,6 +830,9 @@ namespace MeshSerializer
 
 			Utl::StringFree(pszTrimmedKey);
 			pszTrimmedKey = nullptr;
+
+			Utl::StringFree(pszTrimmedLine);
+			pszTrimmedLine = nullptr;
 		}
 
 		FileSystem::CloseFile(&hMtlFile);

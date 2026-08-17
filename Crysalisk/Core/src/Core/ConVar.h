@@ -47,5 +47,8 @@ CORE_API void ShutdownConVarSystem(struct ConVarSystemState* pSystem);
 CORE_API bool ConsoleCommandRegister(struct ConVarSystemState* pSystem, char* commandName, eConVar_ValueType valueType, PFN_ConVar_Callback callback, void* listener);
 CORE_API void ConsoleCommandExecute(struct ConVarSystemState* pSystem, char* commandString);
 
+CORE_API u64  ConsoleCommand_GetCommandIndex(struct ConVarSystemState* pSystem, char* commandName);
+
 // FIXME: ConVar handles?
 CORE_API void ConsoleCommandSet_Int(struct ConVarSystemState* pSystem, char* commandName, i64 value);
+CORE_API i64 ConsoleCommand_GetValue_Int(struct ConVarSystemState* pConVar, u64 cmdIdx);

@@ -180,7 +180,7 @@ void CMemoryManager::Free(void* pMemBlock)
 //-------------------------------------------------------------------------
 void CMemoryManager::PrintMemoryStats()
 {
-	LOG_INFO("Bytes Allocated: %d", m_iNumBytesAllocated);
+	LOG_INFO("Bytes Allocated: %u/%u (%f)", m_iNumBytesAllocated, m_MemoryConfig.totalMemoryBudget, GetPercentAllocated());
 }
 
 f32 CMemoryManager::GetPercentAllocated() const

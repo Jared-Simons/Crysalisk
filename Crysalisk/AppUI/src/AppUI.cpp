@@ -224,14 +224,6 @@ namespace AppUI
 		pViewData->imageRenderData.Resize(imagePanels.Count());
 		pViewData->projectionMatrix = Matrix4x4::Orthographic(0.0f, (f32)m_RenderContext.currentSurfaceWidth, 0.0f, (f32)m_RenderContext.currentSurfaceHeight, 0.1f, 1000.0f);
 
-		/*for (u32 iRenderable = 0; iRenderable < renderables.Count(); iRenderable++)
-		{
-			if (renderables[iRenderable].vertexCount)
-			{
-				pViewData->renderables.PushBack(&renderables[iRenderable]);
-			}
-		}*/
-
 		for (u32 iControl = 0; iControl < orderedRenderList.Count(); iControl++)
 		{
 			UIControlRenderData_t* pRenderable = &renderables[baseControls[orderedRenderList[iControl]].m_iRenderableIdx];

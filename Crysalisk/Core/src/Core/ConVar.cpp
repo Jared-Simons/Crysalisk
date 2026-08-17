@@ -34,7 +34,7 @@ void ShutdownConVarSystem(struct ConVarSystemState* pSystem)
 bool ConsoleCommandRegister(struct ConVarSystemState* pSystem, char* commandName, eConVar_ValueType valueType, PFN_ConVar_Callback callback, void* listener)
 {
 	// FIXME: Handle duplicate command names?
-	CASSERTMSG(commandName && callback, "ConsoleCommandRegister() - requires a name and callback for the console command.");
+	CASSERTMSG(commandName, "ConsoleCommandRegister() - requires a name for the console command.");
 
 	pSystem->registeredCommands.PushBack(ConVar_t{});
 	ConVar_t* pNewVar = &pSystem->registeredCommands.Back();
@@ -153,7 +153,10 @@ void ConsoleCommandExecute(struct ConVarSystemState* pSystem, char* pCommandStri
 			}
 			else
 			{
-				pCurCommand->callback(pCurCommand, &pCurCommand->data);
+				if (pCurCommand->callback)
+				{
+					pCurCommand->callback(pCurCommand, &pCurCommand->data);
+				}
 			}
 			foundCommand = true;
 		}
@@ -179,6 +182,24 @@ cleanup_and_exit:
 	}
 }
 
+u64  ConsoleCommand_GetCommandIndex(struct ConVarSystemState* pSystem, char* commandName)
+{
+	CAssert(pSystem && commandName);
+
+	ConVar_t* pCurCommand = nullptr;
+	for (u32 iCmd = 0; iCmd < pSystem->registeredCommands.Count(); iCmd++)
+	{
+		pCurCommand = &pSystem->registeredCommands[iCmd];
+		if (Utl::StringCompare(pCurCommand->name, commandName))
+		{
+			// Found it.
+			return iCmd;
+		}
+	}
+
+	LOG_ERROR("Command '%s' does not exist.", commandName);
+}
+
 void ConsoleCommandSet_Int(struct ConVarSystemState* pSystem, char* commandName, i64 value)
 {
 	CAssert(pSystem && commandName);
@@ -200,4 +221,12 @@ void ConsoleCommandSet_Int(struct ConVarSystemState* pSystem, char* commandName,
 	{
 		LOG_ERROR("Command '%s' does not exist.", commandName);
 	}
+}
+
+i64 ConsoleCommand_GetValue_Int(struct ConVarSystemState* pConVar, u64 cmdIdx)
+{
+	CAssert(pConVar && cmdIdx != kInvalidID_U64);
+
+	ConVar_t* pCurCommand = &pConVar->registeredCommands[cmdIdx];
+	return pCurCommand->data.i64;
 }

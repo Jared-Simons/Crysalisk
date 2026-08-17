@@ -673,6 +673,11 @@ static u32 Editor_Raycast(CLevelEditorApp* pLevelEditor, Ray_t* pRay, bool bTest
 		// HACK until all geometry uses the new base/instance system.
 		if (iGeo > 0)
 		{
+			if (pCurBase->submeshCenters.Count() < 1)
+			{
+				return kInvalidID_U32;
+			}
+
 			vecCenter = pCurBase->submeshCenters[0];
 			vecMins = pCurBase->submeshMinExtents[0];
 			vecMaxs = pCurBase->submeshMaxExtents[0];

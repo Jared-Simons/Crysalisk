@@ -101,7 +101,8 @@ bool CreateEngineInstance(struct ApplicationConfig_t* pAppConfig)
 
 	// Stand up the memory manager.
 	ApplicationMemoryConfiguration_t memoryConfig{};
-	memoryConfig.totalMemoryBudget = MEBIBYTES(1000);
+	//memoryConfig.totalMemoryBudget = MEBIBYTES(1000);
+	memoryConfig.totalMemoryBudget = GIBIBYTES(2ULL);
 	if (!IMemoryManager::CreateMemorySystem(memoryConfig))
 	{
 		// This error is handled by a platform-specific message box, as the logging system technically isn't set up yet.

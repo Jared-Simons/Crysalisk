@@ -74,6 +74,7 @@ bool ConsoleCreate(AppUI::IAppUI* pUISystem, DeveloperConsole* pOutConsole)
 	pUISystem->SetControlPosition(pOutConsole->hTextEntryControl, 0, 170);
 	pUISystem->SetControlFont(pOutConsole->hTextEntryControl, "UbuntuMono-R.ttf", 20.0f);
 	pUISystem->SetControlText(pOutConsole->hTextEntryControl, "");
+	pUISystem->SetControlInteractable(pOutConsole->hTextEntryControl, true);
 
 	// Register for events.
 	IEventSystem* pEventSystem = g_pEngine->GetEngineInterfaces()->pEngineEventHandler;
