@@ -25,6 +25,8 @@ public:
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) = 0;
 	virtual void	Render(struct RenderPacket_t* pRenderPacket) = 0;
 
+	virtual void	OnWindowResized(u16 width, u16 height) = 0;
+
 	virtual void	SetCamera(struct Camera_t* pCamera) = 0;
 
 	Platform::ISysModule* pToolModule{ nullptr };

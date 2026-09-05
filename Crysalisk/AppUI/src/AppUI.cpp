@@ -79,7 +79,7 @@ namespace AppUI
 
 		virtual UIControlHandle_t GetActiveControl() const override { return hActiveControl; }
 
-		void			RegenerateControlGeometry(u32 newWidth, u32 newHeight);
+		virtual void	RegenerateControlGeometry(u32 newWidth, u32 newHeight) override;
 
 		enum ePluginInitializeState{ PLUGIN_STATE_NOT_INITIALIZED = 0, PLUGIN_STATE_PRE_INITIALIZED, PLUGIN_STATE_INITIALIZED };
 		u8 pluginState{ PLUGIN_STATE_NOT_INITIALIZED };
@@ -87,7 +87,8 @@ namespace AppUI
 		AppUIRenderContext_t	m_RenderContext{};
 		IInputSystem*			m_pInputSystem{ nullptr };
 
-		InputMap_t m_InputHandler{};
+		InputMap_t	m_InputHandler{};
+		bool		m_bHasInputFocus{ false };
 
 		Utl::CVector<u32>					orderedRenderList{};
 
@@ -146,9 +147,6 @@ namespace AppUI
 		}
 
 		LOG_INFO("Initializing AppUI framework");
-
-		// FIXME: Unregister this on plugin shutdown.
-		pAppConfig->pEngine->GetEngineInterfaces()->pEngineEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, this, Event_WindowResized);
 
 		// FIXME: Don't hardcode these.
 		m_RenderContext.currentSurfaceWidth = 1080;
@@ -271,7 +269,7 @@ namespace AppUI
 
 							// If the left mouse button is pressed, do the callback.
 							// FIXME: Only if it's a fresh click! No dragging a pressed cursor over the button.
-							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
+							if (g_pEngine->GetEngineInterfaces()->pInputSystem->WasMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
 							{
 								if (pCurrentControl->onPressedCallback)
 								{
@@ -301,7 +299,7 @@ namespace AppUI
 							(yPos >= pCurrentControl->y && yPos <= pCurrentControl->y + pCurrentControl->height))
 						{
 							// If the left mouse button is pressed, we can select the text.
-							if (g_pEngine->GetEngineInterfaces()->pInputSystem->IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
+							if (g_pEngine->GetEngineInterfaces()->pInputSystem->WasMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
 							{
 								// FIXME: Need a better way to set input focus.
 								AcquireInputFocus();
@@ -326,13 +324,22 @@ namespace AppUI
 
 	void CAppUI::AcquireInputFocus()
 	{
-		m_pInputSystem->PushInputMap(&m_InputHandler);
+		if (!m_bHasInputFocus)
+		{
+			m_pInputSystem->PushInputMap(&m_InputHandler);
+			m_bHasInputFocus = true;
+		}
 	}
 
 	void CAppUI::LoseInputFocus()
 	{
 		SetActiveControl(kInvalidID_U32, false);
-		m_pInputSystem->PopInputMap();
+
+		if (m_bHasInputFocus)
+		{
+			m_pInputSystem->PopInputMap();
+			m_bHasInputFocus = false;
+		}
 	}
 
 	void CAppUI::SetActiveControl(UIControlHandle_t hControl, bool bRegenerateControlLayout)
@@ -800,16 +807,22 @@ namespace AppUI
 						break;
 					case CONTROL_TYPE_IMAGE_PANEL:
 						pCurrentPanel = &imagePanels[pCurrentBase->m_iControlDataIdx].panel;
-						return;	// TODO: Handle resizing separately here since this geometry has different requirements.
-						break;
+						// TODO: Handle resizing separately here since this geometry has different requirements.
+						continue;
 					default:
 						CAssert(0);
 						break;
 					}
 					CAssert(pCurrentPanel);
 
+					f32 oldX = ((f32)pCurrentPanel->x / oldSurfaceWidth);
+					f32 oldY = ((f32)pCurrentPanel->y / oldSurfaceHeight);
+
+					u16 newX = (u16)(oldX * newWidth);
+					u16 newY = (u16)(oldY * newHeight);
+
 					// These will regenerate control geometry. FIXME: Just regenerate without setting fields?
-					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->x, pCurrentPanel->y, true);
+					SetPanelControlPosition(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, newX, newY, true);
 					SetPanelControlDimensions(pCurrentPanel, &renderables[pCurrentBase->m_iRenderableIdx], &m_RenderContext, pCurrentPanel->width, pCurrentPanel->height, true);
 				}
 				else
@@ -818,7 +831,13 @@ namespace AppUI
 					UIControlLabel_t* pLabel = &labels[pCurrentBase->m_iControlDataIdx];
 					UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
 
-					RegenerateLabelGeometry(pLabel, pRenderable, &m_RenderContext);
+					f32 oldX = ((f32)pLabel->x / oldSurfaceWidth);
+					f32 oldY = ((f32)pLabel->y / oldSurfaceHeight);
+
+					u16 newX = (u16)(oldX * newWidth);
+					u16 newY = (u16)(oldY * newHeight);
+
+					// FIXME: Make this work.
 				}
 			}
 		}
@@ -1043,6 +1062,7 @@ namespace AppUI
 	}
 
 	// FIXME: Move all mouse handling to this handler.
+	// FIXME: This needs to know if the a button was pressed or released...
 	static bool Input_MouseButtonEvent_Handler(void* pListener, u16 mouseButtonFlags)
 	{
 		CAppUI* pUIContext = (CAppUI*)pListener;

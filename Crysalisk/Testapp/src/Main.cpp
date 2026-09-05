@@ -39,6 +39,8 @@ public:
 
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 
+	virtual void	OnWindowResized(u16 width, u16 height) override {}	// NOTE: Does nothing for now.
+
 	virtual Camera_t* GetMainCamera() override { return &m_MainCamera; }
 
 private:

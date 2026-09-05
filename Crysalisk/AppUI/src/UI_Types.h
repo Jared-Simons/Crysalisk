@@ -52,10 +52,8 @@ namespace AppUI
 
 	enum eControlJustification
 	{
-		UI_CONTROL_JUSTIFICATION_RIGHT = 0x0,
-		UI_CONTROL_JUSTIFICATION_LEFT = 0x1,
-		UI_CONTROL_JUSTIFICATION_TOP = 0x2,
-		UI_CONTROL_JUSTIFICATION_BOTTOM = 0x3,
+		UI_CONTROL_JUSTIFICATION_TOP_RIGHT = 0x0,
+		UI_CONTROL_JUSTIFICATION_TOP_LEFT = 0x1,
 	};
 
 	struct UIControlRenderData_t
@@ -90,6 +88,7 @@ namespace AppUI
 		u32 m_iControlDataIdx{ kInvalidID_U32 };
 
 		UIControlHandle_t				m_hParentControl{ kInvalidID_U32 };
+		u8								m_iControlJustification{ UI_CONTROL_JUSTIFICATION_TOP_RIGHT };
 		bool							m_bInteractable{ false };	// Can this control be interacted with?
 
 		UIControlFlags	flags{ 0 };

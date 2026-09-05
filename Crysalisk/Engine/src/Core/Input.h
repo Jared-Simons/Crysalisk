@@ -53,6 +53,7 @@ public:
 
 	virtual bool	IsKeyPressed(const i32 key) const = 0;
 	virtual bool	IsMouseButtonPressed(eMouseButtonTable button) const = 0;
+	virtual bool	WasMouseButtonPressed(eMouseButtonTable button) const = 0;
 	virtual void	GetCurrentMousePos(i32& iX, i32& iY) = 0;
 };
 

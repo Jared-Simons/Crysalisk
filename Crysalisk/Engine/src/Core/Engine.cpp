@@ -200,6 +200,7 @@ bool CEngine::Initialize(EngineConfig_t engineConfig)
 	// Register for engine-level events.
 	IEventSystem* pEventHandler = m_EngineInterfaces.pEngineEventHandler;
 	pEventHandler->EventRegister(eEventCategory::APPLICATION_QUIT, nullptr, Event_ApplicationQuit);
+	pEventHandler->EventRegister(eEventCategory::WINDOW_RESIZE, nullptr, Event_WindowResized);
 	pEventHandler->EventRegister(eEventCategory::INPUT_KEY_PRESSED, nullptr, Event_KeyPressed);
 	pEventHandler->EventRegister(eEventCategory::INPUT_KEY_RELEASED, nullptr, Event_KeyReleased);
 	pEventHandler->EventRegister(eEventCategory::INPUT_MOUSE_BPRESSED, nullptr, Event_MouseButtonPressed);
@@ -383,8 +384,6 @@ bool CEngine::Run()
 			f64 deltaTime = currentFrameTime - m_LastUpdateTime;
 			m_LastUpdateTime = currentFrameTime;
 
-			m_EngineInterfaces.pInputSystem->Update();
-
 			// Update our app.
 			if (!m_pApplication->Run(deltaTime))
 			{
@@ -408,6 +407,8 @@ bool CEngine::Run()
 			}
 
 			m_EngineInterfaces.pRenderer->Update(m_pEngineWindow, m_FrameRenderData, &m_CurrentMap);
+
+			m_EngineInterfaces.pInputSystem->Update();
 		}
 	}
 
@@ -627,8 +628,8 @@ bool Event_MouseMoved(void* pEventListener, EventData_t data)
 static bool Event_WindowResized(void* pEventListener, EventData_t data)
 {
 	u32 width, height;
-	width = data.u16[0];
-	height = data.u16[1];
+	width = data.u32[0];
+	height = data.u32[1];
 
 	LOG_DEBUG("Window Resized: %d / %d", width, height);
 
@@ -639,6 +640,12 @@ static bool Event_WindowResized(void* pEventListener, EventData_t data)
 	else
 	{
 		s_bApplicationSuspended = false;
+	}
+
+	if (!s_bApplicationSuspended)
+	{
+		// Let the app handle any necessary logic.
+		s_Engine.GetApplication()->OnWindowResized(width, height);
 	}
 
 	return false;

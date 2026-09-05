@@ -35,6 +35,8 @@ public:
 	virtual bool Render(struct RenderPacket_t* pRenderPacket) override;
 	virtual void Shutdown() override;	
 
+	virtual void OnWindowResized(u16 width, u16 height) override;
+
 	virtual Camera_t* GetMainCamera() override { return &m_Camera; }
 
 	virtual bool LoadTool(const char* pszToolLibraryName);
@@ -210,6 +212,20 @@ void CEditorHubApp::Shutdown()
 	m_hButton_LoadLevelEditor = kInvalidID_U32;
 
 	m_pUISystem->Shutdown();
+}
+
+void CEditorHubApp::OnWindowResized(u16 width, u16 height)
+{
+	// Let the UI system regenerate controls first, then the app can handle any control-specific data afterward.
+	if (m_pUISystem)
+	{
+		m_pUISystem->RegenerateControlGeometry(width, height);
+	}
+
+	if (m_pTools[0])
+	{
+		m_pTools[0]->OnWindowResized(width, height);
+	}
 }
 
 bool CEditorHubApp::LoadTool(const char* pszToolLibraryName)

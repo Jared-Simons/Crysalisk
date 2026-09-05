@@ -50,6 +50,8 @@ public:
 	virtual void	FramePrepare(struct RenderPacket_t* pRenderPacket) override;
 	virtual void	Render(struct RenderPacket_t* pRenderPacket) override;
 
+	virtual void	OnWindowResized(u16 width, u16 height) override;
+
 	virtual void	SetCamera(struct Camera_t* pCamera) override { m_pCamera = pCamera; }
 
 private:
@@ -208,7 +210,6 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	pAppConfig->pApplication->GetMainCamera()->vecPosition = { 0.0f, 50.0f, 0.0f };
 
 	// Setup UI controls.
-	// FIXME: Would be nice to have the developer console render ontop of everything else when active.
 
 	// Load level editor image layout data.
 	if (!FontLoader::LoadFontAtlasLayoutFile("LevelEditor_UIAtlas_Layout", glyphData))
@@ -486,6 +487,14 @@ void CLevelEditorApp::FramePrepare(struct RenderPacket_t* pRenderPacket)
 void CLevelEditorApp::Render(struct RenderPacket_t* pRenderPacket)
 {
 	// TODO: Get rid of this and move all rendering to views?
+}
+
+void CLevelEditorApp::OnWindowResized(u16 width, u16 height)
+{
+	m_pUIContext->SetControlPosition(hMouseToolPanel, 0, 150);
+
+	// Make sure the entity inspector panel is properly positioned flush with the right side of the viewport.
+	m_pUIContext->SetControlPosition(hEntityInspectorPanel, width - 250, 200);
 }
 
 void CLevelEditorApp::HandleCameraMovement(f32 deltaTime)

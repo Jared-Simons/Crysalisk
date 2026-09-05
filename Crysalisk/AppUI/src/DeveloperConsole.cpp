@@ -157,6 +157,7 @@ void SetConsoleVisible(AppUI::IAppUI* pUISystem, DeveloperConsole* pConsole, boo
 	pUISystem->SetControlVisible(pConsole->hReadoutPanel, visible);
 	pUISystem->SetControlVisible(pConsole->hConsoleReadout, visible);
 	pUISystem->SetControlVisible(pConsole->hTextEntryControl, visible);
+	pUISystem->SetControlInteractable(pConsole->hTextEntryControl, visible);
 
 	pConsole->visible = visible;
 

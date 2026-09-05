@@ -35,6 +35,7 @@ public:
 
 	virtual bool	IsKeyPressed(const i32 key) const override;
 	virtual bool	IsMouseButtonPressed(eMouseButtonTable button) const override;
+	virtual bool	WasMouseButtonPressed(eMouseButtonTable button) const override;
 	virtual void	GetCurrentMousePos(i32& iX, i32& iY) override;
 
 private:
@@ -214,6 +215,7 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 {
 	if (pressed)
 	{
+		// FIXME: make these actual flags.
 		m_MouseState.m_bitsMouseButtons = mouseButtonFlags;
 
 		EventData_t eventData;
@@ -235,8 +237,8 @@ void CInputSystem::ProcessMouseButtonInput(byte mouseButtonFlags, bool pressed)
 	}
 	else
 	{
-		// Zero out the pressed mouse buttons.
-		m_MouseState.m_bitsMouseButtons = 0;
+		// Unset button bit.
+		m_MouseState.m_bitsMouseButtons &= ~(mouseButtonFlags);
 
 		EventData_t eventData;
 		eventData.u32[0] = mouseButtonFlags;
@@ -314,6 +316,22 @@ bool CInputSystem::IsKeyPressed(const i32 key) const
 bool CInputSystem::IsMouseButtonPressed(eMouseButtonTable button) const
 {
 	if (m_MouseState.m_bitsMouseButtons & button)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+//-------------------------------------------------------------------------
+// Purpose - Checks to see if 'button' was pressed in the previous frame.
+// Input - button: The mouse button value to check for.
+// Output - True if the button is currently pressed, otherwise false.
+//-------------------------------------------------------------------------
+bool CInputSystem::WasMouseButtonPressed(eMouseButtonTable button) const
+{
+	if ((m_MouseState.m_bitsMouseButtons & button) == 0 &&
+		(m_PrevMouseState.m_bitsMouseButtons & button) != 0)
 	{
 		return true;
 	}

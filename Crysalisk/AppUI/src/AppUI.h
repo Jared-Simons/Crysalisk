@@ -77,6 +77,8 @@ namespace AppUI
 		virtual void	SetControlInteractable(UIControlHandle_t hControl, bool bInteractable) = 0;
 
 		virtual UIControlHandle_t GetActiveControl() const = 0;
+
+		virtual void	RegenerateControlGeometry(u32 newWidth, u32 newHeight) = 0;
 	};
 
 } // namespace AppUI

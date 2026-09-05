@@ -595,7 +595,7 @@ bool CVulkanRenderer::BeginFrame(Platform::IPlatformWindow* pTargetWindow, Rende
 		return true;
 	}
 
-	// Wait for the prior frame to finish it's work.
+	// Wait for the prior frame to finish its work.
 	vkWaitForFences(m_Device.m_Device, 1, &m_InFlightFence, VK_TRUE, UINT64_MAX);
 
 	// Acquire the next swapchain image.

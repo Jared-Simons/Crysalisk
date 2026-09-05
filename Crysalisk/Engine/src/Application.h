@@ -42,5 +42,7 @@ public:
 	virtual bool	Render(struct RenderPacket_t* pRenderPacket) = 0;
 	virtual void	Shutdown() = 0;
 
+	virtual void	OnWindowResized(u16 width, u16 height) = 0;
+
 	virtual Camera_t*	GetMainCamera() = 0;
 };
