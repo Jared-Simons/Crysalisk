@@ -253,8 +253,9 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 	// TODO: Would be good to have buttons with image panels be a single control.
 	{
 		hSelectionToolButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-		m_pUIContext->SetControlParent(hSelectionToolButton, hMouseToolPanel);
-		m_pUIContext->SetControlPosition(hSelectionToolButton, 10, 10);
+		m_pUIContext->SetControlParent(hSelectionToolButton, hSelectionToolImage);
+		//m_pUIContext->SetControlPosition(hSelectionToolButton, 10, 10);
+		m_pUIContext->SetControlPosition(hSelectionToolButton, 0, 0);
 		m_pUIContext->SetControlDimensions(hSelectionToolButton, 80, 80);
 		m_pUIContext->SetControlVisible(hSelectionToolButton, false);
 		m_pUIContext->SetControlPressedCallback(hSelectionToolButton, ButtonEvent_ChangeTool_Selection, this);
@@ -262,8 +263,9 @@ bool CLevelEditorApp::Tool_Init(struct ApplicationConfig_t* pAppConfig)
 
 	{
 		hAddModelButton = m_pUIContext->CreateUIControl(AppUI::CONTROL_TYPE_BUTTON);
-		m_pUIContext->SetControlParent(hAddModelButton, hMouseToolPanel);
-		m_pUIContext->SetControlPosition(hAddModelButton, 10, 100);
+		m_pUIContext->SetControlParent(hAddModelButton, hAddModelImage);
+		//m_pUIContext->SetControlPosition(hAddModelButton, 10, 100);
+		m_pUIContext->SetControlPosition(hAddModelButton, 0, 0);
 		m_pUIContext->SetControlDimensions(hAddModelButton, 80, 80);
 		m_pUIContext->SetControlVisible(hAddModelButton, false);
 		m_pUIContext->SetControlPressedCallback(hAddModelButton, ButtonEvent_ChangeTool_AddModel, this);
@@ -495,6 +497,59 @@ void CLevelEditorApp::OnWindowResized(u16 width, u16 height)
 
 	// Make sure the entity inspector panel is properly positioned flush with the right side of the viewport.
 	m_pUIContext->SetControlPosition(hEntityInspectorPanel, width - 250, 200);
+
+	// Position mouse buttons properly (FIXME: This should be automatic on resize).
+	m_pUIContext->SetControlPosition(hSelectionToolButton, 0, 0);
+	m_pUIContext->SetControlPosition(hAddModelButton, 0, 0);
+
+	// Entity inspector panel label.
+	m_pUIContext->SetControlPosition(hEntityInspectorLabel, 0, 30);
+
+	// Translation control.
+	{
+		// Text label.
+		m_pUIContext->SetControlPosition(translationEntry.hLabel, 0, 100);
+
+		// Text panel.
+		m_pUIContext->SetControlPosition(translationEntry.hEntryPanel, 25, 105);
+
+		// Text entry.
+		m_pUIContext->SetControlPosition(translationEntry.hTextEntry, 30, 123);
+	}
+
+	// Rotation control.
+	{
+		// Text label.
+		m_pUIContext->SetControlPosition(rotationEntry.hLabel, 0, 153);
+
+		// Text panel.
+		m_pUIContext->SetControlPosition(rotationEntry.hEntryPanel, 25, 158);
+
+		// Text entry.
+		m_pUIContext->SetControlPosition(rotationEntry.hTextEntry, 30, 176);
+	}
+
+	// Scale control.
+	{
+		// Text label.
+		m_pUIContext->SetControlPosition(scaleEntry.hLabel, 0, 206);
+
+		// Text panel.
+		m_pUIContext->SetControlPosition(scaleEntry.hEntryPanel, 25, 211);
+
+		// Text entry.
+		m_pUIContext->SetControlPosition(scaleEntry.hTextEntry, 30, 229);
+	}
+
+	// Entity inspector model name label.
+	{
+		m_pUIContext->SetControlPosition(hEntityModelNameLabel, 0, 300);
+	}
+
+	// Entity inspector model name entry.
+	{
+		m_pUIContext->SetControlPosition(hEntityModelNameEntry, 30, 320);
+	}
 }
 
 void CLevelEditorApp::HandleCameraMovement(f32 deltaTime)

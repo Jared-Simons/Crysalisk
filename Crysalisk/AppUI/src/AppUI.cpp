@@ -90,6 +90,8 @@ namespace AppUI
 		InputMap_t	m_InputHandler{};
 		bool		m_bHasInputFocus{ false };
 
+		char*		m_pszDefaultFontName{ nullptr };
+
 		Utl::CVector<u32>					orderedRenderList{};
 
 		Utl::CVector<UIControlRenderData_t>	renderables{};
@@ -176,11 +178,17 @@ namespace AppUI
 		// This hack should settle things for now.
 		baseControls.Resize(40);
 
+		// TODO: Set from config?
+		m_pszDefaultFontName = Utl::StringDuplicate("UbuntuMono-R.ttf");
+
 		return true;
 	}
 
 	void CAppUI::Shutdown()
 	{
+		Utl::StringFree(m_pszDefaultFontName);
+		m_pszDefaultFontName = nullptr;
+
 		// Destroy all controls.
 		imagePanels.Purge();
 		buttons.Purge();
@@ -256,35 +264,42 @@ namespace AppUI
 					{
 						UIControlButton_t* pCurrentControl = &buttons[pCurrentBase->m_iControlDataIdx];
 
-						// Is the mouse hovering over the button?
-						if ((xPos >= pCurrentControl->panel.x && xPos <= pCurrentControl->panel.x + pCurrentControl->panel.width) &&
-						   (yPos >= pCurrentControl->panel.y && yPos <= pCurrentControl->panel.y + pCurrentControl->panel.height))
+						// Button must be active.
+						if (pCurrentBase->m_bInteractable)
 						{
-							// Button is hovered over, make sure we update our state.
-							Vector4D hoveredColor{ 0.0f, 1.0f, 0.0f, 1.0f };
-
-							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
-							m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
-								m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
-
-							// If the left mouse button is pressed, do the callback.
-							// FIXME: Only if it's a fresh click! No dragging a pressed cursor over the button.
-							if (g_pEngine->GetEngineInterfaces()->pInputSystem->WasMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
+							// Is the mouse hovering over the button?
+							if ((xPos >= pCurrentControl->panel.x && xPos <= pCurrentControl->panel.x + pCurrentControl->panel.width) &&
+								(yPos >= pCurrentControl->panel.y && yPos <= pCurrentControl->panel.y + pCurrentControl->panel.height))
 							{
-								if (pCurrentControl->onPressedCallback)
+								// Button is hovered over, make sure we update our state.
+								Vector4D hoveredColor{ 0.0f, 1.0f, 0.0f, 1.0f };
+
+								UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
+								m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
+									m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &hoveredColor);
+
+								LOG_WARN("HOVERING!!");
+
+								// If the left mouse button is pressed, do the callback.
+								// FIXME: Only if it's a fresh click! No dragging a pressed cursor over the button.
+								if (g_pEngine->GetEngineInterfaces()->pInputSystem->WasMouseButtonPressed(MOUSE_BUTTON_LEFT) && pCurrentBase->m_bInteractable)
 								{
-									pCurrentControl->onPressedCallback(pCurrentControl->callbackListenerInst);
+									if (pCurrentControl->onPressedCallback)
+									{
+										pCurrentControl->onPressedCallback(pCurrentControl->callbackListenerInst);
+									}
 								}
+
 							}
-						}
-						else
-						{
-							// Button is not hovered over, reset state.
-							// FIXME: Cache off shader uniform locations.
-							UIControlPanel_t* pPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
-							UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
-							m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
-								m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+							else
+							{
+								// Button is not hovered over, reset state.
+								// FIXME: Cache off shader uniform locations.
+								UIControlPanel_t* pPanel = &buttons[pCurrentBase->m_iControlDataIdx].panel;
+								UIControlRenderData_t* pRenderable = &renderables[pCurrentBase->m_iRenderableIdx];
+								m_RenderContext.m_pShaderSystem->SetShaderUniform(pRenderable->hShader,
+									m_RenderContext.m_pShaderSystem->GetShaderUniformLocation(pRenderable->hShader, "color"), 0, pRenderable->iShaderInstance, &pPanel->color);
+							}
 						}
 					}
 					break;
@@ -577,6 +592,9 @@ namespace AppUI
 				break;
 			case CONTROL_TYPE_BUTTON:
 				panel = &buttons[pParentBase->m_iControlDataIdx].panel;
+				break;
+			case CONTROL_TYPE_IMAGE_PANEL:
+				panel = &imagePanels[pParentBase->m_iControlDataIdx].panel;
 				break;
 			default:
 				CAssert(0);
@@ -1133,7 +1151,6 @@ namespace AppUI
 
 } // namespace AppUI
 
-// FIXME: Store this somewhere, doesn't need to be global.
 AppUI::CAppUI s_UISystem;
 AppUI::IAppUI* g_pUISystem = &s_UISystem;
 

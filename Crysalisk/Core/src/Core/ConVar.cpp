@@ -11,6 +11,9 @@
 #include "Containers/CVector.h"
 #include "Strings/String_Utils.h"
 
+// Forward Declarations.
+static void DumpAllConvars(struct ConVar_t* pCommand, void* pValue);
+
 struct ConVarSystemState
 {
 	Utl::CVector<ConVar_t>	registeredCommands{};
@@ -23,6 +26,9 @@ void AllocateConVarSystemState(struct ConVarSystemState** ppSystemState)
 
 bool InitializeConVarSystem(struct ConVarSystemState* pSystem)
 {
+	// Register the ConVar dump command.
+	ConsoleCommandRegister(pSystem, "cvar_dump_all", CONVAR_VALUETYPE_NONE, DumpAllConvars, pSystem);
+
 	return true;
 }
 
@@ -229,4 +235,16 @@ i64 ConsoleCommand_GetValue_Int(struct ConVarSystemState* pConVar, u64 cmdIdx)
 
 	ConVar_t* pCurCommand = &pConVar->registeredCommands[cmdIdx];
 	return pCurCommand->data.i64;
+}
+
+// Utility for dumping the names of all registered console commands
+static void DumpAllConvars(struct ConVar_t* pCommand, void* pValue)
+{
+	ConVarSystemState* pCvar = (ConVarSystemState*)pCommand->listenerInst;
+
+	u64 iCvarCount = pCvar->registeredCommands.Count();
+	for (u64 iCvar = 0; iCvar < iCvarCount; iCvar++)
+	{
+		LOG_DEBUG("%s", pCvar->registeredCommands[iCvar].name);
+	}
 }

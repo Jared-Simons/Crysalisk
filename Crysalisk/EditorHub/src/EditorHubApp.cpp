@@ -308,6 +308,7 @@ static void ButtonEvent_LoadTool_LevelEditor(void* pListenerInst)
 
 	// After launching the tool, hide the Hub UI.
 	pApp->m_pUISystem->SetControlVisible(pApp->m_hButton_LoadLevelEditor, false);
+	pApp->m_pUISystem->SetControlInteractable(pApp->m_hButton_LoadLevelEditor, false);	// FIXME: Should making a control invisible also make it non-interact
 	pApp->m_pUISystem->SetControlVisible(pApp->m_hButtonLabel_LoadLevelEditor, false);
 }
 
