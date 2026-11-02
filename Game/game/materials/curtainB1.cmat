@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_Curtain_01B_diff.png
+map_specular=Models/Bistro/Paris_Curtain_01B_spec.png
+map_normal=Models/Bistro/Paris_Curtain_01B_ddna.png
+specular_shininess=100.000

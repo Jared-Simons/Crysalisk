@@ -1,0 +1,32 @@
+name="Debug.Line"
+num_shader_stages=2
+renderview="Debug View"
+
+stages
+{
+	"Debug.Line.vert.spv", "vertex"
+	"Debug.Line.frag.spv", "fragment"
+}
+
+topology_type="line_list" 
+enable_depth_testing="true"
+enable_blending="true"
+
+# Vertex attributes 
+attributes
+{
+	"position", "vec3"
+}
+
+# Uniforms
+uniforms
+{
+	"projection", 	"mat4", 			"frame" 
+	"view", 		"mat4", 			"frame" 
+	"color",		"vec4",				"material" 
+	"dummy1",		"vec4",				"material" 
+	"dummy2",		"vec4",				"material" #TODO: Figure out how to handle uniform buffer alignment so that we don't have to do this padding in the shadercfg.
+	"dummy3",		"vec4",				"material" 
+	"dummy4",		"vec4",				"material" 
+	"model", 		"mat4", 			"draw" 
+} 

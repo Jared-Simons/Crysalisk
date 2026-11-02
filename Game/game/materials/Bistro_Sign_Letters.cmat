@@ -1,0 +1,3 @@
+shader=Core.Phong
+map_diffuse=..\OtherTextures\Colors\Grey_80.png
+specular_shininess=10.000

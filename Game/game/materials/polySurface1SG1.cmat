@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/DB2X2_L01.png
+map_specular=Models/DB2X2_L01_Spec.png
+specular_shininess=5.89

@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=alyx_faceandhair.tga
+map_specular=alyx_head_exponent.tga
+map_normal=alyx_head_normal.tga
+specular_shininess=250.000000

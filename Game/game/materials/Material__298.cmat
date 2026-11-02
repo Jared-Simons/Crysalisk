@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/background.tga
+map_specular=Models/background_spec.tga
+map_normal=Models/background_ddn.tga
+specular_shininess=10.0000

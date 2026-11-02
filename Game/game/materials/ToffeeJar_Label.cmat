@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_LiquorBottle_labels_01_Diff.png
+map_specular=Models/Bistro/Paris_LiquorBottle_labels_01_Spec.png
+map_normal=Models/Bistro/Paris_LiquorBottle_labels_01_ddna.png
+specular_shininess=100.000

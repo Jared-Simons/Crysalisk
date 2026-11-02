@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_manholecover_01b_diff.png
+map_specular=Models/Bistro/Paris_manholecover_01b_spec.png
+map_normal=Models/Bistro/Paris_manholecover_01b_ddna.png
+specular_shininess=100.000

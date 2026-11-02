@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_Cutlery_01_details_diff.png
+map_specular=Models/Bistro/Paris_Cutlery_01_details_spec.png
+specular_shininess=100.000

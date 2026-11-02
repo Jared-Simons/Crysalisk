@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_Building01_Window_01_diff.png
+map_specular=Models/Bistro/paris_building01_window_01_displ.png
+map_normal=Models/Bistro/Paris_Building01_Window_01_ddna.png
+specular_shininess=100.000

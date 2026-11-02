@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_MenuSign_01\Paris_MenuSign_01B_diff.png
+map_specular=Models/Bistro/Paris_MenuSign_01\Paris_MenuSign_01B_spec.png
+specular_shininess=15.850

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Bistro_Main_Door_Concrete_01A_diff.png
+map_specular=Models/Bistro/Bistro_Main_Door_Concrete_01A_spec.png
+specular_shininess=100.000

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_BistroFrontBanner_01\Paris_BistroFrontBanner_01_diff.png
+map_specular=Models/Bistro/Paris_BistroFrontBanner_01\Paris_BistroFrontBanner_01_spec.png
+specular_shininess=100.000

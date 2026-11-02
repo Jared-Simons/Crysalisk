@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=..\OtherTextures\Tiling\Brick_Large_01\brick_large_01_diff.png
+map_specular=..\OtherTextures\Tiling\Brick_Large_01\brick_large_01_spec.png
+specular_shininess=100.000

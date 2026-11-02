@@ -1,0 +1,15 @@
+"SelectionArrow"
+{
+	"MinX" "10"
+	"MaxX" "60"
+	"MinY" "5"
+	"MaxY" "49"
+}
+
+"AddModel"
+{
+	"MinX" "64"
+	"MaxX" "106"
+	"MinY" "8"
+	"MaxY" "38"
+}

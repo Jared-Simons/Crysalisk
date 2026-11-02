@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/sponza_floor_a_diff.tga
+map_specular=Models/sponza_floor_a_spec.tga
+map_normal=Models/sponza_floor_a_ddn.tga
+specular_shininess=10.0000

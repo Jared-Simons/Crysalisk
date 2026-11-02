@@ -1,0 +1,3 @@
+shader=Core.Phong
+map_diffuse=eyeball_r.tga
+specular_shininess=250.000000

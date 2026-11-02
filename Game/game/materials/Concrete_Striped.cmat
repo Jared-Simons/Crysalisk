@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=..\OtherTextures\Tiling\Concrete_Grooved_02\Concrete_Grooved_02_Diff.png
+map_normal=..\OtherTextures\Tiling\Concrete_Grooved_02\Concrete_Grooved_02_ddna.png
+map_specular=..\OtherTextures\Tiling\Concrete_Grooved_02\Concrete_Grooved_02_Spec.png
+specular_shininess=10.000

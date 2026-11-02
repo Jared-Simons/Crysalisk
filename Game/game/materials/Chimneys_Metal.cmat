@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=..\OtherTextures\Tiling\Grain_Metal_01\Grain_Metal_01_diff.png
+map_specular=..\OtherTextures\Tiling\Grain_Metal_01\Grain_Metal_01_spec.png
+specular_shininess=100.000

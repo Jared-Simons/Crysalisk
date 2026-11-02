@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Concrete2_BaseColor.png
+map_specular=Models/Bistro/Concrete2_Specular.png
+map_normal=Models/Bistro/Concrete2_Normal.png
+specular_shininess=10.000

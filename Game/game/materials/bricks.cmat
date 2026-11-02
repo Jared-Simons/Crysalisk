@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/spnza_bricks_a_diff.tga
+map_specular=Models/spnza_bricks_a_spec.tga
+map_normal=Models/spnza_bricks_a_ddn.tga
+specular_shininess=10.0000

@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Roofing_Shingle_03_diff.png
+map_normal=Models/Bistro/Roofing_Shingle_03_ddna.png
+map_specular=Models/Bistro/Roofing_Shingle_03_spec.png
+specular_shininess=100.000

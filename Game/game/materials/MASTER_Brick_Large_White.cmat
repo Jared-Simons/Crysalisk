@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_normal=Models/Bistro/brick_large_02_ddna.png
+map_specular=Models/Bistro/brick_large_02_spec.png
+map_diffuse=Models/Bistro/brick_large_02_diff.png
+specular_shininess=20.000	

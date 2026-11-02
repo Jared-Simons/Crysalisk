@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Concrete_Smooth_03_Diff.png
+map_specular=Models/Bistro/Concrete_Smooth_03_Spec.png
+map_normal=Models/Bistro/Concrete_Smooth_03_ddna.png
+specular_shininess=100.000

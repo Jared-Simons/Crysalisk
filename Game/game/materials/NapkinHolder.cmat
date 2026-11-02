@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=..\PropTextures\Bistro\Paris_NapkinHolder_01\Paris_Napkinholder_01_diff.png
+map_specular=..\PropTextures\Bistro\Paris_NapkinHolder_01\Paris_Napkinholder_01_spec.png
+specular_shininess=100.000

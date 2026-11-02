@@ -1,0 +1,3 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Cobble_02B_Diff.png
+specular_shininess=100.000

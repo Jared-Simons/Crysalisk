@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_ShopSign_01\Paris_ShopSign_bookshop_diff.png
+map_specular=Models/Bistro/Paris_ShopSign_01\Paris_ShopSign_bookshop_spec.png
+map_normal=Models/Bistro/Paris_ShopSign_01\Paris_ShopSign_bookshop_ddna.png
+specular_shininess=100.000

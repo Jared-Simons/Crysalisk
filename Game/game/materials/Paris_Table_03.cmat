@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/wood_polished_01_diff.png
+map_specular=Models/Bistro/wood_polished_01_spec.png
+specular_shininess=100.000

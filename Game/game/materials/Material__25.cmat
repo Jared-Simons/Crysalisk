@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/lion.tga
+map_specular=Models/lion_spec.tga
+map_normal=Models/lion_ddn.tga
+specular_shininess=10.0000

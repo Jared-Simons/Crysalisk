@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Pavement_Brick_01_Diff.png
+map_specular=Models/Bistro/Pavement_Brick_01_spec.png
+map_normal=Models/Bistro/Pavement_Brick_01_ddna.png
+specular_shininess=100.000

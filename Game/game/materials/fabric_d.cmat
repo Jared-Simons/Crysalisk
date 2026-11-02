@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/sponza_fabric_blue_diff.tga
+map_specular=Models/sponza_fabric_spec.tga
+map_normal=Models/sponza_fabric_ddn.tga
+specular_shininess=10.0000

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=alyx_sheet.tga
+map_normal=alyx_sheet_normal.tga
+specular_shininess=250.000000

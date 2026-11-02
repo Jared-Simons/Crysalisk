@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Glass_Dirty_01_Diff.png
+map_specular=Models/Bistro/Glass_Dirty_01_spec.png
+specular_shininess=1024.000

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Pavement_Cobblestone_01_b_Diff.png
+map_normal=Models/Bistro/Pavement_Cobblestone_01_b_ddna.png
+specular_shininess=100.000

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=..\PropTextures\Bistro\Paris_LiquorBottle_01\Paris_LiquorBottle_01_Cap_Diff.png
+map_specular=..\PropTextures\Bistro\Paris_LiquorBottle_01\Paris_LiquorBottle_01_Cap_Spec.png
+specular_shininess=100.000

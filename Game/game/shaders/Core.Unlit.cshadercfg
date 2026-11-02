@@ -1,0 +1,31 @@
+name="Core.Unlit"
+num_shader_stages=2
+renderview="3D Scene View"
+
+stages
+{
+	"Core.Unlit.vert.spv", "vertex"
+	"Core.Unlit.frag.spv", "fragment"
+}
+
+topology_type="triangle_list" 
+enable_depth_testing="false"
+enable_blending="true"
+
+# Vertex attributes
+attributes
+{
+	"position", "vec3"
+}
+
+# Uniforms
+uniforms
+{
+	"projection", 	"mat4", 		"frame" 
+	"view", 		"mat4", 		"frame" 
+	"color",		"vec4", 		"material"
+	"padding1",		"vec4", 		"material"	# FIXME: Shouldn't have to pad here, do it in the renderer backend
+	"padding2",		"vec4", 		"material"
+	"padding3",		"vec4", 		"material"
+	"model", 		"mat4", 		"draw" 
+}

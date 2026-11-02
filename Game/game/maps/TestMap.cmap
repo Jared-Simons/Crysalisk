@@ -1,0 +1,104 @@
+# Map Properties
+map_version=1
+map_name=Crysalisk_Test_Level
+
+# Static Meshes
+geometry=static_mesh
+{
+	name="sponza"
+	model_resource="sponza"
+
+	# Transform
+	position="50 0 0"
+	rotation="0 0 0"
+	scale="1 1 1"
+}
+
+geometry=static_mesh
+{
+	name="container"
+	model_resource="Monke"
+
+	# Transform
+	position="50 0 0"
+	rotation="0 58 0"
+	scale="100 100 100"
+}
+
+geometry=static_mesh
+{
+	name="Tree"
+	model_resource="Tree"
+
+	# Transform
+	position="655 -30 106"
+	rotation="0 90 0"
+	scale="100 100 100"
+}
+
+entity=light_environment
+{
+	rotation="-10.0 -57.0 -17.0"
+	lightColor="240 185 130"
+	brightness="0.7"
+	ambientLightColor="104 133 162"
+	ambientLightStrength="0.3"
+}
+
+entity=light_point
+{
+	# Combine citadel light
+	position="-451 135 -267"
+	lightColor="147 226 240"
+	attenConstant="1.0"
+	attenLinear="0.0"
+	attenQuadratic="0.000001"
+	brightness="0"
+}
+
+entity=light_point
+{
+	# Firelight
+	position="655 53 106"
+	lightColor="251 125 0"
+	attenConstant="1.0"
+	attenLinear="0.060"
+	attenQuadratic="0.075"
+	brightness="400"
+}
+
+entity=light_point
+{
+	# Car headlights
+	position="838 1199 -27"
+	lightColor="221 223 192"
+	attenConstant="1.0"
+	attenLinear="0.0"
+	attenQuadratic="0.0000008"
+	brightness="1"
+}
+
+entity=light_point
+{
+	# Red warning light
+	position="-980 1169 -37"
+	lightColor="232 17 17"
+	attenConstant="1.0"
+	attenLinear="1.0"
+	attenQuadratic="0.5"
+	brightness="500"
+}
+
+entity=light_spot
+{
+	# Combine citadel light (spotlight edition!)
+	position="-815 147 0"
+	direction="0 5 -90"
+	lightColor="107 214 229"
+	attenConstant="1.0"
+	attenLinear="1.0"
+	attenQuadratic="0.0"
+	brightness="255"
+	innerAngle="10.5"
+	outerAngle="14.5"
+}

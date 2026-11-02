@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_StreetLight_01\Street_decals_diff.png
+map_specular=Models/Bistro/Paris_StreetLight_01\Street_decals_spec.png
+specular_shininess=100.000

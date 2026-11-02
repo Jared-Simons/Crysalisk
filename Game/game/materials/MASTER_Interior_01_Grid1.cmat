@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Metal_Hexagonal_Grid_01_diff.png
+map_specular=Models/Bistro/Metal_Hexagonal_Grid_01_spec.png
+map_normal=Models/Bistro/Metal_Hexagonal_Grid_01_ddna.png
+specular_shininess=100.000

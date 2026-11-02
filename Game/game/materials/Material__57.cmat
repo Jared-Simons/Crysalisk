@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/vase_plant.tga
+map_specular=Models/vase_plant_spec.tga
+map_normal=Models/vase_plant_ddn.tga
+specular_shininess=10.0000

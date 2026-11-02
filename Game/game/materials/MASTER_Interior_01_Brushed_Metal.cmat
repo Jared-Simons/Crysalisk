@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/paris_brushed_metal_diff.png
+map_specular=Models/Bistro/paris_brushed_metal_spec.png
+map_normal=Models/Bistro/paris_brushed_metal_ddna.png
+specular_shininess=100.000

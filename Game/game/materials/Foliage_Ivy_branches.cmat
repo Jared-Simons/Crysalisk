@@ -1,0 +1,3 @@
+shader=Core.Phong
+map_diffuse=..\PropTextures\Natural\Paris_ivy_01a\Paris_ivy_branch_diff.png
+specular_shininess=100.000

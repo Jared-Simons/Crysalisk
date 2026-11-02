@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Plastic_01_Diff.png
+map_specular=Models/Bistro/Plastic_01_Spec.png
+specular_shininess=100.000

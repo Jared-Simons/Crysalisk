@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_Cotton_Placemat_01_Diff.png
+map_specular=Models/Bistro/Paris_Cotton_Placemat_01_Spec.png
+specular_shininess=100.000

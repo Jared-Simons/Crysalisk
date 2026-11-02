@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_PlantPot_01\Paris_PlantPot_01A_diff.png
+map_normal=Models/Bistro/Paris_PlantPot_01\Paris_PlantPot_01A_ddna.png
+specular_shininess=100.000

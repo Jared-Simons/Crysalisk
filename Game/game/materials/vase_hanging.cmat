@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_diffuse=Models/vase_hanging.tga
+map_specular=Models/vase_hanging_spec.tga
+map_normal=Models/vase_hanging_ddn.tga
+specular_shininess=10.0000

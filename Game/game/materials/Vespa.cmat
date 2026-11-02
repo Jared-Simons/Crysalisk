@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/Paris_VespaScooter_01\Paris_VespaScooter_01_diff.png
+map_specular=Models/Bistro/Paris_VespaScooter_01\Paris_VespaScooter_01_spec.png
+specular_shininess=100.000

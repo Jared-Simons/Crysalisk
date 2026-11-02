@@ -1,0 +1,3 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/wood_painted_flat_cyan_01_diff.png
+specular_shininess=50.000

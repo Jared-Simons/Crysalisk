@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=..\PropTextures\Natural\Buxus\buxus_diff.png
+map_normal=..\PropTextures\Natural\Buxus\buxus_ddna.png
+specular_shininess=1.000

@@ -1,0 +1,5 @@
+shader=Core.Phong
+map_normal=Models/Bistro/Trim_cornice_01_spec.png
+map_normal=Models/Bistro/Trim_cornice_01_ddna.png
+map_diffuse=Models/Bistro/Trim_cornice_01_diff.png
+specular_shininess=100.000

@@ -1,0 +1,4 @@
+shader=Core.Phong
+map_diffuse=Models/Bistro/paris_bistroawning_fabric_01a_diff.png
+map_specular=Models/Bistro/Paris_BistroAwning_Fabric_01A_spec.png
+specular_shininess=100.000
